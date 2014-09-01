@@ -5,7 +5,6 @@ SMD resistors (0805):
 
 - 200R :         4x 
 - 500R :         6x 
-- 2k :           6x
 - 9k1 :          4x
 - 10k :          12x (ideally, matched in pairs) 
 - 33k :          4x
