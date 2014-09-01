@@ -61,7 +61,7 @@ misc through-hole:
 
 
 * 
-- something fancier (suitable) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). i've tried,   
+- something fancier (suitable, $$) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). i've tried,   
   and wasn't sure the difference that it might make is all that relevant.
 
 **
