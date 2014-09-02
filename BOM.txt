@@ -23,18 +23,18 @@ ICs/semis:
 - TL074* (SOIC) : 3x  
 - DAC8565 (TSSOP): 1x
 - NPN transistors (MMBT3904, SOT-23) 4x
-- 1N5817 (diode): 2x
+- 1N5817 (diode, DO-41): 2x
 - BAT54S (Schottky (dual/series) SOT-23): 4x
 - BAT42  (Schottky (minimelf)): 4x
 - LM4040-2.5 (SOT-23) : 1x (optional**)
 
-misc through-hole:
+misc *through-hole*:
 
-- 22uF (electrolytic) : 2x
-- 100nf (RM2.5): 1x
-- 100nF (RM5)  : 1x
-- 150nF (RM5)  : 1x
-- inductor (10uH): 1x
+- 22uF  (electrolytic) : 2x
+- 100nf (film/ceramic, RM2.5) : 1x
+- 100nF (film/ceramic, RM5)   : 1x
+- 150nF (film, RM5)   : 1x
+- 10uH inductor : 1x 
 - 7805   5v regulator: 1x (TO 220)
 - 79L05 -5v regulator: 1x (TO 92)
 - 78L33 3v3 regulator: 1x (TO 92)
