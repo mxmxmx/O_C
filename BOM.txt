@@ -7,7 +7,7 @@ SMD resistors (0805):
 - 500R :         6x 
 - 9k1 :          4x
 - 10k :          12x (ideally, matched in pairs) 
-- 33k :          4x
+- 33k :          8x  
 - 49k9:          4x
 - 100k :         20x
 
@@ -25,7 +25,6 @@ ICs/semis:
 - NPN transistors (MMBT3904, SOT-23) 4x
 - 1N5817 (diode, DO-41): 2x
 - BAT54S (Schottky (dual/series) SOT-23): 4x
-- BAT42  (Schottky (minimelf)): 4x
 - LM4040-2.5 (SOT-23) : 1x (optional**)
 
 misc *through-hole*:
