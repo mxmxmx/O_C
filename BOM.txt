@@ -35,7 +35,7 @@ misc *through-hole*:
 - 150nF (film, RM5)   : 1x
 - 10uH inductor : 1x 
 - 7805   5v regulator: 1x (TO 220)
-- 79L05 -5v regulator: 1x (TO 92)
+- 79L05 -5v regulator: 1x (TO 92) (or use (or LM4040-5 + 470R (0805))) (***)
 - 78L33 3v3 regulator: 1x (TO 92)
 
 
@@ -67,3 +67,5 @@ misc *through-hole*:
 - the lm4040 is not really needed, but if installed this requires adjusting some values to get the ADC range approx. right (2v5 rather than 3v3); 
   specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
  
+*** as above: the LM4040 is not really needed in this application, but it'll improve ADC performance.
+
