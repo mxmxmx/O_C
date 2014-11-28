@@ -67,7 +67,9 @@ misc *through-hole*:
 - the lm4040 is not really needed, but if installed this requires adjusting some values to get the ADC range approx. right (2v5 rather than 3v3); 
   specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
  
-*** as above: the LM4040 is not really needed in this application, but it'll improve ADC performance.
+*** 
+- as above: the LM4040 is not really needed in this application, but it'll improve ADC performance.
 
-**** rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc)
+**** 
+- rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc)
 
