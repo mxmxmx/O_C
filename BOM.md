@@ -37,7 +37,7 @@
 - 7805   5v regulator: 1x (TO 220)
 - 79L05 -5v regulator: 1x (TO 92) (or use (or LM4040-5 + 470R (0805))) (***)
 - 78L33 3v3 regulator: 1x (TO 92)
-- miniature switch (pcb mount); on/off (SPDT) : 1x (or, if fixed bipolar/unipolar output is ok: 1x3 pin header (2.54mm) + jumper)
+- **miniature** (!) switch (pcb mount); on/off (SPDT) : 1x (or, if fixed bipolar/unipolar output is ok: 1x3 pin header (2.54mm) + jumper)
 - trimpot 100k (inline / 9.5mm): 1x
 - trimpot 2k   (inline / 9.5mm): 4x
 - jacks: 'thonkiconn' (or kobiconn): 12x
@@ -48,18 +48,16 @@
 - 1x14 sockets + matching pin headers : 2x (for teensy 3.1; best to use "machine pin" ones, the pcb holes are smallish)
 - tact switches (multimecs 5E/5G): 2x (mouser #: 642-5GTH935)
 - + caps (multimecs 1SS09-15.0 or -16.0): 2x (mouser #: 642-1SS09-15.0, or -16.0)
-- teensy3.x : 1x (cut the usb/power trace)
+- teensy3.x : 1x **(cut the V_usb/power trace)**
 - oled: i've used these: http://www.ebay.com/itm/New-Blue-1-3-IIC-I2C-Serial-128-x-64-OLED-LCD-LED-Display-Module-for-Arduino-/261465635352  [ the pinout should be: GND - VCC - D0 - D1 - RST - DC - CS  : adafruit's 128x64 (http://www.adafruit.com/products/326) should work as well (in terms of the hardware), at least the corresponding pads are on the pcb as well (untested).
 
 
 #Notes:
 
 
-(*) something fancier (suitable, $$) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). i've tried,   
-  and wasn't sure the difference that it might make is all that relevant.
+(*) something fancier (suitable, $$) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). i've tried, and wasn't sure the difference that it might make is all that relevant.
 
-(**) the lm4040 is not really needed, but if installed this requires adjusting some values to get the ADC range approx. right (2v5 rather than 3v3); 
-  specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
+(**) the lm4040 is not really needed, but if installed this requires adjusting some values to get the ADC range approx. right (2v5 rather than 3v3); specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
  
 (***) as above: the LM4040 is not really needed in this application, but it'll improve ADC performance.
 
