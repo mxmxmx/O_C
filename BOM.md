@@ -52,6 +52,8 @@
 - oled: i've used these: http://www.ebay.com/itm/New-Blue-1-3-IIC-I2C-Serial-128-x-64-OLED-LCD-LED-Display-Module-for-Arduino-/261465635352  [ the pinout should be: GND - VCC - D0 - D1 - RST - DC - CS  : adafruit's 128x64 (http://www.adafruit.com/products/326) should work as well (in terms of the hardware), at least the corresponding pads are on the pcb as well (untested).
 
 
+#Notes:
+
 
 (*) something fancier (suitable, $$) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). i've tried,   
   and wasn't sure the difference that it might make is all that relevant.
