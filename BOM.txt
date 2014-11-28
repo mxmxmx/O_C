@@ -4,7 +4,7 @@
 SMD resistors (0805):
 
 - 200R :         4x 
-- 500R :         6x 
+- 510R :         6x 
 - 9k1 :          4x
 - 10k :          12x (ideally, matched in pairs) 
 - 33k :          8x  
@@ -43,7 +43,7 @@ misc *through-hole*:
 - trimpot 100k (inline / 9.5mm): 1x
 - trimpot 2k   (inline / 9.5mm): 4x
 - jacks: 'thonkiconn' (or kobiconn): 12x
-- encoders (24 steps (ish)) with switch (e.g. PEC11-4215K-S0024) : 2x 
+- encoders (24 steps (ish)) with switch (e.g. PEC11R-4215K-S0024) : 2x (****)
 - 2x5 pin header, 2.54mm : 1x (euro power connector)
 - 1x7 pin header, 2.54mm : 1x (for oled)
 - 1x7 socket, 2.54mm (low profile) : 1x (for oled)
@@ -68,4 +68,6 @@ misc *through-hole*:
   specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
  
 *** as above: the LM4040 is not really needed in this application, but it'll improve ADC performance.
+
+**** rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc)
 
