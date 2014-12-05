@@ -29,8 +29,6 @@ TD:
 #include <spi4teensy3.h>
 #include <u8g_teensy.h>
 #include <rotaryplus.h>
-#include <Encoder.h>
-
 
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
