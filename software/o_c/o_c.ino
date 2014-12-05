@@ -21,7 +21,7 @@ button 1 (top) =  oct +
 button 2       =  oct -
 --------------------------------
 TD: 
-- calibration menu
+- calibration / menu
 - check 'hold' ?
 
 */
@@ -56,9 +56,6 @@ TD:
 
 U8GLIB u8g(&u8g_dev_sh1106_128x64_2x_hw_spi, u8g_com_hw_spi_fn);
 
-//Encoder knobLeft(encL1, encL2);
-//Encoder knobRight(encR1, encR2);
-
 Rotary encoder[2] = {{encL1, encL2}, {encR1, encR2}}; 
 
 /*  menu variables */
@@ -68,7 +65,7 @@ extern int16_t asr_display_params[6];
 extern uint8_t UImode;
 extern uint32_t LAST_UI;
 
-/*  -------------------------------------------------------------   */
+/*  ------------------------ ASR ------------------------------------  */
 
 #define MAX_VALUE 65535 // DAC fullscale 
 #define MAX_ITEMS 256   // ASR ring buffer size
@@ -106,12 +103,8 @@ const uint8_t TRIG_LENGTH = 150;
 const uint8_t DEBOUNCE = 750;
 
 volatile boolean CLK_STATE1;
-volatile boolean CLK_STATE2;
-volatile boolean CLK_STATE3;
-volatile boolean CLK_STATE4;
 
 void clk_ISR1() {  CLK_STATE1 = true; }  // main clock
-
 
 enum the_buttons {
   
@@ -124,7 +117,6 @@ enum the_buttons {
 
 /*       ---------------------------------------------------------         */
 
-extern uint16_t semitones[];
 void setup(){
 
   analogReadResolution(12);
