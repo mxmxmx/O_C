@@ -165,8 +165,6 @@ void setup(){
 }
 
 
-//uint16_t x, y;
-
 /*  ---------    main loop  --------  */
 
 
