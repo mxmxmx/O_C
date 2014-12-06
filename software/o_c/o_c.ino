@@ -71,7 +71,8 @@ extern uint32_t LAST_UI;
 #define MAX_VALUE 65535 // DAC fullscale 
 #define MAX_ITEMS 256   // ASR ring buffer size
 #define OCTAVES 10      // # octaves
-uint16_t octaves[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
+uint16_t octaves[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in practice  
+const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
 typedef struct ASRbuf {
   
@@ -154,10 +155,10 @@ void setup(){
   set8565_CHB(0);
   set8565_CHC(0);
   set8565_CHD(0);
-  /* calibrate? */
+  /* calibrate? else use EEPROM; else use things in theory */
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) readDACcode(); 
-  // else use things in theory
+  else in_theory();
   /* splash screen, sort of */
   hello();  
   delay(1250);   

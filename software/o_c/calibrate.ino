@@ -53,7 +53,8 @@ void calibrate_main() {
         UImode = CALIBRATE;
         MENU_REDRAW = 1;
         _steps = 0;
-            
+        /* values written? */
+        if (EEPROM.read(0x2) > 0) readDACcode();    
         u8g.setFont(u8g_font_6x12);
         u8g.setColorIndex(1);
         u8g.setFontRefHeightText();
@@ -103,10 +104,7 @@ void calibrate() {
         
           u8g.drawStr(10, 30, "use encoder (R)");
           u8g.drawStr(10, 50, "switch: left pos.");
-          set8565_CHA(octaves[5]); // ch A >> 
-          set8565_CHB(octaves[5]); // ch B >>
-          set8565_CHC(octaves[5]); // ch C >>
-          set8565_CHD(octaves[5]); // ch D >>
+          writeAllDAC(THEORY[4]);
           break;
       }
       
@@ -117,6 +115,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use trimpots!");  
           octaves[5] = encoder_data;
+          writeAllDAC(encoder_data);
           break;   
       }  
       
@@ -126,6 +125,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps-1] = encoder_data;
+          writeAllDAC(encoder_data);
           break;   
       } 
       
@@ -135,6 +135,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps-1] = encoder_data;
+          writeAllDAC(encoder_data);
           break;   
       } 
       
@@ -144,6 +145,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps-1] = encoder_data;
+          writeAllDAC(encoder_data);
         break;   
       } 
       
@@ -153,6 +155,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps-1] = encoder_data;
+          writeAllDAC(encoder_data);
         break;   
       }
       
@@ -162,6 +165,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps] = encoder_data;
+          writeAllDAC(encoder_data);
         break;   
       } 
       
@@ -171,6 +175,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");
           octaves[_steps] = encoder_data;  
+          writeAllDAC(encoder_data);
         break;   
       } 
       
@@ -180,6 +185,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps] = encoder_data;
+          writeAllDAC(encoder_data);
         break;   
       } 
       
@@ -189,6 +195,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps] = encoder_data;
+          writeAllDAC(encoder_data);
         break;   
       } 
       
@@ -198,6 +205,7 @@ void calibrate() {
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
           octaves[_steps] = encoder_data;
+          writeAllDAC(encoder_data);
         break;   
       } 
       
@@ -234,15 +242,34 @@ void writeDACcode() {
 void readDACcode() {
   
    uint8_t byte0, byte1, adr;
-   uint16_t _DACcode;
    
-  for (int i = 0; i <= OCTAVES; i++) {  
+   for (int i = 0; i <= OCTAVES; i++) {  
   
        byte0 = EEPROM.read(adr);
        adr++;
        byte1 = EEPROM.read(adr);
        adr++;
-       _DACcode = (uint16_t)(byte0 << 8) + byte1;
-  }
+       octaves[i] = (uint16_t)(byte0 << 8) + byte1;
+   }
 }  
+  
+  
+void in_theory() {
+
+   for (int i = 0; i <= OCTAVES; i++) {  
+     
+     octaves[i] = THEORY[i];
+   }
+
+}
+
+
+void writeAllDAC(uint16_t _data) {
+
+  set8565_CHA(_data); // ch A >> 
+  set8565_CHB(_data); // ch B >>
+  set8565_CHC(_data); // ch C >>
+  set8565_CHD(_data); // ch D >>
+  
+}
   
