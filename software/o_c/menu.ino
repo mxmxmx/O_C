@@ -134,7 +134,7 @@ void draw(void) {
       }
       
       case CALIBRATE: {
-   
+           calibrate();
            break;
       } 
    } 

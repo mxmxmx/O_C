@@ -1,4 +1,5 @@
 
+
 /* 
 
 ornament + crime // 4xCV DAC8565  // "ASR" 
@@ -21,7 +22,8 @@ button 1 (top) =  oct +
 button 2       =  oct -
 --------------------------------
 TD: 
-- calibration / menu
+
+- calibration / menu >> EEPROM
 - check 'hold' ?
 
 */
@@ -29,6 +31,7 @@ TD:
 #include <spi4teensy3.h>
 #include <u8g_teensy.h>
 #include <rotaryplus.h>
+#include <EEPROM.h>
 
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
@@ -70,8 +73,7 @@ extern uint32_t LAST_UI;
 #define MAX_VALUE 65535 // DAC fullscale 
 #define MAX_ITEMS 256   // ASR ring buffer size
 #define OCTAVES 10      // # octaves
-
-uint16_t octaves[OCTAVES+1] = {0, 6553, 13078, 19606, 26152, 32675, 39200, 45730, 52260, 58783, 65310}; // trellis
+uint16_t octaves[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
 typedef struct ASRbuf {
   
@@ -154,9 +156,13 @@ void setup(){
   set8565_CHB(0);
   set8565_CHC(0);
   set8565_CHD(0);
+  /* calibrate? */
+  if (!digitalRead(butL))  calibrate_main();
+  // else if (EEPROM ok) get DAC table
+  // else use things in theory
   /* splash screen, sort of */
   hello();  
-  delay(1250); 
+  delay(1250);   
   /* initialize ASR */
   init_DACtable();
   ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
