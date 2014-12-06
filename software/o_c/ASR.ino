@@ -164,21 +164,17 @@ void init_DACtable() {
   float diff;
   uint16_t _oct, out, prev;
   
-  for (int i = 1; i <= OCTAVES; i++) {
+  for (int i = 0; i <= OCTAVES; i++) {
        
-        diff = (float)(octaves[i] - octaves[i-1])/12.0f;
+        diff = (float)(octaves[i+1] - octaves[i])/12.0f;
         
         for (int j = 0; j <= 11; j++) {
           
             out = semitones[j+i*12] = (uint16_t)(0.5 + diff*(j+1) + prev);  
-            Serial.print(out);
-            Serial.print(" -- ");  
-            if (j >= 11) { prev = out; Serial.println(" ");}
+            if (j >= 11) prev = out; 
     }
   }
-  Serial.println(" ");
 }
-
 
 /* quantize - some scale  */
 uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _npsc) {
@@ -248,6 +244,8 @@ uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) { // _scale = 0, 7
           return getnote(_note, _scale, _npsc);
           }   
 }  
+
+/* ---------- don't update ringbuffer, just move the 4 values ------------- */
 
 void _hold(struct ASRbuf* _ASR, int8_t _delay) {
   

@@ -22,8 +22,6 @@ button 1 (top) =  oct +
 button 2       =  oct -
 --------------------------------
 TD: 
-
-- calibration / menu >> EEPROM
 - check 'hold' ?
 
 */
@@ -158,7 +156,7 @@ void setup(){
   set8565_CHD(0);
   /* calibrate? */
   if (!digitalRead(butL))  calibrate_main();
-  // else if (EEPROM ok) get DAC table
+  else if (EEPROM.read(0x2) > 0) readDACcode(); 
   // else use things in theory
   /* splash screen, sort of */
   hello();  

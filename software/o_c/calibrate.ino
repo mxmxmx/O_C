@@ -77,8 +77,9 @@ void calibrate_main() {
              } 
              else if (millis() - LAST_BUT > DEBOUNCE && !digitalRead(butR)) { 
                        
-                             _steps++;   
-                             if (_steps > CENTRE && _steps < VOLT_6) encoder[RIGHT].setPos(octaves[_steps-1]);
+                             _steps++;  
+                             if (_steps == CENTRE) encoder[RIGHT].setPos(octaves[5]);
+                             else if (_steps > CENTRE && _steps < VOLT_6) encoder[RIGHT].setPos(octaves[_steps-1]);
                              else if (_steps > VOLT_4) encoder[RIGHT].setPos(octaves[_steps]);
                              LAST_BUT = millis(); 
              }
@@ -86,6 +87,7 @@ void calibrate_main() {
              encoder_data = encoder[RIGHT].pos();
              if (encoder_data >= MAX_VALUE) encoder[RIGHT].setPos(MAX_VALUE);
         } 
+        writeDACcode();
         encoder[RIGHT].setPos(0);
         UImode = SCREENSAVER;  
 }
@@ -97,7 +99,7 @@ void calibrate() {
     
     switch (_steps) {
       
-      case HELLO: { 
+      case HELLO: {  // 0
         
           u8g.drawStr(10, 30, "use encoder (R)");
           u8g.drawStr(10, 50, "switch: left pos.");
@@ -108,82 +110,94 @@ void calibrate() {
           break;
       }
       
-      case CENTRE: {
+      case CENTRE: {  // 1
         
-          u8g.drawStr(10, 30, "- > 5.000V");  
+          u8g.drawStr(10, 30, "- > 5.000V /");  
+          u8g.setPrintPos(87, 30);
+          u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use trimpots!");  
+          octaves[5] = encoder_data;
           break;   
       }  
       
-      case VOLT_1: {
+      case VOLT_1: { // 2
           u8g.drawStr(10, 30, "- > 1.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps-1] = encoder_data;
           break;   
       } 
       
-      case VOLT_2: {
+      case VOLT_2: { // 3
           u8g.drawStr(10, 30, "- > 2.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps-1] = encoder_data;
           break;   
       } 
       
-      case VOLT_3: {
+      case VOLT_3: { // 4
           u8g.drawStr(10, 30, "- > 3.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps-1] = encoder_data;
         break;   
       } 
       
-      case VOLT_4: {
+      case VOLT_4: { // 5
           u8g.drawStr(10, 30, "- > 4.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps-1] = encoder_data;
         break;   
       }
       
-      case VOLT_6: {
+      case VOLT_6: { // 6
           u8g.drawStr(10, 30, "- > 6.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps] = encoder_data;
         break;   
       } 
       
-      case VOLT_7: {
+      case VOLT_7: { // 7
           u8g.drawStr(10, 30, "- > 7.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          u8g.drawStr(10, 50, "use encoder!");
+          octaves[_steps] = encoder_data;  
         break;   
       } 
       
-      case VOLT_8: {
+      case VOLT_8: { // 8
           u8g.drawStr(10, 30, "- > 8.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps] = encoder_data;
         break;   
       } 
       
-      case VOLT_9: {
+      case VOLT_9: { // 9
           u8g.drawStr(10, 30, "- > 9.000V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps] = encoder_data;
         break;   
       } 
       
-      case VOLT_10: {
+      case VOLT_10: { // 10
           u8g.drawStr(10, 30, "- > 10.00V /");
           u8g.setPrintPos(87, 30);
           u8g.print(encoder_data);
           u8g.drawStr(10, 50, "use encoder!");  
+          octaves[_steps] = encoder_data;
         break;   
       } 
       
@@ -199,4 +213,40 @@ void calibrate() {
 } 
 
 
+void writeDACcode() {
+   
+  uint8_t byte0, byte1, adr;
+  uint16_t _DACcode;
+  
+  for (int i = 0; i <= OCTAVES; i++) {  
+    
+       _DACcode = octaves[i];
+       byte0 = _DACcode >> 8;
+       byte1 = _DACcode;
+       EEPROM.write(adr, byte0);
+       adr++;
+       EEPROM.write(adr, byte1);
+       adr++;
+  }  
+}  
 
+
+void readDACcode() {
+  
+   uint8_t byte0, byte1, adr;
+   uint16_t _DACcode;
+   
+  for (int i = 0; i <= OCTAVES; i++) {  
+  
+       byte0 = EEPROM.read(adr);
+       adr++;
+       byte1 = EEPROM.read(adr);
+       adr++;
+       _DACcode = (uint16_t)(byte0 << 8) + byte1;
+       Serial.print(i);
+       Serial.print(" < ----- >");
+       Serial.println(_DACcode);
+       
+  }
+}  
+  
