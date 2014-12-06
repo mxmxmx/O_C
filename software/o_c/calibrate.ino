@@ -243,10 +243,6 @@ void readDACcode() {
        byte1 = EEPROM.read(adr);
        adr++;
        _DACcode = (uint16_t)(byte0 << 8) + byte1;
-       Serial.print(i);
-       Serial.print(" < ----- >");
-       Serial.println(_DACcode);
-       
   }
 }  
   
