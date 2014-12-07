@@ -25,7 +25,7 @@
 - NPN transistors (MMBT3904, SOT-23) 4x
 - 1N5817 (diode, DO-41): 2x
 - BAT54S (Schottky (dual/series) SOT-23): 4x
-- LM4040-2.5 (SOT-23) : 1x (optional**)
+- LM4040-2.5 or 3.0 (SOT-23) : 1x (optional**)
 
 **misc *through-hole*:**
 
@@ -55,9 +55,9 @@
 ##Notes:
 
 
-(*) something fancier (suitable, $$) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). i've tried, and wasn't sure the difference that it might make is all that relevant.
+(*) something fancier (suitable, $$) could be used for the DAC outputs, of course. 2x quad op amps are needed (2 per channel; gain is twice 2x). ideally, you want something will (very) low offset/noise.
 
-(**) the lm4040 is not really needed, but if installed this requires adjusting some values to get the ADC range approx. right (2v5 rather than 3v3); specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
+(**) the lm4040 is not really needed, but if installed this requires adjusting some values to get the ADC range approx. right (2v5 or 3v0 rather than 3v3); specifically, say 4x 49k9 - > 4x 62k; and 4x 100k -> 4x 130k (or 120k)
  
 (***) as above: the LM4040 is not really needed in this application, but it'll improve ADC performance.
 
