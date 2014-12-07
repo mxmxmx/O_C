@@ -37,7 +37,7 @@
 - 7805   5v regulator: 1x (TO 220)
 - 79L05 -5v regulator: 1x (TO 92) (or use (or LM4040-5 + 470R (0805))) (***)
 - 78L33 3v3 regulator: 1x (TO 92)
-- **miniature** (!) switch (pcb mount); on/off (SPDT) : 1x **OR** if to switch bipolar/unipolar output by jumper: 1x3 pin header (2.54mm) + jumper) **OR** if you want a different range/the option to adjust the offset properly: 50k trimpot (cermet type) -- see the 'wiki' for details
+- **miniature** (!) switch (pcb mount) (**with pins!**); on/off (SPDT) : 1x **OR** to switch bipolar/unipolar output by jumper: 1x3 pin header (2.54mm) + jumper) **OR** if you want a different range/the option to adjust the offset properly: 50k trimpot (cermet type) -- see the 'wiki' for details. **note that this (obviously) will affect the way your panel should look.**
 - trimpot 100k (inline / 9.5mm): 1x
 - trimpot 2k   (inline / 9.5mm): 4x
 - jacks: 'thonkiconn' (or kobiconn): 12x
