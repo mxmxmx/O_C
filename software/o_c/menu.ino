@@ -122,7 +122,7 @@ void draw(void) {
                 x = i*37;
                 y = asr_outputs[i] >> 10; 
                 y++; 
-                u8g.drawBox(x, 64-y, width, y);
+                u8g.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
             }
             break; 
       } 

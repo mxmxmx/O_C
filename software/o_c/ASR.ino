@@ -83,7 +83,7 @@ void _ASR() {
               display_clock = true;      
         }
         
-        MENU_REDRAW = 1;               
+        else MENU_REDRAW = 1;               
 }  
 
 

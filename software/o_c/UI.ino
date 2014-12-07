@@ -32,10 +32,7 @@ enum DISPLAY_PAGE {
 /* --------------- encoders ---------------------------------------  */
 
 /* encoders variables  */
-uint8_t ENCODER_SWAP, SLOWDOWN = 1; 
-
-/* encoder data */
-int16_t LR_encoderdata[]  = {-999, -999};
+uint8_t SLOWDOWN = 1; 
 
 /* isr */
 void left_encoder_ISR() {
@@ -46,39 +43,18 @@ void right_encoder_ISR() {
   encoder[RIGHT].process();
 }
 
-/*  read */
-void encoders() {
-  
-   int16_t encoderdata; 
-   /* toggle encoder */
-   int8_t thisenc = ~ENCODER_SWAP & 1u; 
-   if (encoder[thisenc].change()) { 
-        
-       encoderdata = encoder[thisenc].pos();
-       if (!thisenc || UImode) { 
-             LAST_UI = millis();
-             UImode = MENU;
-       }
-       LR_encoderdata[thisenc] = encoderdata;  
-   }  
-   ENCODER_SWAP = thisenc;
-}   
-  
+   
 
 /* ---------------  update params ---------------------------------  */  
 
 void update_ENC()  {
-
-  encoders(); 
-  
-  //if (UImode) {
     
-      int16_t tmp = LR_encoderdata[RIGHT];
+      int16_t tmp = encoder[RIGHT].pos();
        
       if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
      
       /* parameters: */
-      if (encoder[RIGHT].pos() != asr_params[MENU_CURRENT]) {    // params changed?
+      if (tmp != asr_params[MENU_CURRENT]) {    // params changed?
           int16_t tmp2, tmp3; 
           tmp2 = param_limits[MENU_CURRENT][0]; // lower limit
           tmp3 = param_limits[MENU_CURRENT][1]; // upper limit
@@ -87,23 +63,20 @@ void update_ENC()  {
           else if (tmp > tmp3) { asr_display_params[MENU_CURRENT] = asr_params[MENU_CURRENT] = tmp3; encoder[RIGHT].setPos(tmp3);}
           else                 { asr_display_params[MENU_CURRENT] = asr_params[MENU_CURRENT] = tmp;  }
           MENU_REDRAW = 1;
-         
       }
   
      if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }   
      
      /* scale select: */   
-     tmp = LR_encoderdata[LEFT]>>SLOWDOWN; 
+     tmp = encoder[LEFT].pos()>>SLOWDOWN;
      if (tmp != asr_params[0]) {
            if (tmp >= MAXSCALES)  { SCALE_SEL = 0; encoder[LEFT].setPos(0);}
            else if (tmp < 0)      { SCALE_SEL = MAXSCALES-1; encoder[LEFT].setPos((MAXSCALES-1)<<SLOWDOWN);}
            else SCALE_SEL = tmp;
-           MENU_REDRAW = 1;
-           if (LAST_SCALE != SCALE_SEL) SCALE_CHANGE = 1;
+           if (LAST_SCALE != SCALE_SEL)  { SCALE_CHANGE = 1; MENU_REDRAW = 1; }
            LAST_SCALE = SCALE_SEL;
      }
      else  SCALE_SEL = tmp; 
-  //} 
 }
 
 
