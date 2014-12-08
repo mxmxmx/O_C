@@ -54,29 +54,29 @@ int32_t encoder_data;
 void init_DACtable() {
   
   float diff, prev, out;
-  
+  uint16_t _off = octaves[0];
+  octaves[0] = 0;
   for (int i = 0; i <= OCTAVES; i++) {
        
-        diff = (float)(octaves[i+1] - octaves[i])/12.0f;
-        
-        for (int j = 0; j <= 11; j++) {
-          
-            semitones[j+i*12] = out = (uint16_t)(0.5 + diff*(j+1) + prev);  
-            if (j >= 11) prev = out; 
+        diff = ((float)(octaves[i+1] - octaves[i]))/12.0f;
+        for (int j = 0; j <= 11; j++) {       
+            out = j*diff + prev; 
+            semitones[j+i*12] = (uint16_t)(0.5f + out);  
+            if (j == 11) { prev += diff*12; }
     }
   }
+  octaves[0] = _off;
   /* deal w/ offset ? */
   if (octaves[0] != THEORY[0]) {
     
         diff = (float)(octaves[1] - octaves[0])/10.0f;
-        semitones[0] = diff;
-        semitones[1] = diff;
-        semitones[2] = diff;
-        for (int j = 3; j < 11; j++) { 
-         
-           semitones[j] = (uint16_t)(0.5 + diff*(j-1));
+        semitones[0] = _off; // 166.67 mv
+        semitones[1] = _off;
+        semitones[2] = _off;
+        for (int j = 11; j > 2; j--) { 
+            semitones[j] = uint16_t(0.5 + semitones[j+1] - diff);
         } 
-  } 
+  }  
 }
 
 /*        loop calibration menu until we're done       */

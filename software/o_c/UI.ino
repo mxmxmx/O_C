@@ -165,7 +165,6 @@ void topButton() {
    //   }
    //LAST_UI = millis();
    //UImode = MENU;
-   
 }
 
 /* -----------------------------------------------  */
@@ -179,8 +178,7 @@ void lowerButton() {
          asr_params[1] = tmp; 
    //    }
    //LAST_UI = millis();
-   //UImode = MENU;
-   
+   //UImode = MENU;  
 }
 
 /* -----------------------------------------------  */
