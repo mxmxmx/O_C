@@ -182,7 +182,7 @@ void makemenu() {
                    u8g.print('\xb7');
                }
               /*  print scale */     
-               if ((SCALE_SEL == asr_params[0]) || (SCALE_CHANGE==0)) {      
+               if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE)) {      
                    u8g.setPrintPos(10, OFFSET); 
                    u8g.print(">> " + abc[SCALE_SEL]); 
                }

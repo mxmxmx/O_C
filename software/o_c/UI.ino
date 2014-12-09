@@ -67,16 +67,20 @@ void update_ENC()  {
   
      if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }   
      
+     if (UImode) {
      /* scale select: */   
-     tmp = encoder[LEFT].pos()>>SLOWDOWN;
-     if (tmp != asr_params[0]) {
-           if (tmp >= MAXSCALES)  { SCALE_SEL = 0; encoder[LEFT].setPos(0);}
-           else if (tmp < 0)      { SCALE_SEL = MAXSCALES-1; encoder[LEFT].setPos((MAXSCALES-1)<<SLOWDOWN);}
-           else SCALE_SEL = tmp;
-           if (LAST_SCALE != SCALE_SEL)  { SCALE_CHANGE = 1; MENU_REDRAW = 1; }
-           LAST_SCALE = SCALE_SEL;
+         tmp = encoder[LEFT].pos()>>SLOWDOWN;
+         if (tmp != LAST_SCALE) {
+             if (tmp >= MAXSCALES)  { SCALE_SEL = 0; encoder[LEFT].setPos(0);}
+             else if (tmp < 0)      { SCALE_SEL = MAXSCALES-1; encoder[LEFT].setPos((MAXSCALES-1)<<SLOWDOWN);}
+             else SCALE_SEL = tmp;
+             if (asr_params[0] != SCALE_SEL) SCALE_CHANGE = 1; 
+             else SCALE_CHANGE = 0; 
+             MENU_REDRAW = 1;
+             LAST_SCALE = SCALE_SEL;
+             LAST_UI = millis();
+         }
      }
-     else  SCALE_SEL = tmp; 
 }
 
 

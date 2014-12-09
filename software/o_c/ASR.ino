@@ -5,7 +5,7 @@ ASR / ring buffer / quantization
 
 */
 
-/*  quantization  */
+/*  ASR/quantization params */
 
 #define MAXNOTES 7            // max. notes per scale (see below)
 #define MAX_DELAY 63          // max. delay < > ring buffer is 256
@@ -50,11 +50,9 @@ uint8_t scales[] = {
 
                                 
 /* update ASR params + etc */
-
 void _ASR() {
 
          /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
-        
         uint8_t _scale     =  MAXNOTES * asr_params[0]; // id scale
         int8_t  _transpose =  cvval[3] + asr_params[1]; // octave +/-
         int32_t _sample    =  cvval[0] + asr_params[2]; // offset + CV
@@ -64,8 +62,7 @@ void _ASR() {
         _sample = _sample >> 4;
         /* if the scale changed, reset ASR index */
         if (asr_params[0] != THIS_SCALE) CLK_COUNT = 0;  
-        /* hold? or quantize */    
-         
+        /* hold? or quantize */      
         if (!digitalReadFast(TR2)) _hold(ASR, _index);                                 
         else {
              if (!digitalReadFast(TR3)) _transpose++;
@@ -74,7 +71,7 @@ void _ASR() {
              /* update + output */
              updateASR_indexed(ASR, _sample, _index); 
         }
-        
+       
         THIS_SCALE = asr_params[0];    
         CLK_COUNT++;
         
@@ -104,8 +101,6 @@ void init_ASR(struct ASRbuf* _ASR) {
     asr_params[5] = 16; // att/mult
 }  
 
-
-
 /* add new sample: */
 
 void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {
@@ -125,7 +120,6 @@ void popASR(struct ASRbuf* _ASR) {
         _ASR->items--;
 
 }
-
 
 /* ASR + ringbuffer */
 
@@ -148,19 +142,21 @@ void updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
     asr_outputs[2] = _ASR->data[out--];
     out -= _delay;
     asr_outputs[3] = _ASR->data[out--];
-    
-    set8565_CHA(asr_outputs[1]); // ch A >> out 2 [top right]
-    set8565_CHB(asr_outputs[0]); // ch B >>
-    set8565_CHC(asr_outputs[2]); // ch C >>
-    set8565_CHD(asr_outputs[3]); // ch D >>
+    /* write to DACs: top left (B) - > top right (A) - > bottom left (D) - > bottom right (C) */
+    set8565_CHB(asr_outputs[0]); // ch B >> out 1 
+    set8565_CHA(asr_outputs[1]); // ch A >> out 2 
+    set8565_CHD(asr_outputs[2]); // ch D >> out 3  
+    set8565_CHC(asr_outputs[3]); // ch C >> out 4 
     return;
 }
 
-/* quantize - some scale  */
+/* quantize note */
+
 uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _npsc) {
   
      int8_t _octave, _note, _out; 
-    
+
+     /* which octave? */
      if (_sample < 0) {
                          _octave = 0;
                          _note   = 0;
@@ -175,10 +171,9 @@ uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _np
      
      else {
                         _octave = 9;
-                        _note   = (_sample >> 5) % 12; //RANGE;  ... 
+                        _note   = (_sample >> 5) % 12;  
               
      }
-     
      /* transpose */
      _octave += _transpose;
      if (_octave > 9) _octave = 9;
@@ -192,10 +187,7 @@ uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _np
      _out = getnote(_note, _scale, _npsc) + _octave*12;     
      
      if (_out > RANGE) _out -= 12;
-     return semitones[_out];
-    
-  
-     
+     return semitones[_out];  
 }  
 
 /*  get nearest note in scale  */
@@ -245,14 +237,15 @@ void _hold(struct ASRbuf* _ASR, int8_t _delay) {
     keep3 = out -= _delay;
     asr_outputs[3] = _ASR->data[out--];
     /* ASR out */
-    set8565_CHA(asr_outputs[1]); // ch A >> out 2 [top right]
-    set8565_CHB(asr_outputs[0]); // ch B >>
-    set8565_CHC(asr_outputs[2]); // ch C >>
-    set8565_CHD(asr_outputs[3]); // ch D >>
+    set8565_CHB(asr_outputs[0]); // ch B >> out 1 
+    set8565_CHA(asr_outputs[1]); // ch A >> out 2 
+    set8565_CHD(asr_outputs[2]); // ch D >> out 3  
+    set8565_CHC(asr_outputs[3]); // ch C >> out 4 
     /* now hold */
     _ASR->data[keep0-1] = asr_outputs[3];  
     _ASR->data[keep1-1] = asr_outputs[0];
     _ASR->data[keep2-1] = asr_outputs[1];
     _ASR->data[keep3-1] = asr_outputs[2];
 }  
+
 

@@ -171,7 +171,6 @@ void setup(){
 
 /*  ---------    main loop  --------  */
 
-
 void loop(){
 
   UI();
@@ -192,7 +191,7 @@ void loop(){
   
   buttons(BUTTON_BOTTOM);
   
-  if (CLK_STATE1) {  CLK_STATE1 = false; _ASR();} 
+  if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
   
   buttons(BUTTON_LEFT);
   
@@ -203,8 +202,9 @@ void loop(){
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
    
   if (UImode) timeout(); 
-  
+ 
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
+ 
   
 }
 

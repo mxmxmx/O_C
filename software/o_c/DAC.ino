@@ -1,4 +1,3 @@
-
 /*
 
 DAC8565
@@ -14,7 +13,9 @@ DB18/17  :: DAC # select
 DB16 = 0 :: power down mode
 DB15-DB0 :: data
 
-CHA =  top right;
+jacks map to channels A-D as follows:
+
+top left (B) - > top right (A) - > bottom left (D) - > bottom right (C) 
 
 */
 
