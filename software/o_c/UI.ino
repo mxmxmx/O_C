@@ -4,7 +4,6 @@ encoders + buttons + ADC stuff
 
 */
 
-
 extern uint8_t MENU_CURRENT; 
 extern const int16_t param_limits[][2];
 extern const int8_t MAXSCALES;
@@ -13,7 +12,7 @@ extern const int8_t MENU_ITEMS;
 
 uint8_t LAST_SCALE = 0;
 uint8_t SCALE_CHANGE = 0;
-
+uint32_t LAST_UI;
 
 enum encoders {
   
@@ -42,8 +41,6 @@ void left_encoder_ISR() {
 void right_encoder_ISR() {
   encoder[RIGHT].process();
 }
-
-   
 
 /* ---------------  update params ---------------------------------  */  
 
@@ -82,7 +79,6 @@ void update_ENC()  {
          }
      }
 }
-
 
 /* --- read  ADC ------ */
 

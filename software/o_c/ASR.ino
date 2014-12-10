@@ -5,17 +5,21 @@ ASR / ring buffer / quantization
 
 */
 
-/*  ASR/quantization params */
+/*  ASR+quantization params */
 
-#define MAXNOTES 7            // max. notes per scale (see below)
-#define MAX_DELAY 63          // max. delay < > ring buffer is 256
-#define RANGE 119             // [0-119] = 120 semitones < > 10 octaves 
-#define S_RANGE 119<<5        // same thing, spread over 12 bit (ish)
+#define MAXNOTES 7                    // max. notes per scale (see below)
+#define MAX_DELAY 63                  // max. delay < > ring buffer is 256
+#define RANGE 119                     // [0-119] = 120 semitones < > 10 octaves 
+#define S_RANGE 119<<5                // same thing, spread over 12 bit (ish)
 
-int16_t  asr_params[6];       // ASR params :: scale, octave, offset, delay, nps, attenuation
-uint16_t asr_outputs[4];      // ASR out
-uint32_t CLK_COUNT  = 0;      // count clocks
-uint8_t  THIS_SCALE = 0;      // track scale change
+extern int16_t asr_display_params[6]; // ASR params
+extern uint8_t MENU_REDRAW;           // 
+volatile uint8_t display_clock;       //
+int16_t  asr_params[6];               // ASR params :: scale, octave, offset, delay, nps, attenuation
+uint16_t asr_outputs[4];              // ASR out
+uint32_t CLK_COUNT  = 0;              // count clocks
+uint8_t  THIS_SCALE = 0;              // track scale change
+
 
 uint16_t semitones[RANGE+1];  // DAC output LUT
 
@@ -46,10 +50,9 @@ uint8_t scales[] = {
 0, 1, 5, 6, 10,12,12,   // 17: xxx
 0, 1, 2, 3, 10,12,12,   // 18: ?
 };
-
-
                                 
 /* update ASR params + etc */
+
 void _ASR() {
 
          /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
@@ -83,9 +86,7 @@ void _ASR() {
         else MENU_REDRAW = 1;               
 }  
 
-
 /*   -----------------------------------------------------     */
-
 
 void init_ASR(struct ASRbuf* _ASR) {
          
@@ -161,25 +162,22 @@ uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _np
                          _octave = 0;
                          _note   = 0;
      }
-     
-     else if  (_sample < S_RANGE) {
+     else if  (_sample < S_RANGE) { // oct 0-8
        
                         _note   = _sample >> 5;
                         _octave = _note / 12; 
                         _note  -= (_octave << 3) + (_octave << 2); // == % 12
      }
-     
      else {
-                        _octave = 9;
-                        _note   = (_sample >> 5) % 12;  
-              
+                        _octave = 9; // oct 9
+                        _note   = (_sample >> 5) % 12;                
      }
      /* transpose */
      _octave += _transpose;
      if (_octave > 9) _octave = 9;
      else if (_octave < 0) _octave = 0;
          
-     /*  check limits ? # notes per scale */    
+     /*  check limits: # notes per scale */    
      if (_npsc < 2)  _npsc = 2;      
      else if (_npsc > MAXNOTES)  _npsc = MAXNOTES;
      
@@ -190,31 +188,32 @@ uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _np
      return semitones[_out];  
 }  
 
-/*  get nearest note in scale  */
+/* ---------- get nearest note in scale ---------- */
 
-uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) { // _scale = 0, 7, 14, 21 .. etc
+uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) { 
    
     uint8_t i = 0;
     uint8_t temp = 0;
     uint8_t (*sc_ptr) = scales;
+    /* select scale: _scale = 0, 7, 14, 21, etc */
     sc_ptr += _scale;
-      
+    /* oct ++ */  
     if (_note > 11) {
           _note -= 12; 
           temp   = 12;
     }
-    
+    /* find note */
     while(i < _npsc) { 
           if (_note == *sc_ptr) {
               break;}
           i++; sc_ptr++;
     } 
-   
-    if (i < _npsc) return  (*sc_ptr)+temp;
+    /* return or repeat */
+    if (i < _npsc) return (*sc_ptr)+temp;
     else {
           _note += 1; 
           return getnote(_note, _scale, _npsc);
-          }   
+    }   
 }  
 
 /* ---------- don't update ringbuffer, just move the 4 values ------------- */
@@ -226,8 +225,7 @@ void _hold(struct ASRbuf* _ASR, int8_t _delay) {
     if (_delay < 0) _delay = 0;
     else if (_delay > (CLK_COUNT>>2)) _delay = CLK_COUNT>>2;       
       
-    out  = (_ASR->last)-1;
-    
+    out  = (_ASR->last)-1;  
     keep0 = out -= _delay;
     asr_outputs[0] = _ASR->data[out--];
     keep1 = out -= _delay;

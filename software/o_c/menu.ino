@@ -1,4 +1,3 @@
-
 /* 
 
 hello .. display stuff 
@@ -12,7 +11,6 @@ uint8_t X_OFF = 110; // display x offset
 uint8_t OFFSET = 2;  // display y offset
 uint8_t UImode = 0;
 uint8_t MENU_REDRAW = 0;
-uint32_t LAST_UI; 
 const uint16_t TIMEOUT = 5000; // time out menu (in ms)
 
 /* number of scales */
@@ -40,7 +38,7 @@ const String abc[MAXSCALES] =    {
   "whatever",     //15
   "etc",          //16
   "xxx",          //17
-  "ok"            //18
+  "zzz"           //18
 };
 
 

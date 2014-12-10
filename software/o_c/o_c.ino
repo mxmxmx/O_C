@@ -1,5 +1,3 @@
-
-
 /* 
 
 ornament + crime // 4xCV DAC8565  // "ASR" 
@@ -57,14 +55,13 @@ TD:
 
 U8GLIB u8g(&u8g_dev_sh1106_128x64_2x_hw_spi, u8g_com_hw_spi_fn);
 
-Rotary encoder[2] = {{encL1, encL2}, {encR1, encR2}}; 
+Rotary encoder[2] = {
+  {encL1, encL2}, 
+  {encR1, encR2}
+}; 
 
-/*  menu variables */
-volatile uint8_t display_clock;
-extern uint8_t MENU_REDRAW;
-extern int16_t asr_display_params[6];
+/*  UI mode select */
 extern uint8_t UImode;
-extern uint32_t LAST_UI;
 
 /*  ------------------------ ASR ------------------------------------  */
 
@@ -204,8 +201,6 @@ void loop(){
   if (UImode) timeout(); 
  
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
- 
-  
 }
 
 

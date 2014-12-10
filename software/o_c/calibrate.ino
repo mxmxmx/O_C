@@ -259,9 +259,8 @@ void calibrate() {
         break;   
       } 
       
-      default: break;
-      
-    } 
+      default: break;   
+ } 
 } 
 
 
@@ -304,16 +303,13 @@ void in_theory() {
      
      octaves[i] = THEORY[i];
    }
-
 }
-
 
 void writeAllDAC(uint16_t _data) {
 
   set8565_CHA(_data); // ch A >> 
   set8565_CHB(_data); // ch B >>
   set8565_CHC(_data); // ch C >>
-  set8565_CHD(_data); // ch D >>
-  
+  set8565_CHD(_data); // ch D >> 
 }
   
