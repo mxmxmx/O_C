@@ -1,6 +1,6 @@
 /*
 
-DAC8565
+DAC8564
 
 chip select/CS : 10
 reset/RST : 9

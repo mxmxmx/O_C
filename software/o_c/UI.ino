@@ -46,6 +46,7 @@ void right_encoder_ISR() {
 
 void update_ENC()  {
     
+      _ENC = false;
       int16_t tmp = encoder[RIGHT].pos();
        
       if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
@@ -88,7 +89,7 @@ void CV() {
       cvval[1] = (analogRead(CV2) >> 5) - 63; // index -64/64 
       cvval[2] = (analogRead(CV3) >> 8) - 7;  // # notes -8/8
       cvval[3] = (analogRead(CV4) >> 9) - 3;  // octave offset
-      _ADC = false;        
+      _ADC = false;       
 }
 
 
@@ -163,6 +164,7 @@ void topButton() {
          if (tmp > 3) tmp = 3; 
          asr_params[1] = tmp; 
    //   }
+    if (UImode) MENU_REDRAW = 1;
    //LAST_UI = millis();
    //UImode = MENU;
 }
@@ -177,6 +179,7 @@ void lowerButton() {
          if (tmp < -3) tmp = -3; 
          asr_params[1] = tmp; 
    //    }
+   if (UImode) MENU_REDRAW = 1;
    //LAST_UI = millis();
    //UImode = MENU;  
 }

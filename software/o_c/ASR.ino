@@ -65,11 +65,15 @@ void _ASR() {
         _sample = _sample >> 4;
         /* if the scale changed, reset ASR index */
         if (asr_params[0] != THIS_SCALE) CLK_COUNT = 0;  
-        /* hold? or quantize */      
-        if (!digitalReadFast(TR2)) _hold(ASR, _index);                                 
-        else {
-             if (!digitalReadFast(TR3)) _transpose++;
-             if (!digitalReadFast(TR4)) _transpose--;
+        /* hold? ratchet? or regular ASR? */      
+        if (!digitalReadFast(TR2)) _hold(ASR, _index); // 'hold' 
+        else if (!digitalReadFast(TR3)) {              // 'ratchet'  
+             _sample = quant_sc(_sample, _scale, _transpose, _num); 
+             /* update + output */
+             updateASR_indexed_R(ASR, _sample, _index);
+        }     
+        else {                                         // ASR
+             if (!digitalReadFast(TR4)) _transpose++; 
              _sample = quant_sc(_sample, _scale, _transpose, _num); 
              /* update + output */
              updateASR_indexed(ASR, _sample, _index); 
@@ -143,13 +147,68 @@ void updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
     asr_outputs[2] = _ASR->data[out--];
     out -= _delay;
     asr_outputs[3] = _ASR->data[out--];
-    /* write to DACs: top left (B) - > top right (A) - > bottom left (D) - > bottom right (C) */
+    /* write to DAC: top left (B) - > top right (A) - > bottom left (D) - > bottom right (C) */
+    set8565_CHB(asr_outputs[0]); // ch B >> out 1 
+    set8565_CHA(asr_outputs[1]); // ch A >> out 2 
+    set8565_CHD(asr_outputs[2]); // ch D >> out 3  
+    set8565_CHC(asr_outputs[3]); // ch C >> out 4
+    return;
+}
+
+/* update ASR + but hold values */
+
+void updateASR_indexed_R(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
+  
+    uint8_t out;
+    popASR(_ASR);            // remove sample (oldest) 
+    pushASR(_ASR, _sample);  // push new sample into buffer (last) 
+    
+    /* don't mix up scales */
+    if (_delay < 0) _delay = 0;
+    else if (_delay > (CLK_COUNT>>2)) _delay = CLK_COUNT>>2;       
+      
+    out  = (_ASR->last)-1;
+    out -= _delay;
+    asr_outputs[0] = _ASR->data[out--];
+    out -= _delay;
+    asr_outputs[1] = _ASR->data[out--];
+    out -= _delay;
+    asr_outputs[2] = _ASR->data[out--];
+    out -= _delay;
+    asr_outputs[3] = _ASR->data[out--];
+    /* don't write to DAC */
+    return;
+}
+
+/* ---------- don't update ringbuffer, just move the 4 values ------------- */
+
+void _hold(struct ASRbuf* _ASR, int8_t _delay) {
+  
+    uint8_t out, keep0, keep1, keep2, keep3;
+    /* don't mix up scales */
+    if (_delay < 0) _delay = 0;
+    else if (_delay > (CLK_COUNT>>2)) _delay = CLK_COUNT>>2;       
+      
+    out  = (_ASR->last)-1;  
+    keep0 = out -= _delay;
+    asr_outputs[0] = _ASR->data[out--];
+    keep1 = out -= _delay;
+    asr_outputs[1] = _ASR->data[out--]; 
+    keep2 = out -= _delay;
+    asr_outputs[2] = _ASR->data[out--];
+    keep3 = out -= _delay;
+    asr_outputs[3] = _ASR->data[out--];
+    /* ASR out */
     set8565_CHB(asr_outputs[0]); // ch B >> out 1 
     set8565_CHA(asr_outputs[1]); // ch A >> out 2 
     set8565_CHD(asr_outputs[2]); // ch D >> out 3  
     set8565_CHC(asr_outputs[3]); // ch C >> out 4 
-    return;
-}
+    /* now hold */
+    _ASR->data[keep0] = asr_outputs[3];  
+    _ASR->data[keep1] = asr_outputs[0];
+    _ASR->data[keep2] = asr_outputs[1];
+    _ASR->data[keep3] = asr_outputs[2];
+}  
 
 /* quantize note */
 
@@ -186,6 +245,7 @@ uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _np
      
      if (_out > RANGE) _out -= 12;
      return semitones[_out];  
+     
 }  
 
 /* ---------- get nearest note in scale ---------- */
@@ -216,34 +276,5 @@ uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) {
     }   
 }  
 
-/* ---------- don't update ringbuffer, just move the 4 values ------------- */
-
-void _hold(struct ASRbuf* _ASR, int8_t _delay) {
-  
-    uint8_t out, keep0, keep1, keep2, keep3;
-    /* don't mix up scales */
-    if (_delay < 0) _delay = 0;
-    else if (_delay > (CLK_COUNT>>2)) _delay = CLK_COUNT>>2;       
-      
-    out  = (_ASR->last)-1;  
-    keep0 = out -= _delay;
-    asr_outputs[0] = _ASR->data[out--];
-    keep1 = out -= _delay;
-    asr_outputs[1] = _ASR->data[out--]; 
-    keep2 = out -= _delay;
-    asr_outputs[2] = _ASR->data[out--];
-    keep3 = out -= _delay;
-    asr_outputs[3] = _ASR->data[out--];
-    /* ASR out */
-    set8565_CHB(asr_outputs[0]); // ch B >> out 1 
-    set8565_CHA(asr_outputs[1]); // ch A >> out 2 
-    set8565_CHD(asr_outputs[2]); // ch D >> out 3  
-    set8565_CHC(asr_outputs[3]); // ch C >> out 4 
-    /* now hold */
-    _ASR->data[keep0-1] = asr_outputs[3];  
-    _ASR->data[keep1-1] = asr_outputs[0];
-    _ASR->data[keep2-1] = asr_outputs[1];
-    _ASR->data[keep3-1] = asr_outputs[2];
-}  
 
 

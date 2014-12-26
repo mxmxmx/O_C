@@ -84,7 +84,7 @@ ASRbuf *ASR;
 
 /*  ---------------------  CV   stuff  --------------------------------- */
 
-#define ADC_rate 5000
+#define ADC_rate 10000
 #define numADC 4
 int16_t cvval[numADC];  // store cv values
 uint8_t cvmap[numADC] = {CV1, CV1, CV3, CV4}; // map ADC pins
@@ -92,6 +92,7 @@ IntervalTimer ADC_timer;
 volatile boolean _ADC = false;
 
 void ADC_callback() { _ADC = true; }
+
 
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
@@ -112,6 +113,11 @@ enum the_buttons {
   BUTTON_RIGHT
 
 };  
+
+volatile boolean _ENC = false;
+const uint16_t ENC_rate = 15000;
+IntervalTimer ENC_timer;
+void ENC_callback() { _ENC = true; }
 
 /*       ---------------------------------------------------------         */
 
@@ -141,11 +147,13 @@ void setup(){
   attachInterrupt(encR2, right_encoder_ISR, CHANGE);
   /* ADC timer */
   ADC_timer.begin(ADC_callback, ADC_rate);
+  ENC_timer.begin(ENC_callback, ENC_rate);
   /* set up DAC pins  */
   pinMode(CS, OUTPUT);
   pinMode(RST,OUTPUT);
-  /* pull RST high */
+  /* pull RST HIGH (DAC8565); */
   digitalWrite(RST, HIGH); 
+  //digitalWrite(RST, LOW); // DAC8564 --> RST (A0) = LOW 
   /* set all outputs to zero */
   delay(10);
   set8565_CHA(0);
@@ -172,35 +180,23 @@ void loop(){
 
   UI();
 
+  //if (CLK_STATE1) {  CLK_STATE1 = false; xxx(); }  
+  
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
    
-  if (millis() - LAST_BUT > DEBOUNCE) update_ENC();
+  if (_ENC && (millis() - LAST_BUT > DEBOUNCE)) update_ENC();
   
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
     
-  if (_ADC) CV();
+  if (_ADC) { CV(); buttons(BUTTON_TOP); buttons(BUTTON_BOTTOM);  buttons(BUTTON_LEFT); buttons(BUTTON_RIGHT); }
   
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-  
-  buttons(BUTTON_TOP);
-  
-  if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-  
-  buttons(BUTTON_BOTTOM);
-  
-  if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-  
-  buttons(BUTTON_LEFT);
-  
-  if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-  
-  buttons(BUTTON_RIGHT);
-  
-  if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
    
   if (UImode) timeout(); 
  
   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
+  
+  
 }
 
 

@@ -22,8 +22,8 @@ char *calib_menu_strings[CALIB_MENU_ITEMS] = {
    "trim to 8 volts",
    "trim to 9 volts",
    "trim to 10 volts",
-   "trim to 0.16667v",
-   "done?"
+   "trim to 0.08333v",
+   "done? / clear?"
 };
 
 enum STEPS {
@@ -56,9 +56,13 @@ void init_DACtable() {
   float diff, prev, out;
   uint16_t _off = octaves[0];
   octaves[0] = 0;
-  for (int i = 0; i <= OCTAVES; i++) {
+  for (int i = 0; i < OCTAVES; i++) {
        
         diff = ((float)(octaves[i+1] - octaves[i]))/12.0f;
+        
+        Serial.print(diff);Serial.print(" | ");
+        Serial.print(prev);Serial.print(" | ");
+        Serial.println(octaves[i]);
         for (int j = 0; j <= 11; j++) {       
             out = j*diff + prev; 
             semitones[j+i*12] = (uint16_t)(0.5f + out);  
@@ -68,11 +72,10 @@ void init_DACtable() {
   octaves[0] = _off;
   /* deal w/ offset ? */
   if (octaves[0] != THEORY[0]) {
-    
-        diff = (float)(octaves[1] - octaves[0])/10.0f;
-        semitones[0] = _off; // 166.67 mv
-        semitones[1] = _off;
-        semitones[2] = _off;
+        diff = (float)(octaves[1] - octaves[0])/11.0f;
+        semitones[0] = _off; // 0.08333 mv
+        semitones[1] = _off; // 0.08333 mv
+        //semitones[2] = _off;
         for (int j = 11; j > 2; j--) { 
             semitones[j] = uint16_t(0.5 + semitones[j+1] - diff);
         } 
@@ -108,6 +111,13 @@ void calibrate_main() {
                             UImode = SCREENSAVER;
                             LAST_BUT = millis();
                        }
+                       
+                       if (millis() -  LAST_BUT > DEBOUNCE && !digitalRead(but_top)) {
+                            
+                            clear();
+                            _steps = HELLO;
+                            LAST_BUT = millis(); 
+                       } 
              } 
              else if (millis() - LAST_BUT > DEBOUNCE && !digitalRead(butR)) { 
                        
@@ -296,6 +306,17 @@ void readDACcode() {
    }
 }  
   
+void clear() {
+  
+  uint8_t adr = 0;  
+  
+  for (int i = 0; i <= OCTAVES; i++) {  
+       EEPROM.write(adr, 0x00);
+       adr++;
+       EEPROM.write(adr, 0x00);
+       adr++;
+  }  
+}
   
 void in_theory() {
 
@@ -313,3 +334,15 @@ void writeAllDAC(uint16_t _data) {
   set8565_CHD(_data); // ch D >> 
 }
   
+
+uint8_t testnote = 12; 
+
+void xxx() {
+  
+  testnote++;
+  if (testnote > 36) testnote = 12;
+  int16_t x = getnote(testnote, 3, 7);
+  uint16_t y = semitones[testnote];
+  Serial.println(y);
+  writeAllDAC(y);
+}
