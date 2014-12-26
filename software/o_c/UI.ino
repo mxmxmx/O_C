@@ -4,6 +4,7 @@ encoders + buttons + ADC stuff
 
 */
 
+const uint16_t ADC_RANGE = 4096;
 extern uint8_t MENU_CURRENT; 
 extern const int16_t param_limits[][2];
 extern const int8_t MAXSCALES;
@@ -85,10 +86,10 @@ void update_ENC()  {
 
 void CV() {
   
-      cvval[0] = (analogRead(CV1));           // sample in
-      cvval[1] = (analogRead(CV2) >> 5) - 63; // index -64/64 
-      cvval[2] = (analogRead(CV3) >> 8) - 7;  // # notes -8/8
-      cvval[3] = (analogRead(CV4) >> 9) - 3;  // octave offset
+      cvval[0] =  (ADC_RANGE-analogRead(CV1));            // sample in
+      cvval[1] = ((ADC_RANGE-analogRead(CV2)) >> 5) - 63; // index -64/64 
+      cvval[2] = ((ADC_RANGE-analogRead(CV3)) >> 8) - 7;  // # notes -8/8
+      cvval[3] = ((ADC_RANGE-analogRead(CV4)) >> 9) - 3;  // octave offset
       _ADC = false;       
 }
 
