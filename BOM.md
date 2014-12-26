@@ -45,7 +45,7 @@
 - 2x5 pin header, 2.54mm : 1x (euro power connector)
 - 1x7 pin header, 2.54mm : 1x (for oled)
 - 1x7 socket, 2.54mm (low profile) : 1x (for oled)
-- 1x14 sockets + matching pin headers : 2x (for teensy 3.1; best to use "machine pin" ones, the pcb holes are smallish)
+- 1x14 sockets + matching pin headers : 2x (for teensy 3.1: **use "machined pin" ones (also called "round" or "precision"), the pcb holes are small**)
 - tact switches (multimecs 5E/5G): 2x (mouser #: 642-5GTH935)
 - + caps (multimecs 1SS09-15.0 or -16.0): 2x (mouser #: 642-1SS09-15.0, or -16.0)
 - teensy3.x : 1x **(cut the V_usb/power trace)**
