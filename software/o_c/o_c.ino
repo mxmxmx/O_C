@@ -4,9 +4,9 @@ ornament + crime // 4xCV DAC8565  // "ASR"
 
 --------------------------------
 TR 1 = clock
-TR 2 = hold
-TR 3 = oct +
-TR 4 = oct -
+TR 2 = loop
+TR 3 = hold
+TR 4 = oct +
 
 CV 1 = sample in
 CV 2 = index CV
@@ -20,7 +20,7 @@ button 1 (top) =  oct +
 button 2       =  oct -
 --------------------------------
 TD: 
-- check 'hold' ?
+- DMA?
 
 */
 
