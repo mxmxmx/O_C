@@ -2,7 +2,9 @@
 #include "u8glib.h"
 #include <spi4teensy3.h>
 
-#define CS 8
+#define _DC 6
+#define _RST 7
+#define _CS 8
 
 uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_ptr)
 {
@@ -14,21 +16,21 @@ uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_pt
 
     case U8G_COM_MSG_INIT:
 		//INIT HARDWARE INTERFACES, TIMERS, GPIOS...
-		pinMode(CS, OUTPUT);
-		pinMode(7, OUTPUT);
-		pinMode(6, OUTPUT);
+		pinMode(_CS,  OUTPUT);
+		pinMode(_RST, OUTPUT);
+		pinMode(_DC,  OUTPUT);
 		//For hardware SPI
 		
                 spi4teensy3::init();
 		
-		digitalWrite(7, HIGH);
+		digitalWriteFast(_RST, HIGH);
 		delay(1);
 		// bring reset low
-		digitalWrite(7, LOW);
+		digitalWriteFast(_RST, LOW);
 		// wait 10ms
 		delay(10);
 		// bring out of reset
-		digitalWrite(7, HIGH);
+		digitalWriteFast(_RST, HIGH);
 		
 
 		
@@ -39,11 +41,11 @@ uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_pt
       //SWITCH FROM DATA TO COMMAND MODE (arg_val == 0 for command mode)
 	  if (arg_val != 0)
       {
-          digitalWrite(6, HIGH);
+          digitalWriteFast(_DC, HIGH);
       }
       else
       {
-          digitalWrite(6, LOW);
+          digitalWriteFast(_DC, LOW);
       }
 
     break;
@@ -51,16 +53,16 @@ uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_pt
 	case U8G_COM_MSG_CHIP_SELECT:
 		if(arg_val == 0)
 		{
-			digitalWrite(8, HIGH);
+			digitalWriteFast(_CS, HIGH);
 		}
 		else{
-			digitalWrite(8, LOW);
+			digitalWriteFast(_CS, LOW);
 		}
 	break;
 
     case U8G_COM_MSG_RESET:
       //TOGGLE THE RESET PIN ON THE DISPLAY BY THE VALUE IN arg_val
-	  digitalWrite(7, arg_val);
+	  digitalWriteFast(_RST, arg_val);
     break;
 
     case U8G_COM_MSG_WRITE_BYTE:
