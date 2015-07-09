@@ -1,6 +1,9 @@
 #/* BOM for O+C */
 
 
+BOM for rev0 pcbs ...
+
+
 **SMD resistors (0805):**
 
 - 200R :         4x 
