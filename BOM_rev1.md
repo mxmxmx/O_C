@@ -1,4 +1,4 @@
-#/* BOM for O+C */
+#/* BOM for O+C (rev1) */
 
 
 the footprint for passives is 0805 but 0603 would work just as fine, of course.
@@ -18,11 +18,10 @@ the footprint for passives is 0805 but 0603 would work just as fine, of course.
 **SMD caps (0805):**
 
 - 22p   : 4x (C0G/NP0)
-- 100n  : 1x
-- 100nF : 15x  
-- 330nF : 2x 
-- 1uF   : 2x (ceramic or tantal)
-- 10uF  : 3x (ceramic or tantal)
+- 10n   : 1x
+- 100n  : 15x  
+- 1u    : 2x (ceramic or tantal)
+- 10u   : 3x (ceramic or tantal)
 
 **ICs/semis:**
 
