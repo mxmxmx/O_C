@@ -54,6 +54,7 @@ uint8_t U8GLIB::initHWSPI(u8g_dev_t *dev, uint8_t cs, uint8_t a0, uint8_t reset)
 uint8_t U8GLIB::initI2C(u8g_dev_t *dev, uint8_t options)
 {
   prepare();
+  Serial.println("ok");
   return u8g_InitI2C(&u8g, dev, options);
 }
 
