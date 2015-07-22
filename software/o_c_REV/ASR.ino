@@ -50,7 +50,7 @@ uint8_t scales[] = { // RAM
                                 
 /* update ASR params + etc */
 
-void _ASR() {
+void FASTRUN _ASR() {
 
          /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
         uint8_t _scale     =  MAXNOTES * asr_params[0]; // id scale
@@ -127,7 +127,7 @@ void popASR(struct ASRbuf* _ASR) {
 
 /* ASR + ringbuffer */
 
-uint16_t updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
+void updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
   
     uint8_t out;
     int16_t _clk = CLK_COUNT>>2; 
@@ -153,12 +153,11 @@ uint16_t updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay)
     set8565_CHB(asr_outputs[1]); //  >> out 2 
     set8565_CHC(asr_outputs[2]); //  >> out 3  
     set8565_CHD(asr_outputs[3]); //  >> out 4 
-    return 0x1;
 }
 
 /* quantize note */
 
-uint16_t FASTRUN quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _npsc) {
+uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _npsc) {
   
      int8_t _octave, _note, _out; 
 

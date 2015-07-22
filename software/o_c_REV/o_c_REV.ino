@@ -166,12 +166,12 @@ void setup(){
   // pull RST high 
   digitalWrite(RST, HIGH); 
   // set all outputs to zero 
-  delay(10);
   set8565_CHA(_ZERO);
   set8565_CHB(_ZERO);
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
+  delay(50);
   hello(); 
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();

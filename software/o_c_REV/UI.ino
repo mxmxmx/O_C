@@ -57,9 +57,7 @@ void update_ENC()  {
     
        _ENC = false;
       int16_t tmp = encoder[RIGHT].pos();
-       
-      if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
-     
+    
       /* parameters: */
       if (tmp != asr_params[MENU_CURRENT]) {    // params changed?
           int16_t tmp2, tmp3; 
@@ -72,8 +70,6 @@ void update_ENC()  {
           MENU_REDRAW = 1;
       }
   
-     if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }   
-     
      if (UI_MODE) {
      /* scale select: */   
          tmp = encoder[LEFT].pos()>>SLOWDOWN;
