@@ -136,9 +136,9 @@ void setup(){
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
   analogReadResolution(_ADC_RES);
-  analogReadAveraging(4);
+  analogReadAveraging(8);
   spi4teensy3::init();
-  
+  delay(100);
   // pins 
   pinMode(butL, INPUT);
   pinMode(butR, INPUT);
@@ -171,7 +171,6 @@ void setup(){
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
-  delay(50);
   hello(); 
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();
