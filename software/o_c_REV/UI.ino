@@ -175,7 +175,7 @@ void topButton() {
    if (UI_MODE) MENU_REDRAW = 1; 
          int8_t tmp = asr_params[1];
          tmp++;
-         if (tmp > 3) tmp = 3; 
+         if (tmp > 4) tmp = 4; 
          asr_params[1] = tmp; 
    //   }
    //_UI_TIMESTAMP = millis();

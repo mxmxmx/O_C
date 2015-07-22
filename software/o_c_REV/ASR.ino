@@ -24,7 +24,7 @@ uint16_t semitones[RANGE+1];          // DAC output LUT
 /*  scales ... look like this: */
 /*  names must be added to const String abc[MAXSCALES] (menu.ino) */
 
-uint8_t scales[] = {
+uint8_t scales[] = { // RAM
   
 /* {0, 1, 2, 3, 4, 5,  6,  7,  8,  9, 10, 11}  == chromatic */ 
 0, 2, 3, 5, 6, 8, 10,   // 0: locrian natural
@@ -50,7 +50,7 @@ uint8_t scales[] = {
                                 
 /* update ASR params + etc */
 
-void FASTRUN _ASR() {
+void _ASR() {
 
          /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
         uint8_t _scale     =  MAXNOTES * asr_params[0]; // id scale
@@ -127,7 +127,7 @@ void popASR(struct ASRbuf* _ASR) {
 
 /* ASR + ringbuffer */
 
-void FASTRUN updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
+uint16_t updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
   
     uint8_t out;
     int16_t _clk = CLK_COUNT>>2; 
@@ -153,12 +153,12 @@ void FASTRUN updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _de
     set8565_CHB(asr_outputs[1]); //  >> out 2 
     set8565_CHC(asr_outputs[2]); //  >> out 3  
     set8565_CHD(asr_outputs[3]); //  >> out 4 
-    return;
+    return 0x1;
 }
 
 /* quantize note */
 
-uint16_t quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _npsc) {
+uint16_t FASTRUN quant_sc(int16_t _sample, uint8_t _scale, int8_t _transpose, int8_t _npsc) {
   
      int8_t _octave, _note, _out; 
 
@@ -225,32 +225,34 @@ uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) {
 
 void _hold(struct ASRbuf* _ASR, int8_t _delay) {
   
-    uint16_t out, keep0, keep1, keep2, keep3;
-    int16_t _clk = CLK_COUNT>>2; 
-    
-    // don't mix up scales :
-    if (_delay < 0) _delay = 0;
-    else if (_delay > _clk) _delay = _clk;       
+  
+        uint8_t out, _hold[4];
+        int16_t _clk = CLK_COUNT>>2; 
+
+        // don't mix up scales 
+        if (_delay < 0) _delay = 0;
+        else if (_delay > _clk) _delay = _clk;       
       
-    out  = (_ASR->last)-1;  
-    keep0 = out -= _delay;
-    asr_outputs[0] = _ASR->data[out--];
-    keep1 = out -= _delay;
-    asr_outputs[1] = _ASR->data[out--]; 
-    keep2 = out -= _delay;
-    asr_outputs[2] = _ASR->data[out--];
-    keep3 = out -= _delay;
-    asr_outputs[3] = _ASR->data[out--];
-    // ASR out 
-    set8565_CHA(asr_outputs[0]); // ch B >> out 1 
-    set8565_CHB(asr_outputs[1]); // ch A >> out 2 
-    set8565_CHC(asr_outputs[2]); // ch D >> out 3  
-    set8565_CHD(asr_outputs[3]); // ch C >> out 4 
-    // now hold :
-    _ASR->data[keep0-1] = asr_outputs[3];  
-    _ASR->data[keep1-1] = asr_outputs[0];
-    _ASR->data[keep2-1] = asr_outputs[1];
-    _ASR->data[keep3-1] = asr_outputs[2];
+        out  = (_ASR->last)-1;
+        _hold[0] = out -= _delay;
+        asr_outputs[0] = _ASR->data[out--];
+        _hold[1] = out -= _delay;
+        asr_outputs[1] = _ASR->data[out--];
+        _hold[2] = out -= _delay;
+        asr_outputs[2] = _ASR->data[out--];
+        _hold[3] = out -= _delay;
+        asr_outputs[3] = _ASR->data[out--];
+    
+       // write to DAC:
+       set8565_CHA(asr_outputs[0]); //  >> out 1 
+       set8565_CHB(asr_outputs[1]); //  >> out 2 
+       set8565_CHC(asr_outputs[2]); //  >> out 3  
+       set8565_CHD(asr_outputs[3]); //  >> out 4 
+       // hold :
+       _ASR->data[_hold[0]] = asr_outputs[3];  
+       _ASR->data[_hold[1]] = asr_outputs[0];
+       _ASR->data[_hold[2]] = asr_outputs[1];
+       _ASR->data[_hold[3]] = asr_outputs[2];
 }  
 
 

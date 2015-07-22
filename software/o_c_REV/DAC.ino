@@ -24,7 +24,7 @@ void set8565_CHA(uint32_t data) {
        		uint8_t _DACout[3];
                 uint32_t _data = MAX_VALUE - data;
                  
-		_DACout[0] = B00010000;
+                _DACout[0] = B00010000;
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
@@ -37,8 +37,8 @@ void set8565_CHB(uint32_t data) {
   
        		uint8_t _DACout[3];
                 uint32_t _data = MAX_VALUE - data;
-
-		_DACout[0] = B00010010;
+                
+                _DACout[0] = B00010010;
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
@@ -66,7 +66,7 @@ void set8565_CHD(uint32_t data) {
        		uint8_t _DACout[3];
                 uint32_t _data = MAX_VALUE - data;
                 
-		_DACout[0] = B00010110;
+                _DACout[0] = B00010110;
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
