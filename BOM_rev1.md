@@ -17,7 +17,7 @@ the footprint for passives is 0805 but 0603 would work just as fine, of course.
 
 **SMD caps (0805):**
 
-- 22p   : 4x (C0G/NP0)
+- 18p-22p   : 4x (C0G/NP0 (!))
 - 10n   : 1x
 - 100n  : 15x  
 - 1u    : 2x (ceramic or tantal)
