@@ -22,7 +22,7 @@ int16_t asr_display_params[] = {0, 0, 0, 0, 0, 0};
 const int16_t param_limits[][2] = {{0,0}, {-5,5}, {-999,999}, {0,63}, {2,MAXNOTES}, {7,26}}; 
 
 /* names for scales go here (names shouldn't be longer than 12 characters) */
-const String abc[MAXSCALES] =    {
+const char *abc[MAXSCALES] =    {
   
   "locrian nat.", //0
   "locrian",      //1
@@ -145,7 +145,6 @@ void draw(void) {
 
 void makemenu() {
   
-  
         uint8_t i, h;
         u8g_uint_t w;
         u8g.setFontRefHeightText();
@@ -153,17 +152,17 @@ void makemenu() {
         h = OFFSET + u8g.getFontAscent()-u8g.getFontDescent();
         w = u8g.getWidth();
   
-        /* draw user menu */
+        // draw user menu :
         for(i = 0; i < MENU_ITEMS; i++) {   
        
             u8g.setDefaultForegroundColor();
-            /* print cursor */          
+            // print cursor          
             if (i == MENU_CURRENT) {              
                   u8g.drawBox(0, i*h, w, h);           
                   u8g.setDefaultBackgroundColor();
             }
             u8g.drawStr(10, i*h, menu_strings[i]);  
-            /* print parameters 2-5 */      
+            // print parameters 2-5:     
             if (i == 5) {  
                 u8g.setPrintPos(X_OFF,i*h); 
                 uint8_t x = asr_params[5]-7;
@@ -177,21 +176,19 @@ void makemenu() {
             /* print parameters 0-1 */
             else if (!i) {                          
            
-               /*  print display clock ? */ 
+               /*
+               //  print display clock  
                if (display_clock) {               
                    u8g.setPrintPos(0,OFFSET);
                    u8g.print('\xb7');
                }
-              /*  print scale */     
-               if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE)) {      
-                   u8g.setPrintPos(10, OFFSET); 
-                   u8g.print(">> " + abc[SCALE_SEL]); 
-               }
-               else  {     
-                   u8g.setPrintPos(10, OFFSET);
-                   u8g.print("<< " + abc[SCALE_SEL]);
-               }
-               /* print octave +/- */
+               */
+               //  print scale name: 
+               u8g.setPrintPos(0, OFFSET);    
+               if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE)) u8g.print(">");
+               else u8g.print('\xb7');
+               u8g.drawStr(10, OFFSET, abc[SCALE_SEL]);
+               // print octave +/- 
                if ((asr_params[1]) >= 0) {            
                    u8g.setPrintPos(X_OFF-6, OFFSET); 
                    u8g.print("+");

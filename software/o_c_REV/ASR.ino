@@ -53,25 +53,16 @@ uint8_t scales[] = { // RAM
 void FASTRUN _ASR() {
 
          /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
-        uint8_t _scale     =  MAXNOTES * asr_params[0]; // id scale
+        uint8_t _scale     =  asr_params[0];            // id scale
         int8_t  _transpose =  cvval[3] + asr_params[1]; // octave +/-
         int32_t _sample    =  cvval[0] + asr_params[2]; // offset + CV
         int8_t  _index     =  cvval[1] + asr_params[3]; // index 
         int8_t  _num       =  cvval[2] + asr_params[4]; // # notes
-        /*
-        Serial.print("index  ");
-        Serial.print(_index);
-        Serial.print(" / sample  ");
-        Serial.print(_sample);
-        Serial.print(" / trans  ");
-        Serial.print(_transpose);
-        Serial.print(" / notes  ");
-        Serial.println(_num);
-        */
-        _sample *= (asr_params[5]);                     // att/mult
+    
+        _sample *= (asr_params[5]); // att/mult
         _sample = _sample >> 4;
         // if the scale changed, reset ASR index
-        if (asr_params[0] != THIS_SCALE) CLK_COUNT = 0;  
+        if (_scale != THIS_SCALE) CLK_COUNT = 0;  
         // hold? or quantize       
         if (!digitalReadFast(TR2)) _hold(ASR, _index);                                 
         else {
@@ -82,7 +73,7 @@ void FASTRUN _ASR() {
              updateASR_indexed(ASR, _sample, _index); 
         }
        
-        THIS_SCALE = asr_params[0];    
+        THIS_SCALE = _scale;    
         CLK_COUNT++;
         
         if (UI_MODE)  {
@@ -130,14 +121,14 @@ void popASR(struct ASRbuf* _ASR) {
 void updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
   
     uint8_t out;
-    int16_t _clk = CLK_COUNT>>2; 
+    int16_t _max_delay = CLK_COUNT>>2; 
     
     popASR(_ASR);            // remove sample (oldest) 
     pushASR(_ASR, _sample);  // push new sample into buffer (last) 
     
     // don't mix up scales 
     if (_delay < 0) _delay = 0;
-    else if (_delay > _clk) _delay = _clk;       
+    else if (_delay > _max_delay) _delay = _max_delay;       
       
     out  = (_ASR->last)-1;
     out -= _delay;
@@ -198,9 +189,10 @@ uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) {
    
     uint8_t i = 0;
     uint8_t temp = 0;
-    uint8_t (*sc_ptr) = scales;
+    //uint8_t (*sc_ptr) = scales;
+    uint8_t *sc_ptr = (uint8_t *)scales;
     // select scale: _scale = 0, 7, 14, 21, etc :
-    sc_ptr += _scale;
+    sc_ptr += _scale*MAXNOTES;
     // constrain :  
     if (_note > 11) {
           _note -= 12; 
@@ -226,11 +218,11 @@ void _hold(struct ASRbuf* _ASR, int8_t _delay) {
   
   
         uint8_t out, _hold[4];
-        int16_t _clk = CLK_COUNT>>2; 
+        int16_t _max_delay = CLK_COUNT>>2; 
 
         // don't mix up scales 
         if (_delay < 0) _delay = 0;
-        else if (_delay > _clk) _delay = _clk;       
+        else if (_delay > _max_delay) _delay = _max_delay;       
       
         out  = (_ASR->last)-1;
         _hold[0] = out -= _delay;

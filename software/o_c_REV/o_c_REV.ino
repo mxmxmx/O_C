@@ -87,7 +87,6 @@ ASRbuf *ASR;
 #define _ADC_RES  12
 #define numADC 4
 int16_t cvval[numADC];                        // store cv values
-uint8_t cvmap[numADC] = {CV1, CV1, CV3, CV4}; // map ADC pins
 
 // PIT timer : 
 IntervalTimer ADC_timer;
@@ -136,9 +135,9 @@ void setup(){
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
   analogReadResolution(_ADC_RES);
-  analogReadAveraging(8);
+  analogReadAveraging(0x10);
   spi4teensy3::init();
-  delay(100);
+  delay(10);
   // pins 
   pinMode(butL, INPUT);
   pinMode(butR, INPUT);
