@@ -1,17 +1,18 @@
-#/* BOM for O+C (rev1) */
+#/* BOM for O+C (rev 2) */
 
+if your board is is labelled rev.2 (on top of the board, underneath the 'ornament and crime' label), that's rev 2. previous versions differ only slightly (7805, not LM1117-5), see the folder: 'legacy'.
 
 the footprint for passives is 0805 but 0603 would work just as fine, of course.
 
 **SMD resistors (0805):**
 
 - 100R :         4x 
-- 220R : 		 4x
+- 220R : 		     4x
 - 510R :         2x 
 - 2k :           1x
-- 24k : 		 4x	
+- 24k : 		     4x	
 - 33k :          8x
-- 47k :			 2x (that's what the silkscreen says -- you can use 49k9 instead)
+- 47k :			     2x (that's what the silkscreen says -- you can use 49k9 instead)
 - 49k9:          4x
 - 100k :         24x
 
