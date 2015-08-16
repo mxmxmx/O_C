@@ -69,5 +69,5 @@ the footprint for passives is 0805 but 0603 would work just as fine, of course.
 
 (†††)  rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc)
 
-(††††) i've used these: http://www.ebay.com/itm/New-Blue-1-3-IIC-I2C-Serial-128-x-64-OLED-LCD-LED-Display-Module-for-Arduino-/261465635352 . others might work, too, as long as they're SSD1106 or SSD1306 and the pinout is: GND - VCC - D0 - D1 - RST - DC - CS  
+(††††) i've used these: http://www.ebay.com/itm/New-Blue-1-3-IIC-I2C-Serial-128-x-64-OLED-LCD-LED-Display-Module-for-Arduino-/261465635352 . others might work, too, as long as they're SH1106 and the pinout is: GND - VCC - D0 - D1 - RST - DC - CS  
 
