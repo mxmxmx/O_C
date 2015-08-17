@@ -189,7 +189,6 @@ uint8_t getnote(uint8_t _note, uint8_t _scale, uint8_t _npsc) {
    
     uint8_t i = 0;
     uint8_t temp = 0;
-    //uint8_t (*sc_ptr) = scales;
     uint8_t *sc_ptr = (uint8_t *)scales;
     // select scale: _scale = 0, 7, 14, 21, etc :
     sc_ptr += _scale*MAXNOTES;

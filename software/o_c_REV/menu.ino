@@ -7,7 +7,7 @@
 uint8_t MENU_CURRENT = 2; 
 int16_t SCALE_SEL = 0;
 uint8_t X_OFF = 110; // display x offset
-uint8_t OFFSET = 2;  // display y offset
+uint8_t OFFSET = 0x0;  // display y offset
 uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
 const uint16_t TIMEOUT = 5000; // time out menu (in ms)
@@ -97,6 +97,8 @@ void hello() {
   
   u8g.setFont(u8g_font_6x12);
   u8g.setColorIndex(1);
+  u8g.setFontRefHeightText();
+  u8g.setFontPosTop();
   u8g.firstPage();  
         do {
     
@@ -145,62 +147,55 @@ void draw(void) {
 
 void makemenu() {
   
-        uint8_t i, h;
-        u8g_uint_t w;
-        u8g.setFontRefHeightText();
-        u8g.setFontPosTop();
-        h = OFFSET + u8g.getFontAscent()-u8g.getFontDescent();
-        w = u8g.getWidth();
-  
-        // draw user menu :
-        for(i = 0; i < MENU_ITEMS; i++) {   
+        uint8_t i, h, w, x, y;
+        h = 11; // == OFFSET + u8g.getFontAscent()-u8g.getFontDescent();
+        w = 128;
+        x = X_OFF;
+        y = OFFSET;
+        // print parameters 0-1                       
+        // scale name: 
+        u8g.setPrintPos(0x0, y);    
+        if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE)) u8g.print(">");
+        else u8g.print('\xb7');
+        u8g.drawStr(10, y, abc[SCALE_SEL]);
+        // octave +/- 
+        if ((asr_params[1]) >= 0) {            
+           u8g.setPrintPos(x-6, y); 
+           u8g.print("+");
+           u8g.setPrintPos(x, y); 
+           u8g.print(asr_params[1]);
+         }
+         else {     
+           u8g.setPrintPos(x-6, y); 
+           u8g.print(asr_params[1]);
+         }     
+         
+        u8g.drawLine(0, 13, 128, 13);
+        
+        // draw user menu, params 2-5 : 
+        for(i = 2; i < MENU_ITEMS; i++) {   
        
+            y = i*h-4;  // = offset 
             u8g.setDefaultForegroundColor();
+            
             // print cursor          
             if (i == MENU_CURRENT) {              
-                  u8g.drawBox(0, i*h, w, h);           
+                  u8g.drawBox(0, y, w, h);           
                   u8g.setDefaultBackgroundColor();
             }
-            u8g.drawStr(10, i*h, menu_strings[i]);  
-            // print parameters 2-5:     
-            if (i == 5) {  
-                u8g.setPrintPos(X_OFF,i*h); 
+            // print param name
+            u8g.drawStr(10, y, menu_strings[i]);  
+            // print param values     
+            if (i == 5) {  // map att/mult
+                u8g.setPrintPos(x,y); 
                 uint8_t x = asr_params[5]-7;
                 u8g.print(map_param5[x]);       
             } 
-            else if (i > 1)  {                            
-                if (asr_display_params[i] < 0) u8g.setPrintPos(X_OFF-6, i*h);
-                else u8g.setPrintPos(X_OFF,i*h);
+            else {                            
+                if (asr_display_params[i] < 0) u8g.setPrintPos(x-6, y);
+                else u8g.setPrintPos(x,y);
                 u8g.print(asr_display_params[i]);
             }  
-            /* print parameters 0-1 */
-            else if (!i) {                          
-           
-               /*
-               //  print display clock  
-               if (display_clock) {               
-                   u8g.setPrintPos(0,OFFSET);
-                   u8g.print('\xb7');
-               }
-               */
-               //  print scale name: 
-               u8g.setPrintPos(0, OFFSET);    
-               if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE)) u8g.print(">");
-               else u8g.print('\xb7');
-               u8g.drawStr(10, OFFSET, abc[SCALE_SEL]);
-               // print octave +/- 
-               if ((asr_params[1]) >= 0) {            
-                   u8g.setPrintPos(X_OFF-6, OFFSET); 
-                   u8g.print("+");
-                   u8g.setPrintPos(X_OFF, OFFSET); 
-                   u8g.print(asr_params[1]);
-               }
-               else {     
-                   u8g.setPrintPos(X_OFF-6, OFFSET); 
-                   u8g.print(asr_params[1]);
-               }     
-          }
-          
       u8g.setDefaultForegroundColor();           
     }
 }

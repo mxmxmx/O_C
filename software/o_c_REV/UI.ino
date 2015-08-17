@@ -20,6 +20,9 @@ extern uint16_t _ADC_OFFSET_1;
 extern uint16_t _ADC_OFFSET_2;
 extern uint16_t _ADC_OFFSET_3;
 
+const int8_t OCT_MAX = 4;  // max offset via button (top)
+const int8_t OCT_MIN = -3; // min offset via button (bottom)
+
 uint16_t ADC_CNT  = 0;
 
 enum encoders 
@@ -168,28 +171,26 @@ void leftButton() {
 
 void topButton() {
  
-   if (UI_MODE) MENU_REDRAW = 1; 
-         int8_t tmp = asr_params[1];
-         tmp++;
-         if (tmp > 4) tmp = 4; 
-         asr_params[1] = tmp; 
-   //   }
-   //_UI_TIMESTAMP = millis();
-   //UI_MODE = MENU;
+   if (UI_MODE) { 
+         MENU_REDRAW = 1; 
+         _UI_TIMESTAMP = millis();
+   }
+   int8_t tmp = asr_params[1];
+   tmp++;
+   asr_params[1] = tmp > OCT_MAX ? OCT_MAX : tmp; 
 }
 
 /* -----------------------------------------------  */
 
 void lowerButton() {
 
-  if (UI_MODE) MENU_REDRAW = 1; 
-         int8_t tmp = asr_params[1];
-         tmp--;
-         if (tmp < -3) tmp = -3; 
-         asr_params[1] = tmp; 
-   //    }
-   //_UI_TIMESTAMP = millis();
-   //UI_MODE = MENU;  
+  if (UI_MODE) { 
+         MENU_REDRAW = 1; 
+         _UI_TIMESTAMP = millis(); 
+  }
+  int8_t tmp = asr_params[1];
+  tmp--;
+  asr_params[1] = tmp < OCT_MIN ? OCT_MIN : tmp; 
 }
 
 /* -----------------------------------------------  */
