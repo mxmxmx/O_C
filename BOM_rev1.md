@@ -57,7 +57,7 @@ the footprint for passives is 0805 but 0603 would work just as fine, of course.
 - tact switches (multimecs 5E/5G): 2x (mouser #: 642-5GTH935) 
 - + caps (multimecs 1SS09-15.0 or -16.0): 2x (mouser #: 642-1SS09-15.0, or -16.0)
 - teensy 3.x : 1x **(cut the V_usb/power trace)**
-- oled: SSD1106 128x64 : 1x (††††)
+- oled: SH1106 128x64 : 1x (††††)
 
 
 ##Notes:
