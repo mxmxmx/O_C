@@ -78,10 +78,7 @@ uint8_t u8g_com_hw_spi_fn(u8g_t *u8g, uint8_t msg, uint8_t arg_val, void *arg_pt
 	{
       //WRITE A SEQUENCE OF BYTES TO THE DEVICE
 	  register uint8_t *ptr = static_cast<uint8_t *>(arg_ptr);
-	  while(arg_val > 0){
-		spi4teensy3::send(ptr++, 1);
-		arg_val--;
-	  }
+	  spi4teensy3::send(ptr, arg_val);
 	 }
     break;
 
