@@ -522,7 +522,7 @@ void save_settings() {
   // write CV offset
   uint16_t _offset[4] = {_ADC_OFFSET_0, _ADC_OFFSET_1, _ADC_OFFSET_2, _ADC_OFFSET_3};
   
-  for (int i = 0; i <= numADC; i++) {
+  for (int i = 0; i < numADC; i++) {
     
       byte0 = _offset[i] >> 8;
       byte1 = _offset[i];
