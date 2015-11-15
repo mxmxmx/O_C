@@ -45,7 +45,7 @@ do { \
 
 void FASTRUN H1200_clock() {
 
-  tonnetz::ETransformType transform = tonnetz::TRANFORM_NONE;
+  tonnetz::ETransformType transform = tonnetz::TRANSFORM_NONE;
   if (!digitalReadFast(TR1))
     tonnetz_state.reset(h1200_settings.mode);
   if (!digitalReadFast(TR2)) transform = tonnetz::TRANSFORM_P;
@@ -56,6 +56,7 @@ void FASTRUN H1200_clock() {
   int inversion = h1200_settings.inversion;// + cvval[3]; // => octave in original
 
   int32_t sample = cvval[0];
+
   int root;
   if (sample < 0)
     root = 0;
@@ -64,8 +65,7 @@ void FASTRUN H1200_clock() {
   else
     root = RANGE;
   
-  if (tonnetz::TRANFORM_NONE != transform)
-    tonnetz_state.render(root, transform, inversion);
+  tonnetz_state.render(root, transform, inversion);
 
   switch (h1200_settings.output_mode) {
     case OUTPUT_CHORD_VOICING: {

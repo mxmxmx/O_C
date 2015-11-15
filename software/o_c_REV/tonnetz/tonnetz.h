@@ -5,7 +5,7 @@
 
 namespace tonnetz {
   enum ETransformType {
-    TRANFORM_NONE,
+    TRANSFORM_NONE,
     TRANSFORM_P,
     TRANSFORM_L,
     TRANSFORM_R,

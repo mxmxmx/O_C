@@ -23,7 +23,9 @@ public:
   }
 
   void render(int root, tonnetz::ETransformType transform, int inversion) {
-    current_chord_ = tonnetz::apply_transformation(transform, current_chord_);
+    if (tonnetz::TRANSFORM_NONE != transform)
+      current_chord_ = tonnetz::apply_transformation(transform, current_chord_);
+
     current_chord_.apply_inversion(inversion);
 
     outputs_[0] = root;

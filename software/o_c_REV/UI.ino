@@ -92,7 +92,7 @@ void update_ENC()  {
 /* --- read  ADC ------ */
 
 void CV() {
-  
+
       cvval[0] = _ADC_OFFSET_0 - analogRead(CV1); // sample in
       
       ADC_CNT = ADC_CNT++ > 0x2 ? 0x0 : ADC_CNT;
