@@ -4,6 +4,8 @@
 *
 */
 
+extern void TONNETZ_renderMenu();
+
 uint8_t MENU_CURRENT = 2; 
 int16_t SCALE_SEL = 0;
 uint8_t X_OFF = 110; // display x offset
@@ -79,7 +81,6 @@ void timeout() {
 /* -----------  loop  --------------------- */ 
 
 void UI() {
-  
   if (  MENU_REDRAW != 0 ) {
         u8g.firstPage();  
         do {
@@ -93,7 +94,7 @@ void UI() {
 
 /* -----------  splash  ------------------- */  
 
-void hello() {
+void hello(const char *text) {
   
   u8g.setFont(u8g_font_6x12);
   u8g.setColorIndex(1);
@@ -105,6 +106,9 @@ void hello() {
             for(int i = 0; i < 4; i++ ) { 
               u8g.drawBox(i*37, 24, 10, 24);
             }
+
+            if (text)
+              u8g.drawStr(10, 10, text);
     
         } while( u8g.nextPage() ); 
 }  
@@ -130,7 +134,7 @@ void draw(void) {
       
       case MENU: {  // draw main menu
        
-            makemenu();
+            current_app->render_menu();
             break;    
       }
       
@@ -145,7 +149,7 @@ void draw(void) {
   
 /* --------------------- main menu loop ------------------------  */
 
-void makemenu() {
+void ASR_menu() {
   
         uint8_t i, h, w, x, y;
         h = 11; // == OFFSET + u8g.getFontAscent()-u8g.getFontDescent();

@@ -106,7 +106,7 @@ void CV() {
       _ADC = false;
 }
 
-
+bool ignore_top = false;
 /* --- check buttons --- */
 
 void buttons(uint8_t _button) {
@@ -116,16 +116,23 @@ void buttons(uint8_t _button) {
     case 0: { 
       
          if (!digitalReadFast(but_top) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) { 
-           topButton();
-           _BUTTONS_TIMESTAMP = millis();   
-         } 
+           if (!ignore_top)
+            topButton();
+          else ignore_top = false;
+          _BUTTONS_TIMESTAMP = millis();
+        } 
     }
     
     case 1: { 
       
          if (!digitalReadFast(but_bot) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-           lowerButton();
-           _BUTTONS_TIMESTAMP = millis();
+          if (!digitalReadFast(but_top)) {
+            next_app();
+            ignore_top = true;
+            return;
+          } else
+          lowerButton();
+          _BUTTONS_TIMESTAMP = millis();
          }
     }
     

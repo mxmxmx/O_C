@@ -47,6 +47,17 @@ uint8_t scales[] = { // RAM
 0, 1, 5, 6, 10,12,12,   // 17: xxx
 0, 1, 2, 3, 10,12,12,   // 18: ?
 };
+
+typedef struct ASRbuf
+{
+    uint8_t     first;
+    uint8_t     last;
+    uint8_t     items;
+    uint16_t data[MAX_ITEMS];
+
+} ASRbuf;
+
+ASRbuf *ASR;
                                 
 /* update ASR params + etc */
 
@@ -85,14 +96,16 @@ void FASTRUN _ASR() {
 
 /*   -----------------------------------------------------     */
 
-void init_ASR(struct ASRbuf* _ASR) {
-         
-    _ASR->first = 0;
-    _ASR->last  = 0;  
-    _ASR->items = 0;
+void ASR_init() {
+
+    ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
+
+    ASR->first = 0;
+    ASR->last  = 0;  
+    ASR->items = 0;
 
     for (int i = 0; i < MAX_ITEMS; i++) {
-        pushASR(_ASR, 0);    
+        pushASR(ASR, 0);    
     }
     asr_params[1] = asr_display_params[1] = 0; // octave offset
     asr_params[4] = asr_display_params[4] = MAXNOTES; // init parameters: nps

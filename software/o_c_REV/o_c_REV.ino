@@ -70,17 +70,6 @@ uint16_t octaves[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875
 const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 extern const uint16_t _ZERO;
 
-typedef struct ASRbuf
-{
-    uint8_t     first;
-    uint8_t     last;
-    uint8_t     items;
-    uint16_t data[MAX_ITEMS];
-
-} ASRbuf;
-
-ASRbuf *ASR;
-
 /*  ---------------------  CV   stuff  --------------------------------- */
 
 #define _ADC_RATE 1000
@@ -128,6 +117,33 @@ void ENC_callback()
   _ENC = true; 
 } // encoder update 
 
+struct App {
+  const char *name;
+  void (*init)();
+  void (*loop)();
+  void (*render_menu)();
+};
+
+App available_apps[] = {
+  {"ASR", ASR_init, _loop, ASR_menu},
+  {"Harrington1200", H1200_init, H1200_loop, H1200_menu}
+};
+static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
+
+size_t current_app_index = 1;
+volatile App *current_app = &available_apps[current_app_index];
+
+void next_app() {
+  set8565_CHA(_ZERO);
+  set8565_CHB(_ZERO);
+  set8565_CHC(_ZERO);
+  set8565_CHD(_ZERO);
+
+  current_app_index = (current_app_index + 1) % APP_COUNT;
+  current_app = &available_apps[current_app_index];
+  hello(current_app->name);
+  delay(1250);
+}
 
 /*       ---------------------------------------------------------         */
 
@@ -151,6 +167,9 @@ void setup(){
   
   // clock ISR 
   attachInterrupt(TR1, clk_ISR, FALLING);
+  attachInterrupt(TR2, clk_ISR, FALLING);
+  attachInterrupt(TR3, clk_ISR, FALLING);
+  attachInterrupt(TR4, clk_ISR, FALLING);
   // encoder ISR 
   attachInterrupt(encL1, left_encoder_ISR, CHANGE);
   attachInterrupt(encL2, left_encoder_ISR, CHANGE);
@@ -170,16 +189,19 @@ void setup(){
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
-  hello(); 
+  hello("O&C");
   // calibrate? else use EEPROM; else use things in theory :
+/*
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) read_settings(); 
   else in_theory(); // uncalibrated DAC code 
+*/
   delay(1250);   
   // initialize ASR 
   init_DACtable();
-  ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
-  init_ASR(ASR);  
+
+  for (size_t i = 0; i < APP_COUNT; ++i)
+    available_apps[i].init();
 }
 
 
@@ -188,11 +210,12 @@ void setup(){
 //uint32_t testclock;
 
 void loop(){
- 
-   while(1) 
-   {
-     _loop();
-   }
+
+  while (1) {
+    volatile App *app = current_app;
+    while (current_app == app)
+      app->loop();
+  }
 }
 
 
