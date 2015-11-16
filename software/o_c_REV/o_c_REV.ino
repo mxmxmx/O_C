@@ -93,12 +93,26 @@ uint32_t _BUTTONS_TIMESTAMP = 0;
 const uint16_t TRIG_LENGTH = 150;
 const uint16_t DEBOUNCE = 250;
 
-volatile uint16_t CLK_STATE1;
+volatile int CLK_STATE[4] = {0,0,0,0};
+#define CLK_STATE1 (CLK_STATE[TR1])
 
-void FASTRUN clk_ISR()
-{  
-    CLK_STATE1 = true; 
+void FASTRUN tr1_ISR() {  
+    CLK_STATE[TR1] = true; 
 }  // main clock
+
+void FASTRUN tr2_ISR() {
+  CLK_STATE[TR2] = true;
+}
+
+void FASTRUN tr3_ISR() {
+  CLK_STATE[TR3] = true;
+}
+
+void FASTRUN tr4_ISR() {
+  CLK_STATE[TR4] = true;
+}
+
+uint32_t _UI_TIMESTAMP;
 
 enum the_buttons 
 {  
@@ -106,7 +120,13 @@ enum the_buttons
   BUTTON_BOTTOM,
   BUTTON_LEFT,
   BUTTON_RIGHT
-};  
+};
+
+enum encoders
+{
+  LEFT,
+  RIGHT
+};
 
 volatile boolean _ENC = false;
 const uint16_t _ENC_RATE = 15000;
@@ -122,11 +142,15 @@ struct App {
   void (*init)();
   void (*loop)();
   void (*render_menu)();
+  void (*top_button)();
+  void (*lower_button)();
+  void (*right_button)();
+  void (*left_button)();
 };
 
 App available_apps[] = {
-  {"ASR", ASR_init, _loop, ASR_menu},
-  {"Harrington1200", H1200_init, H1200_loop, H1200_menu}
+  {"ASR", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton},
+  {"Harrington1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton}
 };
 static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 
@@ -166,10 +190,10 @@ void setup(){
   pinMode(TR4, INPUT);
   
   // clock ISR 
-  attachInterrupt(TR1, clk_ISR, FALLING);
-  attachInterrupt(TR2, clk_ISR, FALLING);
-  attachInterrupt(TR3, clk_ISR, FALLING);
-  attachInterrupt(TR4, clk_ISR, FALLING);
+  attachInterrupt(TR1, tr1_ISR, FALLING);
+  attachInterrupt(TR2, tr2_ISR, FALLING);
+  attachInterrupt(TR3, tr3_ISR, FALLING);
+  attachInterrupt(TR4, tr4_ISR, FALLING);
   // encoder ISR 
   attachInterrupt(encL1, left_encoder_ISR, CHANGE);
   attachInterrupt(encL2, left_encoder_ISR, CHANGE);

@@ -12,7 +12,6 @@ extern const int8_t MENU_ITEMS;
 
 uint8_t LAST_SCALE = 0;
 uint8_t SCALE_CHANGE = 0;
-uint32_t _UI_TIMESTAMP;
 
 // CV 
 extern uint16_t _ADC_OFFSET_0;
@@ -24,12 +23,6 @@ const int8_t OCT_MAX = 4;  // max offset via button (top)
 const int8_t OCT_MIN = -3; // min offset via button (bottom)
 
 uint16_t ADC_CNT  = 0;
-
-enum encoders 
-{  
-  LEFT, 
-  RIGHT
-};
 
 enum DISPLAY_PAGE 
 {  
@@ -111,15 +104,16 @@ bool ignore_top = false;
 
 void buttons(uint8_t _button) {
   
+  bool button_pressed = false;
   switch(_button) {
     
     case 0: { 
       
          if (!digitalReadFast(but_top) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) { 
            if (!ignore_top)
-            topButton();
+            current_app->top_button();
           else ignore_top = false;
-          _BUTTONS_TIMESTAMP = millis();
+          button_pressed = true;
         } 
     }
     
@@ -131,27 +125,32 @@ void buttons(uint8_t _button) {
             ignore_top = true;
             return;
           } else
-          lowerButton();
-          _BUTTONS_TIMESTAMP = millis();
+          current_app->lower_button();
+          button_pressed = true;
          }
     }
     
     case 2: {
       
          if (!digitalReadFast(butL) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-           leftButton(); //
-           _BUTTONS_TIMESTAMP = millis();   
+           current_app->left_button(); //
+           button_pressed = true;
          }
     } 
    
     case 3: {
      
          if (!digitalReadFast(butR) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-           rightButton(); //
-           _BUTTONS_TIMESTAMP = millis();
+           current_app->right_button(); //
+           button_pressed = true;
          }      
     }  
-  } 
+  }
+  if (button_pressed) {
+    _BUTTONS_TIMESTAMP = millis();
+    _UI_TIMESTAMP = millis();
+    UI_MODE = MENU;
+  }
 }
  
  
@@ -160,9 +159,6 @@ void buttons(uint8_t _button) {
 void rightButton() { 
   
   if (UI_MODE) update_menu();
-  _UI_TIMESTAMP = millis();
-  UI_MODE = MENU;
-
 } 
 
 /* -----------------------------------------------  */
@@ -170,8 +166,6 @@ void rightButton() {
 void leftButton() {
   
   if (UI_MODE) update_scale();
-  _UI_TIMESTAMP = millis();
-  UI_MODE = MENU;
 } 
 
 /* -----------------------------------------------  */
@@ -180,7 +174,6 @@ void topButton() {
  
    if (UI_MODE) { 
          MENU_REDRAW = 1; 
-         _UI_TIMESTAMP = millis();
    }
    int8_t tmp = asr_params[1];
    tmp++;
@@ -193,7 +186,6 @@ void lowerButton() {
 
   if (UI_MODE) { 
          MENU_REDRAW = 1; 
-         _UI_TIMESTAMP = millis(); 
   }
   int8_t tmp = asr_params[1];
   tmp--;
