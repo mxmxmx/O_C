@@ -2,11 +2,13 @@
 
 enum EOutputMode {
   OUTPUT_CHORD_VOICING,
-  OUTPUT_TUNE
+  OUTPUT_TUNE,
+  OUTPUT_MODE_LAST
 };
 
 enum ETriggerMapping {
   TRIGGER_MAP_XPLR,
+  TRIGGER_MAP_LAST
 };
 
 struct H1200Settings {
@@ -24,6 +26,62 @@ struct H1200Settings {
     }
     return -1;
   }
+
+  int clamp_value(size_t index, int value) {
+    if (index < 4)
+      return value_attr_[index].clamp(value);
+    else
+      return value;
+  }
+
+  bool apply_value(size_t index, int value) {
+    if (index < 4) {
+      const int clamped = value_attr_[index].clamp(value);
+      switch (index) {
+        case 0:
+          if (mode != clamped) {
+            mode = static_cast<EMode>(clamped);
+            return true;
+          }
+          break;
+        case 1:
+        if (inversion != clamped) {
+          inversion = clamped;
+          return true;
+        }
+        break;
+        case 2:
+          if (trigger_mapping != clamped) {
+            trigger_mapping = static_cast<ETriggerMapping>(clamped);
+            return true;
+          }
+          break;
+        case 3:
+          if (output_mode != clamped) {
+            output_mode = static_cast<EOutputMode>(clamped);
+            return true;
+          }
+          break;
+      }
+    }
+    return false;
+  }
+
+  struct value_attr {
+    int min_, max_;
+    int clamp(int value) const {
+      if (value < min_) return min_;
+      else if (value > max_) return max_;
+      else return value;
+    }
+  };
+  static const value_attr value_attr_[];
+};
+/*static*/ const H1200Settings::value_attr H1200Settings::value_attr_[] = {
+  {0, MODE_LAST-1},
+  {-3, 3},
+  {0, TRIGGER_MAP_LAST-1},
+  {0, OUTPUT_MODE_LAST-1}
 };
 
 H1200Settings h1200_settings = {
@@ -31,6 +89,19 @@ H1200Settings h1200_settings = {
   0,
   TRIGGER_MAP_XPLR,
   OUTPUT_CHORD_VOICING
+};
+
+
+struct H1200_menu_state {
+  int cursor_pos;
+  int cursor_value;
+  bool value_changed;
+};
+
+H1200_menu_state menu_state = {
+  0,
+  0,
+  false,
 };
 
 TonnetzState tonnetz_state;
@@ -43,14 +114,14 @@ do { \
   dac_setter(semitones[note]); \
 } while (0)
 
-void FASTRUN H1200_clock() {
+void FASTRUN H1200_clock(uint32_t triggers) {
 
   tonnetz::ETransformType transform = tonnetz::TRANSFORM_NONE;
-  if (!digitalReadFast(TR1))
+  if (triggers & 0x11)
     tonnetz_state.reset(h1200_settings.mode);
-  if (!digitalReadFast(TR2)) transform = tonnetz::TRANSFORM_P;
-  if (!digitalReadFast(TR3)) transform = tonnetz::TRANSFORM_L;
-  if (!digitalReadFast(TR4)) transform = tonnetz::TRANSFORM_R;
+  if (triggers & 0x2) transform = tonnetz::TRANSFORM_P;
+  if (triggers & 0x4) transform = tonnetz::TRANSFORM_L;
+  if (triggers & 0x8) transform = tonnetz::TRANSFORM_R;
 
   //int trigger_mode = 8 + cvval[2]; // -> +- 8 notes
   int inversion = h1200_settings.inversion;// + cvval[3]; // => octave in original
@@ -82,10 +153,10 @@ void FASTRUN H1200_clock() {
       OUTPUT_NOTE(0,set8565_CHD);
     }
     break;
+    default: break;
   }
 
   MENU_REDRAW = 1;
-  UI_MODE = 1;
 }
 
 void H1200_init() {
@@ -96,10 +167,13 @@ void H1200_init() {
 
 #define CLOCKIT() \
 do { \
-  if (CLK_STATE1) { \
-    CLK_STATE1 = false; \
-    H1200_clock(); \
-  } \
+  uint32_t triggers = 0; \
+  if (CLK_STATE[TR1]) { triggers |= 0x1; CLK_STATE[TR1] = false; } \
+  if (CLK_STATE[TR2]) { triggers |= 0x2; CLK_STATE[TR2] = false; } \
+  if (CLK_STATE[TR3]) { triggers |= 0x4; CLK_STATE[TR3] = false; } \
+  if (CLK_STATE[TR4]) { triggers |= 0x8; CLK_STATE[TR4] = false; } \
+  if (menu_state.value_changed) { triggers |= 0x10; menu_state.value_changed = false; } \
+  H1200_clock(triggers); \
 } while (0)
 
 void H1200_loop() {
@@ -108,7 +182,16 @@ void H1200_loop() {
   CLOCKIT();
   if (_ADC) CV();
   CLOCKIT();
-
-//  if (UI_MODE) timeout();
+  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) H1200_update_ENC();
+  CLOCKIT();
+  buttons(BUTTON_TOP);
+  CLOCKIT();
+  buttons(BUTTON_BOTTOM);
+  CLOCKIT();
+  buttons(BUTTON_LEFT);
+  CLOCKIT();
+  buttons(BUTTON_RIGHT);
+  CLOCKIT();
+  if (UI_MODE) timeout(); 
   CLOCKIT();
 }
