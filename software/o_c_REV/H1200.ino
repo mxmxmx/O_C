@@ -1,4 +1,4 @@
-#include "tonnetz/tonnetz_state.h"
+#include "tonnetz_state.h"
 
 enum EOutputMode {
   OUTPUT_CHORD_VOICING,
