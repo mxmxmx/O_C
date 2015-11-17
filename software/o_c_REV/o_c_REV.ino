@@ -217,10 +217,8 @@ void setup(){
   // calibrate? else use EEPROM; else use things in theory :
 /*
   if (!digitalRead(butL))  calibrate_main();
-  else if (EEPROM.read(0x2) > 0) read_settings(); 
+  else*/ if (EEPROM.read(0x2) > 0) read_settings(); 
   else in_theory(); // uncalibrated DAC code 
-*/
-  in_theory();
   delay(1250);   
   // initialize ASR 
   init_DACtable();
