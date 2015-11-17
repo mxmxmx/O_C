@@ -13,7 +13,7 @@ const char *trigger_mode_names[] = {
 };
 
 const char *mode_names[] = {
-  "+ ", "- "
+  "maj", "min"
 };
 
 struct settings_attr {
@@ -21,9 +21,18 @@ struct settings_attr {
   const char **value_names;
 };
 
+void print_int(int value) {
+  if (value >= 0) {
+    u8g.print('+'); u8g.print(value);
+  } else {
+    u8g.print('-'); u8g.print(-value);
+  }
+}
+
 void H1200_menu() {
 
-  static const settings_attr settings[4] = {
+  static const settings_attr settings[SETTING_LAST] = {
+    {"", NULL},
     {"MODE", mode_names},
     {"INVERSION", NULL},
     {"TRIGGERS", trigger_mode_names},
@@ -36,23 +45,41 @@ void H1200_menu() {
 
   const abstract_triad &current_chord = tonnetz_state.current_chord();
 
-   u8g.setDefaultForegroundColor();
+  if (menu_state.cursor_pos == 0) {
+    u8g.drawBox(0, y, 32, h);
+    u8g.setDefaultBackgroundColor();
+    const int value = menu_state.cursor_value;
+    u8g.setPrintPos(10, y);
+    print_int(value);
+  } else {
+    u8g.setPrintPos(4, y);
+    // current chord info
+    u8g.setDefaultForegroundColor();
+    if (menu_state.display_notes)
+      u8g.print(note_name(tonnetz_state.root()));
+    else
+      u8g.print(tonnetz_state.root());
+    u8g.print(mode_names[current_chord.mode()]);
+  }
 
-  // current chord info
-  u8g.setPrintPos(10, y);
-  u8g.print(tonnetz_state.root());
-  u8g.print(" ");
-  u8g.print(mode_names[current_chord.mode()]);
-  for (size_t i=1; i < 4; ++i) {
-    if (i > 1) u8g.print(';');
-    u8g.print(tonnetz_state.outputs(i));
-    u8g.print(note_name(tonnetz_state.outputs(i)));
+  u8g.setPrintPos(64, y);
+  u8g.setDefaultForegroundColor();
+  if (menu_state.display_notes) {
+    for (size_t i=1; i < 4; ++i) {
+      if (i > 1) u8g.print(' ');
+      u8g.print(note_name(tonnetz_state.outputs(i)));
+    }
+  } else {
+    for (size_t i=1; i < 4; ++i) {
+      if (i > 1) u8g.print(' ');
+      u8g.print(tonnetz_state.outputs(i));
+    }
   }
 
   u8g.drawLine(0, 13, 128, 13);
 
   y = 2 * h - 4;
-  for (int i = 0; i < 4; ++i, y+=h) {
+  for (int i = 1; i < SETTING_LAST; ++i, y+=h) {
     if (i == menu_state.cursor_pos) {
       u8g.drawBox(0, y, 128, h);
       u8g.setDefaultBackgroundColor();
@@ -68,6 +95,6 @@ void H1200_menu() {
     if (attr.value_names)
       u8g.drawStr(col_x, y, attr.value_names[value]);
     else
-      u8g.print(value);
+      print_int(value);
   }
 }
