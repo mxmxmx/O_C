@@ -11,63 +11,68 @@ enum ETriggerMapping {
   TRIGGER_MAP_LAST
 };
 
-struct H1200Settings {
-  EMode mode;
-  int inversion;
-  ETriggerMapping trigger_mapping;
-  EOutputMode output_mode;
+enum ESettings {
+  SETTING_ROOT_OFFSET,
+  SETTING_MODE,
+  SETTING_INVERSION,
+  SETTING_TRIGGER_MAP,
+  SETTING_OUTPUT_MODE,
+  SETTING_LAST
+};
 
-  int get_value(size_t index) {
-    switch (index) {
-      case 0: return mode;
-      case 1: return inversion;
-      case 2: return trigger_mapping;
-      case 3: return output_mode;
-    }
-    return -1;
+class H1200Settings {
+public:
+
+  void init() {
+    for (size_t i = 0; i < SETTING_LAST; ++i)
+      values_[i] = value_attr_[i].default_;
   }
 
-  int clamp_value(size_t index, int value) {
-    if (index < 4)
-      return value_attr_[index].clamp(value);
-    else
-      return value;
+  int root_offset() const {
+    return values_[SETTING_ROOT_OFFSET];
+  }
+
+  EMode mode() const {
+    return static_cast<EMode>(values_[SETTING_MODE]);
+  }
+
+  int inversion() const {
+    return values_[SETTING_INVERSION];
+  }
+
+  ETriggerMapping trigger_mapping() const {
+    return static_cast<ETriggerMapping>(values_[SETTING_TRIGGER_MAP]);
+  }
+
+  EOutputMode output_mode() const {
+    return static_cast<EOutputMode>(values_[SETTING_OUTPUT_MODE]);
+  }
+
+  int get_value(size_t index) {
+    return values_[index];
+  }
+
+  static int clamp_value(size_t index, int value) {
+    return value_attr_[index].clamp(value);
   }
 
   bool apply_value(size_t index, int value) {
-    if (index < 4) {
+    if (index < SETTING_LAST) {
       const int clamped = value_attr_[index].clamp(value);
-      switch (index) {
-        case 0:
-          if (mode != clamped) {
-            mode = static_cast<EMode>(clamped);
-            return true;
-          }
-          break;
-        case 1:
-        if (inversion != clamped) {
-          inversion = clamped;
-          return true;
-        }
-        break;
-        case 2:
-          if (trigger_mapping != clamped) {
-            trigger_mapping = static_cast<ETriggerMapping>(clamped);
-            return true;
-          }
-          break;
-        case 3:
-          if (output_mode != clamped) {
-            output_mode = static_cast<EOutputMode>(clamped);
-            return true;
-          }
-          break;
+      if (values_[index] != clamped) {
+        values_[index] = clamped;
+        return true;
       }
     }
     return false;
   }
 
+private:
+
+  int values_[SETTING_LAST];
+
   struct value_attr {
+    int default_;
     int min_, max_;
     int clamp(int value) const {
       if (value < min_) return min_;
@@ -75,33 +80,31 @@ struct H1200Settings {
       else return value;
     }
   };
+
   static const value_attr value_attr_[];
 };
+
 /*static*/ const H1200Settings::value_attr H1200Settings::value_attr_[] = {
-  {0, MODE_LAST-1},
-  {-3, 3},
-  {0, TRIGGER_MAP_LAST-1},
-  {0, OUTPUT_MODE_LAST-1}
+  {12, -24, 36},
+  {MODE_MAJOR, 0, MODE_LAST-1},
+  {0, -3, 3},
+  {TRIGGER_MAP_XPLR, 0, TRIGGER_MAP_LAST-1},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1}
 };
-
-H1200Settings h1200_settings = {
-  MODE_MAJOR,
-  0,
-  TRIGGER_MAP_XPLR,
-  OUTPUT_CHORD_VOICING
-};
-
 
 struct H1200_menu_state {
   int cursor_pos;
   int cursor_value;
   bool value_changed;
+  bool display_notes;
 };
 
+H1200Settings h1200_settings;
 H1200_menu_state menu_state = {
   0,
   0,
   false,
+  true,
 };
 
 TonnetzState tonnetz_state;
@@ -118,16 +121,13 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 
   tonnetz::ETransformType transform = tonnetz::TRANSFORM_NONE;
   if (triggers & 0x11)
-    tonnetz_state.reset(h1200_settings.mode);
+    tonnetz_state.reset(h1200_settings.mode());
   if (triggers & 0x2) transform = tonnetz::TRANSFORM_P;
   if (triggers & 0x4) transform = tonnetz::TRANSFORM_L;
   if (triggers & 0x8) transform = tonnetz::TRANSFORM_R;
 
   //int trigger_mode = 8 + cvval[2]; // -> +- 8 notes
-  int inversion = h1200_settings.inversion;// + cvval[3]; // => octave in original
-
   int32_t sample = cvval[0];
-
   int root;
   if (sample < 0)
     root = 0;
@@ -135,10 +135,13 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     root = sample >> 5;
   else
     root = RANGE;
+  root += h1200_settings.root_offset();
   
+  int inversion = h1200_settings.inversion();// + cvval[3]; // => octave in original
+
   tonnetz_state.render(root, transform, inversion);
 
-  switch (h1200_settings.output_mode) {
+  switch (h1200_settings.output_mode()) {
     case OUTPUT_CHORD_VOICING: {
       OUTPUT_NOTE(0,set8565_CHA);
       OUTPUT_NOTE(1,set8565_CHB);
@@ -160,6 +163,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 }
 
 void H1200_init() {
+  h1200_settings.init();
   tonnetz_state.init();
   UI_MODE = 1;
   MENU_REDRAW = 1;
