@@ -146,11 +146,12 @@ struct App {
   void (*lower_button)();
   void (*right_button)();
   void (*left_button)();
+  bool (*update_encoders)();
 };
 
 App available_apps[] = {
-  {"ASR", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton},
-  {"Harrington1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton}
+  {"ASR", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton, update_ENC},
+  {"Harrington1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders}
 };
 static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 
@@ -215,9 +216,8 @@ void setup(){
   // splash screen, sort of ... 
   hello("Harrington","1200");
   // calibrate? else use EEPROM; else use things in theory :
-/*
   if (!digitalRead(butL))  calibrate_main();
-  else*/ if (EEPROM.read(0x2) > 0) read_settings(); 
+  else if (EEPROM.read(0x2) > 0) read_settings(); 
   else in_theory(); // uncalibrated DAC code 
   delay(1250);   
   // initialize ASR 
@@ -225,6 +225,13 @@ void setup(){
 
   for (size_t i = 0; i < APP_COUNT; ++i)
     available_apps[i].init();
+
+  if (!digitalRead(but_top)) {
+    current_app_index = 0;
+    while (!digitalRead(but_top));
+  }
+
+  current_app = &available_apps[current_app_index];
 }
 
 

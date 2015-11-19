@@ -10,7 +10,7 @@ void _loop()
   
    if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
  
-   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) update_ENC();
+   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   
    if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
     
