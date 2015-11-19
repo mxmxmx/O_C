@@ -165,7 +165,7 @@ void next_app() {
 
   current_app_index = (current_app_index + 1) % APP_COUNT;
   current_app = &available_apps[current_app_index];
-  hello(current_app->name);
+  hello(current_app->name,"");
   delay(1250);
 }
 
@@ -213,7 +213,7 @@ void setup(){
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
-  hello("O&C");
+  hello("Harrington","1200");
   // calibrate? else use EEPROM; else use things in theory :
 /*
   if (!digitalRead(butL))  calibrate_main();

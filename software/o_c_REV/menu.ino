@@ -12,7 +12,7 @@ uint8_t X_OFF = 110; // display x offset
 uint8_t OFFSET = 0x0;  // display y offset
 uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
-const uint16_t TIMEOUT = 5000; // time out menu (in ms)
+const uint16_t TIMEOUT = 15000; // time out menu (in ms)
 
 /* number of scales */
 const int8_t MAXSCALES = (sizeof(scales)/7);
@@ -94,23 +94,37 @@ void UI() {
 
 /* -----------  splash  ------------------- */  
 
-void hello(const char *text) {
-  
-  u8g.setFont(u8g_font_6x12);
-  u8g.setColorIndex(1);
-  u8g.setFontRefHeightText();
-  u8g.setFontPosTop();
-  u8g.firstPage();  
+void hello(const char *line1, const char *line2) {
+            u8g.setFont(u8g_font_6x12);
+            u8g.setColorIndex(1);
+            u8g.setFontRefHeightText();
+            u8g.setFontPosTop();
+ 
         do {
     
-            for(int i = 0; i < 4; i++ ) { 
-              u8g.drawBox(i*37, 24, 10, 24);
+            // for(int i = 0; i < 4; i++ ) { 
+            //   u8g.drawBox(i*37, 24, 10, 24);
+            // }
+
+           if (line1) {
+                // u8g.setFont(u8g_font_courR24);
+                // u8g.setColorIndex(1);
+                // u8g.setFontRefHeightText();
+                // u8g.setFontPosTop();
+                u8g.drawStr(25, 0, line1);
+            }
+           if (line2) {
+                // u8g.setFont(u8g_font_freedoomr25n);
+                // u8g.setColorIndex(1);
+                // u8g.setFontRefHeightText();
+                // u8g.setFontPosTop();
+                u8g.drawStr(60, 0, line2);
             }
 
-            if (text)
-              u8g.drawStr(10, 10, text);
     
         } while( u8g.nextPage() ); 
+
+
 }  
 
 
@@ -122,6 +136,7 @@ void draw(void) {
 
       case SCREENSAVER: { // draw some vertical bars
 
+            /*
             uint8_t x, y, width = 10;
             for(int i = 0; i < 4; i++ ) { 
                 x = i*37;
@@ -129,6 +144,46 @@ void draw(void) {
                 y++; 
                 u8g.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
             }
+            */
+  uint8_t col_x = 96;
+  uint8_t y = 0;
+  uint8_t h = 11;
+
+  const abstract_triad &current_chord = tonnetz_state.current_chord();
+
+  if (menu_state.cursor_pos == 0) {
+    u8g.drawBox(0, y, 32, h);
+    u8g.setDefaultBackgroundColor();
+    const int value = menu_state.cursor_value;
+    u8g.setPrintPos(10, y);
+    print_int(value);
+  } else {
+    u8g.setPrintPos(4, y);
+    // current chord info
+    u8g.setDefaultForegroundColor();
+    if (menu_state.display_notes)
+      u8g.print(note_name(tonnetz_state.root()));
+    else
+      u8g.print(tonnetz_state.root());
+    u8g.print(mode_names[current_chord.mode()]);
+  }
+
+  u8g.setPrintPos(64, y);
+  u8g.setDefaultForegroundColor();
+  if (menu_state.display_notes) {
+    for (size_t i=1; i < 4; ++i) {
+      if (i > 1) u8g.print(' ');
+      u8g.print(note_name(tonnetz_state.outputs(i)));
+    }
+  } else {
+    for (size_t i=1; i < 4; ++i) {
+      if (i > 1) u8g.print(' ');
+      u8g.print(tonnetz_state.outputs(i));
+    }
+  }
+
+  u8g.drawLine(0, 13, 128, 13);
+
             break; 
       } 
       
