@@ -34,7 +34,7 @@ enum DISPLAY_PAGE
 /* --------------- encoders ---------------------------------------  */
 
 /* encoders variables  */
-uint8_t SLOWDOWN = 1; 
+uint8_t SLOWDOWN = 0; 
 
 /* encoders isr */
 void left_encoder_ISR() 
@@ -47,11 +47,36 @@ void right_encoder_ISR()
   encoder[RIGHT].process();
 }
 
+int LAST_ENCODER_VALUE[2] = {-1, -1};
+
+void encoders() {
+  _ENC = false;
+
+  bool changed =
+      (LAST_ENCODER_VALUE[LEFT] != encoder[LEFT].pos()) ||
+      (LAST_ENCODER_VALUE[RIGHT] != encoder[RIGHT].pos());
+
+  if (UI_MODE) {
+    changed |= current_app->update_encoders();
+    LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
+    LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
+  } else {
+    // Eat value
+    encoder[LEFT].setPos(LAST_ENCODER_VALUE[LEFT]);
+    encoder[RIGHT].setPos(LAST_ENCODER_VALUE[RIGHT]);
+  }
+
+  if (changed) {
+    UI_MODE = MENU;
+    MENU_REDRAW = 1;
+    _UI_TIMESTAMP = millis();
+  }
+}
+
 /* ---------------  update params ---------------------------------  */  
 
-void update_ENC()  {
+bool update_ENC()  {
     
-       _ENC = false;
       int16_t tmp = encoder[RIGHT].pos();
     
       /* parameters: */
@@ -64,6 +89,7 @@ void update_ENC()  {
           else if (tmp > tmp3) { asr_display_params[MENU_CURRENT] = asr_params[MENU_CURRENT] = tmp3; encoder[RIGHT].setPos(tmp3);}
           else                 { asr_display_params[MENU_CURRENT] = asr_params[MENU_CURRENT] = tmp;  }
           MENU_REDRAW = 1;
+          return true;
       }
   
      if (UI_MODE) {
@@ -77,9 +103,11 @@ void update_ENC()  {
              else SCALE_CHANGE = 0; 
              MENU_REDRAW = 1;
              LAST_SCALE = SCALE_SEL;
-             _UI_TIMESTAMP = millis();
+             return true;
          }
      }
+
+     return false;
 }
 
 /* --- read  ADC ------ */
@@ -99,82 +127,71 @@ void CV() {
       _ADC = false;
 }
 
-bool ignore_top = false;
 /* --- check buttons --- */
 
 void buttons(uint8_t _button) {
-  
   bool button_pressed = false;
   switch(_button) {
-    
-    case 0: { 
-      
-         if (!digitalReadFast(but_top) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) { 
-           if (!ignore_top)
-            current_app->top_button();
-          else ignore_top = false;
-          button_pressed = true;
-        } 
+    case BUTTON_TOP: { 
+      if (!digitalReadFast(but_top) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
+        if (UI_MODE) current_app->top_button();
+        button_pressed = true;
+      }
     }
-    
-    case 1: { 
-      
-         if (!digitalReadFast(but_bot) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-          if (!digitalReadFast(but_top)) {
-            next_app();
-            ignore_top = true;
-            return;
-          } else
-          current_app->lower_button();
-          button_pressed = true;
-         }
+    break;
+
+    case BUTTON_BOTTOM: {
+      if (!digitalReadFast(but_bot) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
+        if (UI_MODE) current_app->lower_button();
+        button_pressed = true;
+      }
     }
-    
-    case 2: {
-      
-         if (!digitalReadFast(butL) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-           current_app->left_button(); //
-           button_pressed = true;
-         }
-    } 
-   
-    case 3: {
-     
-         if (!digitalReadFast(butR) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-           current_app->right_button(); //
-           button_pressed = true;
-         }      
-    }  
+    break;
+
+    case BUTTON_LEFT: {
+      if (!digitalReadFast(butL) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
+        if (UI_MODE) current_app->left_button();
+        button_pressed = true;
+      }
+    }
+    break;
+
+    case BUTTON_RIGHT: {
+      if (!digitalReadFast(butR) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
+        if (UI_MODE) current_app->right_button();
+        button_pressed = true;
+      }
+    }
+    break;
   }
+
   if (button_pressed) {
     _BUTTONS_TIMESTAMP = millis();
     _UI_TIMESTAMP = millis();
     UI_MODE = MENU;
   }
 }
- 
+
  
 /* --------------- button misc ------------------- */
 
 void rightButton() { 
   
-  if (UI_MODE) update_menu();
+  update_menu();
 } 
 
 /* -----------------------------------------------  */
 
 void leftButton() {
   
-  if (UI_MODE) update_scale();
+  update_scale();
 } 
 
 /* -----------------------------------------------  */
 
 void topButton() {
  
-   if (UI_MODE) { 
-         MENU_REDRAW = 1; 
-   }
+   MENU_REDRAW = 1; 
    int8_t tmp = asr_params[1];
    tmp++;
    asr_params[1] = tmp > OCT_MAX ? OCT_MAX : tmp; 
@@ -184,9 +201,7 @@ void topButton() {
 
 void lowerButton() {
 
-  if (UI_MODE) { 
-         MENU_REDRAW = 1; 
-  }
+  MENU_REDRAW = 1; 
   int8_t tmp = asr_params[1];
   tmp--;
   asr_params[1] = tmp < OCT_MIN ? OCT_MIN : tmp; 

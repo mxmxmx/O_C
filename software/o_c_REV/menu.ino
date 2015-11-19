@@ -8,7 +8,7 @@ extern void TONNETZ_renderMenu();
 
 uint8_t MENU_CURRENT = 2; 
 int16_t SCALE_SEL = 0;
-uint8_t X_OFF = 110; // display x offset
+uint8_t X_OFF = 104; // display x offset
 uint8_t OFFSET = 0x0;  // display y offset
 uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
@@ -71,7 +71,7 @@ const char *map_param5[] =
 void timeout() {
  
   
-  if (millis() - _UI_TIMESTAMP > TIMEOUT) UI_MODE = SCREENSAVER; 
+  if (millis() - _UI_TIMESTAMP > TIMEOUT) { UI_MODE = SCREENSAVER; MENU_REDRAW = 1; }
   else if (millis() - _CLK_TIMESTAMP > TRIG_LENGTH) {        
          MENU_REDRAW = 1;
          display_clock = false;

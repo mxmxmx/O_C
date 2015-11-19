@@ -20,6 +20,8 @@ enum ESettings {
   SETTING_LAST
 };
 
+static const int MAX_INVERSION = 9;
+
 class H1200Settings {
 public:
 
@@ -112,9 +114,11 @@ TonnetzState tonnetz_state;
 #define OUTPUT_NOTE(i,dac_setter) \
 do { \
   int note = tonnetz_state.outputs(i); \
-  if (note > RANGE) note -= 12; \
-  else if (note < 0) note += 12; \
-  dac_setter(semitones[note]); \
+  while (note > RANGE) note -= 12; \
+  while (note < 0) note += 12; \
+  const uint16_t dac_code = semitones[note]; \
+  asr_outputs[i] = dac_code; \
+  dac_setter(dac_code); \
 } while (0)
 
 void FASTRUN H1200_clock(uint32_t triggers) {
@@ -137,8 +141,9 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     root = RANGE;
   root += h1200_settings.root_offset();
   
-  int inversion = h1200_settings.inversion();// + cvval[3]; // => octave in original
-
+  int inversion = h1200_settings.inversion() + cvval[3]; // => octave in original
+  if (inversion > MAX_INVERSION) inversion = MAX_INVERSION;
+  else if (inversion < -MAX_INVERSION) inversion = -MAX_INVERSION;
   tonnetz_state.render(root, transform, inversion);
 
   switch (h1200_settings.output_mode()) {
@@ -186,11 +191,11 @@ void H1200_loop() {
   CLOCKIT();
   if (_ADC) CV();
   CLOCKIT();
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) H1200_update_ENC();
-  CLOCKIT();
-  buttons(BUTTON_TOP);
+  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   CLOCKIT();
   buttons(BUTTON_BOTTOM);
+  CLOCKIT();
+  buttons(BUTTON_TOP);
   CLOCKIT();
   buttons(BUTTON_LEFT);
   CLOCKIT();
