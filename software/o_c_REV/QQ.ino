@@ -116,17 +116,17 @@ void QQ_loop() {
   UI();
   CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  CLOCK_CHANNEL(1, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
+  CLOCK_CHANNEL(1, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHB);
    buttons(BUTTON_TOP);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
+  CLOCK_CHANNEL(2, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHC);
    buttons(BUTTON_BOTTOM);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
+  CLOCK_CHANNEL(3, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHD);
    buttons(BUTTON_LEFT);
   CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
    buttons(BUTTON_RIGHT);
-  CLOCK_CHANNEL(1, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
+  CLOCK_CHANNEL(1, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHB);
+  CLOCK_CHANNEL(2, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHC);
+  CLOCK_CHANNEL(3, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHD);
 }
 
 void QQ_menu() {
