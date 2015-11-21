@@ -19,6 +19,7 @@ namespace tonnetz {
     size_t root_shift; // +1 = root -> third, +2 root -> fifth
     int offsets[abstract_triad::NOTES]; // root, third, fifth
   } transformations[TRANSFORM_LAST][2] = {
+    { { 0, {  0,  0,  0 } }, { 0, {  0,  0,  0 } } }, // NONE
     { { 0, {  0, -1,  0 } }, { 0, {  0,  1,  0 } } }, // TRANSFORM_P
     { { 1, { -1,  0,  0 } }, { 2, {  0,  0,  1 } } }, // TRANSFORM_L
     { { 2, {  0,  0,  2 } }, { 1, { -2,  0,  0 } } }, // TRANSFORM_R
