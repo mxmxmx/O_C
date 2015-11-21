@@ -15,6 +15,7 @@ struct quantizer_channel {
 
   enum ESettings {
     SETTING_SCALE,
+    SETTING_OCTAVE,
     SETTING_TRANSPOSE,
     SETTING_ATTENUATION,
     SETTING_MAXNOTES,
@@ -23,6 +24,10 @@ struct quantizer_channel {
 
   int get_scale() const {
     return values_[SETTING_SCALE];
+  }
+
+  int get_octave() const {
+    return values_[SETTING_OCTAVE];
   }
 
   int get_transpose() const {
@@ -56,6 +61,10 @@ struct quantizer_channel {
     return false;
   }
 
+  bool change_value(size_t index, int delta) {
+    return apply_value(index, values_[index] + delta);
+  }
+
   static const settings::value_attr value_attr(size_t i) {
     return value_attr_[i];
   }
@@ -68,16 +77,17 @@ struct quantizer_channel {
 /*static*/
 const settings::value_attr quantizer_channel::value_attr_[] = {
   { 0, 0, MAXSCALES, "scale", abc },
+  { 0, -4, 4, "octavev", NULL },
   { 0, -12, 12, "offset", NULL },
-  { 0, 0, MAXNOTES, "#/scale", NULL },
+  { 0, 2, MAXNOTES, "#/scale", NULL },
   { 16, 0, 16, "att/mult", NULL }
 };
 
 quantizer_channel quantizer_channels[4] = {
-  { 0, 0, 16, MAXNOTES },
-  { 0, 0, 16, MAXNOTES },
-  { 0, 0, 16, MAXNOTES },
-  { 0, 0, 16, 0 }
+  { 0, 1, 0, MAXNOTES, 16 },
+  { 0, 2, 0, MAXNOTES, 16 },
+  { 0, 3, 0, MAXNOTES, 16 },
+  { 0, 0, 0, MAXNOTES, 16 }
 };
 
 enum EMenuMode {
@@ -108,7 +118,7 @@ void QQ_init() {
   qq_state.selected_channel = 0;
   qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
   qq_state.left_encoder_value = 0;
-  qq_state.selected_param = 1;
+  qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
 }
 
 void QQ_loop() {
@@ -116,17 +126,17 @@ void QQ_loop() {
   UI();
   CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  CLOCK_CHANNEL(1, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHB);
+  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), set8565_CHB);
    buttons(BUTTON_TOP);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHC);
+  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), set8565_CHC);
    buttons(BUTTON_BOTTOM);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHD);
+  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), set8565_CHD);
    buttons(BUTTON_LEFT);
   CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
    buttons(BUTTON_RIGHT);
-  CLOCK_CHANNEL(1, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHB);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHC);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHD);
+  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), set8565_CHB);
+  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), set8565_CHC);
+  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), set8565_CHD);
 }
 
 void QQ_menu() {
@@ -144,8 +154,12 @@ void QQ_menu() {
     } else {
       u8g.setDefaultForegroundColor();  
     }
-    u8g.setPrintPos(x + 13, y);
+    u8g.setPrintPos(x + 4, y);
     u8g.print((char)('A' + i));
+    u8g.setPrintPos(x + 14, y);
+    int octave = quantizer_channels[i].get_octave();
+    if (octave)
+      print_int(octave);
   }
 
   u8g.setDefaultForegroundColor();  
@@ -168,9 +182,10 @@ void QQ_menu() {
   u8g.print(abc[scale]);
 
   y += h;
-  for (int i = 1; i < 4; ++i, y+=h) {
+  for (int i = quantizer_channel::SETTING_TRANSPOSE; i < quantizer_channel::SETTING_LAST; ++i, y+=h) {
     u8g.setPrintPos(10, y);
     if (i == qq_state.selected_param) {
+      u8g.setDefaultForegroundColor();
       u8g.drawBox(0, y, 128, h);
       u8g.setDefaultBackgroundColor();
     } else {
@@ -209,19 +224,31 @@ bool QQ_encoders() {
       }
       break;
   }
+
+  quantizer_channel &selected = quantizer_channels[qq_state.selected_channel];
+  value = encoder[RIGHT].pos();
+  if (value != selected.get_value(qq_state.selected_param)) {
+    selected.apply_value(qq_state.selected_param, value);
+    encoder[RIGHT].setPos(selected.get_value(qq_state.selected_param));
+    changed = true;
+  }
+
   return changed;
 }
 
 void QQ_topButton() {
+  quantizer_channels[qq_state.selected_channel].change_value(quantizer_channel::SETTING_OCTAVE, 1);
 }
 
 void QQ_lowerButton() {
+  quantizer_channels[qq_state.selected_channel].change_value(quantizer_channel::SETTING_OCTAVE, -1);
 }
 
 void QQ_rightButton() {
   ++qq_state.selected_param;
   if (qq_state.selected_param >= quantizer_channel::SETTING_LAST)
     qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
+  encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
 void QQ_leftButton() {
