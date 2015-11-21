@@ -98,8 +98,8 @@ quad_quantizer_state qq_state;
 do { \
   if (CLK_STATE[i]) { \
     CLK_STATE[i] = false; \
-    uint16_t s = quant_sc(sample, quantizer_channels[0].get_scale(), quantizer_channels[0].get_transpose(), quantizer_channels[0].get_maxnotes()); \
-    asr_outputs[0] = s; \
+    uint16_t s = quant_sc(sample, quantizer_channels[i].get_scale(), quantizer_channels[i].get_transpose(), quantizer_channels[i].get_maxnotes()); \
+    asr_outputs[i] = s; \
     dac_set(s); \
   } \
 } while (0)
