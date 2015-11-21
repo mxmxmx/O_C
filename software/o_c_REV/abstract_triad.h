@@ -65,7 +65,7 @@ public:
   }
 
   void apply_inversion(int inversion) {
-/*
+ /*
     if (inversion > 0) {
       notes_[base_index_] += inversion * 12;
       if (inversion > 1) notes_[(base_index_ + 1) % NOTES] += (inversion - 1) * 12;
@@ -78,7 +78,7 @@ public:
       if (inversion > 2) notes_[base_index_] -= (inversion - 2) * 12;
       base_index_ = (base_index_ + 2 * inversion) % NOTES;
     }
-*/
+   */
   }
 
 private:
