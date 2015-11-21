@@ -21,12 +21,12 @@ void H1200_menu() {
     {"TRIGGERS", trigger_mode_names},
     {"OUTPUT", output_mode_names}
   };
+*/
 
    u8g.setFont(u8g_font_6x12);
    u8g.setColorIndex(1);
    u8g.setFontRefHeightText();
    u8g.setFontPosTop();
-*/
 
   uint8_t col_x = 96;
   uint8_t y = 0;

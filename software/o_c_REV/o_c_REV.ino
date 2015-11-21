@@ -139,7 +139,6 @@ void ENC_callback()
 
 struct App {
   const char *name1;
-  const char *name2;
   void (*init)();
   void (*loop)();
   void (*render_menu)();
@@ -170,7 +169,7 @@ void next_app() {
 
   current_app_index = (current_app_index + 1) % APP_COUNT;
   current_app = &available_apps[current_app_index];
-  hello(current_app->name1,current_app->name2);
+  hello(current_app->name1);
   delay(2250);
 }
 
@@ -218,7 +217,7 @@ void setup(){
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
-  hello("Harrington","1200");
+  hello("Harrington 1200");
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) read_settings(); 
