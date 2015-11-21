@@ -1,4 +1,8 @@
+
 #include "tonnetz_state.h"
+#include "settings.h"
+
+extern uint16_t semitones[RANGE+1];
 
 enum EOutputMode {
   OUTPUT_CHORD_VOICING,
@@ -27,7 +31,7 @@ public:
 
   void init() {
     for (size_t i = 0; i < SETTING_LAST; ++i)
-      values_[i] = value_attr_[i].default_;
+      values_[i] = value_attr_[i].default_value();
   }
 
   int root_offset() const {
@@ -69,29 +73,36 @@ public:
     return false;
   }
 
-private:
+  static const settings::value_attr &value_attr(size_t i) {
+    return value_attr_[i];
+  }
+
+//private:
 
   int values_[SETTING_LAST];
-
-  struct value_attr {
-    int default_;
-    int min_, max_;
-    int clamp(int value) const {
-      if (value < min_) return min_;
-      else if (value > max_) return max_;
-      else return value;
-    }
-  };
-
-  static const value_attr value_attr_[];
+  static const settings::value_attr value_attr_[];
 };
 
-/*static*/ const H1200Settings::value_attr H1200Settings::value_attr_[] = {
-  {12, -24, 36},
-  {MODE_MAJOR, 0, MODE_LAST-1},
-  {0, -3, 3},
-  {TRIGGER_MAP_XPLR, 0, TRIGGER_MAP_LAST-1},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1}
+
+const char *output_mode_names[] = {
+  "CHORD",
+  "TUNE"
+};
+
+const char *trigger_mode_names[] = {
+  "@PLR"
+};
+
+const char *mode_names[] = {
+  "maj", "min"
+};
+
+/*static*/ const settings::value_attr H1200Settings::value_attr_[] = {
+  {12, -24, 36, "TRANSPOSE", NULL},
+  {MODE_MAJOR, 0, MODE_LAST-1, "MODE", mode_names},
+  {0, -3, 3, "INVERSION", NULL},
+  {TRIGGER_MAP_XPLR, 0, TRIGGER_MAP_LAST-1, "TRIGGERS", trigger_mode_names},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "OTUPUT", output_mode_names}
 };
 
 struct H1200_menu_state {
@@ -200,7 +211,5 @@ void H1200_loop() {
   buttons(BUTTON_LEFT);
   CLOCKIT();
   buttons(BUTTON_RIGHT);
-  CLOCKIT();
-  if (UI_MODE) timeout(); 
   CLOCKIT();
 }

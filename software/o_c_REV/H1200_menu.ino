@@ -3,24 +3,6 @@ const char *note_name(int note) {
   return note_names[(note + 120) % 12];
 }
 
-const char *output_mode_names[] = {
-  "CHORD",
-  "TUNE"
-};
-
-const char *trigger_mode_names[] = {
-  "@PLR"
-};
-
-const char *mode_names[] = {
-  "maj", "min"
-};
-
-struct settings_attr {
-  const char *name;
-  const char **value_names;
-};
-
 void print_int(int value) {
   if (value >= 0) {
     u8g.print('+'); u8g.print(value);
@@ -31,6 +13,7 @@ void print_int(int value) {
 
 void H1200_menu() {
 
+/*
   static const settings_attr settings[SETTING_LAST] = {
     {"", NULL},
     {"MODE", mode_names},
@@ -43,6 +26,7 @@ void H1200_menu() {
    u8g.setColorIndex(1);
    u8g.setFontRefHeightText();
    u8g.setFontPosTop();
+*/
 
   uint8_t col_x = 96;
   uint8_t y = 0;
@@ -91,7 +75,7 @@ void H1200_menu() {
     } else {
       u8g.setDefaultForegroundColor();
     }
-    const settings_attr &attr = settings[i];
+    const settings::value_attr &attr = H1200Settings::value_attr(i);
     u8g.drawStr(10, y, attr.name);
     u8g.setPrintPos(col_x, y);
     int value = i == menu_state.cursor_pos

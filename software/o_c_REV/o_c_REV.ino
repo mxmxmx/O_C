@@ -151,9 +151,12 @@ struct App {
 };
 
 App available_apps[] = {
-  {"Analogue", "Shift Register", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton, update_ENC},
-  {"Harrington", "1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders}
+
+  {"ASR", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton, update_ENC},
+  {"Harrington1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
+  {"QuaQua", QQ_init, QQ_loop, QQ_menu, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
 };
+
 static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 
 size_t current_app_index = 1;
@@ -230,6 +233,9 @@ void setup(){
   if (!digitalRead(but_top)) {
     current_app_index = 0;
     while (!digitalRead(but_top));
+  } else if (!digitalRead(but_bot)) {
+    current_app_index = 2;
+    while (!digitalRead(but_bot));
   }
 
   current_app = &available_apps[current_app_index];
@@ -244,8 +250,10 @@ void loop(){
 
   while (1) {
     volatile App *app = current_app;
-    while (current_app == app)
+    while (current_app == app){
       app->loop();
+      if (UI_MODE) timeout(); 
+    }
   }
 }
 

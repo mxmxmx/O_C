@@ -14,39 +14,12 @@ uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
 const uint16_t TIMEOUT = 15000; // time out menu (in ms)
 
-/* number of scales */
-const int8_t MAXSCALES = (sizeof(scales)/7);
 const int8_t MENU_ITEMS = 6;
 
 /* ASR parameters: scale, octave, offset, delay, #/scale, attenuation */ 
 int16_t asr_display_params[] = {0, 0, 0, 0, 0, 0};
 /* limits for menu parameters */
 const int16_t param_limits[][2] = {{0,0}, {-5,5}, {-999,999}, {0,63}, {2,MAXNOTES}, {7,26}}; 
-
-/* names for scales go here (names shouldn't be longer than 12 characters) */
-const char *abc[MAXSCALES] =    {
-  
-  "locrian nat.", //0
-  "locrian",      //1
-  "dorian",       //2
-  "pent. minor",  //3
-  "minor",        //4
-  "scriabin",     //5
-  "marva",        //6
-  "indian",       //7
-  "aolean",       //8
-  "phrygian",     //9
-  "gamelan",      //10
-  "hex sus",      //11
-  "purvi",        //12
-  "bhairav",      //13
-  "pelog",        //14
-  "whatever",     //15
-  "etc",          //16
-  "xxx",          //17
-  "zzz"           //18
-};
-
 
 /*  names for menu items */
 const char *menu_strings[MENU_ITEMS] = {
