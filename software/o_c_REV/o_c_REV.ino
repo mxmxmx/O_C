@@ -138,7 +138,8 @@ void ENC_callback()
 } // encoder update 
 
 struct App {
-  const char *name;
+  const char *name1;
+  const char *name2;
   void (*init)();
   void (*loop)();
   void (*render_menu)();
@@ -150,8 +151,8 @@ struct App {
 };
 
 App available_apps[] = {
-  {"ASR", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton, update_ENC},
-  {"Harrington1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders}
+  {"Analogue", "Shift Register", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton, update_ENC},
+  {"Harrington", "1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders}
 };
 static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 
@@ -166,8 +167,8 @@ void next_app() {
 
   current_app_index = (current_app_index + 1) % APP_COUNT;
   current_app = &available_apps[current_app_index];
-  hello(current_app->name,"");
-  delay(1250);
+  hello(current_app->name1,current_app->name2);
+  delay(2250);
 }
 
 /*       ---------------------------------------------------------         */
