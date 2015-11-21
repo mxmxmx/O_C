@@ -33,8 +33,4 @@ void _loop()
    buttons(BUTTON_RIGHT);
   
    if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }  
-   
-   if (UI_MODE) timeout(); 
- 
-   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-}
+ }
