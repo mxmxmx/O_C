@@ -68,91 +68,63 @@ void UI() {
 /* -----------  splash  ------------------- */  
 
 void hello(const char *line1) {
- 
-        do {
-                u8g.setFont(u8g_font_6x12);
-                // u8g.setFont(u8g_font_osb18);
-                u8g.setColorIndex(1);
-                u8g.setFontRefHeightText();
-                u8g.setFontPosTop();
-                u8g.setPrintPos(4, 20);
-                u8g.print(line1);
-    
-        } while( u8g.nextPage() ); 
+  u8g.setFont(u8g_font_6x12);
+  u8g.firstPage();
+  u8g.setFontRefHeightText();
+  u8g.setFontPosTop();
+  u8g.firstPage();  
+  do {
+    u8g.setPrintPos(4, 2); u8g.print(line1);
 
+    uint8_t x = 4, y = 20;
+    for (size_t i = 0; i < APP_COUNT; ++i, y += 16) {
+      u8g.setPrintPos(x, y);
+      if (current_app_index == i)
+        u8g.print('>');
+      else
+        u8g.print(' ');
+      u8g.print(available_apps[i].name);
+    }
+  } while( u8g.nextPage() ); 
 }  
 
 /* ----------- screensaver ----------------- */
 void screensaver() {
-   u8g.setFont(u8g_font_helvB14);
+   u8g.setFont(u8g_font_6x12);
    u8g.setColorIndex(1);
    u8g.setFontRefHeightText();
    u8g.setFontPosTop();
   
-  if (current_app_index == 0) {
-     uint8_t x, y, width = 10;
-     for(int i = 0; i < 4; i++ ) { 
-       x = i*37;
-       y = asr_outputs[i] >> 10; 
-       y++; 
-       u8g.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
-     }
-  } else {
-    // uint8_t col_x = 96;
-    uint8_t y = 0;
-    // uint8_t h = 11;
-
-    const abstract_triad &current_chord = tonnetz_state.current_chord();
-
-    u8g.setPrintPos(4, y);
-    // current chord info
-    u8g.setDefaultForegroundColor();
-    u8g.print(tonnetz_state.root() / 12);
-    u8g.setPrintPos(4, y + 20);
-    u8g.print(note_name(tonnetz_state.root()));
-    u8g.setPrintPos(4, y + 40);
-    u8g.print(mode_names[current_chord.mode()]);
-
-    u8g.setPrintPos(64, y);
-    u8g.setDefaultForegroundColor();
-    for (size_t i=1; i < 4; ++i) {
-        // int x_pos = 64 + ((i-1)*24) ;
-        u8g.setPrintPos(100, y + ((i - 1) * 20)) ;
-        u8g.print(note_name(tonnetz_state.outputs(i)));
-    }
-    u8g.setDefaultForegroundColor();
-    for (size_t i=1; i < 4; ++i) {
-        u8g.setPrintPos(64, y + ((i - 1) * 20)) ;
-        u8g.print(tonnetz_state.outputs(i) / 12) ;
-    }
-  }
+   uint8_t x, y, width = 10;
+   for(int i = 0; i < 4; i++ ) { 
+     x = i*37;
+     y = asr_outputs[i] >> 10; 
+     y++; 
+     u8g.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
+   }
 }
 
 /* -----------   draw menu  --------------- */ 
 
 void draw(void) { 
-  
-  switch(UI_MODE) {
 
-      case SCREENSAVER: { // draw some vertical bars
-            screensaver();
-            break; 
+  switch(UI_MODE) {
+      case SCREENSAVER: {
+        current_app->screensaver();
+        break; 
       } 
-      
-      case MENU: {  // draw main menu
-       
-            current_app->render_menu();
-            break;    
+      case MENU: {
+        current_app->render_menu();
+        break;    
       }
-      
       case CALIBRATE: {
-           calibrate();
-           break;
-      } 
-      default: 
-           break;
+       calibrate();
+       break;
+     }
+     default:
+     break;
    } 
-}
+ }
   
 /* --------------------- main menu loop ------------------------  */
 

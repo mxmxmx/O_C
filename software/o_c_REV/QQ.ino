@@ -1,7 +1,7 @@
 /*
  * Quad quantizer mode
  */
-#include "settings.h"
+#include "util_settings.h"
 
 extern uint16_t _ADC_OFFSET_0;
 extern uint16_t _ADC_OFFSET_1;
@@ -77,7 +77,7 @@ struct quantizer_channel {
 /*static*/
 const settings::value_attr quantizer_channel::value_attr_[] = {
   { 0, 0, MAXSCALES, "scale", abc },
-  { 0, -4, 4, "octavev", NULL },
+  { 0, -4, 4, "octave", NULL },
   { 0, -12, 12, "offset", NULL },
   { 0, 2, MAXNOTES, "#/scale", NULL },
   { 16, 0, 16, "att/mult", NULL }
@@ -211,6 +211,7 @@ bool QQ_encoders() {
         else if (value < 0) value = 0;
         qq_state.left_encoder_value = value;
         encoder[LEFT].setPos(value);
+        encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
         changed = true;
       }
       break;
@@ -253,9 +254,12 @@ void QQ_rightButton() {
 
 void QQ_leftButton() {
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
+    quantizer_channels[qq_state.selected_channel].apply_value(quantizer_channel::SETTING_SCALE,qq_state.left_encoder_value);
     qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
+    encoder[LEFT].setPos(qq_state.selected_channel);
   } else {
     qq_state.left_encoder_mode = MODE_EDIT_CHANNEL;
     qq_state.left_encoder_value = quantizer_channels[qq_state.selected_channel].get_scale();
+    encoder[LEFT].setPos(qq_state.left_encoder_value);
   }
 }

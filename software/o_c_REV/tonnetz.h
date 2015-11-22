@@ -1,7 +1,7 @@
 #ifndef TONNETZ_H_
 #define TONNETZ_H_
 
-#include "abstract_triad.h"
+#include "tonnetz_abstract_triad.h"
 
 namespace tonnetz {
   enum ETransformType {

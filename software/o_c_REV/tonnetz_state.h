@@ -1,6 +1,6 @@
 #ifndef TONNETZ_STATE_H_
 #define TONNETZ_STATE_H_
-#include "abstract_triad.h"
+#include "tonnetz_abstract_triad.h"
 #include "tonnetz.h"
 
 class TonnetzState {

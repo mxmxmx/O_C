@@ -25,6 +25,7 @@
 #include <u8g_teensy.h>
 #include <rotaryplus.h>
 #include <EEPROM.h>
+#include "util_app.h"
 
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
@@ -137,23 +138,10 @@ void ENC_callback()
   _ENC = true; 
 } // encoder update 
 
-struct App {
-  const char *name1;
-  void (*init)();
-  void (*loop)();
-  void (*render_menu)();
-  void (*top_button)();
-  void (*lower_button)();
-  void (*right_button)();
-  void (*left_button)();
-  bool (*update_encoders)();
-};
-
 App available_apps[] = {
-
-  {"ASR", ASR_init, _loop, ASR_menu, topButton, lowerButton, rightButton, leftButton, update_ENC},
-  {"Harrington1200", H1200_init, H1200_loop, H1200_menu, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
-  {"QuaQua", QQ_init, QQ_loop, QQ_menu, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
+  {"ASR", ASR_init, _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, update_ENC},
+  {"Harrington 1200", H1200_init, H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
+  {"QuaQua", QQ_init, QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
 };
 
 static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
@@ -169,7 +157,7 @@ void next_app() {
 
   current_app_index = (current_app_index + 1) % APP_COUNT;
   current_app = &available_apps[current_app_index];
-  hello(current_app->name1);
+  hello("");
   delay(2250);
 }
 
@@ -217,7 +205,7 @@ void setup(){
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
-  hello("Harrington 1200");
+  hello("O&C");
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) read_settings(); 
@@ -231,13 +219,15 @@ void setup(){
 
   if (!digitalRead(but_top)) {
     current_app_index = 0;
+    current_app = &available_apps[current_app_index];
+    hello("");
     while (!digitalRead(but_top));
   } else if (!digitalRead(but_bot)) {
     current_app_index = 2;
+    current_app = &available_apps[current_app_index];
+    hello("");
     while (!digitalRead(but_bot));
   }
-
-  current_app = &available_apps[current_app_index];
 }
 
 
