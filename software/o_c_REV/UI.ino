@@ -225,7 +225,4 @@ void update_scale() {
      encoder[LEFT].setPos(SCALE_SEL<<SLOWDOWN); 
      SCALE_CHANGE = 0;
      MENU_REDRAW = 1;
-      
-}  
-
-
+}
