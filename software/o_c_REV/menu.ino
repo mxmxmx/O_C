@@ -43,7 +43,6 @@ const char *map_param5[] =
 
 void timeout() {
  
-  
   if (millis() - _UI_TIMESTAMP > TIMEOUT) { UI_MODE = SCREENSAVER; MENU_REDRAW = 1; }
   else if (millis() - _CLK_TIMESTAMP > TRIG_LENGTH) {        
          MENU_REDRAW = 1;
@@ -51,40 +50,52 @@ void timeout() {
   }  
 } 
 
-/* -----------  loop  --------------------- */ 
+/* -----------   draw menu  --------------- */ 
+
+#define U8G_DRAW(fun) \
+do { \
+  u8g.firstPage(); \
+  do { \
+    fun(); \
+  } while (u8g.nextPage()); \
+} while (0)
 
 void UI() {
   if (  MENU_REDRAW != 0 ) {
-        u8g.firstPage();  
-        do {
-    
-          draw(); 
-    
-        } while( u8g.nextPage() );
-        MENU_REDRAW = 0;
+    switch(UI_MODE) {
+      case SCREENSAVER:
+        U8G_DRAW(current_app->screensaver);
+        break;
+      case MENU:
+        U8G_DRAW(current_app->render_menu);
+        break;
+      case CALIBRATE:
+        U8G_DRAW(calibrate);
+        break;
+      default: break;
+    }
+    MENU_REDRAW = 0;
   }
 }  
 
 /* -----------  splash  ------------------- */  
 
-void hello(const char *line1) {
+void hello() {
   u8g.setFont(u8g_font_6x12);
   u8g.firstPage();
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
   u8g.firstPage();  
   do {
-    u8g.setPrintPos(4, 2); u8g.print(line1);
+    u8g.setDefaultForegroundColor();
+    u8g.drawBox(0, 0, 128, 14);
+    u8g.setDefaultBackgroundColor();
+    u8g.setPrintPos(4, 2); u8g.print("ORNAMENT & CRIME");
 
-    uint8_t x = 4, y = 20;
-    for (size_t i = 0; i < APP_COUNT; ++i, y += 16) {
-      u8g.setPrintPos(x, y);
-      if (current_app_index == i)
-        u8g.print('>');
-      else
-        u8g.print(' ');
-      u8g.print(available_apps[i].name);
-    }
+    u8g.setDefaultForegroundColor();
+    u8g.setPrintPos(4, 20); u8g.print("L : Calibrate");
+    u8g.setPrintPos(4, 33); u8g.print("R : Choose app");
+    u8g.setPrintPos(4, 52); u8g.print(__DATE__);
   } while( u8g.nextPage() ); 
 }  
 
@@ -104,28 +115,6 @@ void screensaver() {
    }
 }
 
-/* -----------   draw menu  --------------- */ 
-
-void draw(void) { 
-
-  switch(UI_MODE) {
-      case SCREENSAVER: {
-        current_app->screensaver();
-        break; 
-      } 
-      case MENU: {
-        current_app->render_menu();
-        break;    
-      }
-      case CALIBRATE: {
-       calibrate();
-       break;
-     }
-     default:
-     break;
-   } 
- }
-  
 /* --------------------- main menu loop ------------------------  */
 
 void ASR_menu() {
