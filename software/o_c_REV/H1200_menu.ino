@@ -3,6 +3,10 @@ const char *note_name(int note) {
   return note_names[(note + 120) % 12];
 }
 
+const char *transform_names[] {
+  "-", "P", "L", "R", "N", "S", "H"
+};
+
 void print_int(int value) {
   if (value >= 0) {
     u8g.print('+'); u8g.print(value);
@@ -97,6 +101,9 @@ void H1200_screensaver() {
   u8g.print(note_name(tonnetz_state.root()));
   u8g.setPrintPos(4, y + 40);
   u8g.print(mode_names[current_chord.mode()]);
+
+  u8g.setPrintPos(32,y);
+  u8g.print(transform_names[tonnetz_state.last_transform()]);
 
   u8g.setPrintPos(64, y);
   u8g.setDefaultForegroundColor();

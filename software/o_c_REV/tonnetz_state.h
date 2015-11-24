@@ -7,6 +7,7 @@ class TonnetzState {
 public:
   void init() {
     reset(MODE_MAJOR);
+    last_transform_ = tonnetz::TRANSFORM_NONE;
   }
 
   int outputs(size_t index) const {
@@ -20,11 +21,14 @@ public:
   void reset(EMode mode) {
     current_chord_.init(mode);
     current_chord_.generate_notes(outputs_[0], outputs_ + 1);
+    last_transform_ = tonnetz::TRANSFORM_NONE;
   }
 
   void render(int root, tonnetz::ETransformType transform, int inversion) {
-    if (tonnetz::TRANSFORM_NONE != transform)
+    if (tonnetz::TRANSFORM_NONE != transform) {
       current_chord_ = tonnetz::apply_transformation(transform, current_chord_);
+      last_transform_ = transform;
+    }
 
     current_chord_.apply_inversion(inversion);
 
@@ -36,9 +40,14 @@ public:
   	return current_chord_;
   }
 
+  tonnetz::ETransformType last_transform() const {
+    return last_transform_;
+  }
+
 private:
 
   abstract_triad current_chord_;
+  tonnetz::ETransformType last_transform_;
   int outputs_[1 + abstract_triad::NOTES];
 };
 

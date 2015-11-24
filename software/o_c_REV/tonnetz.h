@@ -38,7 +38,6 @@ namespace tonnetz {
     result.shift_root(t.root_shift);
     return result;
   }
-
 };
 
 #endif // TONNETZ_H_
