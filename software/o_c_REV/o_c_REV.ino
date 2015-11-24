@@ -27,6 +27,8 @@
 #include <EEPROM.h>
 #include "util_app.h"
 #include "util_button.h"
+#include "util_pagestorage.h"
+#include "EEPROMStorage.h"
 
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
