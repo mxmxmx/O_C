@@ -129,6 +129,14 @@ void CV() {
 
 /* --- check buttons --- */
 
+TimerDebouncedButton<butL, 50> button_left;
+TimerDebouncedButton<butR, 50, 2000> button_right;
+
+void buttons_init() {
+  button_left.init();
+  button_right.init();
+}
+
 void buttons(uint8_t _button) {
   bool button_pressed = false;
   switch(_button) {
@@ -149,18 +157,18 @@ void buttons(uint8_t _button) {
     break;
 
     case BUTTON_LEFT: {
-      if (!digitalReadFast(butL) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-        if (UI_MODE) current_app->left_button();
-        button_pressed = true;
-      }
+      button_pressed = button_left.read();
+      if (button_left.event() && UI_MODE)
+        current_app->left_button();
     }
     break;
 
     case BUTTON_RIGHT: {
-      if (!digitalReadFast(butR) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-        if (UI_MODE) current_app->right_button();
-        button_pressed = true;
-      }
+      button_pressed = button_right.read();
+      if (button_right.long_event())
+        SELECT_APP = true;
+      else if (button_right.event() && UI_MODE)
+        current_app->right_button();
     }
     break;
   }

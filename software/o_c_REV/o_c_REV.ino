@@ -26,6 +26,7 @@
 #include <rotaryplus.h>
 #include <EEPROM.h>
 #include "util_app.h"
+#include "util_button.h"
 
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
@@ -152,12 +153,13 @@ void setup(){
   pinMode(butR, INPUT);
   pinMode(but_top, INPUT);
   pinMode(but_bot, INPUT);
+  buttons_init();
  
   pinMode(TR1, INPUT); // INPUT_PULLUP);
   pinMode(TR2, INPUT);
   pinMode(TR3, INPUT);
   pinMode(TR4, INPUT);
-  
+
   // clock ISR 
   attachInterrupt(TR1, tr1_ISR, FALLING);
   attachInterrupt(TR2, tr2_ISR, FALLING);
@@ -200,12 +202,9 @@ void setup(){
 //uint32_t testclock;
 
 void loop() {
-
   while (1) {
     // don't change current_app while it's running
-    if (SELECT_APP)
-      select_app();
-
+    if (SELECT_APP) select_app();
     current_app->loop();
     if (UI_MODE) timeout();
   }

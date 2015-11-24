@@ -90,11 +90,11 @@ void hello() {
     u8g.setDefaultForegroundColor();
     u8g.drawBox(0, 0, 128, 14);
     u8g.setDefaultBackgroundColor();
-    u8g.setPrintPos(4, 2); u8g.print("ORNAMENT & CRIME");
+    u8g.setPrintPos(4, 2); u8g.print("ornament&crime+");
 
     u8g.setDefaultForegroundColor();
-    u8g.setPrintPos(4, 20); u8g.print("L : Calibrate");
-    u8g.setPrintPos(4, 33); u8g.print("R : Choose app");
+    u8g.setPrintPos(4, 20); u8g.print("L : calibrate");
+    u8g.setPrintPos(4, 33); u8g.print("R : choose app");
     u8g.setPrintPos(4, 52); u8g.print(__DATE__);
   } while( u8g.nextPage() ); 
 }  
