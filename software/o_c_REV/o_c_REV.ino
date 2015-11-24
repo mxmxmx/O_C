@@ -138,29 +138,6 @@ void ENC_callback()
   _ENC = true; 
 } // encoder update 
 
-App available_apps[] = {
-  {"ASR", ASR_init, _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, update_ENC},
-  {"Harrington 1200", H1200_init, H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
-  {"QuaQua", QQ_init, QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
-};
-
-static const size_t APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
-
-size_t current_app_index = 1;
-volatile App *current_app = &available_apps[current_app_index];
-
-void next_app() {
-  set8565_CHA(_ZERO);
-  set8565_CHB(_ZERO);
-  set8565_CHC(_ZERO);
-  set8565_CHD(_ZERO);
-
-  current_app_index = (current_app_index + 1) % APP_COUNT;
-  current_app = &available_apps[current_app_index];
-  hello("");
-  delay(2250);
-}
-
 /*       ---------------------------------------------------------         */
 
 void setup(){
@@ -205,31 +182,16 @@ void setup(){
   set8565_CHC(_ZERO);
   set8565_CHD(_ZERO);
   // splash screen, sort of ... 
-  hello("O&C");
-  // debug
-  Serial.begin(9600);
+  hello();
+  delay(5000);
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) read_settings(); 
   else in_theory(); // uncalibrated DAC code 
-  delay(1250);   
-  // initialize ASR 
+  delay(750);   
+  // initialize 
   init_DACtable();
-
-  for (size_t i = 0; i < APP_COUNT; ++i)
-    available_apps[i].init();
-
-  if (!digitalRead(but_top)) {
-    current_app_index = 0;
-    current_app = &available_apps[current_app_index];
-    hello("");
-    while (!digitalRead(but_top));
-  } else if (!digitalRead(but_bot)) {
-    current_app_index = 2;
-    current_app = &available_apps[current_app_index];
-    hello("");
-    while (!digitalRead(but_bot));
-  }
+  init_apps();
 }
 
 
@@ -237,17 +199,14 @@ void setup(){
 
 //uint32_t testclock;
 
-void loop(){
+void loop() {
 
   while (1) {
-    volatile App *app = current_app;
-    while (current_app == app){
-      app->loop();
-      if (UI_MODE) timeout(); 
-    }
+    // don't change current_app while it's running
+    if (SELECT_APP)
+      select_app();
+
+    current_app->loop();
+    if (UI_MODE) timeout();
   }
 }
-
-
-
-
