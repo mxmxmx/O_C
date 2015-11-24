@@ -21,6 +21,11 @@
 #ifndef PAGESTORAGE_H_
 #define PAGESTORAGE_H_
 
+enum EStorageMode {
+  STORAGE_UPDATE,
+  STORAGE_WRITE
+};
+
 /**
  * Helper to save settings in a definable storage (e.g. EEPROM).
  *
@@ -36,23 +41,29 @@
  *
  * Note that storage is uninitialized until ::load is called!
  *
+ * Using the MODE parameter, the storage can either use a plain write or define
+ * an UPDATE method that furthere minimizes actual writes, but may be slower.
+ *
  * The optional FASTSCAN parameter to can be used for force a scan of all pages
- * during ::load. If it is false, the scan stops at the first non-good page,
+ * during ::load. If it is true, the scan stops at the first non-good page,
  * which is faster but might miss pages if a write is corrupted.
  */
-template <typename STORAGE, size_t BASE_ADDR, size_t END_ADDR, typename DATA_TYPE, bool FASTSCAN=true>
+template <typename STORAGE, size_t BASE_ADDR, size_t END_ADDR, typename DATA_TYPE, EStorageMode MODE = STORAGE_UPDATE, bool FASTSCAN=true>
 class PageStorage {
 protected:
  
+  struct page_header {
+    uint32_t fourcc;
+    uint32_t generation;
+    uint16_t size;
+    uint16_t checksum;
+  } __attribute__((aligned(2)));
+
   /**
    * Binary page structure (aligned to uint16_t for CRC calculation)
    */
   struct page_data {
-    uint16_t checksum;
-    uint16_t size;
-    uint32_t fourcc;
-    uint32_t generation;
-
+    page_header header;
     DATA_TYPE data;
 
   } __attribute__((aligned(2)));
@@ -60,13 +71,12 @@ protected:
 public:
 
   static const size_t LENGTH = END_ADDR - BASE_ADDR;
-  static const size_t PAGESIZE = LENGTH / sizeof(page_data);
+  static const size_t PAGESIZE = sizeof(page_data);
   static const size_t PAGES = LENGTH / PAGESIZE;
 
-  // throw compiler error if LENGTH is too small
+  // throw compiler error if no pages
   typedef bool CHECK_PAGES[PAGES > 0 ? 1 : -1 ];
-
-  // throw compiler error if OOB of storage
+  // throw compiler error if OOB
   typedef bool CHECK_BASEADDR[BASE_ADDR + LENGTH > STORAGE::LENGTH ? -1 : 1];
 
   /**
@@ -85,30 +95,29 @@ public:
   bool load(DATA_TYPE &data) {
 
     page_index_ = -1;
+    memset(&page_, 0, sizeof(page_));
+    page_.header.generation = -1;
     page_data next_page;
-    size_t pages = PAGES;
-    while (pages--) {
-      int next = (page_index_ + 1) % PAGES;
-      STORAGE::read(BASE_ADDR + next * PAGESIZE, &next_page, sizeof(next_page));
+    for (size_t i = 0; i < PAGES; ++i) {
+      STORAGE::read(BASE_ADDR + i * PAGESIZE, &next_page, sizeof(next_page));
 
-      if ((DATA_TYPE::FOURCC != next_page.fourcc) ||
-          (sizeof(DATA_TYPE) != next_page.size)
-          (next_page.checksum != checksum(next_page)) ||
-          (next_page.generation < page_.generation)) {
-        if ( FASTSCAN )
+      if ((DATA_TYPE::FOURCC != next_page.header.fourcc) ||
+          (sizeof(DATA_TYPE) != next_page.header.size) ||
+          (next_page.header.checksum != checksum(next_page)) ||
+          (next_page.header.generation != page_.header.generation + 1)) {
+        if (FASTSCAN)
           break;
         else
           continue;
       }
 
-      page_index_ = next;
+      page_index_ = i;
       memcpy(&page_, &next_page, sizeof(page_));
     }
     
     if (-1 == page_index_) {
-      memset(&page_, 0, sizeof(page_));
-      page_.fourcc = DATA_TYPE::FOURCC;
-      page_.size = sizeof(DATA_TYPE);
+      page_.header.fourcc = DATA_TYPE::FOURCC;
+      page_.header.size = sizeof(DATA_TYPE);
       return false;
     } else {
       memcpy(&data, &page_.data, sizeof(DATA_TYPE));
@@ -137,11 +146,14 @@ public:
     }
 
     if (dirty) {
-      ++page_.generation;
-      page_.checksum = checksum(page_);
+      ++page_.header.generation;
+      page_.header.checksum = checksum(page_);
       page_index_ = (page_index_ + 1) % PAGES;
 
-      STORAGE::write(BASE_ADDR + page_index_ * PAGESIZE, &page_, sizeof(page_));
+      if (STORAGE_UPDATE == MODE)
+        STORAGE::update(BASE_ADDR + page_index_ * PAGESIZE, &page_, sizeof(page_));
+      else
+        STORAGE::write(BASE_ADDR + page_index_ * PAGESIZE, &page_, sizeof(page_));
     }
 
     return dirty;
@@ -152,12 +164,11 @@ protected:
   int page_index_;
   page_data page_;
 
-  uint16_t checksum(const page_data &page) {
+  static uint16_t checksum(const page_data &page) {
     uint16_t c = 0;
-    const uint16_t *p = (const uint16_t *)&page;
-    // Don't include checksum itself in calculation
-    ++p;
-    size_t length = sizeof(page_data) / sizeof(uint16_t) - sizeof(uint16_t);
+    // header not included in crc
+    const uint8_t *p = (const uint8_t *)&page.data;
+    size_t length = sizeof(page_data) - sizeof(page_header);
     while (length--) {
       c += *p++;
     }
@@ -173,5 +184,4 @@ struct FOURCC
 };
 
 #endif // PAGESTORAGE_H_
-
 
