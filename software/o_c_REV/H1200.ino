@@ -135,11 +135,23 @@ do { \
 void FASTRUN H1200_clock(uint32_t triggers) {
 
   tonnetz::ETransformType transform = tonnetz::TRANSFORM_NONE;
+  if (triggers & 0x11 | triggers & 0x2 | triggers & 0x4) {
+    tonnetz_state.reset_transform_indicator();
+  }
   if (triggers & 0x11)
     tonnetz_state.reset(h1200_settings.mode());
-  if (triggers & 0x2) transform = tonnetz::TRANSFORM_P;
-  if (triggers & 0x4) transform = tonnetz::TRANSFORM_L;
-  if (triggers & 0x8) transform = tonnetz::TRANSFORM_R;
+  if (triggers & 0x2) {
+    transform = tonnetz::TRANSFORM_P;
+    tonnetz_state.set_transform_indicator('P',0);
+  }
+  if (triggers & 0x4) {
+    transform = tonnetz::TRANSFORM_L;
+    tonnetz_state.set_transform_indicator('L',1);
+ }
+  if (triggers & 0x8) {
+    transform = tonnetz::TRANSFORM_R;
+    tonnetz_state.set_transform_indicator('R',2);
+  }
 
   //int trigger_mode = 8 + cvval[2]; // -> +- 8 notes
   int32_t sample = cvval[0];

@@ -184,6 +184,8 @@ void setup(){
   // splash screen, sort of ... 
   hello();
   delay(5000);
+  // for debugging
+  Serial.begin(9600); 
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) read_settings(); 

@@ -3,6 +3,7 @@ const char *note_name(int note) {
   return note_names[(note + 120) % 12];
 }
 
+
 void print_int(int value) {
   if (value >= 0) {
     u8g.print('+'); u8g.print(value);
@@ -78,16 +79,16 @@ void H1200_menu() {
 }
 
 void H1200_screensaver() {
-  u8g.setFont(u8g_font_helvB14);
+  // u8g.setFont(u8g_font_helvB14);
+  u8g.setFont(u8g_font_gdr14);
   u8g.setColorIndex(1);
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
 
-  // uint8_t col_x = 96;
   uint8_t y = 0;
-  // uint8_t h = 11;
 
   const abstract_triad &current_chord = tonnetz_state.current_chord();
+  const String &last_transform = tonnetz_state.last_trans();
 
   u8g.setPrintPos(4, y);
   // current chord info
@@ -97,14 +98,11 @@ void H1200_screensaver() {
   u8g.print(note_name(tonnetz_state.root()));
   u8g.print(mode_names[current_chord.mode()]);
   u8g.setPrintPos(4, y + 40);
-  u8g.print(tonnetz_state.last_trans());
+  u8g.print(last_transform);
   
-  Serial.print(tonnetz_state.last_trans());
-
   u8g.setPrintPos(64, y);
   u8g.setDefaultForegroundColor();
   for (size_t i=1; i < 4; ++i) {
-      // int x_pos = 64 + ((i-1)*24) ;
       u8g.setPrintPos(100, y + ((i - 1) * 20)) ;
       u8g.print(note_name(tonnetz_state.outputs(i)));
   }

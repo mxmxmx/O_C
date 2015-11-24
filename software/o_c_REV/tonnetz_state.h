@@ -21,6 +21,17 @@ public:
     return transform_indicator_;
   }
 
+  void set_transform_indicator(char trans, int pos) {
+    transform_indicator_[pos] = trans;
+  }
+
+  void reset_transform_indicator() {
+    for (int i = 0; i < 3; ++i) {
+      transform_indicator_[i] = ' ';
+    }
+  }
+
+
   void reset(EMode mode) {
     current_chord_.init(mode);
     current_chord_.generate_notes(outputs_[0], outputs_ + 1);
@@ -35,13 +46,6 @@ public:
     outputs_[0] = root;
     current_chord_.generate_notes(root, outputs_ + 1);
 
-    if (tonnetz::TRANSFORM_P == transform) transform_indicator_ = "P";
-    else if (tonnetz::TRANSFORM_L == transform) transform_indicator_ = "L";
-    else if (tonnetz::TRANSFORM_R == transform) transform_indicator_ = "R";
-    else transform_indicator_ = " ";
-
-    Serial.print("transform=");
-    Serial.print(transform);
   }
 
 
@@ -53,7 +57,7 @@ private:
 
   abstract_triad current_chord_;
   int outputs_[1 + abstract_triad::NOTES];
-  String transform_indicator_ ;
+  char transform_indicator_[4] ;
 };
 
 #endif // TONNETZ_STATE_H_
