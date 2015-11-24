@@ -95,8 +95,11 @@ void H1200_screensaver() {
   u8g.print(tonnetz_state.root() / 12);
   u8g.setPrintPos(4, y + 20);
   u8g.print(note_name(tonnetz_state.root()));
-  u8g.setPrintPos(4, y + 40);
   u8g.print(mode_names[current_chord.mode()]);
+  u8g.setPrintPos(4, y + 40);
+  u8g.print(tonnetz_state.last_trans());
+  
+  Serial.print(tonnetz_state.last_trans());
 
   u8g.setPrintPos(64, y);
   u8g.setDefaultForegroundColor();
@@ -107,7 +110,7 @@ void H1200_screensaver() {
   }
   u8g.setDefaultForegroundColor();
   for (size_t i=1; i < 4; ++i) {
-      u8g.setPrintPos(64, y + ((i - 1) * 20)) ;
+      u8g.setPrintPos(74, y + ((i - 1) * 18)) ;
       u8g.print(tonnetz_state.outputs(i) / 12) ;
   }
 }
