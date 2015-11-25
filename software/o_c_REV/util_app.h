@@ -12,6 +12,8 @@ struct App {
 	const char *name;
   void (*init)(); // one-time init
   void (*loop)(); // main loop function
+  void (*suspend)();
+  void (*resume)();
 
   void (*render_menu)(); 
   void (*screensaver)();

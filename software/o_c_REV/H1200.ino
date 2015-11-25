@@ -187,7 +187,8 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  MENU_REDRAW = 1;
+  if (triggers)
+    MENU_REDRAW = 1;
 }
 
 void H1200_init() {
