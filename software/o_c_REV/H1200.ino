@@ -98,11 +98,11 @@ const char *mode_names[] = {
 };
 
 /*static*/ const settings::value_attr H1200Settings::value_attr_[] = {
-  {12, -24, 36, "TRANSPOSE", NULL},
-  {MODE_MAJOR, 0, MODE_LAST-1, "MODE", mode_names},
-  {0, -3, 3, "INVERSION", NULL},
-  {TRIGGER_MAP_XPLR, 0, TRIGGER_MAP_LAST-1, "TRIGGERS", trigger_mode_names},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "OTUPUT", output_mode_names}
+  {12, -24, 36, "transpose", NULL},
+  {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names},
+  {0, -3, 3, "inversion", NULL},
+  {TRIGGER_MAP_XPLR, 0, TRIGGER_MAP_LAST-1, "triggers", trigger_mode_names},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names}
 };
 
 struct H1200_menu_state {
@@ -135,7 +135,7 @@ do { \
 void FASTRUN H1200_clock(uint32_t triggers) {
 
   tonnetz::ETransformType transform = tonnetz::TRANSFORM_NONE;
-  if (triggers & 0x11 | triggers & 0x2 | triggers & 0x4) {
+  if ((triggers & 0x11) | (triggers & 0x2) | (triggers & 0x4)) {
     tonnetz_state.reset_transform_indicator();
   }
   if (triggers & 0x11)
