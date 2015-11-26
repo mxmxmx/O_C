@@ -5,10 +5,6 @@ const char *note_name(int note) {
   return note_names[(note + 120) % 12];
 }
 
-const char *transform_names[] {
-  "-", "P", "L", "R", "N", "S", "H"
-};
-
 void print_int(int value) {
   if (value >= 0) {
     u8g.print('+'); u8g.print(value);
@@ -110,21 +106,23 @@ const uint8_t circle_disk_bitmap[] = {
 void H1200_screensaver() {
 
   uint8_t y = 0;
-  static const uint8_t x_col_1 = 86;
-  static const uint8_t x_col_2 = 100;
+  static const uint8_t x_col_0 = 66;
+  static const uint8_t x_col_1 = 66 + 24;
+  static const uint8_t x_col_2 = 66 + 38;
   static const uint8_t line_h = 16;
 
   //const abstract_triad &current_chord = tonnetz_state.current_chord();
-  const String &last_transform = tonnetz_state.last_trans().trim();
+  //const String &last_transform = tonnetz_state.last_trans().trim();
 
-  u8g.setFont(u8g_font_timB14);
+  //u8g.setFont(u8g_font_timB12); BBX 19x27
+  u8g.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
   u8g.setColorIndex(1);
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
   u8g.setDefaultForegroundColor();
  
-  int normalized[3];
-  y = 0;
+  uint8_t normalized[3];
+  y = 8;
   for (size_t i=0; i < 3; ++i, y += line_h) {
     int value = tonnetz_state.outputs(i + 1);
 
@@ -136,8 +134,11 @@ void H1200_screensaver() {
     u8g.print(note_names[value]);
     normalized[i] = value;
   }
-  u8g.setPrintPos(x_col_1, y + 50);
-  u8g.print(last_transform);
+  y = 0;
+  for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += line_h) {
+    u8g.setPrintPos(x_col_0, y);
+    u8g.print(tonnetz_state.history(i).str);
+  }
 
   u8g.drawCircle(note_circle_x, note_circle_y, note_circle_r);
 

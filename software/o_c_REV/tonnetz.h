@@ -15,6 +15,10 @@ namespace tonnetz {
     TRANSFORM_LAST
   };
 
+  static const char transform_names[TRANSFORM_LAST] = {
+    '*', 'P', 'L', 'R', 'N', 'S', 'H'
+  };
+
   static struct transformation {
     size_t root_shift; // +1 = root -> third, +2 root -> fifth
     int offsets[abstract_triad::NOTES]; // root, third, fifth

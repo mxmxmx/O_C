@@ -10,16 +10,17 @@ enum EOutputMode {
   OUTPUT_MODE_LAST
 };
 
-enum ETriggerMapping {
-  TRIGGER_MAP_XPLR,
-  TRIGGER_MAP_LAST
+enum ETransformPriority {
+  TRANSFORM_PRIO_XPLR,
+  TRANSFORM_PRIO_XRPL,
+  TRANSFORM_PRIO_LAST
 };
 
 enum ESettings {
   SETTING_ROOT_OFFSET,
   SETTING_MODE,
   SETTING_INVERSION,
-  SETTING_TRIGGER_MAP,
+  SETTING_TRANFORM_PRIO,
   SETTING_OUTPUT_MODE,
   SETTING_LAST
 };
@@ -46,8 +47,8 @@ public:
     return values_[SETTING_INVERSION];
   }
 
-  ETriggerMapping trigger_mapping() const {
-    return static_cast<ETriggerMapping>(values_[SETTING_TRIGGER_MAP]);
+  ETransformPriority get_transform_priority() const {
+    return static_cast<ETransformPriority>(values_[SETTING_TRANFORM_PRIO]);
   }
 
   EOutputMode output_mode() const {
@@ -90,7 +91,8 @@ const char *output_mode_names[] = {
 };
 
 const char *trigger_mode_names[] = {
-  "@PLR"
+  "P>L>R",
+  "R>P>L",
 };
 
 const char *mode_names[] = {
@@ -101,7 +103,7 @@ const char *mode_names[] = {
   {12, -24, 36, "transpose", NULL},
   {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names},
   {0, -3, 3, "inversion", NULL},
-  {TRIGGER_MAP_XPLR, 0, TRIGGER_MAP_LAST-1, "triggers", trigger_mode_names},
+  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "trigger prio", trigger_mode_names},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names}
 };
 
@@ -121,6 +123,7 @@ H1200_menu_state menu_state = {
 };
 
 TonnetzState tonnetz_state;
+uint32_t last_draw_millis = 0;
 
 #define OUTPUT_NOTE(i,dac_setter) \
 do { \
@@ -132,28 +135,38 @@ do { \
   dac_setter(dac_code); \
 } while (0)
 
+static const uint32_t TRIGGER_MASK_TR1 = 0x1;
+static const uint32_t TRIGGER_MASK_P = 0x2;
+static const uint32_t TRIGGER_MASK_L = 0x4;
+static const uint32_t TRIGGER_MASK_R = 0x8;
+static const uint32_t TRIGGER_MASK_DIRTY = 0x10;
+static const uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
+
 void FASTRUN H1200_clock(uint32_t triggers) {
 
-  tonnetz::ETransformType transform = tonnetz::TRANSFORM_NONE;
-  if ((triggers & 0x11) | (triggers & 0x2) | (triggers & 0x4)) {
-    tonnetz_state.reset_transform_indicator();
-  }
-  if (triggers & 0x11)
+  // Since there can be simultaneous triggers, there is a definable priority.
+  // Reset always has top priority
+  //
+  // Note: Proof-of-concept code, do not copy/paste all combinations ;)
+  if (triggers & TRIGGER_MASK_RESET)
     tonnetz_state.reset(h1200_settings.mode());
-  if (triggers & 0x2) {
-    transform = tonnetz::TRANSFORM_P;
-    tonnetz_state.set_transform_indicator('P',0);
-  }
-  if (triggers & 0x4) {
-    transform = tonnetz::TRANSFORM_L;
-    tonnetz_state.set_transform_indicator('L',1);
- }
-  if (triggers & 0x8) {
-    transform = tonnetz::TRANSFORM_R;
-    tonnetz_state.set_transform_indicator('R',2);
+
+  switch (h1200_settings.get_transform_priority()) {
+    case TRANSFORM_PRIO_XPLR:
+      if (triggers & TRIGGER_MASK_P) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      if (triggers & TRIGGER_MASK_L) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      if (triggers & TRIGGER_MASK_R) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      break;
+
+    case TRANSFORM_PRIO_XRPL:
+      if (triggers & TRIGGER_MASK_R) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      if (triggers & TRIGGER_MASK_P) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      if (triggers & TRIGGER_MASK_L) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      break;
+
+    default: break;
   }
 
-  //int trigger_mode = 8 + cvval[2]; // -> +- 8 notes
   int32_t sample = cvval[0];
   int root;
   if (sample < 0)
@@ -167,7 +180,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   int inversion = h1200_settings.inversion() + cvval[3]; // => octave in original
   if (inversion > MAX_INVERSION) inversion = MAX_INVERSION;
   else if (inversion < -MAX_INVERSION) inversion = -MAX_INVERSION;
-  tonnetz_state.render(root, transform, inversion);
+  tonnetz_state.render(root, inversion);
 
   switch (h1200_settings.output_mode()) {
     case OUTPUT_CHORD_VOICING: {
@@ -187,8 +200,10 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  if (triggers)
+  if (triggers || millis() - last_draw_millis > 1000) {
     MENU_REDRAW = 1;
+    last_draw_millis = millis();
+  }
 }
 
 void H1200_init() {
@@ -202,11 +217,11 @@ void H1200_init() {
 #define CLOCKIT() \
 do { \
   uint32_t triggers = 0; \
-  if (CLK_STATE[TR1]) { triggers |= 0x1; CLK_STATE[TR1] = false; } \
-  if (CLK_STATE[TR2]) { triggers |= 0x2; CLK_STATE[TR2] = false; } \
-  if (CLK_STATE[TR3]) { triggers |= 0x4; CLK_STATE[TR3] = false; } \
-  if (CLK_STATE[TR4]) { triggers |= 0x8; CLK_STATE[TR4] = false; } \
-  if (menu_state.value_changed) { triggers |= 0x10; menu_state.value_changed = false; } \
+  if (CLK_STATE[TR1]) { triggers |= TRIGGER_MASK_TR1; CLK_STATE[TR1] = false; } \
+  if (CLK_STATE[TR2]) { triggers |= TRIGGER_MASK_P; CLK_STATE[TR2] = false; } \
+  if (CLK_STATE[TR3]) { triggers |= TRIGGER_MASK_L; CLK_STATE[TR3] = false; } \
+  if (CLK_STATE[TR4]) { triggers |= TRIGGER_MASK_R; CLK_STATE[TR4] = false; } \
+  if (menu_state.value_changed) { triggers |= TRIGGER_MASK_DIRTY; menu_state.value_changed = false; } \
   H1200_clock(triggers); \
 } while (0)
 
