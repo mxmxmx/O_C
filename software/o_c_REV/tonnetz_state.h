@@ -26,19 +26,8 @@ public:
     return outputs_[0];
   }
 
-  void set_transform_indicator(char trans, int pos) {
-    transform_indicator_[pos] = trans;
-  }
-
-  void reset_transform_indicator() {
-    for (int i = 0; i < 3; ++i) {
-      transform_indicator_[i] = ' ';
-    }
-  }
-
   void reset(EMode mode) {
     current_chord_.init(mode);
-    current_chord_.generate_notes(outputs_[0], outputs_ + 1);
     push_history(tonnetz::TRANSFORM_NONE, mode);
   }
 
@@ -49,11 +38,8 @@ public:
   }
 
   void render(int root, int inversion) {
-
-    current_chord_.apply_inversion(inversion);
-
     outputs_[0] = root;
-    current_chord_.generate_notes(root, outputs_ + 1);
+    current_chord_.render(root, inversion, outputs_ + 1);
   }
 
   const abstract_triad &current_chord() const {
@@ -75,7 +61,6 @@ private:
 
   abstract_triad current_chord_;
   int outputs_[1 + abstract_triad::NOTES];
-  char transform_indicator_[4] ;
   HistoryEntry history_[HISTORY_LENGTH];
   size_t history_tail_;
 };

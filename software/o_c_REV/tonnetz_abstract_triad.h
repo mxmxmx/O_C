@@ -18,8 +18,7 @@ enum EMode {
  *
  * Since we're running on teensy with an M4, we should be able to pack all
  * the intervals as 4xint8_t and use the SIMD instructions. Then all the
- * inversion functions become shifts and either root_index_ or base_index_
- * can be eliminated.
+ * inversion functions become shifts and either root_index_ can be eliminated?
  * 256/128 is still more than enough resolution in semitones
  */
 class abstract_triad {
@@ -43,17 +42,12 @@ public:
     mode_ = mode;
     for (size_t n = 0; n < NOTES; ++n)
       notes_[n] = root_chord_intervals_[mode_][n];
-    root_index_ = base_index_ = 0;
+    root_index_ = 0;
   }
 
   void apply_offsets(const int *offsets) {
     for (size_t n = 0; n < NOTES; ++n)
       notes_[(root_index_ + n) % NOTES] += offsets[n];
-  }
-
-  void generate_notes(note_t root, int *dest) {
-    for (size_t n = 0; n < NOTES; ++n)
-      dest[n] = root + notes_[(base_index_ + n) % NOTES];
   }
 
   void change_mode() {
@@ -64,29 +58,49 @@ public:
     root_index_ = (root_index_ + offset) % NOTES;
   }
 
-  void apply_inversion(int inversion) {
- /*
-    if (inversion > 0) {
-      notes_[base_index_] += inversion * 12;
-      if (inversion > 1) notes_[(base_index_ + 1) % NOTES] += (inversion - 1) * 12;
-      if (inversion > 2) notes_[(base_index_ + 2) % NOTES] += (inversion - 2) * 12;
-      base_index_ = (base_index_ + inversion) & NOTES;
-    } else if (inversion < 0) {
-      inversion = -inversion;
-      notes_[(base_index_ + 2) % NOTES] -= inversion * 12;
-      if (inversion > 1) notes_[(base_index_ + 1) % NOTES] -= (inversion - 1) * 12;
-      if (inversion > 2) notes_[base_index_] -= (inversion - 2) * 12;
-      base_index_ = (base_index_ + 2 * inversion) % NOTES;
+
+  void render(note_t root, int inversion, int *dest) const {
+
+    // This can probably be made sleeker by computing things on the fly
+    // and by using the funky util_math.h functions, but for now it's
+    // Good Enough if it works
+
+    int offsets[NOTES] = {0,0,0};
+    size_t base_index = calc_inversion_offsets(inversion, offsets);
+
+    for (size_t n = 0; n < NOTES; ++n) {
+      const size_t index = (base_index + n) % NOTES;
+      dest[n] = root + notes_[index] + offsets[index];
     }
-   */
   }
 
 private:
 
   size_t root_index_;
-  size_t base_index_;
   EMode mode_;
   note_t notes_[NOTES];
+
+  // Calculate the inversion offsets and return the base note index
+  // TODO I think this can be further simplified to a single division and modulo
+  size_t calc_inversion_offsets(int inversion, note_t *offsets) const {
+    size_t base_index = root_index_;
+    if (!inversion) {
+      offsets[0] = offsets[1] = offsets[2] = 0;
+    } else if (inversion > 0) {
+      offsets[base_index] += ((inversion + 2) / 3) * 12;
+      offsets[(base_index + 1) % 3] += ((inversion + 1) / 3) * 12;
+      offsets[(base_index + 2) % 3] += ((inversion + 0) / 3) * 12;
+      base_index = (base_index + inversion) % NOTES;
+    } else if (inversion < 0) {
+      inversion = -inversion;
+      offsets[(base_index + 2) % 3] -= ((inversion + 2) / 3) * 12;
+      offsets[(base_index + 1) % 3] -= ((inversion + 1) / 3) * 12;
+      offsets[base_index] -= ((inversion + 0) / 3) * 12;
+      base_index = (base_index + 2 * inversion) % NOTES;
+    }
+    return base_index;
+  }
+
 };
 
 #endif // ABSTRACT_TRIAD_H_
