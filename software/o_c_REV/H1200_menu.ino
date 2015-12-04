@@ -81,7 +81,7 @@ void H1200_menu() {
 
 static const uint8_t note_circle_x = 32;
 static const uint8_t note_circle_y = 32;
-static const uint8_t note_circle_r = 30;
+static const uint8_t note_circle_r = 28;
 
 struct coords {
   uint8_t x, y;
@@ -102,6 +102,21 @@ void init_circle_lut() {
 const uint8_t circle_disk_bitmap[] = {
   0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
 };
+
+void visualize_pitch_classes(uint8_t *normalized) {
+  u8g.drawCircle(note_circle_x, note_circle_y, note_circle_r);
+
+  coords last_pos = circle_pos_lut[normalized[0]];
+  for (size_t i = 1; i < 3; ++i) {
+    u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
+    const coords &current_pos = circle_pos_lut[normalized[i]];
+    u8g.drawLine(last_pos.x, last_pos.y, current_pos.x, current_pos.y);
+    last_pos = current_pos;
+  }
+  u8g.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
+  u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
+
+}
 
 void H1200_screensaver() {
 
@@ -140,15 +155,5 @@ void H1200_screensaver() {
     u8g.print(tonnetz_state.history(i).str);
   }
 
-  u8g.drawCircle(note_circle_x, note_circle_y, note_circle_r);
-
-  coords last_pos = circle_pos_lut[normalized[0]];
-  for (size_t i = 1; i < 3; ++i) {
-    u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
-    const coords &current_pos = circle_pos_lut[normalized[i]];
-    u8g.drawLine(last_pos.x, last_pos.y, current_pos.x, current_pos.y);
-    last_pos = current_pos;
-  }
-  u8g.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
-  u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
+  visualize_pitch_classes(normalized);
 }

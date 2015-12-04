@@ -15,8 +15,12 @@ namespace tonnetz {
     TRANSFORM_LAST
   };
 
-  static const char transform_names[TRANSFORM_LAST] = {
-    '*', 'P', 'L', 'R', 'N', 'S', 'H'
+  static const char transform_names[TRANSFORM_LAST + 1] = {
+    '*', 'P', 'L', 'R', 'N', 'S', 'H', '@'
+  };
+
+  static const char *transform_names_str[TRANSFORM_LAST + 1] = {
+    "*", "P", "L", "R", "N", "S", "H", "@"
   };
 
   static struct transformation {

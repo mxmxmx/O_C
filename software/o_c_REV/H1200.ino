@@ -27,12 +27,11 @@ enum ESettings {
 
 static const int MAX_INVERSION = 9;
 
-class H1200Settings {
+class H1200Settings : public settings::SettingsBase<H1200Settings, SETTING_LAST> {
 public:
 
   void init() {
-    for (size_t i = 0; i < SETTING_LAST; ++i)
-      values_[i] = value_attr_[i].default_value();
+    init_defaults();
   }
 
   int root_offset() const {
@@ -54,36 +53,7 @@ public:
   EOutputMode output_mode() const {
     return static_cast<EOutputMode>(values_[SETTING_OUTPUT_MODE]);
   }
-
-  int get_value(size_t index) {
-    return values_[index];
-  }
-
-  static int clamp_value(size_t index, int value) {
-    return value_attr_[index].clamp(value);
-  }
-
-  bool apply_value(size_t index, int value) {
-    if (index < SETTING_LAST) {
-      const int clamped = value_attr_[index].clamp(value);
-      if (values_[index] != clamped) {
-        values_[index] = clamped;
-        return true;
-      }
-    }
-    return false;
-  }
-
-  static const settings::value_attr &value_attr(size_t i) {
-    return value_attr_[i];
-  }
-
-//private:
-
-  int values_[SETTING_LAST];
-  static const settings::value_attr value_attr_[];
 };
-
 
 const char *output_mode_names[] = {
   "CHORD",
@@ -99,7 +69,7 @@ const char *mode_names[] = {
   "maj", "min"
 };
 
-/*static*/ const settings::value_attr H1200Settings::value_attr_[] = {
+/*static*/ template<> const settings::value_attr settings::SettingsBase<H1200Settings, SETTING_LAST>::value_attr_[] = {
   {12, -24, 36, "transpose", NULL},
   {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names},
   {0, -3, 3, "inversion", NULL},

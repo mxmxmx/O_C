@@ -3,6 +3,7 @@
 App available_apps[] = {
   {"ASR", ASR_init, _loop, NULL, NULL, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, update_ENC},
   {"Harrington 1200", H1200_init, H1200_loop, NULL, NULL, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
+  {"Harrington 1200mk2", H1200mk2_init, H1200mk2_loop, NULL, H1200mk2_resume, H1200mk2_menu, H1200mk2_screensaver, H1200mk2_topButton, H1200mk2_lowerButton, H1200mk2_rightButton, H1200mk2_leftButton, H1200mk2_encoders},
   {"QuaQua", QQ_init, QQ_loop, NULL, NULL, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
 };
 
@@ -64,6 +65,8 @@ void init_apps() {
     Serial.println(app_settings.current_app_index);
   }
   set_current_app(app_settings.current_app_index);
+  if (current_app->resume)
+    current_app->resume();
 
   if (!digitalRead(but_top)) {
     set_current_app(0);

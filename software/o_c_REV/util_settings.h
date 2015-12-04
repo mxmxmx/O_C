@@ -21,6 +21,42 @@ struct value_attr {
   }
 };
 
+template <typename clazz, size_t num_settings>
+class SettingsBase {
+public:
+
+  int get_value(size_t index) const {
+    return values_[index];
+  }
+
+  static int clamp_value(size_t index, int value) {
+    return value_attr_[index].clamp(value);
+  }
+
+  bool apply_value(size_t index, int value) {
+    if (index < num_settings) {
+      const int clamped = value_attr_[index].clamp(value);
+      if (values_[index] != clamped) {
+        values_[index] = clamped;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static const settings::value_attr &value_attr(size_t i) {
+    return value_attr_[i];
+  }
+
+  void init_defaults() {
+    for (size_t s = 0; s < num_settings; ++s)
+      values_[s] = value_attr_[s].default_value();
+  }
+
+  int values_[num_settings];
+  static const settings::value_attr value_attr_[];
+};
+
 }; // namespace settings
 
 #endif // SETTINGS_H_
