@@ -17,9 +17,10 @@ struct quantizer_channel {
   enum ESettings {
     SETTING_SCALE,
     SETTING_OCTAVE,
-    SETTING_OFFSET,
+    SETTING_TRANSPOSE,
     SETTING_ATTENUATION,
     SETTING_MAXNOTES,
+    SETTING_FINE,
     SETTING_LAST
   };
 
@@ -32,7 +33,11 @@ struct quantizer_channel {
   }
 
   int get_offset() const {
-    return values_[SETTING_OFFSET];
+    return values_[SETTING_TRANSPOSE];
+  }
+
+  int get_fine() const {
+    return values_[SETTING_FINE];
   }
 
   int get_attenuation() const {
@@ -79,16 +84,17 @@ struct quantizer_channel {
 const settings::value_attr quantizer_channel::value_attr_[] = {
   { 0, 0, MAXSCALES, "scale", abc },
   { 0, -4, 4, "octave", NULL },
-  { 0, -999, 999, "offset", NULL },
+  { 0, -11, 11, "transp", NULL },
   { 9, 0, 19, "att/mult", map_param5 }, // ASR: 7-26
-  { 0, 2, MAXNOTES, "#/scale", NULL }
+  { 0, 2, MAXNOTES, "#/scale", NULL },
+  { 0, -999, 999, "fine", NULL },
 };
 
 quantizer_channel quantizer_channels[4] = {
-  { 0, 1, 0, 9, MAXNOTES },
-  { 1, 2, 0, 9, MAXNOTES },
-  { 2, 3, 0, 9, MAXNOTES },
-  { 3, 0, 0, 9, MAXNOTES }
+  { 0, 1, 0, 9, MAXNOTES, 0 },
+  { 1, 2, 0, 9, MAXNOTES, 0 },
+  { 2, 3, 0, 9, MAXNOTES, 0 },
+  { 3, 0, 0, 9, MAXNOTES, 0 }
 };
 
 enum EMenuMode {
@@ -110,9 +116,10 @@ do { \
   if (CLK_STATE[i]) { \
     CLK_STATE[i] = false; \
     const quantizer_channel &channel = quantizer_channels[i]; \
-    int32_t s = (sample) + channel.get_offset(); \
+    int32_t s = (sample) + channel.get_fine(); \
     s *= channel.get_attenuation(); \
     s = s >> 4; \
+    s += channel.get_offset(); \
     s = quant_sc(s, channel.get_scale(), channel.get_octave(), channel.get_maxnotes()); \
     asr_outputs[i] = s; \
     dac_set(s); \
@@ -124,14 +131,14 @@ void QQ_init() {
   qq_state.selected_channel = 0;
   qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
   qq_state.left_encoder_value = 0;
-  qq_state.selected_param = quantizer_channel::SETTING_OFFSET;
+  qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
 }
 
 void QQ_loop() {
 
   UI();
   CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
+   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), set8565_CHB);
    buttons(BUTTON_TOP);
   CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), set8565_CHC);
@@ -146,6 +153,11 @@ void QQ_loop() {
 }
 
 void QQ_menu() {
+
+  u8g.setFont(u8g_font_6x12);
+  u8g.setColorIndex(1);
+  u8g.setFontRefHeightText();
+  u8g.setFontPosTop();
 
   uint8_t col_x = 96;
   uint8_t y = 2;
@@ -188,7 +200,16 @@ void QQ_menu() {
   u8g.print(abc[scale]);
 
   y += h;
-  for (int i = quantizer_channel::SETTING_OFFSET; i < quantizer_channel::SETTING_LAST; ++i, y+=h) {
+  static const int kVisibleParams = 3;
+  int first_visible_param = qq_state.selected_param - 2;
+  if (first_visible_param < quantizer_channel::SETTING_TRANSPOSE) {
+    first_visible_param = quantizer_channel::SETTING_TRANSPOSE;
+  } else if (first_visible_param > quantizer_channel::SETTING_TRANSPOSE) {
+    u8g.setPrintPos(0, y);
+    u8g.print('\x5e');
+  }
+
+  for (int i = first_visible_param; i < first_visible_param + kVisibleParams; ++i, y+=h) {
     u8g.setPrintPos(10, y);
     if (i == qq_state.selected_param) {
       u8g.setDefaultForegroundColor();
@@ -256,7 +277,7 @@ void QQ_lowerButton() {
 void QQ_rightButton() {
   ++qq_state.selected_param;
   if (qq_state.selected_param >= quantizer_channel::SETTING_LAST)
-    qq_state.selected_param = quantizer_channel::SETTING_OFFSET;
+    qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
   encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
