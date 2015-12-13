@@ -73,6 +73,10 @@ public:
     return cells_[y * dimensions + x];
   }
 
+  cell_type &mutable_current_cell() const {
+    return cells_[(current_pos_.y >> fractional_bits) * dimensions + (current_pos_.x >> fractional_bits)];
+  }
+
   const cell_type &current_cell() const {
     return cells_[(current_pos_.y >> fractional_bits) * dimensions + (current_pos_.x >> fractional_bits)];
   }

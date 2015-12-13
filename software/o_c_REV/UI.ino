@@ -129,7 +129,7 @@ void CV() {
 
 /* --- check buttons --- */
 
-TimerDebouncedButton<butL, 50> button_left;
+TimerDebouncedButton<butL, 50, 2000> button_left;
 TimerDebouncedButton<butR, 50, 2000> button_right;
 
 void buttons_init() {

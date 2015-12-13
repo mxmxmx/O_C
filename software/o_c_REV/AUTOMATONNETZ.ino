@@ -43,6 +43,7 @@ enum ECellSettings {
 
 enum ECellEvent {
   CELL_EVENT_NONE,
+  CELL_EVENT_RAND_TRANFORM,
   CELL_EVENT_LAST
 };
 
@@ -69,7 +70,8 @@ struct TransformCell : public settings::SettingsBase<TransformCell, CELL_SETTING
 };
 
 const char *cell_event_names[] = {
-  "none"
+  "none",
+  "rndT"
 };
 
 /*static*/ template<>
@@ -86,6 +88,7 @@ enum EGridSettings {
   GRID_SETTING_MODE,
   GRID_SETTING_OCTAVE,
   GRID_SETTING_OUTPUTMODE,
+  GRID_SETTING_CLEARMODE,
   GRID_SETTING_LAST
 };
 
@@ -93,7 +96,13 @@ enum EOutputAMode {
   OUTPUTA_MODE_ROOT,
   OUTPUTA_MODE_TRIG,
   OUTPUTA_MODE_ARP,
+  OUTPUTA_MODE_STRUM,
   OUTPUTA_MODE_LAST
+};
+
+enum EClearMode {
+  CLEAR_MODE_RESET,
+  CLEAR_MODE_LAST
 };
 
 class AutomatonnetzState : public settings::SettingsBase<AutomatonnetzState, GRID_SETTING_LAST> {
@@ -135,6 +144,10 @@ public:
     return static_cast<EOutputAMode>(values_[GRID_SETTING_OUTPUTMODE]);
   }
 
+  EClearMode clear_mode() const {
+    return static_cast<EClearMode>(values_[GRID_SETTING_CLEARMODE]);
+  }
+
   void clock(uint8_t triggers);
   void reset();
   void render(bool triggered);
@@ -171,7 +184,12 @@ extern const char *mode_names[];
 const char *outputa_mode_names[] = {
   "root",
   "trig",
-  "arp"
+  "arp",
+  "strm"
+};
+
+const char *clear_mode_names[] = {
+  "zero", "rndT"
 };
 
 /*static*/ template<>
@@ -180,7 +198,8 @@ const settings::value_attr settings::SettingsBase<AutomatonnetzState, GRID_SETTI
   {4, 0, 8*GRID_SIZE - 1, "dy   ", NULL},
   {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names},
   {0, -3, 3, "oct  ", NULL},
-  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "outA ", outputa_mode_names}
+  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "outA ", outputa_mode_names},
+  {CLEAR_MODE_RESET, CLEAR_MODE_RESET, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names},
 };
 
 AutomatonnetzState automatonnetz_state;
@@ -210,25 +229,41 @@ void Automatonnetz_init() {
 
 void AutomatonnetzState::clock(uint8_t triggers) {
   bool triggered = false;
-  if ((triggers & TRIGGER_MASK_GRID) && grid.move(dx(), dy())) {
-    push_history(grid.current_pos());
-  
-    tonnetz::ETransformType transform = grid.current_cell().transform();
-    if (transform >= tonnetz::TRANSFORM_LAST) {
-      tonnetz_state.reset(mode());
-      triggered = true;
-    }
-    else if (transform != tonnetz::TRANSFORM_NONE) {
-      tonnetz_state.apply_transformation(transform);
-      triggered = true;
+  if (triggers & TRIGGER_MASK_GRID) {
+    switch (grid.current_cell().event()) {
+      case CELL_EVENT_RAND_TRANFORM:
+        grid.mutable_current_cell().apply_value(CELL_SETTING_TRANSFORM, random(tonnetz::TRANSFORM_LAST + 1));
+        break;
+      default:
+        break;
     }
 
-    MENU_REDRAW = 1;
-  }
-  if (triggers & TRIGGER_MASK_ARP) {
-    if (arp_index_ < 2)
-      ++arp_index_;
-    else
+    if (grid.move(dx(), dy())) {
+      push_history(grid.current_pos());
+  
+      tonnetz::ETransformType transform = grid.current_cell().transform();
+      if (transform >= tonnetz::TRANSFORM_LAST) {
+        tonnetz_state.reset(mode());
+        triggered = true;
+      }
+      else if (transform != tonnetz::TRANSFORM_NONE) {
+        tonnetz_state.apply_transformation(transform);
+        triggered = true;
+      }
+
+      if (triggered) {
+        if (OUTPUTA_MODE_STRUM == output_mode())
+          arp_index_ = 0;
+      }
+
+      MENU_REDRAW = 1;
+    }
+  } else if (triggers & TRIGGER_MASK_ARP) {
+    if (arp_index_ < 2) {
+      if (digitalReadFast(TR4)) // inverted: disable arp if high
+        ++arp_index_;
+    }
+    else if (OUTPUTA_MODE_ARP == output_mode())
       arp_index_ = 0;
   }
 
@@ -288,6 +323,7 @@ void AutomatonnetzState::render(bool triggered) {
       }
       break;
     case OUTPUTA_MODE_ARP:
+    case OUTPUTA_MODE_STRUM:
       AT_OUTPUT_NOTE(arp_index_ + 1,set8565_CHA);
       break;
     case OUTPUTA_MODE_LAST:
@@ -541,7 +577,14 @@ void Automatonnetz_leftButton() {
 
 void Automatonnetz_leftButtonLong() {
   // Popup menu would be nice :)
-  automatonnetz_state.clear_grid();
+  switch (automatonnetz_state.clear_mode()) {
+    case CLEAR_MODE_RESET:
+      automatonnetz_state.clear_grid();
+      break;
+    default:
+    break;
+  }
+
   if (automatonnetz_state.ui.edit_cell) {
     const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
     encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));
