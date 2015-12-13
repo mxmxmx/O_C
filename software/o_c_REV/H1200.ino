@@ -77,27 +77,34 @@ const char *mode_names[] = {
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names}
 };
 
-struct H1200_menu_state {
+struct H1200State {
+
+  void init() {
+    cursor_pos = 0;
+    cursor_value = 0;
+    value_changed = false;
+    display_notes = true;
+    last_draw_millis = 0;
+  
+    tonnetz_state.init();
+  }
+
   int cursor_pos;
   int cursor_value;
   bool value_changed;
   bool display_notes;
+
+  uint32_t last_draw_millis;
+
+  TonnetzState tonnetz_state;
 };
 
 H1200Settings h1200_settings;
-H1200_menu_state menu_state = {
-  0,
-  0,
-  false,
-  true,
-};
-
-TonnetzState tonnetz_state;
-uint32_t last_draw_millis = 0;
+H1200State h1200_state;
 
 #define OUTPUT_NOTE(i,dac_setter) \
 do { \
-  int note = tonnetz_state.outputs(i); \
+  int note = h1200_state.tonnetz_state.outputs(i); \
   while (note > RANGE) note -= 12; \
   while (note < 0) note += 12; \
   const uint16_t dac_code = semitones[note]; \
@@ -119,19 +126,19 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   //
   // Note: Proof-of-concept code, do not copy/paste all combinations ;)
   if (triggers & TRIGGER_MASK_RESET)
-    tonnetz_state.reset(h1200_settings.mode());
+    h1200_state.tonnetz_state.reset(h1200_settings.mode());
 
   switch (h1200_settings.get_transform_priority()) {
     case TRANSFORM_PRIO_XPLR:
-      if (triggers & TRIGGER_MASK_P) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      if (triggers & TRIGGER_MASK_L) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      if (triggers & TRIGGER_MASK_R) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
       break;
 
     case TRANSFORM_PRIO_XRPL:
-      if (triggers & TRIGGER_MASK_R) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      if (triggers & TRIGGER_MASK_P) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      if (triggers & TRIGGER_MASK_L) tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
       break;
 
     default: break;
@@ -150,7 +157,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   int inversion = h1200_settings.inversion() + cvval[3]; // => octave in original
   if (inversion > MAX_INVERSION) inversion = MAX_INVERSION;
   else if (inversion < -MAX_INVERSION) inversion = -MAX_INVERSION;
-  tonnetz_state.render(root, inversion);
+  h1200_state.tonnetz_state.render(root, inversion);
 
   switch (h1200_settings.output_mode()) {
     case OUTPUT_CHORD_VOICING: {
@@ -170,18 +177,19 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  if (triggers || millis() - last_draw_millis > 1000) {
+  if (triggers || millis() - h1200_state.last_draw_millis > 1000) {
     MENU_REDRAW = 1;
-    last_draw_millis = millis();
+    h1200_state.last_draw_millis = millis();
   }
 }
 
 void H1200_init() {
   h1200_settings.init();
-  tonnetz_state.init();
+  h1200_state.init();
   init_circle_lut();
-  UI_MODE = 1;
-  MENU_REDRAW = 1;
+}
+
+void H1200_resume() {
 }
 
 #define CLOCKIT() \
@@ -191,7 +199,7 @@ do { \
   if (CLK_STATE[TR2]) { triggers |= TRIGGER_MASK_P; CLK_STATE[TR2] = false; } \
   if (CLK_STATE[TR3]) { triggers |= TRIGGER_MASK_L; CLK_STATE[TR3] = false; } \
   if (CLK_STATE[TR4]) { triggers |= TRIGGER_MASK_R; CLK_STATE[TR4] = false; } \
-  if (menu_state.value_changed) { triggers |= TRIGGER_MASK_DIRTY; menu_state.value_changed = false; } \
+  if (h1200_state.value_changed) { triggers |= TRIGGER_MASK_DIRTY; h1200_state.value_changed = false; } \
   H1200_clock(triggers); \
 } while (0)
 

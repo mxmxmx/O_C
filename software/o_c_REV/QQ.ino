@@ -134,6 +134,9 @@ void QQ_init() {
   qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
 }
 
+void QQ_resume() {
+}
+
 void QQ_loop() {
 
   UI();

@@ -64,10 +64,10 @@ void UI() {
   if (  MENU_REDRAW != 0 ) {
     switch(UI_MODE) {
       case SCREENSAVER:
-        U8G_DRAW(current_app->screensaver);
+        U8G_DRAW(current_app->draw_screensaver);
         break;
       case MENU:
-        U8G_DRAW(current_app->render_menu);
+        U8G_DRAW(current_app->draw_menu);
         break;
       case CALIBRATE:
         U8G_DRAW(calibrate);

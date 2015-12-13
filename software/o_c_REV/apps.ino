@@ -1,17 +1,24 @@
 #include "util_app.h"
 
 App available_apps[] = {
-  {"ASR", ASR_init, _loop, NULL, NULL, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, update_ENC},
-  {"Harrington 1200", H1200_init, H1200_loop, NULL, NULL, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
-  {"Automatonnetz", Automatonnetz_init, Automatonnetz_loop, NULL, Automatonnetz_resume, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_encoders},
-  {"QuaQua", QQ_init, QQ_loop, NULL, NULL, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
+  {"ASR", ASR_init, NULL, ASR_resume,
+    _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, update_ENC},
+  {"Harrington 1200", H1200_init, NULL, H1200_resume,
+    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
+  {"Automatonnetz", Automatonnetz_init, NULL, Automatonnetz_resume,
+    Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_encoders},
+  {"VierfStSpQuaMo", QQ_init, NULL, QQ_resume,
+    QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
 };
 
 struct global_app_settings {
   static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 9>::value;
 
-  int current_app_index;
+  uint8_t current_app_index;
 };
+
+#define EEPROM_CALIBRATIONDATA_START 0
+#define EEPROM_CALIBRATIONDATA_LENGTH 64 // calibrate.ini: OCTAVES*uint16_t + numADC*unit16_t = 14 * 2 = 28 -> leaves space
 
 global_app_settings app_settings;
 PageStorage<EEPROMStorage, EEPROMStorage::LENGTH - 128, EEPROMStorage::LENGTH, global_app_settings> settings_storage;
@@ -58,7 +65,7 @@ void init_apps() {
   for (int i = 0; i < APP_COUNT; ++i)
     available_apps[i].init();
 
-  if (!settings_storage.load(app_settings)) {
+  if (!settings_storage.load(app_settings) || app_settings.current_app_index >= APP_COUNT) {
     app_settings.current_app_index = DEFAULT_APP_INDEX;
   } else {
     Serial.print("Loaded settings... ");

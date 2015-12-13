@@ -85,6 +85,11 @@ void ASR_init() {
     asr_params[5] = 16; // att/mult
 }  
 
+/* Resuming app */
+
+void ASR_resume() {
+}
+
 /* add new sample: */
 
 void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {
@@ -165,5 +170,3 @@ void _hold(struct ASRbuf* _ASR, int8_t _delay) {
        _ASR->data[_hold[2]] = asr_outputs[1];
        _ASR->data[_hold[3]] = asr_outputs[2];
 }  
-
-
