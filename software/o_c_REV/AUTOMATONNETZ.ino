@@ -16,7 +16,7 @@
 // "Vector sequencer" inspired by fcd72, see
 // https://dmachinery.wordpress.com/2013/01/05/the-vector-sequencer/
 
-#define FRACTIONAL_BITS 7
+#define FRACTIONAL_BITS 24
 #define CLOCK_STEP_RES (0x1 << FRACTIONAL_BITS)
 #define GRID_EPSILON 6
 
