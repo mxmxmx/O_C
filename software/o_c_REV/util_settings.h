@@ -44,6 +44,10 @@ public:
     return false;
   }
 
+  bool change_value(size_t index, int delta) {
+    return apply_value(index, values_[index] + delta);
+  }
+
   static const settings::value_attr &value_attr(size_t i) {
     return value_attr_[i];
   }
@@ -52,6 +56,8 @@ public:
     for (size_t s = 0; s < num_settings; ++s)
       values_[s] = value_attr_[s].default_value();
   }
+
+protected:
 
   int values_[num_settings];
   static const settings::value_attr value_attr_[];

@@ -19,6 +19,7 @@
 #define FRACTIONAL_BITS 24
 #define CLOCK_STEP_RES (0x1 << FRACTIONAL_BITS)
 #define GRID_EPSILON 6
+#define GRID_SIZE 5
 
 const size_t clock_fraction[] = {
   0, CLOCK_STEP_RES/8, 1+CLOCK_STEP_RES/7, CLOCK_STEP_RES/6, 1+CLOCK_STEP_RES/5, 1+CLOCK_STEP_RES/4, 1+CLOCK_STEP_RES/3, CLOCK_STEP_RES/2
@@ -101,10 +102,15 @@ public:
 
   void init() {
     init_defaults();
-    grid.init();
+    memset(cells_, 0, sizeof(cells_));
+    grid.init(cells_);
     memset(&ui, 0, sizeof(ui));
     memset(history_, 0, sizeof(history_));
     history_tail_ = 0;
+  }
+
+  void clear_grid() {
+    memset(cells_, 0, sizeof(cells_));
   }
 
   size_t dx() const {
@@ -134,7 +140,8 @@ public:
   void render(bool triggered);
   void update_trigger_out();
 
-  CellGrid<TransformCell, 5, FRACTIONAL_BITS, GRID_EPSILON> grid;
+  TransformCell cells_[GRID_SIZE * GRID_SIZE];
+  CellGrid<TransformCell, GRID_SIZE, FRACTIONAL_BITS, GRID_EPSILON> grid;
   TonnetzState tonnetz_state;
   vec2<size_t> history_[HISTORY_LENGTH];
   size_t history_tail_;
@@ -169,8 +176,8 @@ const char *outputa_mode_names[] = {
 
 /*static*/ template<>
 const settings::value_attr settings::SettingsBase<AutomatonnetzState, GRID_SETTING_LAST>::value_attr_[] = {
-  {8, 0, 8*5 - 1, "dx   ", NULL},
-  {4, 0, 8*5 - 1, "dy   ", NULL},
+  {8, 0, 8*GRID_SIZE - 1, "dx   ", NULL},
+  {4, 0, 8*GRID_SIZE - 1, "dy   ", NULL},
   {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names},
   {0, -3, 3, "oct  ", NULL},
   {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "outA ", outputa_mode_names}
@@ -425,10 +432,10 @@ void Automatonnetz_menu() {
   const vec2<size_t> current_pos = automatonnetz_state.grid.current_pos();
 
   uint8_t y = kGridYStart;
-  for (size_t row = 0; row < 5; ++row, y += kGridH) {
+  for (size_t row = 0; row < GRID_SIZE; ++row, y += kGridH) {
     const TransformCell *cells = automatonnetz_state.grid.row(row);
     uint8_t x = kGridXStart;
-    for (size_t col = 0; col < 5; ++col, x+=kGridW) {
+    for (size_t col = 0; col < GRID_SIZE; ++col, x+=kGridW) {
       u8g.setPrintPos(x + 3, y + 2);
       u8g.setDefaultForegroundColor();
       if (row == current_pos.y && col == current_pos.x) {
@@ -533,7 +540,12 @@ void Automatonnetz_leftButton() {
 }
 
 void Automatonnetz_leftButtonLong() {
-  
+  // Popup menu would be nice :)
+  automatonnetz_state.clear_grid();
+  if (automatonnetz_state.ui.edit_cell) {
+    const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
+    encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));
+  }
 }
 
 bool Automatonnetz_encoders() {

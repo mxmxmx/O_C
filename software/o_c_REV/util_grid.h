@@ -10,7 +10,7 @@ struct vec2 {
 };
 
 /**
- * Hold cells for "vector" sequencer, inspired by fcd72
+ * Movement in cells for "vector" sequencer, inspired by fcd72
  * https://dmachinery.wordpress.com/2013/01/05/the-vector-sequencer/
  *
  * Assumes there will only be positive movement; since rows/columns wrap
@@ -28,9 +28,9 @@ public:
   static const size_t CELLS = dimensions * dimensions;
   static const size_t DIMENSIONS_FP = dimensions << fractional_bits;
 
-  void init() {
+  void init(cell_type *cells) {
     current_pos_.x = current_pos_.y = 0;
-    memset(cells_, 0, sizeof(cells_));
+    cells_ = cells;
   }
 
   void reset() {
@@ -84,8 +84,7 @@ public:
 private:
 
   vec2<size_t> current_pos_;
-
-  cell_type cells_[CELLS];
+  cell_type *cells_;
 };
 
 #endif // UTIL_GRID_H_

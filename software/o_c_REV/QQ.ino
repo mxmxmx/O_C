@@ -12,89 +12,51 @@ extern const char *abc[];
 extern const char *map_param5[];
 extern const int8_t MAXSCALES;
 
-struct quantizer_channel {
+enum EChannelSettings {
+  CHANNEL_SETTING_SCALE,
+  CHANNEL_SETTING_OCTAVE,
+  CHANNEL_SETTING_TRANSPOSE,
+  CHANNEL_SETTING_ATTENUATION,
+  CHANNEL_SETTING_MAXNOTES,
+  CHANNEL_SETTING_FINE,
+  CHANNEL_SETTING_LAST
+};
 
-  enum ESettings {
-    SETTING_SCALE,
-    SETTING_OCTAVE,
-    SETTING_TRANSPOSE,
-    SETTING_ATTENUATION,
-    SETTING_MAXNOTES,
-    SETTING_FINE,
-    SETTING_LAST
-  };
+struct quantizer_channel : public settings::SettingsBase<quantizer_channel, CHANNEL_SETTING_LAST> {
 
   int get_scale() const {
-    return values_[SETTING_SCALE];
+    return values_[CHANNEL_SETTING_SCALE];
   }
 
   int get_octave() const {
-    return values_[SETTING_OCTAVE];
+    return values_[CHANNEL_SETTING_OCTAVE];
   }
 
   int get_offset() const {
-    return values_[SETTING_TRANSPOSE];
+    return values_[CHANNEL_SETTING_TRANSPOSE];
   }
 
   int get_fine() const {
-    return values_[SETTING_FINE];
+    return values_[CHANNEL_SETTING_FINE];
   }
 
   int get_attenuation() const {
-    return values_[SETTING_ATTENUATION] + 7; // see ASR
+    return values_[CHANNEL_SETTING_ATTENUATION] + 7; // see ASR
   }
 
   int get_maxnotes() const {
-    return values_[SETTING_MAXNOTES];
+    return values_[CHANNEL_SETTING_MAXNOTES];
   }
-
-  int get_value(size_t index) const {
-    return values_[index];
-  }
-
-  static int clamp_value(size_t index, int value) {
-    return value_attr_[index].clamp(value);
-  }
-
-  bool apply_value(size_t index, int value) {
-    if (index < SETTING_LAST) {
-      const int clamped = value_attr_[index].clamp(value);
-      if (values_[index] != clamped) {
-        values_[index] = clamped;
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool change_value(size_t index, int delta) {
-    return apply_value(index, values_[index] + delta);
-  }
-
-  static const settings::value_attr value_attr(size_t i) {
-    return value_attr_[i];
-  }
-
-//private:
-  int values_[SETTING_LAST];
-  static const settings::value_attr value_attr_[SETTING_LAST];
 };
 
-/*static*/
-const settings::value_attr quantizer_channel::value_attr_[] = {
+/*static*/ template <>
+const settings::value_attr settings::SettingsBase<quantizer_channel, CHANNEL_SETTING_LAST>::value_attr_[] = {
   { 0, 0, MAXSCALES, "scale", abc },
   { 0, -4, 4, "octave", NULL },
   { 0, -11, 11, "transp", NULL },
   { 9, 0, 19, "att/mult", map_param5 }, // ASR: 7-26
   { 0, 2, MAXNOTES, "#/scale", NULL },
   { 0, -999, 999, "fine", NULL },
-};
-
-quantizer_channel quantizer_channels[4] = {
-  { 0, 1, 0, 9, MAXNOTES, 0 },
-  { 1, 2, 0, 9, MAXNOTES, 0 },
-  { 2, 3, 0, 9, MAXNOTES, 0 },
-  { 3, 0, 0, 9, MAXNOTES, 0 }
 };
 
 enum EMenuMode {
@@ -110,6 +72,7 @@ struct quad_quantizer_state {
 };
 
 quad_quantizer_state qq_state;
+quantizer_channel quantizer_channels[4];
 
 #define CLOCK_CHANNEL(i, sample, dac_set) \
 do { \
@@ -128,10 +91,13 @@ do { \
 } while (0)
 
 void QQ_init() {
+  for (size_t i = 0; i < 4; ++i)
+    quantizer_channels[i].init_defaults();
+
   qq_state.selected_channel = 0;
   qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
   qq_state.left_encoder_value = 0;
-  qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
+  qq_state.selected_param = CHANNEL_SETTING_TRANSPOSE;
 }
 
 void QQ_resume() {
@@ -205,9 +171,9 @@ void QQ_menu() {
   y += h;
   static const int kVisibleParams = 3;
   int first_visible_param = qq_state.selected_param - 2;
-  if (first_visible_param < quantizer_channel::SETTING_TRANSPOSE) {
-    first_visible_param = quantizer_channel::SETTING_TRANSPOSE;
-  } else if (first_visible_param > quantizer_channel::SETTING_TRANSPOSE) {
+  if (first_visible_param < CHANNEL_SETTING_TRANSPOSE) {
+    first_visible_param = CHANNEL_SETTING_TRANSPOSE;
+  } else if (first_visible_param > CHANNEL_SETTING_TRANSPOSE) {
     u8g.setPrintPos(0, y);
     u8g.print('\x5e');
   }
@@ -270,23 +236,23 @@ bool QQ_encoders() {
 }
 
 void QQ_topButton() {
-  quantizer_channels[qq_state.selected_channel].change_value(quantizer_channel::SETTING_OCTAVE, 1);
+  quantizer_channels[qq_state.selected_channel].change_value(CHANNEL_SETTING_OCTAVE, 1);
 }
 
 void QQ_lowerButton() {
-  quantizer_channels[qq_state.selected_channel].change_value(quantizer_channel::SETTING_OCTAVE, -1);
+  quantizer_channels[qq_state.selected_channel].change_value(CHANNEL_SETTING_OCTAVE, -1);
 }
 
 void QQ_rightButton() {
   ++qq_state.selected_param;
-  if (qq_state.selected_param >= quantizer_channel::SETTING_LAST)
-    qq_state.selected_param = quantizer_channel::SETTING_TRANSPOSE;
+  if (qq_state.selected_param >= CHANNEL_SETTING_LAST)
+    qq_state.selected_param = CHANNEL_SETTING_TRANSPOSE;
   encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
 void QQ_leftButton() {
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
-    quantizer_channels[qq_state.selected_channel].apply_value(quantizer_channel::SETTING_SCALE,qq_state.left_encoder_value);
+    quantizer_channels[qq_state.selected_channel].apply_value(CHANNEL_SETTING_SCALE, qq_state.left_encoder_value);
     qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
     encoder[LEFT].setPos(qq_state.selected_channel);
   } else {
@@ -300,7 +266,7 @@ void QQ_leftButtonLong() {
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     int scale = qq_state.left_encoder_value;
     for (int i = 0; i < 4; ++i)
-      quantizer_channels[i].apply_value(quantizer_channel::SETTING_SCALE, scale);
+      quantizer_channels[i].apply_value(CHANNEL_SETTING_SCALE, scale);
 
     qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
     encoder[LEFT].setPos(qq_state.selected_channel);
