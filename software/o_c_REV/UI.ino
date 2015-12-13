@@ -158,8 +158,12 @@ void buttons(uint8_t _button) {
 
     case BUTTON_LEFT: {
       button_pressed = button_left.read();
-      if (button_left.event() && UI_MODE)
-        current_app->left_button();
+      if (button_left.long_event() && UI_MODE) {
+        if (current_app->left_button_long)
+          current_app->left_button_long();
+      } else if (button_left.event() && UI_MODE) {
+          current_app->left_button();
+      }
     }
     break;
 

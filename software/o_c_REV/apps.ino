@@ -1,14 +1,14 @@
 #include "util_app.h"
 
 App available_apps[] = {
-  {"ASR", ASR_init, NULL, ASR_resume,
-    _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, update_ENC},
-  {"Harrington 1200", H1200_init, NULL, H1200_resume,
-    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_encoders},
-  {"Automatonnetz", Automatonnetz_init, NULL, Automatonnetz_resume,
-    Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_encoders},
-  {"VierfStSpQuaMo", QQ_init, NULL, QQ_resume,
-    QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_encoders}
+  {"ASR", ASR_init, NULL, NULL, NULL, ASR_resume,
+    _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, NULL, update_ENC},
+  {"Harrington 1200", H1200_init, NULL, NULL, NULL, H1200_resume,
+    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, NULL, H1200_encoders},
+  {"Automatonnetz", Automatonnetz_init, NULL, NULL, NULL, Automatonnetz_resume,
+    Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_leftButtonLong, Automatonnetz_encoders},
+  {"VierfStSpQuaMo", QQ_init, NULL, NULL, NULL, QQ_resume,
+    QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_leftButtonLong, QQ_encoders}
 };
 
 struct global_app_settings {

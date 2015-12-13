@@ -12,8 +12,11 @@ struct App {
 	const char *name;
 
   void (*init)(); // one-time init
-  void (*suspend)();
-  void (*resume)();
+  void (*save)();
+  void (*restore)();
+
+  void (*suspend)(); // Called before run-time switch
+  void (*resume)(); // Called after run-time switch to this app
 
   void (*loop)(); // main loop function
   void (*draw_menu)(); 
@@ -23,6 +26,7 @@ struct App {
   void (*lower_button)();
   void (*right_button)();
   void (*left_button)();
+  void (*left_button_long)();
   bool (*update_encoders)();
 };
 

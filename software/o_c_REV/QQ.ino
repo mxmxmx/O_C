@@ -295,3 +295,14 @@ void QQ_leftButton() {
     encoder[LEFT].setPos(qq_state.left_encoder_value);
   }
 }
+
+void QQ_leftButtonLong() {
+  if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
+    int scale = qq_state.left_encoder_value;
+    for (int i = 0; i < 4; ++i)
+      quantizer_channels[i].apply_value(quantizer_channel::SETTING_SCALE, scale);
+
+    qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
+    encoder[LEFT].setPos(qq_state.selected_channel);
+  }
+}

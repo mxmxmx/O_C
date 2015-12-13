@@ -45,6 +45,9 @@ enum ECellEvent {
   CELL_EVENT_LAST
 };
 
+#define CELL_MAX_INVERSION 3
+#define CELL_MIN_INVERSION -3
+
 struct TransformCell : public settings::SettingsBase<TransformCell, CELL_SETTING_LAST> {
 
   tonnetz::ETransformType transform() const {
@@ -72,7 +75,7 @@ const char *cell_event_names[] = {
 const settings::value_attr settings::SettingsBase<TransformCell, CELL_SETTING_LAST>::value_attr_[] = {
   {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "tra ", tonnetz::transform_names_str},
   {0, -12, 12, "off ", NULL},
-  {0, -3, 3, "inv ", NULL},
+  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "inv ", NULL},
   {0, CELL_EVENT_NONE, CELL_EVENT_LAST - 1, "evt ", cell_event_names}
 };
 
@@ -259,7 +262,13 @@ void AutomatonnetzState::render(bool triggered) {
   const TransformCell &current_cell = grid.current_cell();
   root += current_cell.transpose();
   root += octave() * 12;
-  tonnetz_state.render(root, current_cell.inversion());
+
+  int inversion = current_cell.inversion() + cvval[3];
+  if (inversion > CELL_MAX_INVERSION * 2)
+    inversion = CELL_MAX_INVERSION * 2;
+  else if (inversion < CELL_MIN_INVERSION * 2)
+    inversion = CELL_MIN_INVERSION * 2;
+  tonnetz_state.render(root, inversion);
 
   switch (output_mode()) {
     case OUTPUTA_MODE_ROOT:
@@ -521,6 +530,10 @@ void Automatonnetz_leftButton() {
   }
 
   automatonnetz_state.ui.edit_cell = edit_cell;
+}
+
+void Automatonnetz_leftButtonLong() {
+  
 }
 
 bool Automatonnetz_encoders() {
