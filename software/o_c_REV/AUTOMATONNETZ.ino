@@ -1,5 +1,6 @@
 #include "util_grid.h"
 #include "util_settings.h"
+#include "util_ui.h"
 #include "tonnetz_state.h"
 
 // Drive the tonnetz transformations from a grid of cells that contain the type
@@ -76,10 +77,10 @@ const char *cell_event_names[] = {
 
 /*static*/ template<>
 const settings::value_attr settings::SettingsBase<TransformCell, CELL_SETTING_LAST>::value_attr_[] = {
-  {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "tra ", tonnetz::transform_names_str},
-  {0, -12, 12, "off ", NULL},
-  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "inv ", NULL},
-  {0, CELL_EVENT_NONE, CELL_EVENT_LAST - 1, "evt ", cell_event_names}
+  {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "tra  ", tonnetz::transform_names_str},
+  {0, -12, 12, "off  ", NULL},
+  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "inv  ", NULL},
+  {0, CELL_EVENT_NONE, CELL_EVENT_LAST - 1, "evt  ", cell_event_names}
 };
 
 enum EGridSettings {
@@ -100,8 +101,11 @@ enum EOutputAMode {
   OUTPUTA_MODE_LAST
 };
 
+// What happens on long left press
 enum EClearMode {
-  CLEAR_MODE_RESET,
+  CLEAR_MODE_ZERO, // empty cells
+  CLEAR_MODE_RAND_TRANSFORM, // random transform
+  CLEAR_MODE_RAND_TRANSFORM_EV, // random tranform event
   CLEAR_MODE_LAST
 };
 
@@ -119,7 +123,23 @@ public:
   }
 
   void clear_grid() {
-    memset(cells_, 0, sizeof(cells_));
+    switch (clear_mode()) {
+      case CLEAR_MODE_ZERO:
+        memset(cells_, 0, sizeof(cells_));
+      break;
+      case CLEAR_MODE_RAND_TRANSFORM:
+        memset(cells_, 0, sizeof(cells_));
+        for (size_t i = 0; i < GRID_SIZE*GRID_SIZE; ++i)
+          cells_[i].apply_value(CELL_SETTING_TRANSFORM, random(tonnetz::TRANSFORM_LAST + 1));
+        break;
+      case CLEAR_MODE_RAND_TRANSFORM_EV:
+        memset(cells_, 0, sizeof(cells_));
+        for (size_t i = 0; i < GRID_SIZE*GRID_SIZE; ++i)
+          cells_[i].apply_value(CELL_SETTING_EVENT, CELL_EVENT_RAND_TRANFORM);
+        break;
+      default:
+      break;
+    }
   }
 
   size_t dx() const {
@@ -189,7 +209,7 @@ const char *outputa_mode_names[] = {
 };
 
 const char *clear_mode_names[] = {
-  "zero", "rndT"
+  "zero", "rT", "rTev"
 };
 
 /*static*/ template<>
@@ -199,7 +219,7 @@ const settings::value_attr settings::SettingsBase<AutomatonnetzState, GRID_SETTI
   {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names},
   {0, -3, 3, "oct  ", NULL},
   {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "outA ", outputa_mode_names},
-  {CLEAR_MODE_RESET, CLEAR_MODE_RESET, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names},
+  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names},
 };
 
 AutomatonnetzState automatonnetz_state;
@@ -380,37 +400,21 @@ static const uint8_t kMenuStartX = 64;
 static const uint8_t kLineHeight = 11;
 
 void Automatonnetz_menu_cell() {
-  u8g.setDefaultForegroundColor();
-  u8g.setPrintPos(64, 0);
-  u8g.drawLine(64, 13, 125, 13);
+
+  UI_DRAW_TITLE(kMenuStartX);
   u8g.print("CELL ");
   u8g.print(automatonnetz_state.ui.selected_col + 1);
   u8g.print(',');
   u8g.print(automatonnetz_state.ui.selected_row + 1);
 
-  uint8_t y = 2 * kLineHeight - 4;
-  for (size_t i = 0; i < CELL_SETTING_LAST; ++i, y += kLineHeight) {
-    u8g.setDefaultForegroundColor();
-    if (automatonnetz_state.ui.selected_cell_param == i) {
-      u8g.drawBox(kMenuStartX, y, 62, kLineHeight);
-      u8g.setDefaultBackgroundColor();
-    }
-
-    u8g.setPrintPos(kMenuStartX + 2, y);
-    const settings::value_attr &attr = TransformCell::value_attr(i);
+  UI_BEGIN_SETTINGS_LOOP(kMenuStartX, 0, CELL_SETTING_LAST, automatonnetz_state.ui.selected_cell_param)
     const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
-    u8g.print(attr.name);
-    if (attr.value_names)
-      u8g.print(attr.value_names[cell.get_value(i)]);
-    else
-      print_int(cell.get_value(i));
-  }
+    UI_DRAW_SETTING(TransformCell::value_attr(setting), cell.get_value(setting));
+  UI_END_SETTINGS_LOOP()
 }
 
 void Automatonnetz_menu_grid() {
-  u8g.setDefaultForegroundColor();
-  u8g.setPrintPos(64, 0);
-  u8g.drawLine(64, 13, 125, 13);
+  UI_DRAW_TITLE(kMenuStartX);
   for (size_t i=1; i < 4; ++i) {
     if (i > 1) u8g.print(' ');
     u8g.print(note_name(automatonnetz_state.tonnetz_state.outputs(i)));
@@ -420,26 +424,15 @@ void Automatonnetz_menu_grid() {
   else
     u8g.print(" -");
 
-  uint8_t y = 2 * kLineHeight - 4;
-
-  static const size_t kVisibleParams = 3;
-  size_t first_visible;
-  if (automatonnetz_state.ui.selected_param >= kVisibleParams)
-    first_visible = automatonnetz_state.ui.selected_param - 2;
-  else
+  int first_visible = automatonnetz_state.ui.selected_param - kUiVisibleParams + 1;
+  if (first_visible < 0)
     first_visible = 0;
 
-  for (size_t i = first_visible; i < first_visible + kVisibleParams; ++i, y += kLineHeight) {
-    u8g.setDefaultForegroundColor();
-    if (automatonnetz_state.ui.selected_param == i) {
-      u8g.drawBox(kMenuStartX, y, 62, kLineHeight);
-      u8g.setDefaultBackgroundColor();
-    }
+  UI_BEGIN_SETTINGS_LOOP(kMenuStartX, first_visible, GRID_SETTING_LAST, automatonnetz_state.ui.selected_param)
 
-    u8g.setPrintPos(kMenuStartX + 2, y + 2);
-    const settings::value_attr &attr = AutomatonnetzState::value_attr(i);
+    const settings::value_attr &attr = AutomatonnetzState::value_attr(setting);
     u8g.print(attr.name);
-    int value = automatonnetz_state.get_value(i);
+    int value = automatonnetz_state.get_value(setting);
     if (attr.value_names) {
       u8g.print(attr.value_names[value]);
     } else if (i <= GRID_SETTING_DY) {
@@ -455,11 +448,12 @@ void Automatonnetz_menu_grid() {
     } else {
       print_int(value);
     }
-  }
+
+  UI_END_SETTINGS_LOOP()
 }
 
 void Automatonnetz_menu() {
-  u8g.setFont(u8g_font_6x12);
+  u8g.setFont(UI_DEFAULT_FONT);
   u8g.setColorIndex(1);
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
@@ -576,15 +570,7 @@ void Automatonnetz_leftButton() {
 }
 
 void Automatonnetz_leftButtonLong() {
-  // Popup menu would be nice :)
-  switch (automatonnetz_state.clear_mode()) {
-    case CLEAR_MODE_RESET:
-      automatonnetz_state.clear_grid();
-      break;
-    default:
-    break;
-  }
-
+  automatonnetz_state.clear_grid();
   if (automatonnetz_state.ui.edit_cell) {
     const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
     encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));

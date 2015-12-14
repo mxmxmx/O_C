@@ -5,14 +5,6 @@ const char *note_name(int note) {
   return note_names[(note + 120) % 12];
 }
 
-void print_int(int value) {
-  if (value >= 0) {
-    u8g.print('+'); u8g.print(value);
-  } else {
-    u8g.print('-'); u8g.print(-value);
-  }
-}
-
 void H1200_menu() {
    u8g.setFont(u8g_font_6x12);
    u8g.setColorIndex(1);
@@ -125,9 +117,6 @@ void H1200_screensaver() {
   static const uint8_t x_col_1 = 66 + 24;
   static const uint8_t x_col_2 = 66 + 38;
   static const uint8_t line_h = 16;
-
-  //const abstract_triad &current_chord = h1200_state.tonnetz_state.current_chord();
-  //const String &last_transform = h1200_state.tonnetz_state.last_trans().trim();
 
   //u8g.setFont(u8g_font_timB12); BBX 19x27
   u8g.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
