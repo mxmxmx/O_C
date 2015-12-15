@@ -3,23 +3,23 @@
 App available_apps[] = {
   {"ASR", ASR_init, ASR_save, ASR_restore, NULL, ASR_resume,
     _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, NULL, update_ENC},
-  {"Harrington 1200", H1200_init, NULL, NULL, NULL, H1200_resume,
+  {"Harrington 1200", H1200_init, H1200_save, H1200_restore, NULL, H1200_resume,
     H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, NULL, H1200_encoders},
   {"Automatonnetz", Automatonnetz_init, Automatonnetz_save, Automatonnetz_restore, NULL, Automatonnetz_resume,
     Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_leftButtonLong, Automatonnetz_encoders},
-  {"VierfStSpQuaMo", QQ_init, NULL, NULL, NULL, QQ_resume,
+  {"VierfStSpQuaMo", QQ_init, QQ_save, QQ_restore, NULL, QQ_resume,
     QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_leftButtonLong, QQ_encoders}
 };
 
 struct O_CSettings {
 
   static const size_t kAppSettingsSize =
-    ASR_SETTINGS_SIZE + // ASR
-    0 + // H1200
+    ASR_SETTINGS_SIZE +
+    H1200_SETTINGS_SIZE +
     AUTOMATONNETZ_SETTINGS_SIZE +
-    0; // QQ
+    QQ_SETTINGS_SIZE;
 
-  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 91>::value;
+  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 92>::value;
 
   uint8_t current_app_index;
   char app_settings[kAppSettingsSize];
@@ -30,7 +30,8 @@ struct O_CSettings {
 #define EEPROM_CALIBRATIONDATA_LENGTH 64 // calibrate.ini: OCTAVES*uint16_t + numADC*unit16_t = 14 * 2 = 28 -> leaves space
 
 O_CSettings global_settings;
-PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_LENGTH, EEPROMStorage::LENGTH, O_CSettings> settings_storage;
+typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_LENGTH, EEPROMStorage::LENGTH, O_CSettings> O_CSettingsStorage;
+O_CSettingsStorage settings_storage;
 
 static const int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 App *current_app = &available_apps[0];
@@ -67,28 +68,22 @@ void restore_app_settings() {
 }
 
 void draw_app_menu(int selected) {
-  u8g.setFont(u8g_font_6x12);
-  u8g.firstPage();
+  u8g.firstPage();  
+  u8g.setFont(UI_DEFAULT_FONT);
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
-  u8g.firstPage();  
   do {
-    uint8_t x = 4, y = 0;
-    for (int i = 0; i < APP_COUNT; ++i, y += 16) {
-      if (i == selected) {
-        u8g.setDefaultForegroundColor();
-        u8g.drawBox(0, y, 128, 15);
-        u8g.setDefaultBackgroundColor();
-      } else {
-        u8g.setDefaultForegroundColor();
-      }
+    int first = selected - 4;
+    if (first < 0) first = 0;
 
-      u8g.setPrintPos(x, y + 2);
-      if (global_settings.current_app_index == i)
+    uint8_t y = 0;
+    for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiParamLineH) {
+      UI_SETUP_ITEM(0, current == selected);
+      if (global_settings.current_app_index == current)
         u8g.print('>');
       else
         u8g.print(' ');
-      u8g.print(available_apps[i].name);
+      u8g.print(available_apps[current].name);
     }
   } while (u8g.nextPage());
 }
@@ -102,13 +97,17 @@ void init_apps() {
   for (int i = 0; i < APP_COUNT; ++i)
     available_apps[i].init();
 
-  Serial.print("sizeof(O_CSettings) : "); Serial.println(sizeof(O_CSettings));
+  Serial.print("sizeof(settings) : "); Serial.println(sizeof(O_CSettings));
+  Serial.print("PAGESIZE         : "); Serial.println(O_CSettingsStorage::PAGESIZE);
+  Serial.print("PAGES            : "); Serial.println(O_CSettingsStorage::PAGES);
 
   if (!settings_storage.load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
+    Serial.print("Settings not loaded, using defaults...");
     global_settings.current_app_index = DEFAULT_APP_INDEX;
   } else {
-    Serial.print("Loaded settings... ");
-    Serial.println(global_settings.current_app_index);
+    Serial.println("Loaded settings...");
+    Serial.print("page_index       : "); Serial.println(settings_storage.page_index());
+    Serial.print("current_app_index: "); Serial.println(global_settings.current_app_index);
     restore_app_settings();
   }
   set_current_app(global_settings.current_app_index);

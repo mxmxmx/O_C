@@ -11,19 +11,26 @@ static const uint8_t kUiVisibleParams = 4;
 static const uint8_t kDisplayWidth = 128;
 
 #define UI_DRAW_TITLE(xstart) \
+  do { \
   u8g.setDefaultForegroundColor(); \
   u8g.setPrintPos(xstart, 0); \
-  u8g.drawHLine(xstart, kUiDefaultFontH, kDisplayWidth - xstart - 2);
+  u8g.drawHLine(xstart, kUiDefaultFontH, kDisplayWidth - xstart - 2); \
+  } while (0)
+
+#define UI_SETUP_ITEM(xstart, sel) \
+  do { \
+    u8g.setDefaultForegroundColor(); \
+    if (sel) { \
+      u8g.drawBox(xstart, y, kDisplayWidth - xstart - 2, kUiParamLineH - 1); \
+      u8g.setDefaultBackgroundColor(); \
+    } \
+    u8g.setPrintPos(xstart + 2, y + 1); \
+  } while (0)
 
 #define UI_BEGIN_SETTINGS_LOOP(xstart, first, last, selected) \
   uint8_t y = kUiParamStartY; \
   for (size_t i = 0, setting = first; i < kUiVisibleParams && setting < last; ++i, ++setting, y += kUiParamLineH) { \
-    u8g.setDefaultForegroundColor(); \
-    if (selected == setting) { \
-      u8g.drawBox(xstart, y, kDisplayWidth - xstart - 2, kUiParamLineH - 1); \
-      u8g.setDefaultBackgroundColor(); \
-    } \
-    u8g.setPrintPos(xstart + 2, y + 1);
+    UI_SETUP_ITEM(xstart, selected == setting);
 
 #define UI_END_SETTINGS_LOOP() }
 

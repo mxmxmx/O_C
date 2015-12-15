@@ -16,18 +16,18 @@ enum ETransformPriority {
   TRANSFORM_PRIO_LAST
 };
 
-enum ESettings {
-  SETTING_ROOT_OFFSET,
-  SETTING_MODE,
-  SETTING_INVERSION,
-  SETTING_TRANFORM_PRIO,
-  SETTING_OUTPUT_MODE,
-  SETTING_LAST
+enum EH1200Settings {
+  H1200_SETTING_ROOT_OFFSET,
+  H1200_SETTING_MODE,
+  H1200_SETTING_INVERSION,
+  H1200_SETTING_TRANFORM_PRIO,
+  H1200_SETTING_OUTPUT_MODE,
+  H1200_SETTING_LAST
 };
 
 static const int MAX_INVERSION = 9;
 
-class H1200Settings : public settings::SettingsBase<H1200Settings, SETTING_LAST> {
+class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
 
   void init() {
@@ -35,23 +35,23 @@ public:
   }
 
   int root_offset() const {
-    return values_[SETTING_ROOT_OFFSET];
+    return values_[H1200_SETTING_ROOT_OFFSET];
   }
 
   EMode mode() const {
-    return static_cast<EMode>(values_[SETTING_MODE]);
+    return static_cast<EMode>(values_[H1200_SETTING_MODE]);
   }
 
   int inversion() const {
-    return values_[SETTING_INVERSION];
+    return values_[H1200_SETTING_INVERSION];
   }
 
   ETransformPriority get_transform_priority() const {
-    return static_cast<ETransformPriority>(values_[SETTING_TRANFORM_PRIO]);
+    return static_cast<ETransformPriority>(values_[H1200_SETTING_TRANFORM_PRIO]);
   }
 
   EOutputMode output_mode() const {
-    return static_cast<EOutputMode>(values_[SETTING_OUTPUT_MODE]);
+    return static_cast<EOutputMode>(values_[H1200_SETTING_OUTPUT_MODE]);
   }
 };
 
@@ -69,7 +69,7 @@ const char *mode_names[] = {
   "maj", "min"
 };
 
-/*static*/ template<> const settings::value_attr settings::SettingsBase<H1200Settings, SETTING_LAST>::value_attr_[] = {
+/*static*/ template<> const settings::value_attr settings::SettingsBase<H1200Settings, H1200_SETTING_LAST>::value_attr_[] = {
   {12, -24, 36, "transpose", NULL},
   {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names},
   {0, -3, 3, "inversion", NULL},
@@ -187,6 +187,16 @@ void H1200_init() {
   h1200_settings.init();
   h1200_state.init();
   init_circle_lut();
+}
+
+static const size_t H1200_SETTINGS_SIZE = sizeof(int8_t) * H1200_SETTING_LAST;
+
+size_t H1200_save(char *storage) {
+  return h1200_settings.save<int8_t>(storage);
+}
+
+size_t H1200_restore(const char *storage) {
+  return h1200_settings.restore<int8_t>(storage);
 }
 
 void H1200_resume() {

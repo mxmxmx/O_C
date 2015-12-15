@@ -51,7 +51,7 @@ void H1200_menu() {
   u8g.drawLine(0, 13, 128, 13);
 
   y = 2 * h - 4;
-  for (int i = 1; i < SETTING_LAST; ++i, y+=h) {
+  for (int i = 1; i < H1200_SETTING_LAST; ++i, y+=h) {
     if (i == h1200_state.cursor_pos) {
       u8g.drawBox(0, y, 128, h);
       u8g.setDefaultBackgroundColor();

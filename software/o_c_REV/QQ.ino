@@ -100,7 +100,36 @@ void QQ_init() {
   qq_state.selected_param = CHANNEL_SETTING_TRANSPOSE;
 }
 
+static const size_t QQ_SETTINGS_SIZE = sizeof(int16_t) * CHANNEL_SETTING_LAST * 4;
+
+size_t QQ_save(char *storage) {
+  size_t used = 0;
+  for (size_t i = 0; i < 4; ++i) {
+    used += quantizer_channels[i].save<int16_t>(storage + used);
+  }
+  return used;
+}
+
+size_t QQ_restore(const char *storage) {
+  size_t used = 0;
+  for (size_t i = 0; i < 4; ++i) {
+    used += quantizer_channels[i].restore<int16_t>(storage + used);
+  }
+  return used;
+}
+
 void QQ_resume() {
+  switch (qq_state.left_encoder_mode) {
+    case MODE_EDIT_CHANNEL: {
+      encoder[LEFT].setPos(qq_state.left_encoder_value);
+      encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
+      } break;
+    case MODE_SELECT_CHANNEL: {
+      encoder[LEFT].setPos(qq_state.selected_channel);
+      int value = quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param);
+      encoder[RIGHT].setPos(value);
+      } break;
+    }
 }
 
 void QQ_loop() {
@@ -123,7 +152,7 @@ void QQ_loop() {
 
 void QQ_menu() {
 
-  u8g.setFont(u8g_font_6x12);
+  u8g.setFont(UI_DEFAULT_FONT);
   u8g.setColorIndex(1);
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
@@ -133,7 +162,9 @@ void QQ_menu() {
   uint8_t h = 11;
 
   uint8_t x = 0;
-  u8g.setDefaultForegroundColor();
+
+  UI_DRAW_TITLE(0);
+
   for (int i = 0; i < 4; ++i, x += 31) {
     if (i == qq_state.selected_channel) {
       u8g.drawBox(x, 0, 31, 11);
@@ -150,8 +181,6 @@ void QQ_menu() {
   }
 
   u8g.setDefaultForegroundColor();  
-  u8g.drawLine(0, 13, 128, 13);
-
   y = 2 * h - 4;
   const quantizer_channel &channel = quantizer_channels[qq_state.selected_channel];
   int scale;
