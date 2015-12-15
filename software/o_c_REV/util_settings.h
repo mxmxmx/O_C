@@ -57,6 +57,24 @@ public:
       values_[s] = value_attr_[s].default_value();
   }
 
+  template <typename storage_type>
+  size_t save(void *dest) const {
+    storage_type *storage = static_cast<storage_type *>(dest);
+    for (size_t s = 0; s < num_settings; ++s)
+      *storage++ = static_cast<storage_type>(values_[s]);
+
+    return num_settings * sizeof(storage_type);
+  }
+
+  template <typename storage_type>
+  size_t restore(const void *src) {
+    const storage_type *storage = static_cast<const storage_type *>(src);
+    for (size_t s = 0; s < num_settings; ++s)
+      apply_value(s, *storage++);
+
+    return num_settings * sizeof(storage_type);
+  }
+
 protected:
 
   int values_[num_settings];

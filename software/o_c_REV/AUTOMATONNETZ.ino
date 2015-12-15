@@ -224,6 +224,11 @@ const settings::value_attr settings::SettingsBase<AutomatonnetzState, GRID_SETTI
 
 AutomatonnetzState automatonnetz_state;
 
+static const size_t AUTOMATONNETZ_SETTINGS_SIZE =
+  sizeof(int8_t) * GRID_SETTING_LAST +
+  GRID_SIZE * GRID_SIZE * sizeof(int8_t) * CELL_SETTING_LAST;
+
+
 void Automatonnetz_init() {
   init_circle_lut();
   automatonnetz_state.init();
@@ -521,6 +526,22 @@ void Automatonnetz_screensaver() {
     u8g.setPrintPos(128-7, y);
     u8g.print(automatonnetz_state.tonnetz_state.history(i).str[1]);
   }
+}
+
+size_t Automatonnetz_save(char *storage) {
+  size_t used = automatonnetz_state.save<int8_t>(storage);
+  for (size_t cell = 0; cell < GRID_SIZE*GRID_SIZE; ++cell)
+    used += automatonnetz_state.cells_[cell].save<int8_t>(storage + used);
+
+  return used;
+}
+
+size_t Automatonnetz_restore(const char *storage) {
+  size_t used = automatonnetz_state.restore<int8_t>(storage);
+  for (size_t cell = 0; cell < GRID_SIZE * GRID_SIZE; ++cell)
+    used += automatonnetz_state.cells_[cell].restore<int8_t>(storage + used);
+
+  return used;
 }
 
 void Automatonnetz_resume() {

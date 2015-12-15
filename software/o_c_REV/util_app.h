@@ -12,8 +12,8 @@ struct App {
 	const char *name;
 
   void (*init)(); // one-time init
-  void (*save)();
-  void (*restore)();
+  size_t (*save)(char *);
+  size_t (*restore)(const char *);
 
   void (*suspend)(); // Called before run-time switch
   void (*resume)(); // Called after run-time switch to this app

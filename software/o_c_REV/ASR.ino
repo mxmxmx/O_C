@@ -85,9 +85,25 @@ void ASR_init() {
     asr_params[5] = 16; // att/mult
 }  
 
+static const size_t ASR_SETTINGS_SIZE = sizeof(asr_params);
+
+/* Saving app state */
+size_t ASR_save(char *storage) {
+    memcpy(storage, asr_params, sizeof(asr_params));
+    return ASR_SETTINGS_SIZE;
+}
+
+/* Restore app state */
+size_t ASR_restore(const char *storage) {
+    memcpy(asr_params, storage, sizeof(asr_params));
+    memcpy(asr_display_params, asr_params, sizeof(asr_params));
+    return ASR_SETTINGS_SIZE;
+}
+
 /* Resuming app */
 
 void ASR_resume() {
+    // TODO Set encoder values
 }
 
 /* add new sample: */
