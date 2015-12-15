@@ -278,11 +278,10 @@ void AutomatonnetzState::clock(uint8_t triggers) {
 
       MENU_REDRAW = 1;
     }
-  } else if (triggers & TRIGGER_MASK_ARP) {
-    if (arp_index_ < 2) {
-      if (digitalReadFast(TR4)) // inverted: disable arp if high
+  } else if ((triggers & TRIGGER_MASK_ARP) && digitalReadFast(TR4)) {
+    // arp disabled if TR4 high, gpio is inverted
+    if (arp_index_ < 2)
         ++arp_index_;
-    }
     else if (OUTPUTA_MODE_ARP == output_mode())
       arp_index_ = 0;
   }
