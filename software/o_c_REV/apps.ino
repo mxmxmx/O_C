@@ -4,7 +4,7 @@ App available_apps[] = {
   {"ASR", ASR_init, ASR_save, ASR_restore, NULL, ASR_resume,
     _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, NULL, update_ENC},
   {"Harrington 1200", H1200_init, H1200_save, H1200_restore, NULL, H1200_resume,
-    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, NULL, H1200_encoders},
+    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_leftButtonLong, H1200_encoders},
   {"Automatonnetz", Automatonnetz_init, Automatonnetz_save, Automatonnetz_restore, NULL, Automatonnetz_resume,
     Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_leftButtonLong, Automatonnetz_encoders},
   {"VierfStSpQuaMo", QQ_init, QQ_save, QQ_restore, NULL, QQ_resume,
@@ -77,7 +77,7 @@ void draw_app_menu(int selected) {
     if (first < 0) first = 0;
 
     uint8_t y = 0;
-    for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiParamLineH) {
+    for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiLineH) {
       UI_SETUP_ITEM(0, current == selected);
       if (global_settings.current_app_index == current)
         u8g.print('>');
@@ -176,6 +176,7 @@ void select_app() {
     Serial.println("Saving settings...");
     save_app_settings();
     settings_storage.save(global_settings);
+    Serial.print("page_index       : "); Serial.println(settings_storage.page_index());
   }
 
   // Restore state

@@ -185,8 +185,8 @@ public:
     int selected_row;
     int selected_col;
     bool edit_cell;
-    size_t selected_param;
-    size_t selected_cell_param;
+    int selected_param;
+    int selected_cell_param;
   } ui;
 
   void push_history(const vec2<size_t> &pos) {
@@ -395,7 +395,6 @@ void Automatonnetz_loop() {
   AT();
 }
 
-
 static const uint8_t kGridXStart = 0;
 static const uint8_t kGridYStart = 0;
 static const uint8_t kGridH = 12;
@@ -411,10 +410,12 @@ void Automatonnetz_menu_cell() {
   u8g.print(',');
   u8g.print(automatonnetz_state.ui.selected_row + 1);
 
-  UI_BEGIN_SETTINGS_LOOP(kMenuStartX, 0, CELL_SETTING_LAST, automatonnetz_state.ui.selected_cell_param)
+  UI_START_MENU(kMenuStartX);
+  UI_BEGIN_ITEMS_LOOP(kMenuStartX, 0, CELL_SETTING_LAST, automatonnetz_state.ui.selected_cell_param, 0)
     const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
-    UI_DRAW_SETTING(TransformCell::value_attr(setting), cell.get_value(setting));
-  UI_END_SETTINGS_LOOP()
+    const settings::value_attr &attr = TransformCell::value_attr(current_item);
+    UI_DRAW_SETTING(attr, cell.get_value(current_item), 0);
+  UI_END_ITEMS_LOOP();
 }
 
 void Automatonnetz_menu_grid() {
@@ -428,15 +429,16 @@ void Automatonnetz_menu_grid() {
   else
     u8g.print(" -");
 
-  int first_visible = automatonnetz_state.ui.selected_param - kUiVisibleParams + 1;
+  int first_visible = automatonnetz_state.ui.selected_param - kUiVisibleItems + 1;
   if (first_visible < 0)
     first_visible = 0;
 
-  UI_BEGIN_SETTINGS_LOOP(kMenuStartX, first_visible, GRID_SETTING_LAST, automatonnetz_state.ui.selected_param)
+  UI_START_MENU(kMenuStartX);
+  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, GRID_SETTING_LAST, automatonnetz_state.ui.selected_param, 0)
 
-    const settings::value_attr &attr = AutomatonnetzState::value_attr(setting);
+    const settings::value_attr &attr = AutomatonnetzState::value_attr(current_item);
     u8g.print(attr.name);
-    int value = automatonnetz_state.get_value(setting);
+    int value = automatonnetz_state.get_value(current_item);
     if (attr.value_names) {
       u8g.print(attr.value_names[value]);
     } else if (i <= GRID_SETTING_DY) {
@@ -453,7 +455,7 @@ void Automatonnetz_menu_grid() {
       print_int(value);
     }
 
-  UI_END_SETTINGS_LOOP()
+  UI_END_ITEMS_LOOP();
 }
 
 void Automatonnetz_menu() {

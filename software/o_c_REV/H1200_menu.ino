@@ -6,36 +6,23 @@ const char *note_name(int note) {
 }
 
 void H1200_menu() {
-   u8g.setFont(u8g_font_6x12);
+   u8g.setFont(UI_DEFAULT_FONT);
    u8g.setColorIndex(1);
    u8g.setFontRefHeightText();
    u8g.setFontPosTop();
 
-  uint8_t col_x = 96;
-  uint8_t y = 0;
-  uint8_t h = 11;
-
   const abstract_triad &current_chord = h1200_state.tonnetz_state.current_chord();
 
-  if (h1200_state.cursor_pos == 0) {
-    u8g.drawBox(0, y, 32, h);
-    u8g.setDefaultBackgroundColor();
-    const int value = h1200_state.cursor_value;
-    u8g.setPrintPos(10, y);
-    print_int(value);
-  } else {
-    u8g.setPrintPos(4, y);
-    // current chord info
-    u8g.setDefaultForegroundColor();
-    if (h1200_state.display_notes)
-      u8g.print(note_name(h1200_state.tonnetz_state.root()));
-    else
-      u8g.print(h1200_state.tonnetz_state.root());
-    u8g.print(mode_names[current_chord.mode()]);
-  }
+  static const uint8_t kStartX = 0;
 
-  u8g.setPrintPos(64, y);
-  u8g.setDefaultForegroundColor();
+  UI_DRAW_TITLE(kStartX);
+  if (h1200_state.display_notes)
+    u8g.print(note_name(h1200_state.tonnetz_state.root()));
+  else
+    u8g.print(h1200_state.tonnetz_state.root());
+  u8g.print(mode_names[current_chord.mode()]);
+
+  u8g.setPrintPos(64, kUiTitleTextY);
   if (h1200_state.display_notes) {
     for (size_t i=1; i < 4; ++i) {
       if (i > 1) u8g.print(' ');
@@ -48,27 +35,15 @@ void H1200_menu() {
     }
   }
 
-  u8g.drawLine(0, 13, 128, 13);
+  int first_visible = h1200_state.cursor_pos - kUiVisibleItems + 1;
+  if (first_visible < 0)
+    first_visible = 0;
 
-  y = 2 * h - 4;
-  for (int i = 1; i < H1200_SETTING_LAST; ++i, y+=h) {
-    if (i == h1200_state.cursor_pos) {
-      u8g.drawBox(0, y, 128, h);
-      u8g.setDefaultBackgroundColor();
-    } else {
-      u8g.setDefaultForegroundColor();
-    }
-    const settings::value_attr &attr = H1200Settings::value_attr(i);
-    u8g.drawStr(10, y, attr.name);
-    u8g.setPrintPos(col_x, y);
-    int value = i == h1200_state.cursor_pos
-        ? h1200_state.cursor_value
-        : h1200_settings.get_value(i);
-    if (attr.value_names)
-      u8g.drawStr(col_x, y, attr.value_names[value]);
-    else
-      print_int(value);
-  }
+  UI_START_MENU(kStartX);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, H1200_SETTING_LAST, h1200_state.cursor_pos, 0)
+    const settings::value_attr &attr = H1200Settings::value_attr(current_item);
+    UI_DRAW_SETTING(attr, h1200_settings.get_value(current_item), kUiWideMenuCol1X);
+  UI_END_ITEMS_LOOP();
 }
 
 static const uint8_t note_circle_x = 32;

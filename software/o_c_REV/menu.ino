@@ -90,7 +90,7 @@ void hello() {
     u8g.setDefaultForegroundColor();
     u8g.drawBox(0, 0, 128, 14);
     u8g.setDefaultBackgroundColor();
-    u8g.setPrintPos(4, 2); u8g.print("ornament&crime+");
+    u8g.setPrintPos(4, 2); u8g.print("ornaments&crimes");
 
     u8g.setDefaultForegroundColor();
     u8g.setPrintPos(4, 20); u8g.print("L : calibrate");

@@ -30,10 +30,6 @@ static const int MAX_INVERSION = 9;
 class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
 
-  void init() {
-    init_defaults();
-  }
-
   int root_offset() const {
     return values_[H1200_SETTING_ROOT_OFFSET];
   }
@@ -81,7 +77,6 @@ struct H1200State {
 
   void init() {
     cursor_pos = 0;
-    cursor_value = 0;
     value_changed = false;
     display_notes = true;
     last_draw_millis = 0;
@@ -90,7 +85,6 @@ struct H1200State {
   }
 
   int cursor_pos;
-  int cursor_value;
   bool value_changed;
   bool display_notes;
 
@@ -102,7 +96,7 @@ struct H1200State {
 H1200Settings h1200_settings;
 H1200State h1200_state;
 
-#define OUTPUT_NOTE(i,dac_setter) \
+#define H1200_OUTPUT_NOTE(i,dac_setter) \
 do { \
   int note = h1200_state.tonnetz_state.outputs(i); \
   while (note > RANGE) note -= 12; \
@@ -161,17 +155,17 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 
   switch (h1200_settings.output_mode()) {
     case OUTPUT_CHORD_VOICING: {
-      OUTPUT_NOTE(0,set8565_CHA);
-      OUTPUT_NOTE(1,set8565_CHB);
-      OUTPUT_NOTE(2,set8565_CHC);
-      OUTPUT_NOTE(3,set8565_CHD);
+      H1200_OUTPUT_NOTE(0,set8565_CHA);
+      H1200_OUTPUT_NOTE(1,set8565_CHB);
+      H1200_OUTPUT_NOTE(2,set8565_CHC);
+      H1200_OUTPUT_NOTE(3,set8565_CHD);
     }
     break;
     case OUTPUT_TUNE: {
-      OUTPUT_NOTE(0,set8565_CHA);
-      OUTPUT_NOTE(0,set8565_CHB);
-      OUTPUT_NOTE(0,set8565_CHC);
-      OUTPUT_NOTE(0,set8565_CHD);
+      H1200_OUTPUT_NOTE(0,set8565_CHA);
+      H1200_OUTPUT_NOTE(0,set8565_CHB);
+      H1200_OUTPUT_NOTE(0,set8565_CHC);
+      H1200_OUTPUT_NOTE(0,set8565_CHD);
     }
     break;
     default: break;
@@ -184,7 +178,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 }
 
 void H1200_init() {
-  h1200_settings.init();
+  h1200_settings.init_defaults();
   h1200_state.init();
   init_circle_lut();
 }

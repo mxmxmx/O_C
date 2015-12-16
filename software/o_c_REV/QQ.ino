@@ -22,7 +22,8 @@ enum EChannelSettings {
   CHANNEL_SETTING_LAST
 };
 
-struct quantizer_channel : public settings::SettingsBase<quantizer_channel, CHANNEL_SETTING_LAST> {
+class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
+public:
 
   int get_scale() const {
     return values_[CHANNEL_SETTING_SCALE];
@@ -50,7 +51,7 @@ struct quantizer_channel : public settings::SettingsBase<quantizer_channel, CHAN
 };
 
 /*static*/ template <>
-const settings::value_attr settings::SettingsBase<quantizer_channel, CHANNEL_SETTING_LAST>::value_attr_[] = {
+const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST>::value_attr_[] = {
   { 0, 0, MAXSCALES, "scale", abc },
   { 0, -4, 4, "octave", NULL },
   { 0, -11, 11, "transp", NULL },
@@ -64,21 +65,21 @@ enum EMenuMode {
   MODE_EDIT_CHANNEL
 };
 
-struct quad_quantizer_state {
+struct QuadQuantizerState {
   int selected_channel;
   EMenuMode left_encoder_mode;
   int left_encoder_value;
   int selected_param;
 };
 
-quad_quantizer_state qq_state;
-quantizer_channel quantizer_channels[4];
+QuadQuantizerState qq_state;
+QuantizerChannel quantizer_channels[4];
 
 #define CLOCK_CHANNEL(i, sample, dac_set) \
 do { \
   if (CLK_STATE[i]) { \
     CLK_STATE[i] = false; \
-    const quantizer_channel &channel = quantizer_channels[i]; \
+    const QuantizerChannel &channel = quantizer_channels[i]; \
     int32_t s = (sample) + channel.get_fine(); \
     s *= channel.get_attenuation(); \
     s = s >> 4; \
@@ -157,36 +158,32 @@ void QQ_menu() {
   u8g.setFontRefHeightText();
   u8g.setFontPosTop();
 
-  uint8_t col_x = 96;
-  uint8_t y = 2;
-  uint8_t h = 11;
+  static const uint8_t kStartX = 0;
 
-  uint8_t x = 0;
+  UI_DRAW_TITLE(kStartX);
 
-  UI_DRAW_TITLE(0);
-
-  for (int i = 0; i < 4; ++i, x += 31) {
+  for (int i = 0, x = 0; i < 4; ++i, x += 31) {
     if (i == qq_state.selected_channel) {
       u8g.drawBox(x, 0, 31, 11);
       u8g.setDefaultBackgroundColor();  
     } else {
       u8g.setDefaultForegroundColor();  
     }
-    u8g.setPrintPos(x + 4, y);
+    u8g.setPrintPos(x + 4, 2);
     u8g.print((char)('A' + i));
-    u8g.setPrintPos(x + 14, y);
+    u8g.setPrintPos(x + 14, 2);
     int octave = quantizer_channels[i].get_octave();
     if (octave)
       print_int(octave);
   }
 
-  u8g.setDefaultForegroundColor();  
-  y = 2 * h - 4;
-  const quantizer_channel &channel = quantizer_channels[qq_state.selected_channel];
+  const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];
+
+  UI_START_MENU(kStartX);
+
   int scale;
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     scale = qq_state.left_encoder_value;
-    u8g.setPrintPos(0x0, y);
     if (channel.get_scale() == scale)
       u8g.print(">");
     else
@@ -194,36 +191,16 @@ void QQ_menu() {
   } else {
     scale = channel.get_scale();
   }
-  u8g.setPrintPos(10, y);
   u8g.print(abc[scale]);
 
-  y += h;
-  static const int kVisibleParams = 3;
   int first_visible_param = qq_state.selected_param - 2;
-  if (first_visible_param < CHANNEL_SETTING_TRANSPOSE) {
+  if (first_visible_param < CHANNEL_SETTING_TRANSPOSE)
     first_visible_param = CHANNEL_SETTING_TRANSPOSE;
-  } else if (first_visible_param > CHANNEL_SETTING_TRANSPOSE) {
-    u8g.setPrintPos(0, y);
-    u8g.print('\x5e');
-  }
 
-  for (int i = first_visible_param; i < first_visible_param + kVisibleParams; ++i, y+=h) {
-    u8g.setPrintPos(10, y);
-    if (i == qq_state.selected_param) {
-      u8g.setDefaultForegroundColor();
-      u8g.drawBox(0, y, 128, h);
-      u8g.setDefaultBackgroundColor();
-    } else {
-      u8g.setDefaultForegroundColor();
-    }
-    const settings::value_attr &attr = quantizer_channel::value_attr(i);
-    u8g.print(attr.name);
-    u8g.setPrintPos(col_x, y);
-    if (attr.value_names)
-      u8g.print(attr.value_names[channel.get_value(i)]);
-    else
-      print_int(channel.get_value(i));
-  }
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, CHANNEL_SETTING_LAST, qq_state.selected_param, 1)
+    const settings::value_attr &attr = QuantizerChannel::value_attr(current_item);
+    UI_DRAW_SETTING(attr, channel.get_value(current_item), kUiWideMenuCol1X);
+  UI_END_ITEMS_LOOP();
 }
 
 bool QQ_encoders() {
@@ -253,7 +230,7 @@ bool QQ_encoders() {
       break;
   }
 
-  quantizer_channel &selected = quantizer_channels[qq_state.selected_channel];
+  QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   value = encoder[RIGHT].pos();
   if (value != selected.get_value(qq_state.selected_param)) {
     selected.apply_value(qq_state.selected_param, value);
