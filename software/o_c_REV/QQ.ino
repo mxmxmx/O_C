@@ -33,7 +33,7 @@ public:
     return values_[CHANNEL_SETTING_OCTAVE];
   }
 
-  int get_offset() const {
+  int get_transpose() const {
     return values_[CHANNEL_SETTING_TRANSPOSE];
   }
 
@@ -83,7 +83,7 @@ do { \
     int32_t s = (sample) + channel.get_fine(); \
     s *= channel.get_attenuation(); \
     s = s >> 4; \
-    s += channel.get_offset(); \
+    s += channel.get_transpose(); \
     s = quant_sc(s, channel.get_scale(), channel.get_octave(), channel.get_maxnotes()); \
     asr_outputs[i] = s; \
     dac_set(s); \
@@ -121,16 +121,14 @@ size_t QQ_restore(const char *storage) {
 
 void QQ_resume() {
   switch (qq_state.left_encoder_mode) {
-    case MODE_EDIT_CHANNEL: {
+    case MODE_EDIT_CHANNEL:
       encoder[LEFT].setPos(qq_state.left_encoder_value);
-      encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
-      } break;
-    case MODE_SELECT_CHANNEL: {
+      break;
+    case MODE_SELECT_CHANNEL:
       encoder[LEFT].setPos(qq_state.selected_channel);
-      int value = quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param);
-      encoder[RIGHT].setPos(value);
-      } break;
-    }
+      break;
+  }
+  encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
 void QQ_loop() {

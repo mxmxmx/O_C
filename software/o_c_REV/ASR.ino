@@ -100,12 +100,6 @@ size_t ASR_restore(const char *storage) {
     return ASR_SETTINGS_SIZE;
 }
 
-/* Resuming app */
-
-void ASR_resume() {
-    // TODO Set encoder values
-}
-
 /* add new sample: */
 
 void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {

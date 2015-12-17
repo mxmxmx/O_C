@@ -73,6 +73,15 @@ void encoders() {
   }
 }
 
+
+/* Resuming app */
+
+void ASR_resume() {
+    encoder[LEFT].setPos(asr_params[0]);
+    encoder[RIGHT].setPos(asr_params[MENU_CURRENT]);
+    CLK_COUNT = 0;
+}
+
 /* ---------------  update params ---------------------------------  */  
 
 bool update_ENC()  {

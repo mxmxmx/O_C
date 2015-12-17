@@ -194,6 +194,9 @@ size_t H1200_restore(const char *storage) {
 }
 
 void H1200_resume() {
+  encoder[LEFT].setPos(h1200_state.cursor_pos);
+  encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
+  h1200_state.tonnetz_state.reset(h1200_settings.mode());
 }
 
 #define CLOCKIT() \
