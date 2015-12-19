@@ -52,8 +52,8 @@ public:
 };
 
 const char *output_mode_names[] = {
-  "CHORD",
-  "TUNE"
+  "chord",
+  "tune"
 };
 
 const char *trigger_mode_names[] = {
