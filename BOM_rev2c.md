@@ -17,7 +17,7 @@ the footprint for passives is 0805 but 0603 would work just as fine, of course.
 - 49k9:          	4x
 - 100k :         	12x
 
-**SMD caps (0603) (25V) : **
+**SMD caps (0603) (25V) :**
 
 - 10n   : 6x (C0G/NP0)
 
