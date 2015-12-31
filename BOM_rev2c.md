@@ -43,7 +43,7 @@ the footprint for passives is 0805 but 0603 would work just as fine, of course.
 
 **misc *through-hole*:**
 
-- 470nF (WIMA, RM5, 16V)   : 1x
+- 470nF (RM5, 16V +)   : 1x (e.g. WIMA MKS2)
 - 22uF  (electrolytic, 35V or better) : 2x
 - 10uH inductor : 1x (e.g. mouser # 542-78F100-RC)
 
