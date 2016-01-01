@@ -8,7 +8,7 @@ struct value_attr {
   const int min_;
   const int max_;
   const char *name;
-  const char **value_names;
+  const char * const *value_names;
 
   int default_value() const {
     return default_;

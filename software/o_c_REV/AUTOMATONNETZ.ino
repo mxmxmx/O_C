@@ -200,15 +200,15 @@ public:
   }
 };
 
-extern const char *mode_names[];
-const char *outputa_mode_names[] = {
+extern const char * const mode_names[];
+const char * const outputa_mode_names[] = {
   "root",
   "trig",
   "arp",
   "strm"
 };
 
-const char *clear_mode_names[] = {
+const char * const clear_mode_names[] = {
   "zero", "rT", "rTev"
 };
 

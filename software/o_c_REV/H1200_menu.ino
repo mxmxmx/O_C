@@ -1,8 +1,8 @@
 
-/*static*/ const char *note_names[12] = { "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B " };
+/*static*/ const char * const note_names[12] = { "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B " };
 
 const char *note_name(int note) {
-  return note_names[(note + 120) % 12];
+  return note_names[(note + 127) % 12];
 }
 
 void H1200_menu() {

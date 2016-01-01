@@ -181,13 +181,13 @@ void setup(){
   // pull RST high 
   digitalWrite(RST, HIGH); 
   // set all outputs to zero 
-  set8565_CHA(_ZERO);
-  set8565_CHB(_ZERO);
-  set8565_CHC(_ZERO);
-  set8565_CHD(_ZERO);
+  set8565_CHA(THEORY[_ZERO]);
+  set8565_CHB(THEORY[_ZERO]);
+  set8565_CHC(THEORY[_ZERO]);
+  set8565_CHD(THEORY[_ZERO]);
   // splash screen, sort of ... 
   hello();
-  delay(5000);
+  delay(2000);
   // for debugging
   Serial.begin(9600); 
   // calibrate? else use EEPROM; else use things in theory :

@@ -51,17 +51,17 @@ public:
   }
 };
 
-const char *output_mode_names[] = {
+const char * const output_mode_names[] = {
   "chord",
   "tune"
 };
 
-const char *trigger_mode_names[] = {
+const char * const trigger_mode_names[] = {
   "P>L>R",
   "R>P>L",
 };
 
-const char *mode_names[] = {
+const char * const mode_names[] = {
   "maj", "min"
 };
 
