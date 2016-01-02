@@ -16,7 +16,9 @@ enum EChannelSettings {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
   CHANNEL_SETTING_UPDATEMODE,
+  CHANNEL_SETTING_TRANSPOSE,
   CHANNEL_SETTING_OCTAVE,
+  CHANNEL_SETTING_SOURCE,
   CHANNEL_SETTING_FINE,
   CHANNEL_SETTING_LAST
 };
@@ -25,6 +27,14 @@ enum EChannelUpdateMode {
   CHANNEL_UPDATE_TRIGGERED,
   CHANNEL_UPDATE_CONTINUOUS,
   CHANNEL_UPDATE_LAST
+};
+
+enum EChannelSource {
+  CHANNEL_SOURCE_CV1,
+  CHANNEL_SOURCE_CV2,
+  CHANNEL_SOURCE_CV3,
+  CHANNEL_SOURCE_CV4,
+  CHANNEL_SOURCE_LAST
 };
 
 class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
@@ -42,8 +52,16 @@ public:
     return static_cast<EChannelUpdateMode>(values_[CHANNEL_SETTING_UPDATEMODE]);
   }
 
+  int get_transpose() const {
+    return values_[CHANNEL_SETTING_TRANSPOSE];
+  }
+
   int get_octave() const {
     return values_[CHANNEL_SETTING_OCTAVE];
+  }
+
+  EChannelSource get_source() const {
+    return static_cast<EChannelSource>(values_[CHANNEL_SETTING_SOURCE]);
   }
 
   int get_fine() const {
@@ -72,7 +90,7 @@ public:
   }
 
   template <size_t index, void (*output)(uint32_t)>
-  void update(int32_t pitch) {
+  void update(int32_t *pitch_cvs) {
 
     bool update = get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
     if (CLK_STATE[index]) {
@@ -86,10 +104,20 @@ public:
     }
 
     if (update) {
+      int32_t pitch;
+      int32_t transpose = get_transpose();
+      EChannelSource source = get_source();
+      pitch = pitch_cvs[source];
+      if (index != source) {
+        transpose += (pitch_cvs[index] * 24) >> 12;
+      }
+      if (transpose > 12) transpose = 12;
+      else if (transpose < -12) transpose = -12;
+
       pitch = (pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
       pitch += 3 * 12 << 7; // offset for LUT range
 
-      int32_t quantized = quantizer_.Process(pitch, (get_root() + 60) << 7);
+      int32_t quantized = quantizer_.Process(pitch, (get_root() + 60) << 7, transpose);
       quantized += get_octave() * 12 << 7;
 
       if (quantized > (120 << 7))
@@ -178,12 +206,18 @@ const char* const update_modes[CHANNEL_UPDATE_LAST] = {
   "cont"
 };
 
+const char* const channel_source[CHANNEL_SOURCE_LAST] = {
+  "CV1", "CV2", "CV3", "CV4"
+};
+
 /*static*/ template <>
 const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST>::value_attr_[] = {
-  { 0, 0, QUANTIZER_NUM_SCALES - 1, "scale", quantization_values },
+  { 1, 0, QUANTIZER_NUM_SCALES - 1, "scale", quantization_values },
   { 0, 0, 11, "root", note_names },
   { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes },
+  { 0, -5, 7, "transpose", NULL },
   { 0, -4, 4, "octave", NULL },
+  { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "source", channel_source},
   { 0, -999, 999, "fine", NULL },
 };
 
@@ -197,20 +231,17 @@ struct QuadQuantizerState {
   EMenuMode left_encoder_mode;
   int left_encoder_value;
   int selected_param;
+  int32_t raw_cvs[4];
 };
 
 QuadQuantizerState qq_state;
 QuantizerChannel quantizer_channels[4];
 
-#define CLOCK_CHANNEL(i, sample, dac_set) \
-do { \
-  quantizer_channels[i].update<i, dac_set>(sample); \
-} while (0)
-
 void QQ_init() {
   for (size_t i = 0; i < 4; ++i) {
     quantizer_channels[i].init_defaults();
     quantizer_channels[i].init();
+    quantizer_channels[i].apply_value(CHANNEL_SETTING_SOURCE, (int)i); // override
   }
 
   qq_state.selected_channel = 0;
@@ -249,7 +280,16 @@ void QQ_resume() {
   encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
+#define CLOCK_CHANNEL(i, sample, dac_set) \
+do { \
+  cvs[i] = sample; \
+  quantizer_channels[i].update<i, dac_set>(cvs); \
+} while (0)
+
 void QQ_loop() {
+
+  int32_t cvs[4];
+  memcpy(cvs, qq_state.raw_cvs, sizeof(cvs));
 
   UI();
   CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
@@ -265,6 +305,8 @@ void QQ_loop() {
   CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), set8565_CHB);
   CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), set8565_CHC);
   CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), set8565_CHD);
+
+  memcpy(qq_state.raw_cvs, cvs, sizeof(cvs));
 }
 
 void QQ_menu() {
@@ -399,8 +441,10 @@ void QQ_leftButton() {
 void QQ_leftButtonLong() {
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     int scale = qq_state.left_encoder_value;
+    int root = quantizer_channels[qq_state.selected_channel].get_root();
     for (int i = 0; i < 4; ++i) {
       quantizer_channels[i].apply_value(CHANNEL_SETTING_SCALE, scale);
+      quantizer_channels[i].apply_value(CHANNEL_SETTING_ROOT, root);
       quantizer_channels[i].update_scale();
     }
 

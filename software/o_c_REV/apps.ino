@@ -19,7 +19,7 @@ struct O_CSettings {
     AUTOMATONNETZ_SETTINGS_SIZE +
     QQ_SETTINGS_SIZE;
 
-  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 93>::value;
+  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 94>::value;
 
   uint8_t current_app_index;
   char app_settings[kAppSettingsSize];

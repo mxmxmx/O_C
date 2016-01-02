@@ -38,6 +38,7 @@ namespace braids {
 void Quantizer::Init() {
   enabled_ = true;
   codeword_ = 0;
+  transpose_ = 0;
   previous_boundary_ = 0;
   next_boundary_ = 0;
   for (int16_t i = 0; i < 128; ++i) {
@@ -70,13 +71,13 @@ void Quantizer::Configure(
   }
 }
 
-int32_t Quantizer::Process(int32_t pitch, int32_t root) {
+int32_t Quantizer::Process(int32_t pitch, int32_t root, int32_t transpose) {
   if (!enabled_) {
     return pitch;
   }
 
   pitch -= root;
-  if (pitch >= previous_boundary_ && pitch <= next_boundary_) {
+  if (pitch >= previous_boundary_ && pitch <= next_boundary_ && transpose == transpose_) {
     // We're still in the voronoi cell for the active codeword.
     pitch = codeword_;
   } else {
@@ -96,10 +97,17 @@ int32_t Quantizer::Process(int32_t pitch, int32_t root) {
         q = i;
       }
     }
-    codeword_ = codebook_[q];
+
     // Enlarge the current voronoi cell a bit for hysteresis.
-    previous_boundary_ = (9 * codebook_[q - 1] + 7 * codeword_) >> 4;
-    next_boundary_ = (9 * codebook_[q + 1] + 7 * codeword_) >> 4;
+    previous_boundary_ = (9 * codebook_[q - 1] + 7 * codebook_[q]) >> 4;
+    next_boundary_ = (9 * codebook_[q + 1] + 7 * codebook_[q]) >> 4;
+
+    // Apply transpose after setting up boundaries
+    q += transpose;
+    if (q < 1) q = 1;
+    else if (q > 126) q = 126;
+    codeword_ = codebook_[q];
+    transpose_ = transpose;
     pitch = codeword_;
   }
   pitch += root;

@@ -56,7 +56,9 @@ static const uint8_t kUiWideMenuCol1X = 96;
   } while (0)
 
 inline void print_int(int value) {
-  if (value >= 0) {
+  if (!value) {
+    u8g.print(value);
+  } else if (value > 0) {
     u8g.print('+'); u8g.print(value);
   } else {
     u8g.print('-'); u8g.print(-value);
