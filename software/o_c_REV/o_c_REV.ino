@@ -139,15 +139,15 @@ void setup(){
   spi4teensy3::init();
   delay(10);
   // pins 
-  pinMode(butL, INPUT);
-  pinMode(butR, INPUT);
-  pinMode(but_top, INPUT);
-  pinMode(but_bot, INPUT);
+  pinMode(butL, INPUT_PULLUP);
+  pinMode(butR, INPUT_PULLUP);
+  pinMode(but_top, INPUT_PULLUP);
+  pinMode(but_bot, INPUT_PULLUP);
  
-  pinMode(TR1, INPUT); // INPUT_PULLUP);
-  pinMode(TR2, INPUT);
-  pinMode(TR3, INPUT);
-  pinMode(TR4, INPUT);
+  pinMode(TR1, INPUT_PULLUP);
+  pinMode(TR2, INPUT_PULLUP);
+  pinMode(TR3, INPUT_PULLUP);
+  pinMode(TR4, INPUT_PULLUP);
   
   // clock ISR 
   attachInterrupt(TR1, clk_ISR, FALLING);
