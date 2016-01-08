@@ -54,6 +54,7 @@ void timeout() {
 
 #define U8G_DRAW(fun) \
 do { \
+  DEBUG_PIN_SCOPE(DEBUG_PIN_1); \
   u8g.firstPage(); \
   do { \
     fun(); \

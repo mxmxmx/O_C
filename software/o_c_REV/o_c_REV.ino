@@ -31,6 +31,11 @@
 #include "EEPROMStorage.h"
 #include "DAC.h"
 
+//#define ENABLE_DEBUG_PINS
+#define DEBUG_PIN_1 24
+#define DEBUG_PIN_2 25
+#include "util_debugpins.h"
+
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
 
