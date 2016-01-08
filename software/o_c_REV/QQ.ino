@@ -89,7 +89,7 @@ public:
     force_update_ = true;
   }
 
-  template <size_t index, void (*output)(uint32_t)>
+  template <size_t index, DAC_CHANNEL dac_channel>
   void update(int32_t *pitch_cvs) {
 
     bool update = get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
@@ -139,7 +139,7 @@ public:
       }
     }
 
-    output(last_output_ + get_fine());
+    DAC::set<dac_channel>(last_output_ + get_fine());
   }
 
 private:
@@ -280,10 +280,10 @@ void QQ_resume() {
   encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
-#define CLOCK_CHANNEL(i, sample, dac_set) \
+#define CLOCK_CHANNEL(i, sample, dac) \
 do { \
   cvs[i] = sample; \
-  quantizer_channels[i].update<i, dac_set>(cvs); \
+  quantizer_channels[i].update<i, dac>(cvs); \
 } while (0)
 
 void QQ_loop() {
@@ -292,19 +292,19 @@ void QQ_loop() {
   memcpy(cvs, qq_state.raw_cvs, sizeof(cvs));
 
   UI();
-  CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
+  CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), DAC_CHANNEL_A);
    if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), set8565_CHB);
+  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), DAC_CHANNEL_B);
    buttons(BUTTON_TOP);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), set8565_CHC);
+  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), DAC_CHANNEL_C);
    buttons(BUTTON_BOTTOM);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), set8565_CHD);
+  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), DAC_CHANNEL_D);
    buttons(BUTTON_LEFT);
-  CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), set8565_CHA);
+  CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), DAC_CHANNEL_A);
    buttons(BUTTON_RIGHT);
-  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), set8565_CHB);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), set8565_CHC);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), set8565_CHD);
+  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), DAC_CHANNEL_B);
+  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), DAC_CHANNEL_C);
+  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), DAC_CHANNEL_D);
 
   memcpy(qq_state.raw_cvs, cvs, sizeof(cvs));
 }

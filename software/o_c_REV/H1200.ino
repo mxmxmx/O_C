@@ -96,14 +96,13 @@ struct H1200State {
 H1200Settings h1200_settings;
 H1200State h1200_state;
 
-#define H1200_OUTPUT_NOTE(i,dac_setter) \
+#define H1200_OUTPUT_NOTE(i,dac) \
 do { \
   int note = h1200_state.tonnetz_state.outputs(i); \
   while (note > RANGE) note -= 12; \
   while (note < 0) note += 12; \
   const uint16_t dac_code = semitones[note]; \
-  asr_outputs[i] = dac_code; \
-  dac_setter(dac_code); \
+  DAC::set<dac>(dac_code); \
 } while (0)
 
 static const uint32_t TRIGGER_MASK_TR1 = 0x1;
@@ -155,17 +154,17 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 
   switch (h1200_settings.output_mode()) {
     case OUTPUT_CHORD_VOICING: {
-      H1200_OUTPUT_NOTE(0,set8565_CHA);
-      H1200_OUTPUT_NOTE(1,set8565_CHB);
-      H1200_OUTPUT_NOTE(2,set8565_CHC);
-      H1200_OUTPUT_NOTE(3,set8565_CHD);
+      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_A);
+      H1200_OUTPUT_NOTE(1,DAC_CHANNEL_B);
+      H1200_OUTPUT_NOTE(2,DAC_CHANNEL_C);
+      H1200_OUTPUT_NOTE(3,DAC_CHANNEL_D);
     }
     break;
     case OUTPUT_TUNE: {
-      H1200_OUTPUT_NOTE(0,set8565_CHA);
-      H1200_OUTPUT_NOTE(0,set8565_CHB);
-      H1200_OUTPUT_NOTE(0,set8565_CHC);
-      H1200_OUTPUT_NOTE(0,set8565_CHD);
+      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_A);
+      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_B);
+      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_C);
+      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_D);
     }
     break;
     default: break;

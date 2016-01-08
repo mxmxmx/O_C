@@ -304,14 +304,13 @@ void AutomatonnetzState::reset() {
   MENU_REDRAW = 1;
 }
 
-#define AT_OUTPUT_NOTE(i,dac_setter) \
+#define AT_OUTPUT_NOTE(i,dac) \
 do { \
   int note = tonnetz_state.outputs(i); \
   while (note > RANGE) note -= 12; \
   while (note < 0) note += 12; \
   const uint16_t dac_code = semitones[note]; \
-  asr_outputs[i] = dac_code; \
-  dac_setter(dac_code); \
+  DAC::set<dac>(dac_code); \
 } while (0)
 
 
@@ -338,32 +337,32 @@ void AutomatonnetzState::render(bool triggered) {
 
   switch (output_mode()) {
     case OUTPUTA_MODE_ROOT:
-      AT_OUTPUT_NOTE(0,set8565_CHA);
+      AT_OUTPUT_NOTE(0,DAC_CHANNEL_A);
       break;
     case OUTPUTA_MODE_TRIG:
       if (triggered) {
         trigger_out_millis_ = millis();
-        set8565_CHA(octaves[_ZERO + 5]);
+        DAC::set<DAC_CHANNEL_A>(octaves[_ZERO + 5]);
       }
       break;
     case OUTPUTA_MODE_ARP:
     case OUTPUTA_MODE_STRUM:
-      AT_OUTPUT_NOTE(arp_index_ + 1,set8565_CHA);
+      AT_OUTPUT_NOTE(arp_index_ + 1,DAC_CHANNEL_A);
       break;
     case OUTPUTA_MODE_LAST:
     default:
       break;
   }
 
-  AT_OUTPUT_NOTE(1,set8565_CHB);
-  AT_OUTPUT_NOTE(2,set8565_CHC);
-  AT_OUTPUT_NOTE(3,set8565_CHD);
+  AT_OUTPUT_NOTE(1,DAC_CHANNEL_B);
+  AT_OUTPUT_NOTE(2,DAC_CHANNEL_C);
+  AT_OUTPUT_NOTE(3,DAC_CHANNEL_D);
 }
 
 void AutomatonnetzState::update_trigger_out() {
   // TODO Allow re-triggering?
   if (trigger_out_millis_ && millis() - trigger_out_millis_ > kTriggerOutMs) {
-    set8565_CHA(octaves[_ZERO]);
+    DAC::set<DAC_CHANNEL_A>(octaves[_ZERO]);
     trigger_out_millis_ = 0;
   }
 }

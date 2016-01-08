@@ -70,6 +70,13 @@ int32_t encoder_data;
 uint16_t DAC_output;
 
 
+/* write to DAC */
+
+void writeAllDAC(uint16_t _data) {
+  DAC::set_all(_data);
+}
+
+
 /* make DAC table from calibration values */ 
 
 void init_DACtable() {
@@ -587,16 +594,4 @@ void in_theory() {
      Serial.println(octaves[i]);
    }
 }
-
-/* write to DAC */
-
-void writeAllDAC(uint16_t _data) {
-
-  set8565_CHA(_data); // ch A >> 
-  set8565_CHB(_data); // ch B >>
-  set8565_CHC(_data); // ch C >>
-  set8565_CHD(_data); // ch D >> 
-}
-  
-
 

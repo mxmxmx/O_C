@@ -141,10 +141,10 @@ void updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
     out -= _delay;
     asr_outputs[3] = _ASR->data[out--];
     // write to DAC:
-    set8565_CHA(asr_outputs[0]); //  >> out 1 
-    set8565_CHB(asr_outputs[1]); //  >> out 2 
-    set8565_CHC(asr_outputs[2]); //  >> out 3  
-    set8565_CHD(asr_outputs[3]); //  >> out 4 
+    DAC::set<DAC_CHANNEL_A>(asr_outputs[0]); //  >> out 1 
+    DAC::set<DAC_CHANNEL_B>(asr_outputs[1]); //  >> out 2 
+    DAC::set<DAC_CHANNEL_C>(asr_outputs[2]); //  >> out 3  
+    DAC::set<DAC_CHANNEL_D>(asr_outputs[3]); //  >> out 4 
 }
 
 /* ---------- don't update ringbuffer, just move the 4 values ------------- */
@@ -170,10 +170,10 @@ void _hold(struct ASRbuf* _ASR, int8_t _delay) {
         asr_outputs[3] = _ASR->data[out--];
     
        // write to DAC:
-       set8565_CHA(asr_outputs[0]); //  >> out 1 
-       set8565_CHB(asr_outputs[1]); //  >> out 2 
-       set8565_CHC(asr_outputs[2]); //  >> out 3  
-       set8565_CHD(asr_outputs[3]); //  >> out 4 
+        DAC::set<DAC_CHANNEL_A>(asr_outputs[0]); //  >> out 1 
+        DAC::set<DAC_CHANNEL_B>(asr_outputs[1]); //  >> out 2 
+        DAC::set<DAC_CHANNEL_C>(asr_outputs[2]); //  >> out 3  
+        DAC::set<DAC_CHANNEL_D>(asr_outputs[3]); //  >> out 4 
        // hold :
        _ASR->data[_hold[0]] = asr_outputs[3];  
        _ASR->data[_hold[1]] = asr_outputs[0];

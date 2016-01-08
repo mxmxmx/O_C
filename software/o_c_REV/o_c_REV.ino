@@ -29,6 +29,7 @@
 #include "util_button.h"
 #include "util_pagestorage.h"
 #include "EEPROMStorage.h"
+#include "DAC.h"
 
 #define CS 10  // DAC CS 
 #define RST 9  // DAC RST
@@ -76,19 +77,11 @@ extern const uint16_t _ZERO;
 
 /*  ---------------------  CV   stuff  --------------------------------- */
 
-#define _ADC_RATE 1000
+#define _ADC_RATE 1000 // 100us = 1kHz
 #define _ADC_RES  12
 #define numADC 4
 int16_t cvval[numADC];                        // store cv values
-
-// PIT timer : 
-IntervalTimer ADC_timer;
-volatile uint16_t _ADC = false;
-
-void ADC_callback()
-{ 
-  _ADC = true; 
-}
+volatile uint_fast8_t _ADC = false;
 
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
@@ -132,14 +125,37 @@ enum encoders
   RIGHT
 };
 
-volatile boolean _ENC = false;
-const uint16_t _ENC_RATE = 15000;
+volatile uint_fast8_t _ENC = false;
+static const uint32_t _ENC_RATE = 15000;
 
-IntervalTimer ENC_timer;
-void ENC_callback() 
-{ 
-  _ENC = true; 
-} // encoder update 
+/*  ------------------------ core timer ISR ---------------------------   */
+
+static const uint32_t CORE_TIMER_RATE = 100; // 100uS = 10 Khz
+IntervalTimer CORE_timer;
+
+uint32_t ADC_timer_counter = 0;
+uint32_t ENC_timer_counter = 0;
+
+void FASTRUN CORE_timer_ISR() {
+  DEBUG_PIN_SCOPE(DEBUG_PIN_2);
+
+  DAC::WriteAll();
+
+  // Update ADC/ENC "ISR" here at 1kHz instead of having an extra timer interrupts
+  if (ADC_timer_counter < _ADC_RATE / CORE_TIMER_RATE - 1) {
+    ++ADC_timer_counter;
+  } else {
+    ADC_timer_counter = 0;
+    _ADC = true;
+  }
+
+  if (ENC_timer_counter < _ENC_RATE / CORE_TIMER_RATE - 1) {
+    ++ENC_timer_counter;
+  } else {
+    ENC_timer_counter = 0;
+    _ENC = true;
+  }
+}
 
 /*       ---------------------------------------------------------         */
 
@@ -162,6 +178,8 @@ void setup(){
   pinMode(TR3, INPUT);
   pinMode(TR4, INPUT);
 
+  DebugPins::Init();
+
   // clock ISR 
   attachInterrupt(TR1, tr1_ISR, FALLING);
   attachInterrupt(TR2, tr2_ISR, FALLING);
@@ -172,24 +190,23 @@ void setup(){
   attachInterrupt(encL2, left_encoder_ISR, CHANGE);
   attachInterrupt(encR1, right_encoder_ISR, CHANGE);
   attachInterrupt(encR2, right_encoder_ISR, CHANGE);
-  // ADC timer
-  ADC_timer.begin(ADC_callback, _ADC_RATE);
-  ENC_timer.begin(ENC_callback, _ENC_RATE);
   // set up DAC pins 
   pinMode(CS, OUTPUT);
   pinMode(RST,OUTPUT);
   // pull RST high 
   digitalWrite(RST, HIGH); 
+
   // set all outputs to zero 
-  set8565_CHA(THEORY[_ZERO]);
-  set8565_CHB(THEORY[_ZERO]);
-  set8565_CHC(THEORY[_ZERO]);
-  set8565_CHD(THEORY[_ZERO]);
+  DAC::Init();
+  DAC::WriteAll();
+
+  Serial.begin(9600); 
+
+  CORE_timer.begin(CORE_timer_ISR, CORE_TIMER_RATE);
+
   // splash screen, sort of ... 
   hello();
   delay(2000);
-  // for debugging
-  Serial.begin(9600); 
   // calibrate? else use EEPROM; else use things in theory :
   if (!digitalRead(butL))  calibrate_main();
   else if (EEPROM.read(0x2) > 0) read_settings(); 

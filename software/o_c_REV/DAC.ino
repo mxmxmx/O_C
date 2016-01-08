@@ -19,6 +19,10 @@
 *
 */
 
+
+/*static*/
+uint32_t DAC::values_[DAC_CHANNEL_LAST];
+
 void set8565_CHA(uint32_t data) {
   
        		uint8_t _DACout[3];
