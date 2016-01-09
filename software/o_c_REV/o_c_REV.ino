@@ -30,14 +30,16 @@
 #include "util_pagestorage.h"
 #include "EEPROMStorage.h"
 #include "DAC.h"
+#include "util_framebuffer.h"
+#include "page_display_driver.h"
 
 //#define ENABLE_DEBUG_PINS
 #define DEBUG_PIN_1 24
 #define DEBUG_PIN_2 25
 #include "util_debugpins.h"
 
-#define CS 10  // DAC CS 
-#define RST 9  // DAC RST
+#define DAC_CS 10
+#define DAC_RST 9
 
 #define CV1 19
 #define CV2 18
@@ -61,6 +63,24 @@
 #define but_bot 4
 
 U8GLIB u8g(&u8g_dev_sh1106_128x64_2x_hw_spi, u8g_com_hw_spi_fn);
+
+struct SH1106_128x64_Driver {
+  static const size_t kFrameSize = 128 * 64 / 8;
+  static const size_t kNumPages = 8;
+  static const size_t kPageSize = kFrameSize / kNumPages;
+
+  static void SendPage(uint_fast8_t index, const uint8_t *data) {
+    if (0 == index)
+      u8g.firstPage();
+
+    u8g_pb_t *pb = (u8g_pb_t *)(u8g_dev_sh1106_128x64_hw_spi.dev_mem);
+    memcpy(pb->buf, data, kPageSize);
+    u8g.nextPage();
+  }
+};
+
+FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
+PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 
 Rotary encoder[2] =
 {
@@ -92,8 +112,8 @@ volatile uint_fast8_t _ADC = false;
 
 uint32_t _CLK_TIMESTAMP = 0;
 uint32_t _BUTTONS_TIMESTAMP = 0;
-const uint16_t TRIG_LENGTH = 150;
-const uint16_t DEBOUNCE = 250;
+static const uint16_t TRIG_LENGTH = 150;
+static const uint16_t DEBOUNCE = 250;
 
 volatile int CLK_STATE[4] = {0,0,0,0};
 #define CLK_STATE1 (CLK_STATE[TR1])
@@ -146,7 +166,15 @@ void FASTRUN CORE_timer_ISR() {
 
   DAC::WriteAll();
 
-  // Update ADC/ENC "ISR" here at 1kHz instead of having an extra timer interrupts
+  if (display_driver.frame_valid()) {
+    if (display_driver.Update())
+      frame_buffer.read();
+  } else {
+    if (frame_buffer.readable())
+      display_driver.Begin(frame_buffer.readable_frame());
+  }
+
+  // Update ADC/ENC "ISR" here instead of having extra timer interrupts
   if (ADC_timer_counter < _ADC_RATE / CORE_TIMER_RATE - 1) {
     ++ADC_timer_counter;
   } else {
@@ -196,10 +224,10 @@ void setup(){
   attachInterrupt(encR1, right_encoder_ISR, CHANGE);
   attachInterrupt(encR2, right_encoder_ISR, CHANGE);
   // set up DAC pins 
-  pinMode(CS, OUTPUT);
-  pinMode(RST,OUTPUT);
+  pinMode(DAC_CS, OUTPUT);
+  pinMode(DAC_RST,OUTPUT);
   // pull RST high 
-  digitalWrite(RST, HIGH); 
+  digitalWrite(DAC_RST, HIGH); 
 
   // set all outputs to zero 
   DAC::Init();
@@ -224,8 +252,6 @@ void setup(){
 
 
 /*  ---------    main loop  --------  */
-
-//uint32_t testclock;
 
 void loop() {
   while (1) {

@@ -2,7 +2,7 @@
 *
 * DAC8565
 *
-* chip select/CS : 10
+* chip select/DAC_CS : 10
 * reset/RST : 9
 *
 * DB23 = 0 :: always 0
@@ -32,9 +32,9 @@ void set8565_CHA(uint32_t data) {
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
-                digitalWriteFast(CS, LOW); 
+                digitalWriteFast(DAC_CS, LOW); 
        		spi4teensy3::send(_DACout, 3);
-                digitalWriteFast(CS, HIGH); 
+                digitalWriteFast(DAC_CS, HIGH); 
 }
 
 void set8565_CHB(uint32_t data) {
@@ -46,9 +46,9 @@ void set8565_CHB(uint32_t data) {
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
-                digitalWriteFast(CS, LOW); 
+                digitalWriteFast(DAC_CS, LOW); 
        		spi4teensy3::send(_DACout, 3);
-                digitalWriteFast(CS, HIGH); 
+                digitalWriteFast(DAC_CS, HIGH); 
 }
 
 void set8565_CHC(uint32_t data) {
@@ -60,9 +60,9 @@ void set8565_CHC(uint32_t data) {
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
-                digitalWriteFast(CS, LOW); 
+                digitalWriteFast(DAC_CS, LOW); 
        		spi4teensy3::send(_DACout, 3);
-                digitalWriteFast(CS, HIGH); 
+                digitalWriteFast(DAC_CS, HIGH); 
 }
 
 void set8565_CHD(uint32_t data) {
@@ -74,9 +74,7 @@ void set8565_CHD(uint32_t data) {
                 _DACout[1] = uint8_t(_data>>8);
                 _DACout[2] = uint8_t(_data);
                 
-                digitalWriteFast(CS, LOW); 
+                digitalWriteFast(DAC_CS, LOW); 
        		spi4teensy3::send(_DACout, 3);  
-                digitalWriteFast(CS, HIGH); 
+                digitalWriteFast(DAC_CS, HIGH); 
 }
-
-

@@ -30,13 +30,7 @@
 #define BRAIDS_QUANTIZER_H_
 
 //#include "stmlib/stmlib.h"
-
-#include <stdint.h>
-#include <string.h>
-
-#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
-  TypeName(const TypeName&);               \
-  void operator=(const TypeName&)
+#include "util_macros.h"
 
 namespace braids {
   
