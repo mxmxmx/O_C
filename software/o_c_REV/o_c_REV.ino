@@ -238,6 +238,9 @@ void setup(){
 /*  ---------    main loop  --------  */
 
 void loop() {
+  _UI_TIMESTAMP = millis();
+  UI_MODE = 1;
+
   while (1) {
     // don't change current_app while it's running
     if (SELECT_APP) select_app();

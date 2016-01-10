@@ -263,8 +263,7 @@ void Graphics::print(int value) {
 
 void Graphics::print(const char *s) {
   while (*s) {
-    print(*s);
-    ++s;
+    print(*s++);
   }
 }
 

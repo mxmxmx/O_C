@@ -2,14 +2,12 @@
 /*static*/ const char * const note_names[12] = { "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B " };
 
 const char *note_name(int note) {
-  return note_names[(note + 127) % 12];
+  return note_names[(note + 120) % 12];
 }
 
 void H1200_menu() {
-   u8g.setFont(UI_DEFAULT_FONT);
-   u8g.setColorIndex(1);
-   u8g.setFontRefHeightText();
-   u8g.setFontPosTop();
+  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
+  graphics.setFont(UI_DEFAULT_FONT);
 
   const abstract_triad &current_chord = h1200_state.tonnetz_state.current_chord();
 
@@ -17,21 +15,21 @@ void H1200_menu() {
 
   UI_DRAW_TITLE(kStartX);
   if (h1200_state.display_notes)
-    u8g.print(note_name(h1200_state.tonnetz_state.root()));
+    graphics.print(note_name(h1200_state.tonnetz_state.root()));
   else
-    u8g.print(h1200_state.tonnetz_state.root());
-  u8g.print(mode_names[current_chord.mode()]);
+    graphics.print(h1200_state.tonnetz_state.root());
+  graphics.print(mode_names[current_chord.mode()]);
 
-  u8g.setPrintPos(64, kUiTitleTextY);
+  graphics.setPrintPos(64, kUiTitleTextY);
   if (h1200_state.display_notes) {
     for (size_t i=1; i < 4; ++i) {
-      if (i > 1) u8g.print(' ');
-      u8g.print(note_name(h1200_state.tonnetz_state.outputs(i)));
+      if (i > 1) graphics.print(' ');
+      graphics.print(note_name(h1200_state.tonnetz_state.outputs(i)));
     }
   } else {
     for (size_t i=1; i < 4; ++i) {
-      if (i > 1) u8g.print(' ');
-      u8g.print(h1200_state.tonnetz_state.outputs(i));
+      if (i > 1) graphics.print(' ');
+      graphics.print(h1200_state.tonnetz_state.outputs(i));
     }
   }
 
@@ -44,6 +42,8 @@ void H1200_menu() {
     const settings::value_attr &attr = H1200Settings::value_attr(current_item);
     UI_DRAW_SETTING(attr, h1200_settings.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
+
+  GRAPHICS_END_FRAME();
 }
 
 static const uint8_t note_circle_x = 32;
@@ -86,6 +86,7 @@ void visualize_pitch_classes(uint8_t *normalized) {
 }
 
 void H1200_screensaver() {
+  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
   uint8_t y = 0;
   static const uint8_t x_col_0 = 66;
@@ -94,30 +95,28 @@ void H1200_screensaver() {
   static const uint8_t line_h = 16;
 
   //u8g.setFont(u8g_font_timB12); BBX 19x27
-  u8g.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
-  u8g.setColorIndex(1);
-  u8g.setFontRefHeightText();
-  u8g.setFontPosTop();
-  u8g.setDefaultForegroundColor();
+  graphics.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
  
   uint8_t normalized[3];
   y = 8;
   for (size_t i=0; i < 3; ++i, y += line_h) {
     int value = h1200_state.tonnetz_state.outputs(i + 1);
 
-    u8g.setPrintPos(x_col_1, y);
-    u8g.print(value / 12);
+    graphics.setPrintPos(x_col_1, y);
+    graphics.print(value / 12);
 
     value = (value + 120) % 12;
-    u8g.setPrintPos(x_col_2, y);
-    u8g.print(note_names[value]);
+    graphics.setPrintPos(x_col_2, y);
+    graphics.print(note_names[value]);
     normalized[i] = value;
   }
   y = 0;
   for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += line_h) {
-    u8g.setPrintPos(x_col_0, y);
-    u8g.print(h1200_state.tonnetz_state.history(i).str);
+    graphics.setPrintPos(x_col_0, y);
+    graphics.print(h1200_state.tonnetz_state.history(i).str);
   }
 
-  visualize_pitch_classes(normalized);
+  //visualize_pitch_classes(normalized);
+
+  GRAPHICS_END_FRAME();
 }

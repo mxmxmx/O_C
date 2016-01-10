@@ -404,10 +404,10 @@ static const uint8_t kLineHeight = 11;
 void Automatonnetz_menu_cell() {
 
   UI_DRAW_TITLE(kMenuStartX);
-  u8g.print("CELL ");
-  u8g.print(automatonnetz_state.ui.selected_col + 1);
-  u8g.print(',');
-  u8g.print(automatonnetz_state.ui.selected_row + 1);
+  graphics.print("CELL ");
+  graphics.print(automatonnetz_state.ui.selected_col + 1);
+  graphics.print(',');
+  graphics.print(automatonnetz_state.ui.selected_row + 1);
 
   UI_START_MENU(kMenuStartX);
   UI_BEGIN_ITEMS_LOOP(kMenuStartX, 0, CELL_SETTING_LAST, automatonnetz_state.ui.selected_cell_param, 0)
@@ -420,13 +420,13 @@ void Automatonnetz_menu_cell() {
 void Automatonnetz_menu_grid() {
   UI_DRAW_TITLE(kMenuStartX);
   for (size_t i=1; i < 4; ++i) {
-    if (i > 1) u8g.print(' ');
-    u8g.print(note_name(automatonnetz_state.tonnetz_state.outputs(i)));
+    if (i > 1) graphics.print(' ');
+    graphics.print(note_name(automatonnetz_state.tonnetz_state.outputs(i)));
   }
   if (MODE_MAJOR == automatonnetz_state.tonnetz_state.current_chord().mode())
-    u8g.print(" +");
+    graphics.print(" +");
   else
-    u8g.print(" -");
+    graphics.print(" -");
 
   int first_visible = automatonnetz_state.ui.selected_param - kUiVisibleItems + 1;
   if (first_visible < 0)
@@ -436,33 +436,31 @@ void Automatonnetz_menu_grid() {
   UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, GRID_SETTING_LAST, automatonnetz_state.ui.selected_param, 0)
 
     const settings::value_attr &attr = AutomatonnetzState::value_attr(current_item);
-    u8g.print(attr.name);
+    graphics.print(attr.name);
     int value = automatonnetz_state.get_value(current_item);
     if (attr.value_names) {
-      u8g.print(attr.value_names[value]);
+      graphics.print(attr.value_names[value]);
     } else if (i <= GRID_SETTING_DY) {
       const int integral = value / 8;
       const int fraction = value % 8;
       if (integral || !fraction)
-        u8g.print(value/8);
+        graphics.print((char)('0' + value/8));
       if (fraction) {
           if (integral)
-            u8g.print(' ');
-          u8g.print(clock_fraction_names[fraction]);
+            graphics.print(' ');
+          graphics.print(clock_fraction_names[fraction]);
         }
     } else {
-      print_int(value);
+      graphics.print_int(value);
     }
 
   UI_END_ITEMS_LOOP();
 }
 
 void Automatonnetz_menu() {
-  u8g.setFont(UI_DEFAULT_FONT);
-  u8g.setColorIndex(1);
-  u8g.setFontRefHeightText();
-  u8g.setFontPosTop();
-  u8g.setDefaultForegroundColor();
+  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
+
+  graphics.setFont(UI_DEFAULT_FONT);
 
   const vec2<size_t> current_pos = automatonnetz_state.grid.current_pos();
 
@@ -471,28 +469,30 @@ void Automatonnetz_menu() {
     const TransformCell *cells = automatonnetz_state.grid.row(row);
     uint8_t x = kGridXStart;
     for (size_t col = 0; col < GRID_SIZE; ++col, x+=kGridW) {
-      u8g.setPrintPos(x + 3, y + 2);
-      u8g.setDefaultForegroundColor();
+      graphics.setPrintPos(x + 3, y + 2);
+      graphics.setDefaultForegroundColor();
       if (row == current_pos.y && col == current_pos.x) {
-        u8g.drawBox(x, y, kGridW, kGridH);
-        u8g.setDefaultBackgroundColor();
+        graphics.drawBox(x, y, kGridW, kGridH);
+        graphics.setDefaultBackgroundColor();
       }
 
-      u8g.print(tonnetz::transform_names[cells[col].transform()]);
+      graphics.print(tonnetz::transform_names[cells[col].transform()]);
     }
   }
 
-  u8g.setDefaultForegroundColor();
-  u8g.drawFrame(automatonnetz_state.ui.selected_col * kGridW,
+  graphics.setDefaultForegroundColor();
+  graphics.drawFrame(automatonnetz_state.ui.selected_col * kGridW,
                 automatonnetz_state.ui.selected_row * kGridH, kGridW, kGridH);
-  u8g.setDefaultBackgroundColor();
-  u8g.drawFrame(automatonnetz_state.ui.selected_col * kGridW + 1,
+  graphics.setDefaultBackgroundColor();
+  graphics.drawFrame(automatonnetz_state.ui.selected_col * kGridW + 1,
                 automatonnetz_state.ui.selected_row * kGridH + 1, kGridW - 2, kGridH - 2);
 
   if (automatonnetz_state.ui.edit_cell)
     Automatonnetz_menu_cell();
   else
     Automatonnetz_menu_grid();
+
+  GRAPHICS_END_FRAME();
 }
 
 static const uint8_t kScreenSaverX = 64 + 2;
@@ -500,9 +500,9 @@ static const uint8_t kScreenSaverY = 5;
 static const uint8_t kScreenSaverGrid = 55 / 5;
 
 void Automatonnetz_screensaver() {
-  u8g.setColorIndex(1);
-  u8g.setDefaultForegroundColor();
+  GRAPHICS_BEGIN_FRAME(false);
 
+#if 0
   uint8_t normalized[3];
   for (size_t i=0; i < 3; ++i) {
     int value = automatonnetz_state.tonnetz_state.outputs(i + 1);
@@ -521,12 +521,15 @@ void Automatonnetz_screensaver() {
     u8g.drawCircle(kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid, 2);
     last_pos = current;
   }
+#endif
 
   uint8_t y = 0;
   for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += 12) {
-    u8g.setPrintPos(128-7, y);
-    u8g.print(automatonnetz_state.tonnetz_state.history(i).str[1]);
+    graphics.setPrintPos(128-7, y);
+    graphics.print(automatonnetz_state.tonnetz_state.history(i).str[1]);
   }
+
+  GRAPHICS_END_FRAME();
 }
 
 size_t Automatonnetz_save(char *storage) {

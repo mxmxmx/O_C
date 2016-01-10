@@ -65,10 +65,10 @@ void UI() {
   if (  MENU_REDRAW != 0 ) {
     switch(UI_MODE) {
       case SCREENSAVER:
-        U8G_DRAW(current_app->draw_screensaver);
+        current_app->draw_screensaver();
         break;
       case MENU:
-        U8G_DRAW(current_app->draw_menu);
+        current_app->draw_menu();
         break;
       case CALIBRATE:
         U8G_DRAW(calibrate);
@@ -113,61 +113,56 @@ void screensaver() {
 /* --------------------- main menu loop ------------------------  */
 
 void ASR_menu() {
+  GRAPHICS_BEGIN_FRAME(false);
 
-      u8g.setFont(u8g_font_6x12);
-      u8g.setColorIndex(1);
-      u8g.setFontRefHeightText();
-      u8g.setFontPosTop();
+  graphics.setFont(u8g_font_6x12);
 
-        uint8_t i, h, w, x, y;
-        h = 11; // == OFFSET + u8g.getFontAscent()-u8g.getFontDescent();
-        w = 128;
-        x = X_OFF;
-        y = OFFSET;
-        // print parameters 0-1                       
-        // scale name: 
-        u8g.setPrintPos(0x0, y);    
-        if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE)) u8g.print(">");
-        else u8g.print('\xb7');
-        u8g.drawStr(10, y, abc[SCALE_SEL]);
-        // octave +/- 
-        if ((asr_params[1]) >= 0) {            
-           u8g.setPrintPos(x-6, y); 
-           u8g.print("+");
-           u8g.setPrintPos(x, y); 
-           u8g.print(asr_params[1]);
-         }
-         else {     
-           u8g.setPrintPos(x-6, y); 
-           u8g.print(asr_params[1]);
-         }     
-         
-        u8g.drawLine(0, 13, 128, 13);
+  uint8_t i, h, w, x, y;
+  h = 11; // == OFFSET + u8g.getFontAscent()-u8g.getFontDescent();
+  w = 128;
+  x = X_OFF;
+  y = OFFSET;
+
+  // print parameters 0-1                       
+  // scale name: 
+  graphics.setPrintPos(0x0, y);    
+  if ((SCALE_SEL == asr_params[0]) || (!SCALE_CHANGE))
+    graphics.print(">");
+  else
+    graphics.print('-');
+  graphics.print(abc[SCALE_SEL]);
+
+  // octave +/- 
+  graphics.setPrintPos(x, y); 
+  graphics.print_int(asr_params[1]);
+
+  graphics.drawHLine(0, 13, 128);
         
-        // draw user menu, params 2-5 : 
-        for(i = 2; i < MENU_ITEMS; i++) {   
-       
-            y = i*h-4;  // = offset 
-            u8g.setDefaultForegroundColor();
+  // draw user menu, params 2-5 : 
+  for(i = 2; i < MENU_ITEMS; i++) {   
+
+    y = i*h-4;  // = offset 
+    graphics.setDefaultForegroundColor();
             
-            // print cursor          
-            if (i == MENU_CURRENT) {              
-                  u8g.drawBox(0, y, w, h);           
-                  u8g.setDefaultBackgroundColor();
-            }
-            // print param name
-            u8g.drawStr(10, y, menu_strings[i]);  
-            // print param values     
-            if (i == 5) {  // map att/mult
-                u8g.setPrintPos(x,y); 
-                uint8_t x = asr_params[5]-7;
-                u8g.print(map_param5[x]);       
-            } 
-            else {                            
-                if (asr_display_params[i] < 0) u8g.setPrintPos(x-6, y);
-                else u8g.setPrintPos(x,y);
-                u8g.print(asr_display_params[i]);
-            }  
-      u8g.setDefaultForegroundColor();           
+    // print cursor          
+    if (i == MENU_CURRENT) {              
+      graphics.drawBox(0, y, w, h);           
+      graphics.setDefaultBackgroundColor();
     }
+    // print param name
+    graphics.drawStr(10, y + 2, menu_strings[i]);  
+    // print param values     
+    graphics.setPrintPos(x, y + 2);
+    if (i == 5) {  // map att/mult
+      uint8_t x = asr_params[5]-7;
+      graphics.print(map_param5[x]);       
+    } 
+    else {   
+      graphics.print_int(asr_display_params[i]);
+    }  
+
+    graphics.setDefaultForegroundColor();
+  }
+
+  GRAPHICS_END_FRAME();
 }

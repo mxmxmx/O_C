@@ -77,9 +77,10 @@ void encoders() {
 /* Resuming app */
 
 void ASR_resume() {
-    encoder[LEFT].setPos(asr_params[0]);
-    encoder[RIGHT].setPos(asr_params[MENU_CURRENT]);
-    CLK_COUNT = 0;
+  encoder[LEFT].setPos(asr_params[0]);
+  encoder[RIGHT].setPos(asr_params[MENU_CURRENT]);
+  SCALE_SEL = asr_params[0];
+  SCALE_CHANGE = 0;
 }
 
 /* ---------------  update params ---------------------------------  */  

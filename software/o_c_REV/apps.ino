@@ -113,6 +113,9 @@ void init_apps() {
   if (current_app->resume)
     current_app->resume();
 
+  LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
+  LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
+
   if (!digitalRead(but_top)) {
     set_current_app(0);
     draw_app_menu(0);
@@ -156,7 +159,7 @@ void select_app() {
         redraw = true;
       }
     }
-/*
+
     button_right.read();
     if (button_right.long_event()) {
       save = true;
@@ -164,7 +167,7 @@ void select_app() {
     }
     else if (button_right.event())
       break;
-*/
+
     if (redraw) {
       draw_app_menu(selected);
       redraw = false;
@@ -185,6 +188,11 @@ void select_app() {
 
   if (current_app->resume)
     current_app->resume();
+
+  LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
+  LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
+
+  Serial.print("apps: "); Serial.println(encoder[LEFT].pos());
 
   SELECT_APP = false;
   MENU_REDRAW = 1;
