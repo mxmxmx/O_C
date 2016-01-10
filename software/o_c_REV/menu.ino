@@ -99,9 +99,10 @@ void hello() {
 /* ----------- screensaver ----------------- */
 void screensaver() {
   GRAPHICS_BEGIN_FRAME(true);
-  uint8_t x, y, width = 10;
-  for(int i = 0; i < 4; i++ ) { 
-    x = i*37;
+
+  weegfx::coord_t x = 8;
+  uint8_t y, width = 8;
+  for(int i = 0; i < 4; i++, x += 32 ) { 
     y = DAC::value(i) >> 10; 
     y++; 
     graphics.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.

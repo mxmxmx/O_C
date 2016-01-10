@@ -287,7 +287,6 @@ do { \
 } while (0)
 
 void QQ_loop() {
-
   int32_t cvs[4];
   memcpy(cvs, qq_state.raw_cvs, sizeof(cvs));
 
@@ -310,29 +309,27 @@ void QQ_loop() {
 }
 
 void QQ_menu() {
+  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  u8g.setFont(UI_DEFAULT_FONT);
-  u8g.setColorIndex(1);
-  u8g.setFontRefHeightText();
-  u8g.setFontPosTop();
+  graphics.setFont(UI_DEFAULT_FONT);
 
-  static const uint8_t kStartX = 0;
+  static const weegfx::coord_t kStartX = 0;
 
   UI_DRAW_TITLE(kStartX);
 
-  for (int i = 0, x = 0; i < 4; ++i, x += 31) {
+  for (int i = 0, x = 0; i < 4; ++i, x += 32) {
     if (i == qq_state.selected_channel) {
-      u8g.drawBox(x, 0, 31, 11);
-      u8g.setDefaultBackgroundColor();  
+      graphics.drawBox(x, 0, 32, 11);
+      graphics.setDefaultBackgroundColor();  
     } else {
-      u8g.setDefaultForegroundColor();  
+      graphics.setDefaultForegroundColor();  
     }
-    u8g.setPrintPos(x + 4, 2);
-    u8g.print((char)('A' + i));
-    u8g.setPrintPos(x + 14, 2);
+    graphics.setPrintPos(x + 4, 2);
+    graphics.print((char)('A' + i));
+    graphics.setPrintPos(x + 14, 2);
     int octave = quantizer_channels[i].get_octave();
     if (octave)
-      print_int(octave);
+      graphics.print_int(octave);
   }
 
   const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];
@@ -343,13 +340,13 @@ void QQ_menu() {
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     scale = qq_state.left_encoder_value;
     if (channel.get_scale() == scale)
-      u8g.print(">");
+      graphics.print(">");
     else
-      u8g.print('\xb7');
+      graphics.print('-');
   } else {
     scale = channel.get_scale();
   }
-  u8g.print(quantization_values[scale]);
+  graphics.print(quantization_values[scale]);
 
   int first_visible_param = qq_state.selected_param - 2;
   if (first_visible_param < CHANNEL_SETTING_ROOT)
@@ -359,6 +356,8 @@ void QQ_menu() {
     const settings::value_attr &attr = QuantizerChannel::value_attr(current_item);
     UI_DRAW_SETTING(attr, channel.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
+
+  GRAPHICS_END_FRAME();
 }
 
 bool QQ_encoders() {

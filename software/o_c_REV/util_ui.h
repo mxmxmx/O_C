@@ -15,25 +15,25 @@ static const uint8_t kUiWideMenuCol1X = 96;
 
 #define UI_DRAW_TITLE(xstart) \
   do { \
-  u8g.setDefaultForegroundColor(); \
-  u8g.setPrintPos(xstart + 2, kUiTitleTextY); \
-  u8g.drawHLine(xstart, kUiDefaultFontH, kUiDisplayWidth - xstart - 2); \
+  graphics.setDefaultForegroundColor(); \
+  graphics.setPrintPos(xstart + 2, kUiTitleTextY); \
+  graphics.drawHLine(xstart, kUiDefaultFontH, kUiDisplayWidth); \
   } while (0)
 
 #define UI_SETUP_ITEM(xstart, sel) \
   do { \
     graphics.setDefaultForegroundColor(); \
     if (sel) { \
-      graphics.drawBox(xstart, y, kUiDisplayWidth - xstart - 2, kUiLineH - 1); \
+      graphics.drawBox(xstart, y, kUiDisplayWidth - xstart, kUiLineH - 1); \
       graphics.setDefaultBackgroundColor(); \
     } \
     graphics.setPrintPos(xstart + 2, y + 1); \
   } while (0)
 
 #define UI_START_MENU(xstart) \
-  u8g.setDefaultForegroundColor(); \
-  uint8_t y = kUiItemsStartY; \
-  u8g.setPrintPos(xstart + 2, y + 1); \
+  graphics.setDefaultForegroundColor(); \
+  weegfx::coord_t y = kUiItemsStartY; \
+  graphics.setPrintPos(xstart + 2, y + 1); \
   do {} while (0)
 
 
@@ -47,12 +47,12 @@ static const uint8_t kUiWideMenuCol1X = 96;
 #define UI_DRAW_SETTING(attr, value, xoffset) \
   do { \
     const int val = value; \
-    u8g.print(attr.name); \
-    if (xoffset) u8g.setPrintPos(xoffset, y + 1); \
+    graphics.print(attr.name); \
+    if (xoffset) graphics.setPrintPos(xoffset, y + 1); \
     if(attr.value_names) \
-      u8g.print(attr.value_names[val]); \
+      graphics.print(attr.value_names[val]); \
     else \
-      print_int(val); \
+      graphics.print_int(val); \
   } while (0)
 
 inline void print_int(int value) {
