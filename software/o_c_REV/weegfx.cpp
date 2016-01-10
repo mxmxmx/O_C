@@ -98,11 +98,9 @@ do { \
 } while (0)
 
 void Graphics::drawBox(coord_t x, coord_t y, coord_t w, coord_t h) {
+  CLIPX(x, w);
+  CLIPY(y, h);
   uint8_t *buf = frame_ + (y / 8) * kWidth + x;
-  if (y + h > kHeight)
-    h = kHeight - y;
-  if (x + w > kWidth)
-    w = kWidth - x;
 
   coord_t remainder = y & 0x7;
   if (remainder) {
@@ -119,20 +117,20 @@ void Graphics::drawBox(coord_t x, coord_t y, coord_t w, coord_t h) {
       draw_pixels_h<DRAW_NORMAL>(buf, w, mask);
     else
       draw_pixels_h<DRAW_INVERSE>(buf, w, mask);
+    buf += kWidth;
   }
 
   remainder = h & 0x7;
   h >>= 3;
   while (h--) {
-    buf += kWidth;
     if (DRAW_NORMAL == draw_mode_)
       draw_pixels_h<DRAW_NORMAL>(buf, w, 0xff);
     else
       draw_pixels_h<DRAW_INVERSE>(buf, w, 0xff);
+    buf += kWidth;
   }
 
   if (remainder) {
-    buf += kWidth;
     SETPIXELS_H(buf, w, ~(0xff << remainder));
   }
 }
