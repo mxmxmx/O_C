@@ -82,38 +82,31 @@ void UI() {
 /* -----------  splash  ------------------- */  
 
 void hello() {
-  u8g.setFont(u8g_font_6x12);
-  u8g.firstPage();
-  u8g.setFontRefHeightText();
-  u8g.setFontPosTop();
-  u8g.firstPage();  
-  do {
-    u8g.setDefaultForegroundColor();
-    u8g.drawBox(0, 0, 128, 14);
-    u8g.setDefaultBackgroundColor();
-    u8g.setPrintPos(4, 2); u8g.print("ornaments&crimes");
+  GRAPHICS_BEGIN_FRAME(true);
+  graphics.setFont(u8g_font_6x12);
+  graphics.setDefaultForegroundColor();
+  graphics.drawBox(0, 0, 128, 14);
+  graphics.setDefaultBackgroundColor();
+  graphics.setPrintPos(4, 2); graphics.print("ornaments&crimes");
 
-    u8g.setDefaultForegroundColor();
-    u8g.setPrintPos(4, 20); u8g.print("L : calibrate");
-    u8g.setPrintPos(4, 33); u8g.print("R : choose app");
-    u8g.setPrintPos(4, 52); u8g.print(__DATE__);
-  } while( u8g.nextPage() ); 
+  graphics.setDefaultForegroundColor();
+  graphics.setPrintPos(4, 20); graphics.print("L : calibrate");
+  graphics.setPrintPos(4, 33); graphics.print("R : choose app");
+  graphics.setPrintPos(4, 52); graphics.print(__DATE__);
+  GRAPHICS_END_FRAME();
 }  
 
 /* ----------- screensaver ----------------- */
 void screensaver() {
-   u8g.setFont(u8g_font_6x12);
-   u8g.setColorIndex(1);
-   u8g.setFontRefHeightText();
-   u8g.setFontPosTop();
-  
-   uint8_t x, y, width = 10;
-   for(int i = 0; i < 4; i++ ) { 
-     x = i*37;
-     y = DAC::value(i) >> 10; 
-     y++; 
-     u8g.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
-   }
+  GRAPHICS_BEGIN_FRAME(true);
+  uint8_t x, y, width = 10;
+  for(int i = 0; i < 4; i++ ) { 
+    x = i*37;
+    y = DAC::value(i) >> 10; 
+    y++; 
+    graphics.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
+  }
+  GRAPHICS_END_FRAME();
 }
 
 /* --------------------- main menu loop ------------------------  */

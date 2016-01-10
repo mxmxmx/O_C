@@ -68,24 +68,23 @@ void restore_app_settings() {
 }
 
 void draw_app_menu(int selected) {
-  u8g.firstPage();  
-  u8g.setFont(UI_DEFAULT_FONT);
-  u8g.setFontRefHeightText();
-  u8g.setFontPosTop();
-  do {
-    int first = selected - 4;
-    if (first < 0) first = 0;
+  GRAPHICS_BEGIN_FRAME(true);
 
-    uint8_t y = 0;
-    for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiLineH) {
-      UI_SETUP_ITEM(0, current == selected);
-      if (global_settings.current_app_index == current)
-        u8g.print('>');
-      else
-        u8g.print(' ');
-      u8g.print(available_apps[current].name);
-    }
-  } while (u8g.nextPage());
+  graphics.setFont(UI_DEFAULT_FONT);
+  int first = selected - 4;
+  if (first < 0) first = 0;
+
+  uint8_t y = 0;
+  for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiLineH) {
+    UI_SETUP_ITEM(0, current == selected);
+    if (global_settings.current_app_index == current)
+      graphics.print('>');
+    else
+      graphics.print(' ');
+    graphics.print(available_apps[current].name);
+  }
+
+  GRAPHICS_END_FRAME();
 }
 
 void set_current_app(int index) {
@@ -157,6 +156,7 @@ void select_app() {
         redraw = true;
       }
     }
+/*
     button_right.read();
     if (button_right.long_event()) {
       save = true;
@@ -164,7 +164,7 @@ void select_app() {
     }
     else if (button_right.event())
       break;
-
+*/
     if (redraw) {
       draw_app_menu(selected);
       redraw = false;

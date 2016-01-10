@@ -25,62 +25,44 @@
 #include <u8g_teensy.h>
 #include <rotaryplus.h>
 #include <EEPROM.h>
+
+#include "O_C_gpio.h"
+#include "DAC.h"
+#include "EEPROMStorage.h"
 #include "util_app.h"
 #include "util_button.h"
 #include "util_pagestorage.h"
-#include "EEPROMStorage.h"
-#include "DAC.h"
 #include "util_framebuffer.h"
 #include "page_display_driver.h"
+#include "weegfx.h"
+#include "SH1106_128x64_driver.h"
 
-//#define ENABLE_DEBUG_PINS
-#define DEBUG_PIN_1 24
-#define DEBUG_PIN_2 25
+#define ENABLE_DEBUG_PINS
 #include "util_debugpins.h"
 
-#define DAC_CS 10
-#define DAC_RST 9
-
-#define CV1 19
-#define CV2 18
-#define CV3 20
-#define CV4 17
-
-#define TR1 0
-#define TR2 1
-#define TR3 2
-#define TR4 3
-
-#define encR1 15
-#define encR2 16
-#define butR  14
-
-#define encL1 22
-#define encL2 21
-#define butL  23
-
-#define but_top 5
-#define but_bot 4
-
-U8GLIB u8g(&u8g_dev_sh1106_128x64_2x_hw_spi, u8g_com_hw_spi_fn);
-
-struct SH1106_128x64_Driver {
-  static const size_t kFrameSize = 128 * 64 / 8;
-  static const size_t kNumPages = 8;
-  static const size_t kPageSize = kFrameSize / kNumPages;
-
-  static void SendPage(uint_fast8_t index, const uint8_t *data) {
-    if (0 == index)
-      u8g.firstPage();
-
-    u8g_pb_t *pb = (u8g_pb_t *)(u8g_dev_sh1106_128x64_hw_spi.dev_mem);
-    memcpy(pb->buf, data, kPageSize);
-    u8g.nextPage();
-  }
-};
+U8GLIB u8g(&u8g_dev_gprof);
 
 FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
+weegfx::Graphics graphics;
+
+#define GRAPHICS_BEGIN_FRAME(wait) \
+do { \
+  DEBUG_PIN_SCOPE(DEBUG_PIN_1); \
+  uint8_t *frame = NULL; \
+  do { \
+    if (frame_buffer.writeable()) \
+      frame = frame_buffer.writeable_frame(); \
+  } while (!frame && wait); \
+  if (frame) { \
+    graphics.Begin(frame, true); \
+    do {} while(0)
+
+#define GRAPHICS_END_FRAME() \
+    graphics.End(); \
+    frame_buffer.written(); \
+  } \
+} while (0)
 
 Rotary encoder[2] =
 {
@@ -192,6 +174,10 @@ void FASTRUN CORE_timer_ISR() {
 
 /*       ---------------------------------------------------------         */
 
+const uint8_t bitmap[8] = {
+  0xf0, 0xf0, 0xf0, 0xf0, 0x0f, 0x0f, 0x0f, 0x0f
+};
+
 void setup(){
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
@@ -199,6 +185,7 @@ void setup(){
   analogReadAveraging(0x10);
   spi4teensy3::init();
   delay(10);
+
   // pins 
   pinMode(butL, INPUT);
   pinMode(butR, INPUT);
@@ -223,18 +210,15 @@ void setup(){
   attachInterrupt(encL2, left_encoder_ISR, CHANGE);
   attachInterrupt(encR1, right_encoder_ISR, CHANGE);
   attachInterrupt(encR2, right_encoder_ISR, CHANGE);
-  // set up DAC pins 
-  pinMode(DAC_CS, OUTPUT);
-  pinMode(DAC_RST,OUTPUT);
-  // pull RST high 
-  digitalWrite(DAC_RST, HIGH); 
-
-  // set all outputs to zero 
-  DAC::Init();
-  DAC::WriteAll();
 
   Serial.begin(9600); 
 
+  DAC::Init();
+
+  frame_buffer.Init();
+  display_driver.Init();
+  graphics.Init();
+ 
   CORE_timer.begin(CORE_timer_ISR, CORE_TIMER_RATE);
 
   // splash screen, sort of ... 

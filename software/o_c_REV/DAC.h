@@ -13,9 +13,7 @@ extern void set8565_CHD(uint32_t data);
 class DAC {
 public:
 
-  static void Init() {
-    set_all(0xffff);
-  }
+  static void Init();
 
   static void set_all(uint32_t value) {
     for (int i = DAC_CHANNEL_A; i < DAC_CHANNEL_LAST; ++i)

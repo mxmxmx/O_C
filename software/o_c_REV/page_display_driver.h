@@ -10,6 +10,9 @@ public:
   PagedDisplayDriver() { }
 
   void Init() {
+
+    display_driver::Init();
+
     current_page_index_ = 0;
     current_page_data_ = NULL;
   }

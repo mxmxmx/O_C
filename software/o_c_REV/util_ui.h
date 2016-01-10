@@ -22,12 +22,12 @@ static const uint8_t kUiWideMenuCol1X = 96;
 
 #define UI_SETUP_ITEM(xstart, sel) \
   do { \
-    u8g.setDefaultForegroundColor(); \
+    graphics.setDefaultForegroundColor(); \
     if (sel) { \
-      u8g.drawBox(xstart, y, kUiDisplayWidth - xstart - 2, kUiLineH - 1); \
-      u8g.setDefaultBackgroundColor(); \
+      graphics.drawBox(xstart, y, kUiDisplayWidth - xstart - 2, kUiLineH - 1); \
+      graphics.setDefaultBackgroundColor(); \
     } \
-    u8g.setPrintPos(xstart + 2, y + 1); \
+    graphics.setPrintPos(xstart + 2, y + 1); \
   } while (0)
 
 #define UI_START_MENU(xstart) \

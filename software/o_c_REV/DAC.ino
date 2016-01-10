@@ -2,7 +2,7 @@
 *
 * DAC8565
 *
-* chip select/DAC_CS : 10
+* chip select/CS : 10
 * reset/RST : 9
 *
 * DB23 = 0 :: always 0
@@ -19,6 +19,18 @@
 *
 */
 
+
+/*static*/
+void DAC::Init() {
+  // set up DAC pins 
+  pinMode(DAC_CS, OUTPUT);
+  pinMode(DAC_RST,OUTPUT);
+  // pull RST high 
+  digitalWrite(DAC_RST, HIGH); 
+
+  set_all(0xffff);
+  WriteAll();
+}
 
 /*static*/
 uint32_t DAC::values_[DAC_CHANNEL_LAST];
