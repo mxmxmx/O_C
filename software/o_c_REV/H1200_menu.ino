@@ -71,6 +71,7 @@ const uint8_t circle_disk_bitmap[] = {
 };
 
 void visualize_pitch_classes(uint8_t *normalized) {
+#if 0
   u8g.drawCircle(note_circle_x, note_circle_y, note_circle_r);
 
   coords last_pos = circle_pos_lut[normalized[0]];
@@ -82,7 +83,7 @@ void visualize_pitch_classes(uint8_t *normalized) {
   }
   u8g.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
   u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
-
+#endif
 }
 
 void H1200_screensaver() {

@@ -52,17 +52,7 @@ static const uint8_t kUiWideMenuCol1X = 96;
     if(attr.value_names) \
       graphics.print(attr.value_names[val]); \
     else \
-      graphics.print_int(val); \
+      graphics.pretty_print(val); \
   } while (0)
-
-inline void print_int(int value) {
-  if (!value) {
-    u8g.print(value);
-  } else if (value > 0) {
-    u8g.print('+'); u8g.print(value);
-  } else {
-    u8g.print('-'); u8g.print(-value);
-  }
-}
 
 #endif // UTIL_UI_H_

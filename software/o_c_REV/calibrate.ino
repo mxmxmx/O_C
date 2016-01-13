@@ -138,12 +138,6 @@ void calibrate_main() {
         //delay(1000);
         in_theory();   
         
-        u8g.setFont(u8g_font_6x12);
-        u8g.setColorIndex(1);
-        u8g.setFontRefHeightText();
-        u8g.setFontPosTop();
-      
-        
         while(UI_MODE == CALIBRATE) {
          
              UI();
@@ -301,176 +295,177 @@ void calibrate_main() {
 /* DAC output etc */ 
 
 void calibrate() {
-  
-    u8g.drawStr(10, 10, calib_menu_strings[_steps]); 
+    GRAPHICS_BEGIN_FRAME(true);
+
+    graphics.drawStr(10, 10, calib_menu_strings[_steps]); 
     
     switch (_steps) {
       
       case HELLO: {  
         
-          u8g.drawStr(10, 30, "...");
-          u8g.drawStr(10, 50, "push encoders");
-          u8g.setPrintPos(87, 30);
+          graphics.drawStr(10, 30, "...");
+          graphics.drawStr(10, 50, "push encoders");
+          graphics.setPrintPos(87, 30);
           writeAllDAC(octaves[_ZERO]);
           break;
       }
       
       case VOLT_0: { 
-          u8g.drawStr(10, 30, "->  0.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");
+          graphics.drawStr(10, 30, "->  0.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");
           octaves[_ZERO] = encoder_data;
           writeAllDAC(octaves[_ZERO]);
         break;   
       } 
       
       case VOLT_3m: { 
-          u8g.drawStr(10, 30, "-> -3.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "-> -3.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[0] = encoder_data;
           writeAllDAC(encoder_data);
           break;   
       } 
       
       case VOLT_2m: { 
-          u8g.drawStr(10, 30, "-> -2.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "-> -2.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[1] = encoder_data;
           writeAllDAC(encoder_data);
           break;   
       } 
       
       case VOLT_1m: { 
-          u8g.drawStr(10, 30, "-> -1.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "-> -1.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[2] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       } 
       
       case VOLT_0m: { 
-          u8g.drawStr(10, 30, "->  0.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "->  0.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[_ZERO] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       }
       
        case VOLT_1: { 
-          u8g.drawStr(10, 30, "->  1.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "->  1.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[4] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       }
       
       case VOLT_2: { 
-          u8g.drawStr(10, 30, "->  2.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "->  2.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[5] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       } 
       
       case VOLT_3: { 
-          u8g.drawStr(10, 30, "->  3.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");
+          graphics.drawStr(10, 30, "->  3.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");
           octaves[6] = encoder_data;  
           writeAllDAC(encoder_data);
         break;   
       } 
       
       case VOLT_4: { 
-          u8g.drawStr(10, 30, "->  4.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "->  4.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[7] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       } 
       
       case VOLT_5: { 
-          u8g.drawStr(10, 30, "->  5.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "->  5.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[8] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       } 
       
       case VOLT_6: { 
-          u8g.drawStr(10, 30, "->  6.000V /");
-          u8g.setPrintPos(87, 30);
-          u8g.print(encoder_data);
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.drawStr(10, 30, "->  6.000V /");
+          graphics.setPrintPos(87, 30);
+          graphics.print(encoder_data);
+          graphics.drawStr(10, 50, "use encoder!");  
           octaves[9] = encoder_data;
           writeAllDAC(encoder_data);
         break;   
       } 
       
       case CV_OFFSET: { 
-          u8g.setPrintPos(10, 30);
-          u8g.print(_ADC_OFFSET);
-          u8g.drawStr(45, 30, " ==");
-          u8g.setPrintPos(78, 30);
+          graphics.setPrintPos(10, 30);
+          graphics.print(_ADC_OFFSET);
+          graphics.drawStr(45, 30, " ==");
+          graphics.setPrintPos(78, 30);
           uint16_t _adc_val = _AVERAGE;
-          u8g.print(_adc_val);
-          u8g.drawStr(10, 50, "use trimpot!");  
+          graphics.print(_adc_val);
+          graphics.drawStr(10, 50, "use trimpot!");  
         break;   
       }
       
       case CV_OFFSET_0: { 
-          u8g.setPrintPos(10, 30);
-          u8g.print(encoder_data - _CV);
-          u8g.drawStr(40, 30, "--> 0"); 
-          u8g.drawStr(10, 50, "use encoder!");
+          graphics.setPrintPos(10, 30);
+          graphics.print(encoder_data - _CV);
+          graphics.drawStr(40, 30, "--> 0"); 
+          graphics.drawStr(10, 50, "use encoder!");
           _ADC_OFFSET_0 = encoder_data;   
           delay(20);
         break;   
       }
       
       case CV_OFFSET_1: { 
-          u8g.setPrintPos(10, 30);
-          u8g.print(encoder_data - _CV);
-          u8g.drawStr(40, 30, "--> 0"); 
-          u8g.drawStr(10, 50, "use encoder!"); 
+          graphics.setPrintPos(10, 30);
+          graphics.print(encoder_data - _CV);
+          graphics.drawStr(40, 30, "--> 0"); 
+          graphics.drawStr(10, 50, "use encoder!"); 
           _ADC_OFFSET_1 = encoder_data; 
           delay(20);    
         break;   
       }
   
       case CV_OFFSET_2: { 
-          u8g.setPrintPos(10, 30);
-          u8g.print(encoder_data - _CV);
-          u8g.drawStr(40, 30, "--> 0"); 
-          u8g.drawStr(10, 50, "use encoder!");  
+          graphics.setPrintPos(10, 30);
+          graphics.print(encoder_data - _CV);
+          graphics.drawStr(40, 30, "--> 0"); 
+          graphics.drawStr(10, 50, "use encoder!");  
           _ADC_OFFSET_2 = encoder_data;
           delay(20);
         break;   
       }  
       
       case CV_OFFSET_3: { 
-          u8g.setPrintPos(10, 30);
-          u8g.print(encoder_data - _CV);
-          u8g.drawStr(40, 30, "--> 0"); 
-          u8g.drawStr(10, 50, "use encoder!");
+          graphics.setPrintPos(10, 30);
+          graphics.print(encoder_data - _CV);
+          graphics.drawStr(40, 30, "--> 0"); 
+          graphics.drawStr(10, 50, "use encoder!");
           _ADC_OFFSET_3 = encoder_data;
           delay(20);  
         break;   
@@ -478,12 +473,13 @@ void calibrate() {
       
       case EXIT: { 
         
-        u8g.drawStr(10, 30, "push (R) to exit");  
+        graphics.drawStr(10, 30, "push (R) to exit");  
         break;   
       } 
       
       default: break;   
- } 
+   }
+   GRAPHICS_END_FRAME();
 } 
 
 /* misc */ 

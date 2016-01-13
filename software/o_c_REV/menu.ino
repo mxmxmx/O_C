@@ -52,15 +52,6 @@ void timeout() {
 
 /* -----------   draw menu  --------------- */ 
 
-#define U8G_DRAW(fun) \
-do { \
-  DEBUG_PIN_SCOPE(DEBUG_PIN_1); \
-  u8g.firstPage(); \
-  do { \
-    fun(); \
-  } while (u8g.nextPage()); \
-} while (0)
-
 void UI() {
   if (  MENU_REDRAW != 0 ) {
     switch(UI_MODE) {
@@ -71,11 +62,11 @@ void UI() {
         current_app->draw_menu();
         break;
       case CALIBRATE:
-        U8G_DRAW(calibrate);
+        calibrate();
         break;
       default: break;
     }
-    MENU_REDRAW = 0;
+    // MENU_REDRAW = 0; set in GRAPHICS_END_FRAME if drawn
   }
 }  
 
@@ -98,7 +89,7 @@ void hello() {
 
 /* ----------- screensaver ----------------- */
 void screensaver() {
-  GRAPHICS_BEGIN_FRAME(true);
+  GRAPHICS_BEGIN_FRAME(false);
 
   weegfx::coord_t x = 8;
   uint8_t y, width = 8;
@@ -107,6 +98,7 @@ void screensaver() {
     y++; 
     graphics.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
   }
+
   GRAPHICS_END_FRAME();
 }
 
@@ -134,7 +126,7 @@ void ASR_menu() {
 
   // octave +/- 
   graphics.setPrintPos(x, y); 
-  graphics.print_int(asr_params[1]);
+  graphics.pretty_print(asr_params[1]);
 
   graphics.drawHLine(0, 13, 128);
         
@@ -158,7 +150,7 @@ void ASR_menu() {
       graphics.print(map_param5[x]);       
     } 
     else {   
-      graphics.print_int(asr_display_params[i]);
+      graphics.print(asr_display_params[i]);
     }  
 
     graphics.setDefaultForegroundColor();

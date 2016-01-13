@@ -329,7 +329,7 @@ void QQ_menu() {
     graphics.setPrintPos(x + 14, 2);
     int octave = quantizer_channels[i].get_octave();
     if (octave)
-      graphics.print_int(octave);
+      graphics.pretty_print(octave);
   }
 
   const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];

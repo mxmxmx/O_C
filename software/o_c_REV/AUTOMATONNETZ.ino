@@ -451,7 +451,7 @@ void Automatonnetz_menu_grid() {
           graphics.print(clock_fraction_names[fraction]);
         }
     } else {
-      graphics.print_int(value);
+      graphics.pretty_print(value);
     }
 
   UI_END_ITEMS_LOOP();

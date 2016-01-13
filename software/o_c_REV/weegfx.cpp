@@ -25,6 +25,9 @@
 using weegfx::Graphics;
 
 // TODO
+// - Bench templated draw_pixels_h (inlined versions) vs. function pointers
+// - Offer specialized functions w/o clipping or specific draw mode?
+// - Remainder masks as LUT or switch
 // - 32bit ops? Should be possible along x-axis (use SIMD instructions?) but not y (page stride)
 // - Clipping for x, y < 0
 // - Support 16 bit text characters?
@@ -43,6 +46,35 @@ using weegfx::Graphics;
   if (y < 0) { h += y; y = 0; } \
   if (h <= 0) return; \
   do {} while (0)
+
+template <weegfx::DRAW_MODE draw_mode>
+inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, uint8_t mask) __attribute__((always_inline));
+
+template <weegfx::DRAW_MODE draw_mode>
+inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, const uint8_t *src) __attribute__((always_inline));
+
+template <weegfx::DRAW_MODE draw_mode>
+inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
+  while (count--) {
+    switch (draw_mode) {
+      case weegfx::DRAW_NORMAL: *dst++ |= mask; break;
+      case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
+      case weegfx::DRAW_OVERWRITE: *dst = mask; break;
+    }
+  }
+}
+
+template <weegfx::DRAW_MODE draw_mode>
+inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, const uint8_t *src) {
+  while (count--) {
+    switch(draw_mode) {
+      case weegfx::DRAW_NORMAL: *dst++ |= *src++; break;
+      case weegfx::DRAW_INVERSE: *dst++ ^= *src++; break;
+      case weegfx::DRAW_OVERWRITE: *dst++ = *src++; break;
+    }
+  }
+}
+
 
 void Graphics::Init() {
   frame_ = NULL;
@@ -70,17 +102,6 @@ void Graphics::setDefaultBackgroundColor() {
 
 void Graphics::setDefaultForegroundColor() {
   draw_mode_ = DRAW_NORMAL;
-}
-
-template <weegfx::DRAW_MODE draw_mode>
-inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
-  while (count--) {
-    switch (draw_mode) {
-      case weegfx::DRAW_NORMAL: *dst++ |= mask; break;
-      case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
-      case weegfx::DRAW_OVERWRITE: *dst = mask; break;
-    }
-  }
 }
 
 #define SETPIXELS_H(start, count, value) \
@@ -205,6 +226,15 @@ void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
   }
 }
 
+void Graphics::drawLine(coord_t x1, coord_t y1, coord_t x2, coord_t y2) {
+  // Possible short-cuts if x1 == x2 or y1 == y2
+/*
+  coord_t dx = x1 > x2 ? x1 - x2 : x2 - x1;
+  coord_t dy = y1 > y2 ? y1 - y2 : y2 - y1;
+*/
+}
+
+
 void Graphics::drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data) {
 
   uint8_t *buf = frame_ + (y / 8) * kWidth + x;
@@ -257,28 +287,18 @@ void Graphics::print(char c) {
   text_x_ += 6;
 }
 
-void Graphics::print(int value) {
-  print_int(value);
-}
-
-void Graphics::print(const char *s) {
-  while (*s) {
-    print(*s++);
-  }
-}
-
-void Graphics::print_int(int value) {
-  char buf[32];
-  char *pos = buf + sizeof(buf);
+template <typename type, bool pretty>
+char *itos(type value, char *buf, size_t buflen) {
+  char *pos = buf + buflen;
   *--pos = '\0';
   if (!value) {
     *--pos = '0';
   } else {
-    char sign;
+    char sign = 0;
     if (value < 0)  {
       sign = '-';
       value = -value;
-    } else {
+    } else if (pretty) {
       sign = '+';
     }
 
@@ -286,10 +306,32 @@ void Graphics::print_int(int value) {
       *--pos = '0' + value % 10;
       value /= 10;
     }
-    *--pos = sign;
+    if (sign)
+      *--pos = sign;
   }
 
-  print(pos);
+  return pos;
+}
+
+void Graphics::print(int value) {
+  char buf[12];
+  print(itos<int, false>(value, buf, sizeof(buf)));
+}
+
+void Graphics::print(long value) {
+  char buf[24];
+  print(itos<long, false>(value, buf, sizeof(buf)));
+}
+
+void Graphics::pretty_print(int value) {
+  char buf[12];
+  print(itos<int, true>(value, buf, sizeof(buf)));
+}
+
+void Graphics::print(const char *s) {
+  while (*s) {
+    print(*s++);
+  }
 }
 
 void Graphics::drawStr(coord_t x, coord_t y, const char *str) {

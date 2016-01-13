@@ -22,7 +22,6 @@
 */
 
 #include <spi4teensy3.h>
-#include <u8g_teensy.h>
 #include <rotaryplus.h>
 #include <EEPROM.h>
 
@@ -40,7 +39,10 @@
 #define ENABLE_DEBUG_PINS
 #include "util_debugpins.h"
 
-U8GLIB u8g(&u8g_dev_gprof);
+
+// Work-around until there are fonts available
+const char *u8g_font_10x20 = "";
+const char *u8g_font_6x12 = "";
 
 FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
@@ -61,6 +63,7 @@ do { \
 #define GRAPHICS_END_FRAME() \
     graphics.End(); \
     frame_buffer.written(); \
+    MENU_REDRAW = 0; \
   } \
 } while (0)
 

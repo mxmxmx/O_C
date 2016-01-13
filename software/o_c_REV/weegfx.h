@@ -31,7 +31,9 @@ typedef int_fast16_t coord_t;
 enum DRAW_MODE {
   DRAW_NORMAL,
   DRAW_INVERSE,
-  DRAW_OVERWRITE
+  // faster since no read required
+  DRAW_OVERWRITE,
+  DRAW_OVERWRITE_INVERSE
 };
 
 // Quick & dirty graphics for 128 x 64 framebuffer with vertical pixels.
@@ -56,11 +58,16 @@ public:
   void setDefaultBackgroundColor();
   void setDefaultForegroundColor();
 
+  template <DRAW_MODE draw_mode>
+  void fast_drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
+
   void drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
   void drawFrame(coord_t x, coord_t y, coord_t w, coord_t h);
 
   void drawHLine(coord_t x, coord_t y, coord_t w);
   void drawVLine(coord_t x, coord_t y, coord_t h);
+
+  void drawLine(coord_t x1, coord_t y1, coord_t x2, coord_t y2);
 
   void drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data);
 
@@ -73,9 +80,11 @@ public:
 
   void print(char);
   void print(int);
-  void print(const char *);
-  void print_int(int);
+  void print(long);
 
+  void pretty_print(int);
+
+  void print(const char *);
   void drawStr(coord_t x, coord_t y, const char *str);
 
 private:
