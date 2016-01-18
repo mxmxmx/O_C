@@ -60,7 +60,6 @@ public:
 
   template <DRAW_MODE draw_mode>
   inline void setPixel(coord_t x, coord_t y) __attribute__((always_inline));
-  void fast_drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
 
   void drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
   void drawFrame(coord_t x, coord_t y, coord_t w, coord_t h);
@@ -71,6 +70,9 @@ public:
   void drawLine(coord_t x1, coord_t y1, coord_t x2, coord_t y2);
 
   void drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data);
+
+  // Beware: No clipping
+  void drawCircle(coord_t center_x, coord_t center_y, coord_t r);
 
   void setFont(const void *);
 
@@ -99,7 +101,7 @@ private:
 
 template <>
 inline void Graphics::setPixel<DRAW_NORMAL>(coord_t x, coord_t y) {
-  *(frame_ + (y/8) * kWidth + x) |= (0x1 << (y & 7));
+  *(frame_ + (y/8) * kWidth + x) |= (0x1 << (y & 0x7));
 }
 
 };

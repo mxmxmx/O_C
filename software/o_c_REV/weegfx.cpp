@@ -21,6 +21,7 @@
 #include "weegfx.h"
 #include <string.h>
 #include <Arduino.h>
+#include "util_macros.h"
 
 using weegfx::Graphics;
 
@@ -226,15 +227,6 @@ void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
   }
 }
 
-void Graphics::drawLine(coord_t x1, coord_t y1, coord_t x2, coord_t y2) {
-  // Possible short-cuts if x1 == x2 or y1 == y2
-/*
-  coord_t dx = x1 > x2 ? x1 - x2 : x2 - x1;
-  coord_t dy = y1 > y2 ? y1 - y2 : y2 - y1;
-*/
-}
-
-
 void Graphics::drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data) {
 
   uint8_t *buf = frame_ + (y / 8) * kWidth + x;
@@ -254,6 +246,83 @@ void Graphics::drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data)
       src = data;
       SETPIXELS_H(buf, w, (*src++) >> (8 - remainder));
     }
+  }
+}
+
+void Graphics::drawLine(coord_t x0, coord_t y0, coord_t x1, coord_t y1) {
+  coord_t dx, dy;
+  if (x0 > x1 ) dx = x0-x1; else dx = x1-x0;
+  if (y0 > y1 ) dy = y0-y1; else dy = y1-y0;
+
+  bool steep = false;
+  if (dy > dx) {
+    steep = true;
+    SWAP(dx, dy);
+    SWAP(x0, y0);
+    SWAP(x1, y1);
+  }
+  if (x0 > x1) {
+    SWAP(x0, x1);
+    SWAP(y0, y1);
+  }
+  coord_t err = dx >> 1;
+  coord_t ystep = (y1 > y0) ? 1 : -1;
+  coord_t y = y0;
+
+  // OPTIMIZE Generate mask/buffer offset before loop and update on-the-fly instead of setPixeling
+  // OPTIMIZE Generate spans of pixels to draw
+
+  if (steep) {
+    for(coord_t x = x0; x <= x1; x++ ) {
+      setPixel<DRAW_NORMAL>(y, x); 
+      err -= dy;
+      if (err < 0) {
+        y += ystep;
+        err += dx;
+      }
+    }
+  } else {
+    for(coord_t x = x0; x <= x1; x++ ) {
+      setPixel<DRAW_NORMAL>(x, y); 
+      err -= dy;
+      if (err < 0) {
+        y += ystep;
+        err += dx;
+      }
+    }
+  }
+}
+
+void Graphics::drawCircle(coord_t center_x, coord_t center_y, coord_t r) {
+  coord_t f = 1 - r;
+  coord_t ddF_x = 1;
+  coord_t ddF_y = -2 * r;
+  coord_t x = 0;
+  coord_t y = r;
+
+  setPixel<DRAW_NORMAL>(center_x  , center_y+r);
+  setPixel<DRAW_NORMAL>(center_x  , center_y-r);
+  setPixel<DRAW_NORMAL>(center_x+r, center_y  );
+  setPixel<DRAW_NORMAL>(center_x-r, center_y  );
+
+  while (x < y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f += ddF_x;
+  
+    setPixel<DRAW_NORMAL>(center_x + x, center_y + y);
+    setPixel<DRAW_NORMAL>(center_x - x, center_y + y);
+    setPixel<DRAW_NORMAL>(center_x + x, center_y - y);
+    setPixel<DRAW_NORMAL>(center_x - x, center_y - y);
+    setPixel<DRAW_NORMAL>(center_x + y, center_y + x);
+    setPixel<DRAW_NORMAL>(center_x - y, center_y + x);
+    setPixel<DRAW_NORMAL>(center_x + y, center_y - x);
+    setPixel<DRAW_NORMAL>(center_x - y, center_y - x);
   }
 }
 

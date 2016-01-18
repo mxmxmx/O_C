@@ -46,12 +46,12 @@ void H1200_menu() {
   GRAPHICS_END_FRAME();
 }
 
-static const uint8_t note_circle_x = 32;
-static const uint8_t note_circle_y = 32;
-static const uint8_t note_circle_r = 28;
+static const weegfx::coord_t note_circle_x = 32;
+static const weegfx::coord_t note_circle_y = 32;
+static const weegfx::coord_t note_circle_r = 28;
 
 struct coords {
-  uint8_t x, y;
+  weegfx::coord_t x, y;
 } circle_pos_lut[12];
 
 void init_circle_lut() {
@@ -71,19 +71,17 @@ const uint8_t circle_disk_bitmap[] = {
 };
 
 void visualize_pitch_classes(uint8_t *normalized) {
-#if 0
-  u8g.drawCircle(note_circle_x, note_circle_y, note_circle_r);
+  graphics.drawCircle(note_circle_x, note_circle_y, note_circle_r);
 
   coords last_pos = circle_pos_lut[normalized[0]];
   for (size_t i = 1; i < 3; ++i) {
-    u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
+//    u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
     const coords &current_pos = circle_pos_lut[normalized[i]];
-    u8g.drawLine(last_pos.x, last_pos.y, current_pos.x, current_pos.y);
+    graphics.drawLine(last_pos.x, last_pos.y, current_pos.x, current_pos.y);
     last_pos = current_pos;
   }
-  u8g.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
-  u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
-#endif
+  graphics.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
+//  u8g.drawBitmap(last_pos.x - 3, last_pos.y - 3, 1, 8, circle_disk_bitmap);
 }
 
 void H1200_screensaver() {
@@ -117,7 +115,7 @@ void H1200_screensaver() {
     graphics.print(h1200_state.tonnetz_state.history(i).str);
   }
 
-  //visualize_pitch_classes(normalized);
+  visualize_pitch_classes(normalized);
 
   GRAPHICS_END_FRAME();
 }
