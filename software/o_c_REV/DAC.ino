@@ -28,12 +28,19 @@ void DAC::Init() {
   // pull RST high 
   digitalWrite(DAC_RST, HIGH); 
 
+  history_tail_ = 0;
+  memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
+
   set_all(0xffff);
   WriteAll();
 }
 
 /*static*/
 uint32_t DAC::values_[DAC_CHANNEL_LAST];
+/*static*/
+uint16_t DAC::history_[DAC_CHANNEL_LAST][DAC::kHistoryDepth];
+/*static*/ 
+volatile size_t DAC::history_tail_;
 
 void set8565_CHA(uint32_t data) {
   

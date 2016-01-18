@@ -2,13 +2,15 @@
 
 App available_apps[] = {
   {"ASR", ASR_init, ASR_save, ASR_restore, NULL, ASR_resume,
-    _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, NULL, update_ENC},
+    _loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, NULL, update_ENC, NULL},
   {"Harrington 1200", H1200_init, H1200_save, H1200_restore, NULL, H1200_resume,
-    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_leftButtonLong, H1200_encoders},
+    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_leftButtonLong, H1200_encoders, NULL},
   {"Automatonnetz", Automatonnetz_init, Automatonnetz_save, Automatonnetz_restore, NULL, Automatonnetz_resume,
-    Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_leftButtonLong, Automatonnetz_encoders},
+    Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_leftButtonLong, Automatonnetz_encoders, NULL},
   {"VierfStSpQuaMo", QQ_init, QQ_save, QQ_restore, NULL, QQ_resume,
-    QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_leftButtonLong, QQ_encoders}
+    QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_leftButtonLong, QQ_encoders, NULL},
+  {"frames::poly_lfo", POLYLFO_init, POLYLFO_save, POLYLFO_restore, NULL, POLYLFO_resume,
+    POLYLFO_loop, POLYLFO_menu, scope, POLYLFO_topButton, POLYLFO_lowerButton, POLYLFO_rightButton, POLYLFO_leftButton, POLYLFO_leftButtonLong, POLYLFO_encoders, POLYLFO_isr},
 };
 
 struct O_CSettings {
@@ -17,9 +19,10 @@ struct O_CSettings {
     ASR_SETTINGS_SIZE +
     H1200_SETTINGS_SIZE +
     AUTOMATONNETZ_SETTINGS_SIZE +
-    QQ_SETTINGS_SIZE;
+    QQ_SETTINGS_SIZE +
+    POLYLFO_SETTINGS_SIZE;
 
-  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 94>::value;
+  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 95>::value;
 
   uint8_t current_app_index;
   char app_settings[kAppSettingsSize];

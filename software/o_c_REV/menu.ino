@@ -4,15 +4,13 @@
 *
 */
 
-extern void TONNETZ_renderMenu();
-
 uint8_t MENU_CURRENT = 2; 
 int16_t SCALE_SEL = 0;
 uint8_t X_OFF = 104; // display x offset
 uint8_t OFFSET = 0x0;  // display y offset
 uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
-const uint16_t TIMEOUT = 15000; // time out menu (in ms)
+static const uint16_t SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
 
 const int8_t MENU_ITEMS = 6;
 
@@ -43,12 +41,14 @@ const char *map_param5[] =
 
 void timeout() {
  
-  if (millis() - _UI_TIMESTAMP > TIMEOUT) { UI_MODE = SCREENSAVER; MENU_REDRAW = 1; }
-  else if (millis() - _CLK_TIMESTAMP > TRIG_LENGTH) {        
-         MENU_REDRAW = 1;
-         display_clock = false;
+  if (millis() - _UI_TIMESTAMP > SCREENSAVER_TIMEOUT_MS) {
+    UI_MODE = SCREENSAVER;
+    MENU_REDRAW = 1;
+  } else if (display_clock && millis() - _CLK_TIMESTAMP > TRIG_LENGTH) {        
+     MENU_REDRAW = 1;
+     display_clock = false;
   }  
-} 
+}
 
 /* -----------   draw menu  --------------- */ 
 
@@ -99,6 +99,35 @@ void screensaver() {
     graphics.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
   }
 
+  GRAPHICS_END_FRAME();
+}
+
+uint16_t scope_history[DAC::kHistoryDepth];
+
+void scope() {
+  GRAPHICS_BEGIN_FRAME(false);
+
+  DAC::getHistory<DAC_CHANNEL_A>(scope_history);
+  for (weegfx::coord_t x = 0; x < 64; ++x)
+    graphics.setPixel<weegfx::DRAW_NORMAL>(x, 0 + (scope_history[x] >> 11));
+
+  DAC::getHistory<DAC_CHANNEL_B>(scope_history);
+  for (weegfx::coord_t x = 0; x < 64; ++x)
+    graphics.setPixel<weegfx::DRAW_NORMAL>(64 + x, 0 + (scope_history[x] >> 11));
+
+  DAC::getHistory<DAC_CHANNEL_C>(scope_history);
+  for (weegfx::coord_t x = 0; x < 64; ++x)
+    graphics.setPixel<weegfx::DRAW_NORMAL>(x, 32 + (scope_history[x] >> 11));
+
+  DAC::getHistory<DAC_CHANNEL_D>(scope_history);
+  for (weegfx::coord_t x = 0; x < 64; ++x)
+    graphics.setPixel<weegfx::DRAW_NORMAL>(64 + x, 32 + (scope_history[x] >> 11));
+/*
+  graphics.drawHLine(0, 0 + (DAC::value(0) >> 11), 64);
+  graphics.drawHLine(64, 0 + (DAC::value(1) >> 11), 64);
+  graphics.drawHLine(0, 32 + (DAC::value(2) >> 11), 64);
+  graphics.drawHLine(64, 32 + (DAC::value(3) >> 11), 64);
+*/
   GRAPHICS_END_FRAME();
 }
 

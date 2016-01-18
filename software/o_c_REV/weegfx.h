@@ -59,6 +59,7 @@ public:
   void setDefaultForegroundColor();
 
   template <DRAW_MODE draw_mode>
+  inline void setPixel(coord_t x, coord_t y) __attribute__((always_inline));
   void fast_drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
 
   void drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
@@ -95,6 +96,11 @@ private:
 
   DRAW_MODE draw_mode_;
 };
+
+template <>
+inline void Graphics::setPixel<DRAW_NORMAL>(coord_t x, coord_t y) {
+  *(frame_ + (y/8) * kWidth + x) |= (0x1 << (y & 7));
+}
 
 };
 

@@ -28,6 +28,8 @@ struct App {
   void (*left_button)();
   void (*left_button_long)();
   bool (*update_encoders)();
+
+  void (*isr)();
 };
 
 extern App *current_app;
