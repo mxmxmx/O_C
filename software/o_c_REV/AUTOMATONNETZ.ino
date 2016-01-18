@@ -499,10 +499,11 @@ static const uint8_t kScreenSaverX = 64 + 2;
 static const uint8_t kScreenSaverY = 5;
 static const uint8_t kScreenSaverGrid = 55 / 5;
 
+extern const uint8_t circle_disk_bitmap[];
+
 void Automatonnetz_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
 
-#if 0
   uint8_t normalized[3];
   for (size_t i=0; i < 3; ++i) {
     int value = automatonnetz_state.tonnetz_state.outputs(i + 1);
@@ -512,16 +513,18 @@ void Automatonnetz_screensaver() {
   visualize_pitch_classes(normalized);
 
   vec2<size_t> last_pos = automatonnetz_state.history(0);
-  u8g.drawCircle(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid, 3);
+//  u8g.drawCircle(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid, 3);
+  graphics.drawBitmap8(kScreenSaverX + last_pos.x * kScreenSaverGrid - 3,
+                       kScreenSaverY + last_pos.y * kScreenSaverGrid - 3,
+                       8, circle_disk_bitmap);
   for (size_t i = 1; i < AutomatonnetzState::HISTORY_LENGTH; ++i) {
     const vec2<size_t> &current = automatonnetz_state.history(i);
-    u8g.drawLine(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid,
-                 kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid);
+    graphics.drawLine(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid,
+                      kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid);
 
-    u8g.drawCircle(kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid, 2);
+//    u8g.drawCircle(kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid, 2);
     last_pos = current;
   }
-#endif
 
   uint8_t y = 0;
   for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += 12) {

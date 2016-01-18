@@ -31,9 +31,8 @@ typedef int_fast16_t coord_t;
 enum DRAW_MODE {
   DRAW_NORMAL,
   DRAW_INVERSE,
-  // faster since no read required
+  // faster since no read required but hard to manage
   DRAW_OVERWRITE,
-  DRAW_OVERWRITE_INVERSE
 };
 
 // Quick & dirty graphics for 128 x 64 framebuffer with vertical pixels.

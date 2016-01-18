@@ -229,11 +229,18 @@ void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
 
 void Graphics::drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data) {
 
-  uint8_t *buf = frame_ + (y / 8) * kWidth + x;
-  w = x + w > kWidth ? w - x : w;
-  coord_t h = y + 8 > kHeight ? 8 - y : 8;
+  if (x + w > kWidth) w = kWidth - x;
+  if (x < 0) {
+    data += x;
+    w += x;
+  }
+  if (w <= 0)
+    return;
 
-  // TODO Clip at bottom edge changes things
+  coord_t h = 8;
+  CLIPY(y, h);
+
+  uint8_t *buf = frame_ + (y / 8) * kWidth + x;
 
   coord_t remainder = y & 0x7;
   if (!remainder) {
