@@ -48,6 +48,9 @@ FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 weegfx::Graphics graphics;
 
+unsigned long LAST_REDRAW_TIME = 0;
+#define REDRAW_TIMEOUT_MS 20
+
 #define GRAPHICS_BEGIN_FRAME(wait) \
 do { \
   DEBUG_PIN_SCOPE(DEBUG_PIN_1); \
@@ -64,6 +67,7 @@ do { \
     graphics.End(); \
     frame_buffer.written(); \
     MENU_REDRAW = 0; \
+    LAST_REDRAW_TIME = millis(); \
   } \
 } while (0)
 
@@ -75,6 +79,8 @@ Rotary encoder[2] =
 
 //  UI mode select
 extern uint8_t UI_MODE;
+extern uint8_t MENU_REDRAW;
+
 
 /*  ------------------------ ASR ------------------------------------  */
 
@@ -149,11 +155,13 @@ uint32_t ENC_timer_counter = 0;
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
 
+  if (display_driver.Flush())
+    frame_buffer.read();
+
   DAC::WriteAll();
 
   if (display_driver.frame_valid()) {
-    if (display_driver.Update())
-      frame_buffer.read();
+    display_driver.Update();
   } else {
     if (frame_buffer.readable())
       display_driver.Begin(frame_buffer.readable_frame());
@@ -173,6 +181,9 @@ void FASTRUN CORE_timer_ISR() {
     ENC_timer_counter = 0;
     _ENC = true;
   }
+
+  if (current_app->isr)
+    current_app->isr();
 }
 
 /*       ---------------------------------------------------------         */
@@ -249,5 +260,7 @@ void loop() {
     if (SELECT_APP) select_app();
     current_app->loop();
     if (UI_MODE) timeout();
+    if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
+      MENU_REDRAW = 1;
   }
 }

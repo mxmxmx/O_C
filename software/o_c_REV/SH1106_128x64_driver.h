@@ -10,7 +10,7 @@ struct SH1106_128x64_Driver {
   static const size_t kPageSize = kFrameSize / kNumPages;
 
   static void Init();
-
+  static void Flush();
   static void SendPage(uint_fast8_t index, const uint8_t *data);
 
   static uint8_t data_start_seq[];

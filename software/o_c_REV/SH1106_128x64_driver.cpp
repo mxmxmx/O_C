@@ -38,10 +38,6 @@
   0x0af,        /* display on */
 };
 
-// These are inverted (?), see u8g_teensy.cpp
-#define OLED_CS_HIGH LOW
-#define OLED_CS_LOW  HIGH
-
 /*static*/
 void SH1106_128x64_Driver::Init() {
   pinMode(OLED_CS, OUTPUT);
@@ -73,6 +69,10 @@ void SH1106_128x64_Driver::Init() {
 }
 
 /*static*/
+void SH1106_128x64_Driver::Flush() {
+}
+
+/*static*/
 void SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
   data_start_seq[2] = 0xb0 | index;
 
@@ -83,4 +83,6 @@ void SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
 
   spi4teensy3::send(data, kPageSize);
   digitalWriteFast(OLED_CS, OLED_CS_LOW); // U8G_ESC_CS(0)
+
+  // OPTIMIZE setup DMA transfer here, then set OLED_CS to low in Flush
 }
