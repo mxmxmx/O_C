@@ -23,10 +23,17 @@
 #include <Arduino.h>
 #include "util_macros.h"
 
+namespace weegfx {
+enum DRAW_MODE {
+  DRAW_NORMAL,
+  DRAW_INVERSE,
+  DRAW_OVERWRITE // unused, but possible fastest
+};
+};
 using weegfx::Graphics;
 
 // TODO
-// - Bench templated draw_pixels_h (inlined versions) vs. function pointers
+// - Bench templated draw_pixel_row (inlined versions) vs. function pointers
 // - Offer specialized functions w/o clipping or specific draw mode?
 // - Remainder masks as LUT or switch
 // - 32bit ops? Should be possible along x-axis (use SIMD instructions?) but not y (page stride)
@@ -49,13 +56,13 @@ using weegfx::Graphics;
   do {} while (0)
 
 template <weegfx::DRAW_MODE draw_mode>
-inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, uint8_t mask) __attribute__((always_inline));
+inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) __attribute__((always_inline));
 
 template <weegfx::DRAW_MODE draw_mode>
-inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, const uint8_t *src) __attribute__((always_inline));
+inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, const uint8_t *src) __attribute__((always_inline));
 
 template <weegfx::DRAW_MODE draw_mode>
-inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
+inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
   while (count--) {
     switch (draw_mode) {
       case weegfx::DRAW_NORMAL: *dst++ |= mask; break;
@@ -66,7 +73,7 @@ inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
 }
 
 template <weegfx::DRAW_MODE draw_mode>
-inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, const uint8_t *src) {
+inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, const uint8_t *src) {
   while (count--) {
     switch(draw_mode) {
       case weegfx::DRAW_NORMAL: *dst++ |= *src++; break;
@@ -76,11 +83,21 @@ inline void draw_pixels_h(uint8_t *dst, weegfx::coord_t count, const uint8_t *sr
   }
 }
 
+#define SETPIXELS_H(start, count, value) \
+do { \
+  uint8_t *ptr = start; \
+  size_t n = count; \
+  while (n--) { \
+    *ptr++ |= value; \
+  }; \
+} while (0)
+
+template <weegfx::DRAW_MODE draw_mode>
+inline void draw_rect(uint8_t *buf, weegfx::coord_t y, weegfx::coord_t w, weegfx::coord_t h) __attribute__((always_inline)); 
 
 void Graphics::Init() {
   frame_ = NULL;
   setPrintPos(0, 0);
-  draw_mode_ = DRAW_NORMAL;
 }
 
 void Graphics::Begin(uint8_t *frame, bool clear_frame) {
@@ -90,41 +107,16 @@ void Graphics::Begin(uint8_t *frame, bool clear_frame) {
     memset(frame_, 0, kFrameSize);
 
   setPrintPos(0, 0);
-  draw_mode_ = DRAW_NORMAL;
 }
 
 void Graphics::End() {
   frame_ = NULL;
 }
 
-void Graphics::setDefaultBackgroundColor() {
-  draw_mode_ = DRAW_INVERSE;
-}
-
-void Graphics::setDefaultForegroundColor() {
-  draw_mode_ = DRAW_NORMAL;
-}
-
-#define SETPIXELS_H(start, count, value) \
-do { \
-  uint8_t *ptr = start; \
-  size_t n = count; \
-  if (DRAW_NORMAL == draw_mode_) { \
-    while (n--) { \
-      *ptr++ |= value; \
-    }; \
-  } else { \
-    while (n--) { \
-      *ptr++ ^= value; } \
-  } \
-} while (0)
-
-void Graphics::drawBox(coord_t x, coord_t y, coord_t w, coord_t h) {
-  CLIPX(x, w);
-  CLIPY(y, h);
-  uint8_t *buf = frame_ + (y / 8) * kWidth + x;
-
-  coord_t remainder = y & 0x7;
+template <weegfx::DRAW_MODE draw_mode>
+inline void draw_rect(uint8_t *buf, weegfx::coord_t y, weegfx::coord_t w, weegfx::coord_t h)
+{
+  weegfx::coord_t remainder = y & 0x7;
   if (remainder) {
     remainder = 8 - remainder;
     uint8_t mask = ~(0xff >> remainder);
@@ -135,29 +127,36 @@ void Graphics::drawBox(coord_t x, coord_t y, coord_t w, coord_t h) {
       h -= remainder;
     }
 
-    if (DRAW_NORMAL == draw_mode_)
-      draw_pixels_h<DRAW_NORMAL>(buf, w, mask);
-    else
-      draw_pixels_h<DRAW_INVERSE>(buf, w, mask);
-    buf += kWidth;
+    draw_pixel_row<draw_mode>(buf, w, mask);
+    buf += Graphics::kWidth;
   }
 
   remainder = h & 0x7;
   h >>= 3;
   while (h--) {
-    if (DRAW_NORMAL == draw_mode_)
-      draw_pixels_h<DRAW_NORMAL>(buf, w, 0xff);
-    else
-      draw_pixels_h<DRAW_INVERSE>(buf, w, 0xff);
-    buf += kWidth;
+    draw_pixel_row<draw_mode>(buf, w, 0xff);
+    buf += Graphics::kWidth;
   }
 
   if (remainder) {
-    SETPIXELS_H(buf, w, ~(0xff << remainder));
+    draw_pixel_row<draw_mode>(buf, w, ~(0xff << remainder));
   }
 }
 
+void Graphics::drawRect(coord_t x, coord_t y, coord_t w, coord_t h) {
+  CLIPX(x, w);
+  CLIPY(y, h);
+  draw_rect<DRAW_NORMAL>(get_frame_ptr(x, y), y, w, h);
+}
+
+void Graphics::invertRect(coord_t x, coord_t y, coord_t w, coord_t h) {
+  CLIPX(x, w);
+  CLIPY(y, h);
+  draw_rect<DRAW_INVERSE>(get_frame_ptr(x, y), y, w, h);
+}
+
 void Graphics::drawFrame(coord_t x, coord_t y, coord_t w, coord_t h) {
+
   // Obvious candidate for optimizing
   drawHLine(x, y, w);
   drawVLine(x, y, h);
@@ -170,19 +169,15 @@ void Graphics::drawHLine(coord_t x, coord_t y, coord_t w) {
   coord_t h = 1;
   CLIPX(x, w);
   CLIPY(y, h);
-  uint8_t *start = frame_ + (y / 8) * kWidth + x;
+  uint8_t *start = get_frame_ptr(x, y);
 
-  if (DRAW_NORMAL == draw_mode_)
-    draw_pixels_h<DRAW_NORMAL>(start, w, 0x1 << (y & 0x7));
-  else
-    draw_pixels_h<DRAW_INVERSE>(start, w, 0x1 << (y & 0x7));
+  draw_pixel_row<DRAW_NORMAL>(start, w, 0x1 << (y & 0x7));
 }
 
 void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
 
-  uint8_t *buf = frame_ + (y / 8) * kWidth + x;
-  if (y + h > kHeight)
-    h = kHeight - y;
+  CLIPY(y, h);
+  uint8_t *buf = get_frame_ptr(x, y);
 
   // unaligned start
   coord_t remainder = y & 0x7;
@@ -196,34 +191,21 @@ void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
       h -= remainder;
     }
 
-    if (DRAW_NORMAL == draw_mode_)
-      *buf |= mask;
-    else
-      *buf ^= mask;
+    *buf |= mask;
     buf += kWidth;
   }
 
   // aligned loop
-  if (DRAW_NORMAL == draw_mode_) {
-    while (h >= 8) {
-      *buf = 0xff;
-      buf += kWidth;
-      h -= 8;
-    }
-  } else {
-    while (h >= 8) {
-      *buf ^= 0xff;
-      buf += kWidth;
-      h -= 8;
-    }
+  remainder = h & 0x7;
+  h >>= 3;
+  while (h--) {
+    *buf = 0xff;
+    buf += kWidth;
   }
 
   // unaligned remainder
-  if (h) {
-    if (DRAW_NORMAL == draw_mode_)
-      *buf |= ~(0xff << h);
-    else
-      *buf ^= ~(0xff << h);
+  if (remainder) {
+    *buf |= ~(0xff << remainder);
   }
 }
 
@@ -240,7 +222,7 @@ void Graphics::drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data)
   coord_t h = 8;
   CLIPY(y, h);
 
-  uint8_t *buf = frame_ + (y / 8) * kWidth + x;
+  uint8_t *buf = get_frame_ptr(x, y);
 
   coord_t remainder = y & 0x7;
   if (!remainder) {
@@ -281,7 +263,7 @@ void Graphics::drawLine(coord_t x0, coord_t y0, coord_t x1, coord_t y1) {
 
   if (steep) {
     for(coord_t x = x0; x <= x1; x++ ) {
-      setPixel<DRAW_NORMAL>(y, x); 
+      setPixel(y, x); 
       err -= dy;
       if (err < 0) {
         y += ystep;
@@ -290,7 +272,7 @@ void Graphics::drawLine(coord_t x0, coord_t y0, coord_t x1, coord_t y1) {
     }
   } else {
     for(coord_t x = x0; x <= x1; x++ ) {
-      setPixel<DRAW_NORMAL>(x, y); 
+      setPixel(x, y); 
       err -= dy;
       if (err < 0) {
         y += ystep;
@@ -307,10 +289,10 @@ void Graphics::drawCircle(coord_t center_x, coord_t center_y, coord_t r) {
   coord_t x = 0;
   coord_t y = r;
 
-  setPixel<DRAW_NORMAL>(center_x  , center_y+r);
-  setPixel<DRAW_NORMAL>(center_x  , center_y-r);
-  setPixel<DRAW_NORMAL>(center_x+r, center_y  );
-  setPixel<DRAW_NORMAL>(center_x-r, center_y  );
+  setPixel(center_x  , center_y+r);
+  setPixel(center_x  , center_y-r);
+  setPixel(center_x+r, center_y  );
+  setPixel(center_x-r, center_y  );
 
   while (x < y) {
     if (f >= 0) {
@@ -322,32 +304,40 @@ void Graphics::drawCircle(coord_t center_x, coord_t center_y, coord_t r) {
     ddF_x += 2;
     f += ddF_x;
   
-    setPixel<DRAW_NORMAL>(center_x + x, center_y + y);
-    setPixel<DRAW_NORMAL>(center_x - x, center_y + y);
-    setPixel<DRAW_NORMAL>(center_x + x, center_y - y);
-    setPixel<DRAW_NORMAL>(center_x - x, center_y - y);
-    setPixel<DRAW_NORMAL>(center_x + y, center_y + x);
-    setPixel<DRAW_NORMAL>(center_x - y, center_y + x);
-    setPixel<DRAW_NORMAL>(center_x + y, center_y - x);
-    setPixel<DRAW_NORMAL>(center_x - y, center_y - x);
+    setPixel(center_x + x, center_y + y);
+    setPixel(center_x - x, center_y + y);
+    setPixel(center_x + x, center_y - y);
+    setPixel(center_x - x, center_y - y);
+    setPixel(center_x + y, center_y + x);
+    setPixel(center_x - y, center_y + x);
+    setPixel(center_x + y, center_y - x);
+    setPixel(center_x - y, center_y - x);
   }
 }
 
 #include "gfx_font_6x8.h"
 
-void Graphics::setFont(const void *) {
-}
-
 void Graphics::print(char c) {
-  if (c < 32 || c > 128) {
+  if (c < 32 || c > 127) {
     return;
   }
   const uint8_t *data = ssd1306xled_font6x8 + 6 * (c - 32);
-  uint8_t *buf = frame_ + (text_y_ / 8) * kWidth + text_x_;
-  coord_t w = text_x_ + 6 > kWidth ? 6 - text_x_ : 6;
-  coord_t h = text_y_ + 8 > kHeight ? 8 - text_y_ : 8;
 
-  coord_t remainder = text_y_ & 0x7;
+  coord_t x = text_x_;
+  coord_t y = text_y_;
+  coord_t w = 6;
+  if (x + w > kWidth) w = kWidth - x;
+  if (x < 0) {
+    w += x;
+    data += x;
+  }
+  if (w <= 0) return;
+
+  coord_t h = 8;
+  CLIPY(y, h);
+  uint8_t *buf = get_frame_ptr(x, y);
+
+  coord_t remainder = y & 0x7;
   if (!remainder) {
     SETPIXELS_H(buf, w, *data++);
   } else {

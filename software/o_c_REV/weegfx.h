@@ -28,18 +28,10 @@ namespace weegfx {
 
 typedef int_fast16_t coord_t;
 
-enum DRAW_MODE {
-  DRAW_NORMAL,
-  DRAW_INVERSE,
-  // faster since no read required but hard to manage
-  DRAW_OVERWRITE,
-};
-
 // Quick & dirty graphics for 128 x 64 framebuffer with vertical pixels.
 // - Writes to provided framebuffer
 // - Interface pseudo-compatible with u8glib
-// - Makes some assumptions based on fixed size
-
+// - Makes some assumptions based on fixed size and pixel orientation
 class Graphics {
 public:
 
@@ -52,15 +44,17 @@ public:
   void Begin(uint8_t *frame, bool clear_frame);
   void End();
 
-  // Pseudo-compatible with u8glib
+  // Pseudo-compatible functions with u8lib
+  void setDefaultBackgroundColor() { };
+  void setDefaultForegroundColor() { };
+  void setFont(const void *) { };
 
-  void setDefaultBackgroundColor();
-  void setDefaultForegroundColor();
+  // All Drawing is with foreground color except where otherwise noted
 
-  template <DRAW_MODE draw_mode>
   inline void setPixel(coord_t x, coord_t y) __attribute__((always_inline));
 
-  void drawBox(coord_t x, coord_t y, coord_t w, coord_t h);
+  void drawRect(coord_t x, coord_t y, coord_t w, coord_t h);
+  void invertRect(coord_t x, coord_t y, coord_t w, coord_t h);
   void drawFrame(coord_t x, coord_t y, coord_t w, coord_t h);
 
   void drawHLine(coord_t x, coord_t y, coord_t w);
@@ -73,12 +67,7 @@ public:
   // Beware: No clipping
   void drawCircle(coord_t center_x, coord_t center_y, coord_t r);
 
-  void setFont(const void *);
-
-  void setPrintPos(coord_t x, coord_t y) {
-    text_x_ = x;
-    text_y_ = y;
-  }
+  void setPrintPos(coord_t x, coord_t y);
 
   void print(char);
   void print(int);
@@ -92,15 +81,23 @@ public:
 private:
   uint8_t *frame_;
 
+  inline uint8_t *get_frame_ptr(const coord_t x, const coord_t y) __attribute__((always_inline));
+
   coord_t text_x_;
   coord_t text_y_;
-
-  DRAW_MODE draw_mode_;
 };
 
-template <>
-inline void Graphics::setPixel<DRAW_NORMAL>(coord_t x, coord_t y) {
-  *(frame_ + (y/8) * kWidth + x) |= (0x1 << (y & 0x7));
+inline void Graphics::setPixel(coord_t x, coord_t y) {
+  *(get_frame_ptr(x, y)) |= (0x1 << (y & 0x7));
+}
+
+inline void Graphics::setPrintPos(coord_t x, coord_t y) {
+  text_x_ = x;
+  text_y_ = y;
+}
+
+inline uint8_t *Graphics::get_frame_ptr(const coord_t x, const coord_t  y) {
+  return frame_ + ((y >>3) << 7) + x;
 }
 
 };

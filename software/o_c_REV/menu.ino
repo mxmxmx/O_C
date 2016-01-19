@@ -10,7 +10,7 @@ uint8_t X_OFF = 104; // display x offset
 uint8_t OFFSET = 0x0;  // display y offset
 uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
-static const uint16_t SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
+static const uint16_t SCREENSAVER_TIMEOUT_MS = 2000; // time out menu (in ms)
 
 const int8_t MENU_ITEMS = 6;
 
@@ -75,10 +75,8 @@ void UI() {
 void hello() {
   GRAPHICS_BEGIN_FRAME(true);
   graphics.setFont(u8g_font_6x12);
-  graphics.setDefaultForegroundColor();
-  graphics.drawBox(0, 0, 128, 14);
-  graphics.setDefaultBackgroundColor();
   graphics.setPrintPos(4, 2); graphics.print("ornaments&crimes");
+  graphics.invertRect(0, 0, 128, 14);
 
   graphics.setDefaultForegroundColor();
   graphics.setPrintPos(4, 20); graphics.print("L : calibrate");
@@ -96,7 +94,7 @@ void screensaver() {
   for(int i = 0; i < 4; i++, x += 32 ) { 
     y = DAC::value(i) >> 10; 
     y++; 
-    graphics.drawBox(x, 64-y, width, width); // replace second 'width' with y for bars.
+    graphics.drawRect(x, 64-y, width, width); // replace second 'width' with y for bars.
   }
 
   GRAPHICS_END_FRAME();
@@ -109,19 +107,19 @@ void scope() {
 
   DAC::getHistory<DAC_CHANNEL_A>(scope_history);
   for (weegfx::coord_t x = 0; x < 64; ++x)
-    graphics.setPixel<weegfx::DRAW_NORMAL>(x, 0 + (scope_history[x] >> 11));
+    graphics.setPixel(x, 0 + (scope_history[x] >> 11));
 
   DAC::getHistory<DAC_CHANNEL_B>(scope_history);
   for (weegfx::coord_t x = 0; x < 64; ++x)
-    graphics.setPixel<weegfx::DRAW_NORMAL>(64 + x, 0 + (scope_history[x] >> 11));
+    graphics.setPixel(64 + x, 0 + (scope_history[x] >> 11));
 
   DAC::getHistory<DAC_CHANNEL_C>(scope_history);
   for (weegfx::coord_t x = 0; x < 64; ++x)
-    graphics.setPixel<weegfx::DRAW_NORMAL>(x, 32 + (scope_history[x] >> 11));
+    graphics.setPixel(x, 32 + (scope_history[x] >> 11));
 
   DAC::getHistory<DAC_CHANNEL_D>(scope_history);
   for (weegfx::coord_t x = 0; x < 64; ++x)
-    graphics.setPixel<weegfx::DRAW_NORMAL>(64 + x, 32 + (scope_history[x] >> 11));
+    graphics.setPixel(64 + x, 32 + (scope_history[x] >> 11));
 /*
   graphics.drawHLine(0, 0 + (DAC::value(0) >> 11), 64);
   graphics.drawHLine(64, 0 + (DAC::value(1) >> 11), 64);
@@ -163,13 +161,7 @@ void ASR_menu() {
   for(i = 2; i < MENU_ITEMS; i++) {   
 
     y = i*h-4;  // = offset 
-    graphics.setDefaultForegroundColor();
-            
-    // print cursor          
-    if (i == MENU_CURRENT) {              
-      graphics.drawBox(0, y, w, h);           
-      graphics.setDefaultBackgroundColor();
-    }
+           
     // print param name
     graphics.drawStr(10, y + 2, menu_strings[i]);  
     // print param values     
@@ -182,7 +174,10 @@ void ASR_menu() {
       graphics.print(asr_display_params[i]);
     }  
 
-    graphics.setDefaultForegroundColor();
+    // print cursor          
+    if (i == MENU_CURRENT) {              
+      graphics.invertRect(0, y, w, h);           
+    }
   }
 
   GRAPHICS_END_FRAME();

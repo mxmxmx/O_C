@@ -453,6 +453,7 @@ void Automatonnetz_menu_grid() {
     } else {
       graphics.pretty_print(value);
     }
+    UI_END_ITEM();
 
   UI_END_ITEMS_LOOP();
 }
@@ -464,28 +465,23 @@ void Automatonnetz_menu() {
 
   const vec2<size_t> current_pos = automatonnetz_state.grid.current_pos();
 
-  uint8_t y = kGridYStart;
+  weegfx::coord_t x, y = kGridYStart;
   for (size_t row = 0; row < GRID_SIZE; ++row, y += kGridH) {
     const TransformCell *cells = automatonnetz_state.grid.row(row);
-    uint8_t x = kGridXStart;
+    weegfx::coord_t x = kGridXStart;
     for (size_t col = 0; col < GRID_SIZE; ++col, x+=kGridW) {
       graphics.setPrintPos(x + 3, y + 2);
-      graphics.setDefaultForegroundColor();
-      if (row == current_pos.y && col == current_pos.x) {
-        graphics.drawBox(x, y, kGridW, kGridH);
-        graphics.setDefaultBackgroundColor();
-      }
-
       graphics.print(tonnetz::transform_names[cells[col].transform()]);
     }
   }
 
-  graphics.setDefaultForegroundColor();
-  graphics.drawFrame(automatonnetz_state.ui.selected_col * kGridW,
-                automatonnetz_state.ui.selected_row * kGridH, kGridW, kGridH);
-  graphics.setDefaultBackgroundColor();
-  graphics.drawFrame(automatonnetz_state.ui.selected_col * kGridW + 1,
-                automatonnetz_state.ui.selected_row * kGridH + 1, kGridW - 2, kGridH - 2);
+  x = kGridXStart + automatonnetz_state.ui.selected_col * kGridW;
+  y = kGridYStart + automatonnetz_state.ui.selected_row * kGridH;
+  graphics.drawFrame(x, y, kGridW, kGridH);
+
+  x = kGridXStart + current_pos.x * kGridW;
+  y = kGridYStart + current_pos.y * kGridH;
+  graphics.invertRect(x + 1, y + 1, kGridW - 1, kGridH - 1);
 
   if (automatonnetz_state.ui.edit_cell)
     Automatonnetz_menu_cell();
@@ -495,11 +491,12 @@ void Automatonnetz_menu() {
   GRAPHICS_END_FRAME();
 }
 
-static const uint8_t kScreenSaverX = 64 + 2;
-static const uint8_t kScreenSaverY = 5;
-static const uint8_t kScreenSaverGrid = 55 / 5;
+static const weegfx::coord_t kScreenSaverX = 64 + 2;
+static const weegfx::coord_t kScreenSaverY = 5;
+static const weegfx::coord_t kScreenSaverGrid = 55 / 5;
 
-extern const uint8_t circle_disk_bitmap[];
+extern const uint8_t circle_disk_bitmap_8x8[];
+extern const uint8_t circle_bitmap_8x8[];
 
 void Automatonnetz_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
@@ -513,20 +510,21 @@ void Automatonnetz_screensaver() {
   visualize_pitch_classes(normalized);
 
   vec2<size_t> last_pos = automatonnetz_state.history(0);
-//  u8g.drawCircle(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid, 3);
   graphics.drawBitmap8(kScreenSaverX + last_pos.x * kScreenSaverGrid - 3,
                        kScreenSaverY + last_pos.y * kScreenSaverGrid - 3,
-                       8, circle_disk_bitmap);
+                       8, circle_disk_bitmap_8x8);
   for (size_t i = 1; i < AutomatonnetzState::HISTORY_LENGTH; ++i) {
     const vec2<size_t> &current = automatonnetz_state.history(i);
     graphics.drawLine(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid,
                       kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid);
 
-//    u8g.drawCircle(kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid, 2);
+    graphics.drawBitmap8(kScreenSaverX + current.x * kScreenSaverGrid - 3,
+                         kScreenSaverY + current.y * kScreenSaverGrid - 3,
+                         8, circle_bitmap_8x8);
     last_pos = current;
   }
 
-  uint8_t y = 0;
+  weegfx::coord_t y = 0;
   for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += 12) {
     graphics.setPrintPos(128-7, y);
     graphics.print(automatonnetz_state.tonnetz_state.history(i).str[1]);

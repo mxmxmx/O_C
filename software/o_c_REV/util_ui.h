@@ -15,23 +15,25 @@ static const uint8_t kUiWideMenuCol1X = 96;
 
 #define UI_DRAW_TITLE(xstart) \
   do { \
-  graphics.setDefaultForegroundColor(); \
   graphics.setPrintPos(xstart + 2, kUiTitleTextY); \
   graphics.drawHLine(xstart, kUiDefaultFontH, kUiDisplayWidth); \
   } while (0)
 
-#define UI_SETUP_ITEM(xstart, sel) \
+#define UI_SETUP_ITEM(sel) \
+  const bool __selected = sel; \
   do { \
-    graphics.setDefaultForegroundColor(); \
-    if (sel) { \
-      graphics.drawBox(xstart, y, kUiDisplayWidth - xstart, kUiLineH - 1); \
-      graphics.setDefaultBackgroundColor(); \
-    } \
     graphics.setPrintPos(xstart + 2, y + 1); \
   } while (0)
 
-#define UI_START_MENU(xstart) \
-  graphics.setDefaultForegroundColor(); \
+#define UI_END_ITEM() \
+  do { \
+    if (__selected) \
+      graphics.invertRect(xstart, y, kUiDisplayWidth - xstart, kUiLineH - 1); \
+  } while (0)
+
+
+#define UI_START_MENU(x) \
+  const weegfx::coord_t xstart = x; \
   weegfx::coord_t y = kUiItemsStartY; \
   graphics.setPrintPos(xstart + 2, y + 1); \
   do {} while (0)
@@ -40,7 +42,7 @@ static const uint8_t kUiWideMenuCol1X = 96;
 #define UI_BEGIN_ITEMS_LOOP(xstart, first, last, selected, startline) \
   y = kUiItemsStartY + startline * kUiLineH; \
   for (int i = 0, current_item = first; i < kUiVisibleItems - startline && current_item < last; ++i, ++current_item, y += kUiLineH) { \
-    UI_SETUP_ITEM(xstart, selected == current_item);
+    UI_SETUP_ITEM(selected == current_item);
 
 #define UI_END_ITEMS_LOOP() } do {} while (0)
 
@@ -53,6 +55,7 @@ static const uint8_t kUiWideMenuCol1X = 96;
       graphics.print(attr.value_names[val]); \
     else \
       graphics.pretty_print(val); \
+    UI_END_ITEM(); \
   } while (0)
 
 #endif // UTIL_UI_H_

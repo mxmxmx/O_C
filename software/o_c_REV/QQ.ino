@@ -318,18 +318,16 @@ void QQ_menu() {
   UI_DRAW_TITLE(kStartX);
 
   for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    if (i == qq_state.selected_channel) {
-      graphics.drawBox(x, 0, 32, 11);
-      graphics.setDefaultBackgroundColor();  
-    } else {
-      graphics.setDefaultForegroundColor();  
-    }
     graphics.setPrintPos(x + 4, 2);
     graphics.print((char)('A' + i));
     graphics.setPrintPos(x + 14, 2);
     int octave = quantizer_channels[i].get_octave();
     if (octave)
       graphics.pretty_print(octave);
+
+    if (i == qq_state.selected_channel) {
+      graphics.invertRect(x, 0, 32, 11);
+    }
   }
 
   const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];

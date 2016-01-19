@@ -78,13 +78,15 @@ void draw_app_menu(int selected) {
   if (first < 0) first = 0;
 
   uint8_t y = 0;
+  const weegfx::coord_t xstart = 0;
   for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiLineH) {
-    UI_SETUP_ITEM(0, current == selected);
+    UI_SETUP_ITEM(current == selected);
     if (global_settings.current_app_index == current)
       graphics.print('>');
     else
       graphics.print(' ');
     graphics.print(available_apps[current].name);
+    UI_END_ITEM();
   }
 
   GRAPHICS_END_FRAME();

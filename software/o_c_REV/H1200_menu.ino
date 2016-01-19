@@ -67,8 +67,12 @@ void init_circle_lut() {
   }
 }
 
-const uint8_t circle_disk_bitmap[] = {
+const uint8_t circle_disk_bitmap_8x8[] = {
   0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
+};
+
+const uint8_t circle_bitmap_8x8[] = {
+  0, 0x18, 0x24, 0x42, 0x42, 0x24, 0x18, 0
 };
 
 void visualize_pitch_classes(uint8_t *normalized) {
@@ -76,13 +80,13 @@ void visualize_pitch_classes(uint8_t *normalized) {
 
   coords last_pos = circle_pos_lut[normalized[0]];
   for (size_t i = 1; i < 3; ++i) {
-    graphics.drawBitmap8(last_pos.x - 3, last_pos.y - 3, 8, circle_disk_bitmap);
+    graphics.drawBitmap8(last_pos.x - 3, last_pos.y - 3, 8, circle_disk_bitmap_8x8);
     const coords &current_pos = circle_pos_lut[normalized[i]];
     graphics.drawLine(last_pos.x, last_pos.y, current_pos.x, current_pos.y);
     last_pos = current_pos;
   }
   graphics.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
-  graphics.drawBitmap8(last_pos.x - 3, last_pos.y - 3, 8, circle_disk_bitmap);
+  graphics.drawBitmap8(last_pos.x - 3, last_pos.y - 3, 8, circle_disk_bitmap_8x8);
 }
 
 void H1200_screensaver() {
