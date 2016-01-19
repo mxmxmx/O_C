@@ -10,7 +10,7 @@ uint8_t X_OFF = 104; // display x offset
 uint8_t OFFSET = 0x0;  // display y offset
 uint8_t UI_MODE = 0;
 uint8_t MENU_REDRAW = 0;
-static const uint16_t SCREENSAVER_TIMEOUT_MS = 2000; // time out menu (in ms)
+static const uint16_t SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
 
 const int8_t MENU_ITEMS = 6;
 
