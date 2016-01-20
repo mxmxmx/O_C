@@ -58,4 +58,25 @@ static const uint8_t kUiWideMenuCol1X = 96;
     UI_END_ITEM(); \
   } while (0)
 
+
+#define GRAPHICS_BEGIN_FRAME(wait) \
+do { \
+  DEBUG_PIN_SCOPE(DEBUG_PIN_1); \
+  uint8_t *frame = NULL; \
+  do { \
+    if (frame_buffer.writeable()) \
+      frame = frame_buffer.writeable_frame(); \
+  } while (!frame && wait); \
+  if (frame) { \
+    graphics.Begin(frame, true); \
+    do {} while(0)
+
+#define GRAPHICS_END_FRAME() \
+    graphics.End(); \
+    frame_buffer.written(); \
+    MENU_REDRAW = 0; \
+    LAST_REDRAW_TIME = millis(); \
+  } \
+} while (0)
+
 #endif // UTIL_UI_H_
