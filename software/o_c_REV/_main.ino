@@ -14,7 +14,7 @@ void _loop()
   
    if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
     
-   if (_ADC) CV();
+   ADC_SCAN();
   
    if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
   

@@ -7,11 +7,6 @@
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 
-extern uint16_t _ADC_OFFSET_0;
-extern uint16_t _ADC_OFFSET_1;
-extern uint16_t _ADC_OFFSET_2;
-extern uint16_t _ADC_OFFSET_3;
-
 enum EChannelSettings {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
@@ -27,14 +22,6 @@ enum EChannelUpdateMode {
   CHANNEL_UPDATE_TRIGGERED,
   CHANNEL_UPDATE_CONTINUOUS,
   CHANNEL_UPDATE_LAST
-};
-
-enum EChannelSource {
-  CHANNEL_SOURCE_CV1,
-  CHANNEL_SOURCE_CV2,
-  CHANNEL_SOURCE_CV3,
-  CHANNEL_SOURCE_CV4,
-  CHANNEL_SOURCE_LAST
 };
 
 class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
@@ -60,8 +47,8 @@ public:
     return values_[CHANNEL_SETTING_OCTAVE];
   }
 
-  EChannelSource get_source() const {
-    return static_cast<EChannelSource>(values_[CHANNEL_SETTING_SOURCE]);
+  ADC_CHANNEL get_source() const {
+    return static_cast<ADC_CHANNEL>(values_[CHANNEL_SETTING_SOURCE]);
   }
 
   int get_fine() const {
@@ -90,7 +77,7 @@ public:
   }
 
   template <size_t index, DAC_CHANNEL dac_channel>
-  void update(int32_t *pitch_cvs) {
+  void update() {
 
     bool update = get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
     if (CLK_STATE[index]) {
@@ -106,10 +93,10 @@ public:
     if (update) {
       int32_t pitch;
       int32_t transpose = get_transpose();
-      EChannelSource source = get_source();
-      pitch = pitch_cvs[source];
+      ADC_CHANNEL source = get_source();
+      pitch = ADC::value(source);
       if (index != source) {
-        transpose += (pitch_cvs[index] * 24) >> 12;
+        transpose += (ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
       }
       if (transpose > 12) transpose = 12;
       else if (transpose < -12) transpose = -12;
@@ -206,7 +193,7 @@ const char* const update_modes[CHANNEL_UPDATE_LAST] = {
   "cont"
 };
 
-const char* const channel_source[CHANNEL_SOURCE_LAST] = {
+const char* const channel_source[ADC_CHANNEL_LAST] = {
   "CV1", "CV2", "CV3", "CV4"
 };
 
@@ -217,7 +204,7 @@ const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETT
   { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes },
   { 0, -5, 7, "transpose", NULL },
   { 0, -4, 4, "octave", NULL },
-  { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "source", channel_source},
+  { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", channel_source},
   { 0, -999, 999, "fine", NULL },
 };
 
@@ -280,32 +267,27 @@ void QQ_resume() {
   encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
-#define CLOCK_CHANNEL(i, sample, dac) \
+#define CLOCK_CHANNEL(i, adc_channel, dac_channel) \
 do { \
-  cvs[i] = sample; \
-  quantizer_channels[i].update<i, dac>(cvs); \
+  ADC::ReadImmediate<adc_channel>(); \
+  quantizer_channels[i].update<i, dac_channel>(); \
 } while (0)
 
 void QQ_loop() {
-  int32_t cvs[4];
-  memcpy(cvs, qq_state.raw_cvs, sizeof(cvs));
-
   UI();
-  CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), DAC_CHANNEL_A);
+  CLOCK_CHANNEL(0, ADC_CHANNEL_1, DAC_CHANNEL_A);
    if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), DAC_CHANNEL_B);
+  CLOCK_CHANNEL(1, ADC_CHANNEL_2, DAC_CHANNEL_B);
    buttons(BUTTON_TOP);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), DAC_CHANNEL_C);
+  CLOCK_CHANNEL(2, ADC_CHANNEL_3, DAC_CHANNEL_C);
    buttons(BUTTON_BOTTOM);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), DAC_CHANNEL_D);
+  CLOCK_CHANNEL(3, ADC_CHANNEL_4, DAC_CHANNEL_D);
    buttons(BUTTON_LEFT);
-  CLOCK_CHANNEL(0, _ADC_OFFSET_0 - analogRead(CV1), DAC_CHANNEL_A);
+  CLOCK_CHANNEL(0, ADC_CHANNEL_1, DAC_CHANNEL_A);
    buttons(BUTTON_RIGHT);
-  CLOCK_CHANNEL(1, _ADC_OFFSET_1 - analogRead(CV2), DAC_CHANNEL_B);
-  CLOCK_CHANNEL(2, _ADC_OFFSET_2 - analogRead(CV3), DAC_CHANNEL_C);
-  CLOCK_CHANNEL(3, _ADC_OFFSET_3 - analogRead(CV4), DAC_CHANNEL_D);
-
-  memcpy(qq_state.raw_cvs, cvs, sizeof(cvs));
+  CLOCK_CHANNEL(1, ADC_CHANNEL_2, DAC_CHANNEL_B);
+  CLOCK_CHANNEL(2, ADC_CHANNEL_3, DAC_CHANNEL_C);
+  CLOCK_CHANNEL(3, ADC_CHANNEL_4, DAC_CHANNEL_D);
 }
 
 void QQ_menu() {

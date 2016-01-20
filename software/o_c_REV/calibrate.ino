@@ -11,10 +11,7 @@ const uint16_t _ZERO = 0x3;                                     // "zero" code <
 const uint16_t _OFFSET = 4890;                                  // DAC offset, initial approx., ish --> -3.5V to 6V
 const uint16_t _ADC_OFFSET = (uint16_t)((float)pow(2,_ADC_RES)*0.6666667f); // ADC offset
 
-uint16_t _ADC_OFFSET_0 = _ADC_OFFSET;
-uint16_t _ADC_OFFSET_1 = _ADC_OFFSET;
-uint16_t _ADC_OFFSET_2 = _ADC_OFFSET;
-uint16_t _ADC_OFFSET_3 = _ADC_OFFSET;
+ADC::CalibrationData adc_calibration_data = { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET };
 uint16_t _AVERAGE = 0x0;
 uint16_t _CV = 0x0;
 uint16_t _exit = 0x0;
@@ -253,7 +250,7 @@ void calibrate_main() {
                  
                  case CV_OFFSET_0:
                    if (_B_event) {
-                     encoder[RIGHT].setPos(_ADC_OFFSET_0); 
+                     encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_1]); 
                      _B_event = 0x0;
                    }
                    _CV = analogRead(CV1);
@@ -261,7 +258,7 @@ void calibrate_main() {
                  
                  case CV_OFFSET_1:
                    if (_B_event) {
-                     encoder[RIGHT].setPos(_ADC_OFFSET_1); 
+                     encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_2]); 
                      _B_event = 0x0;
                    }
                    _CV = analogRead(CV2);
@@ -269,7 +266,7 @@ void calibrate_main() {
                  
                  case CV_OFFSET_2:
                    if (_B_event) {
-                     encoder[RIGHT].setPos(_ADC_OFFSET_2); 
+                     encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_3]); 
                      _B_event = 0x0;
                    }
                    _CV = analogRead(CV3);
@@ -277,7 +274,7 @@ void calibrate_main() {
                  
                  case CV_OFFSET_3:
                    if (_B_event) {
-                     encoder[RIGHT].setPos(_ADC_OFFSET_3); 
+                     encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_4]); 
                      _B_event = 0x0;
                    }
                    _CV = analogRead(CV4);
@@ -436,7 +433,7 @@ void calibrate() {
           graphics.print(encoder_data - _CV);
           graphics.drawStr(40, 30, "--> 0"); 
           graphics.drawStr(10, 50, "use encoder!");
-          _ADC_OFFSET_0 = encoder_data;   
+          adc_calibration_data.offset[ADC_CHANNEL_1] = encoder_data;   
           delay(20);
         break;   
       }
@@ -446,7 +443,7 @@ void calibrate() {
           graphics.print(encoder_data - _CV);
           graphics.drawStr(40, 30, "--> 0"); 
           graphics.drawStr(10, 50, "use encoder!"); 
-          _ADC_OFFSET_1 = encoder_data; 
+          adc_calibration_data.offset[ADC_CHANNEL_2] = encoder_data; 
           delay(20);    
         break;   
       }
@@ -456,7 +453,7 @@ void calibrate() {
           graphics.print(encoder_data - _CV);
           graphics.drawStr(40, 30, "--> 0"); 
           graphics.drawStr(10, 50, "use encoder!");  
-          _ADC_OFFSET_2 = encoder_data;
+          adc_calibration_data.offset[ADC_CHANNEL_3] = encoder_data;
           delay(20);
         break;   
       }  
@@ -466,7 +463,7 @@ void calibrate() {
           graphics.print(encoder_data - _CV);
           graphics.drawStr(40, 30, "--> 0"); 
           graphics.drawStr(10, 50, "use encoder!");
-          _ADC_OFFSET_3 = encoder_data;
+          adc_calibration_data.offset[ADC_CHANNEL_4] = encoder_data;
           delay(20);  
         break;   
       }
@@ -523,12 +520,10 @@ void save_settings() {
        adr++;
   }  
   // write CV offset
-  uint16_t _offset[4] = {_ADC_OFFSET_0, _ADC_OFFSET_1, _ADC_OFFSET_2, _ADC_OFFSET_3};
-  
-  for (int i = 0; i < numADC; i++) {
+  for (int i = 0; i < ADC_CHANNEL_LAST; i++) {
     
-      byte0 = _offset[i] >> 8;
-      byte1 = _offset[i];
+      byte0 = adc_calibration_data.offset[i] >> 8;
+      byte1 = adc_calibration_data.offset[i];
       EEPROM.write(adr, byte0);
       adr++;
       EEPROM.write(adr, byte1);
@@ -558,9 +553,9 @@ void read_settings() {
        Serial.println(octaves[i]);
    }
    
-   uint16_t _offset[numADC];
+   uint16_t _offset[ADC_CHANNEL_LAST];
    
-   for (int i = 0; i < numADC; i++) {  
+   for (int i = 0; i < ADC_CHANNEL_LAST; i++) {  
   
        byte0 = EEPROM.read(adr);
        adr++;
@@ -572,10 +567,10 @@ void read_settings() {
        Serial.println(_offset[i]);
    }
    
-   _ADC_OFFSET_0 = _offset[0];
-   _ADC_OFFSET_1 = _offset[1];
-   _ADC_OFFSET_2 = _offset[2];
-   _ADC_OFFSET_3 = _offset[3];
+   adc_calibration_data.offset[ADC_CHANNEL_1] = _offset[0];
+   adc_calibration_data.offset[ADC_CHANNEL_2] = _offset[1];
+   adc_calibration_data.offset[ADC_CHANNEL_3] = _offset[2];
+   adc_calibration_data.offset[ADC_CHANNEL_4] = _offset[3];
    Serial.println("......");
    Serial.println("");
 }  

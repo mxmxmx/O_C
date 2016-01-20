@@ -13,16 +13,8 @@ extern const int8_t MENU_ITEMS;
 uint8_t LAST_SCALE = 0;
 uint8_t SCALE_CHANGE = 0;
 
-// CV 
-extern uint16_t _ADC_OFFSET_0;
-extern uint16_t _ADC_OFFSET_1;
-extern uint16_t _ADC_OFFSET_2;
-extern uint16_t _ADC_OFFSET_3;
-
 const int8_t OCT_MAX = 4;  // max offset via button (top)
 const int8_t OCT_MIN = -3; // min offset via button (bottom)
-
-uint16_t ADC_CNT  = 0;
 
 enum DISPLAY_PAGE 
 {  
@@ -118,23 +110,6 @@ bool update_ENC()  {
      }
 
      return false;
-}
-
-/* --- read  ADC ------ */
-
-void CV() {
-
-      cvval[0] = _ADC_OFFSET_0 - analogRead(CV1); // sample in
-      
-      ADC_CNT = ADC_CNT++ > 0x2 ? 0x0 : ADC_CNT;
-      
-      switch(ADC_CNT) {
-        
-        case 0: cvval[1] = 0x1+((_ADC_OFFSET_1 - analogRead(CV2)) >> 5); break;            // index -64/64 
-        case 1: cvval[2] = 0x1+((_ADC_OFFSET_2 - analogRead(CV3)) >> 8); break;            // # notes -8/8
-        case 2: cvval[3] = 0x1+((_ADC_OFFSET_3 - analogRead(CV4)) >> 9); break;            // octave offset
-      }
-      _ADC = false;
 }
 
 /* --- check buttons --- */

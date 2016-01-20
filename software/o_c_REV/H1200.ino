@@ -25,7 +25,7 @@ enum EH1200Settings {
   H1200_SETTING_LAST
 };
 
-static const int MAX_INVERSION = 9;
+static const int MAX_INVERSION = 7;
 
 class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
@@ -137,7 +137,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  int32_t sample = cvval[0];
+  int32_t sample = ADC::value<ADC_CHANNEL_1>();
   int root;
   if (sample < 0)
     root = 0;
@@ -147,7 +147,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     root = RANGE;
   root += h1200_settings.root_offset();
   
-  int inversion = h1200_settings.inversion() + cvval[3]; // => octave in original
+  int inversion = h1200_settings.inversion() + (ADC::value<ADC_CHANNEL_4>() >> 9); //cvval[3]; // => octave in original
   if (inversion > MAX_INVERSION) inversion = MAX_INVERSION;
   else if (inversion < -MAX_INVERSION) inversion = -MAX_INVERSION;
   h1200_state.tonnetz_state.render(root, inversion);
@@ -213,7 +213,7 @@ void H1200_loop() {
   CLOCKIT();
   UI();
   CLOCKIT();
-  if (_ADC) CV();
+  ADC_SCAN();
   CLOCKIT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   CLOCKIT();

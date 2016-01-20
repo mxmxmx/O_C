@@ -30,7 +30,7 @@ struct O_CSettings {
 };
 
 #define EEPROM_CALIBRATIONDATA_START 0
-#define EEPROM_CALIBRATIONDATA_LENGTH 64 // calibrate.ino: OCTAVES*uint16_t + numADC*unit16_t = 14 * 2 = 28 -> leaves space
+#define EEPROM_CALIBRATIONDATA_LENGTH 64 // calibrate.ino: OCTAVES*uint16_t + ADC_CHANNEL_LAST*unit16_t = 14 * 2 = 28 -> leaves space
 
 O_CSettings global_settings;
 typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_LENGTH, EEPROMStorage::LENGTH, O_CSettings> O_CSettingsStorage;

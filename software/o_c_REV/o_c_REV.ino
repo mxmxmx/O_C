@@ -26,6 +26,7 @@
 #include <EEPROM.h>
 
 #include "O_C_gpio.h"
+#include "ADC.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
 #include "util_app.h"
@@ -36,9 +37,8 @@
 #include "weegfx.h"
 #include "SH1106_128x64_driver.h"
 
-#define ENABLE_DEBUG_PINS
+//#define ENABLE_DEBUG_PINS
 #include "util_debugpins.h"
-
 
 // Work-around until there are fonts available
 const char *u8g_font_10x20 = "";
@@ -81,7 +81,6 @@ Rotary encoder[2] =
 extern uint8_t UI_MODE;
 extern uint8_t MENU_REDRAW;
 
-
 /*  ------------------------ ASR ------------------------------------  */
 
 #define MAX_VALUE 65535 // DAC fullscale 
@@ -95,9 +94,17 @@ extern const uint16_t _ZERO;
 
 #define _ADC_RATE 1000 // 100us = 1kHz
 #define _ADC_RES  12
-#define numADC 4
-int16_t cvval[numADC];                        // store cv values
 volatile uint_fast8_t _ADC = false;
+extern ADC::CalibrationData adc_calibration_data;
+
+/* --- read  ADC ------ */
+#define ADC_SCAN() \
+do { \
+  if (_ADC) { \
+    _ADC = false; \
+    ADC::Scan(); \
+  } \
+} while (0)
 
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
@@ -227,6 +234,7 @@ void setup(){
 
   Serial.begin(9600); 
 
+  ADC::Init(&adc_calibration_data);
   DAC::Init();
 
   frame_buffer.Init();

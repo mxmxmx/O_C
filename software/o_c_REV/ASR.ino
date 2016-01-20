@@ -34,14 +34,17 @@ ASRbuf *ASR;
                                 
 /* update ASR params + etc */
 
+#define SCALED_ADC(channel, shift) \
+(0x1+(ADC::value<channel>() >> shift))
+
 void FASTRUN _ASR() {
 
          /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
         uint8_t _scale     =  asr_params[0];            // id scale
-        int8_t  _transpose =  cvval[3] + asr_params[1]; // octave +/-
-        int32_t _sample    =  cvval[0] + asr_params[2]; // offset + CV
-        int8_t  _index     =  cvval[1] + asr_params[3]; // index 
-        int8_t  _num       =  cvval[2] + asr_params[4]; // # notes
+        int8_t  _transpose =  SCALED_ADC(ADC_CHANNEL_4, 9) + asr_params[1]; // cvval[3] octave +/-
+        int32_t _sample    =  ADC::value<ADC_CHANNEL_1>() + asr_params[2]; // cvval[0] offset + CV
+        int8_t  _index     =  SCALED_ADC(ADC_CHANNEL_2, 5) + asr_params[3]; // cvval[1] index -64/64 
+        int8_t  _num       =  SCALED_ADC(ADC_CHANNEL_3, 8) + asr_params[4]; // cvval[2] # notes -8/8
     
         _sample *= (asr_params[5]); // att/mult
         _sample = _sample >> 4;
