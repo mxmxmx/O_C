@@ -85,16 +85,17 @@ public:
       update |= true;
     }
 
+    update_scale();
+
     if (force_update_) {
       force_update_ = false;
       update |= true;
     }
 
     if (update) {
-      int32_t pitch;
       int32_t transpose = get_transpose();
       ADC_CHANNEL source = get_source();
-      pitch = ADC::value(source);
+      int32_t pitch = ADC::value(source);
       if (index != source) {
         transpose += (ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
       }
@@ -122,7 +123,6 @@ public:
       if (last_output_ != sample) {
         MENU_REDRAW = 1;
         last_output_ = sample;
-        asr_outputs[index] = sample;
       }
     }
 
@@ -273,21 +273,24 @@ do { \
   quantizer_channels[i].update<i, dac_channel>(); \
 } while (0)
 
+void QQ_isr() {
+  quantizer_channels[0].update<0, DAC_CHANNEL_A>();
+  quantizer_channels[1].update<1, DAC_CHANNEL_B>();
+  quantizer_channels[2].update<2, DAC_CHANNEL_C>();
+  quantizer_channels[3].update<3, DAC_CHANNEL_D>();
+}
+
 void QQ_loop() {
   UI();
-  CLOCK_CHANNEL(0, ADC_CHANNEL_1, DAC_CHANNEL_A);
-   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  CLOCK_CHANNEL(1, ADC_CHANNEL_2, DAC_CHANNEL_B);
-   buttons(BUTTON_TOP);
-  CLOCK_CHANNEL(2, ADC_CHANNEL_3, DAC_CHANNEL_C);
-   buttons(BUTTON_BOTTOM);
-  CLOCK_CHANNEL(3, ADC_CHANNEL_4, DAC_CHANNEL_D);
-   buttons(BUTTON_LEFT);
-  CLOCK_CHANNEL(0, ADC_CHANNEL_1, DAC_CHANNEL_A);
-   buttons(BUTTON_RIGHT);
-  CLOCK_CHANNEL(1, ADC_CHANNEL_2, DAC_CHANNEL_B);
-  CLOCK_CHANNEL(2, ADC_CHANNEL_3, DAC_CHANNEL_C);
-  CLOCK_CHANNEL(3, ADC_CHANNEL_4, DAC_CHANNEL_D);
+  ADC::ReadImmediate<ADC_CHANNEL_1>();
+  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
+  ADC::ReadImmediate<ADC_CHANNEL_2>();
+  buttons(BUTTON_TOP);
+  buttons(BUTTON_BOTTOM);
+  ADC::ReadImmediate<ADC_CHANNEL_3>();
+  buttons(BUTTON_LEFT);
+  buttons(BUTTON_RIGHT);
+  ADC::ReadImmediate<ADC_CHANNEL_4>();
 }
 
 void QQ_menu() {
@@ -407,7 +410,6 @@ void QQ_rightButton() {
 void QQ_leftButton() {
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     quantizer_channels[qq_state.selected_channel].apply_value(CHANNEL_SETTING_SCALE, qq_state.left_encoder_value);
-    quantizer_channels[qq_state.selected_channel].update_scale();
     qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
     encoder[LEFT].setPos(qq_state.selected_channel);
   } else {
@@ -424,7 +426,7 @@ void QQ_leftButtonLong() {
     for (int i = 0; i < 4; ++i) {
       quantizer_channels[i].apply_value(CHANNEL_SETTING_SCALE, scale);
       quantizer_channels[i].apply_value(CHANNEL_SETTING_ROOT, root);
-      quantizer_channels[i].update_scale();
+      quantizer_channels[i].force_update();
     }
 
     qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
