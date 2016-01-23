@@ -12,7 +12,7 @@ extern void set8565_CHD(uint32_t data);
 
 class DAC {
 public:
-  static const size_t kHistoryDepth = 64;
+  static const size_t kHistoryDepth = 8;
 
   static void Init();
 

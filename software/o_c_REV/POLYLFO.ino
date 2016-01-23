@@ -126,9 +126,13 @@ void POLYLFO_resume() {
 }
 
 void POLYLFO_topButton() {
+  poly_lfo.change_value(POLYLFO_SETTING_FREQ, 32);
+  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
 }
 
 void POLYLFO_lowerButton() {
+  poly_lfo.change_value(POLYLFO_SETTING_FREQ, -32);
+  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
 }
 
 void POLYLFO_rightButton() {
