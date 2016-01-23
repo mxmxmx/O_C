@@ -221,6 +221,10 @@ void setup(){
   display_driver.Init();
   graphics.Init();
  
+  // TODO This automatically invokes current_app->isr so it might be necessary
+  // to have an "enabled" flag, or at least set current_app to nullptr during
+  // load/save/app selection
+
   CORE_timer.begin(CORE_timer_ISR, CORE_TIMER_RATE);
 
   // splash screen, sort of ... 
