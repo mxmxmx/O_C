@@ -5,6 +5,12 @@
 
 #include "O_C_gpio.h"
 
+#define DMA_PAGE_TRANSFER
+#ifdef DMA_PAGE_TRANSFER
+#include <DMAChannel.h>
+static DMAChannel page_dma;
+#endif
+
 /*static*/ uint8_t SH1106_128x64_Driver::data_start_seq[] = {
 // u8g_dev_ssd1306_128x64_data_start
   0x10, /* set upper 4 bit of the col adr to 0 */
@@ -66,10 +72,28 @@ void SH1106_128x64_Driver::Init() {
   spi4teensy3::send(init_seq, sizeof(init_seq));
 
   digitalWriteFast(OLED_CS, OLED_CS_LOW); // U8G_ESC_CS(0),             /* disable chip */
+
+#ifdef DMA_PAGE_TRANSFER
+  page_dma.destination((volatile uint8_t&)SPI0_PUSHR);
+  page_dma.transferSize(1);
+  page_dma.transferCount(kPageSize);
+  page_dma.disableOnCompletion();
+  page_dma.triggerAtHardwareEvent(DMAMUX_SOURCE_SPI0_TX);
+  page_dma.disable();
+#endif
 }
 
 /*static*/
 void SH1106_128x64_Driver::Flush() {
+#ifdef DMA_PAGE_TRANSFER
+  // Assume DMA transfer has completed, else we're doomed
+  digitalWriteFast(OLED_CS, OLED_CS_LOW); // U8G_ESC_CS(0)
+  page_dma.clearComplete();
+  page_dma.disable();
+  // DmaSpi.h::post_finishCurrentTransfer_impl
+  SPI0_RSER = 0;
+  SPI0_SR = 0xFF0F0000;
+#endif
 }
 
 /*static*/
@@ -81,8 +105,15 @@ void SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
   spi4teensy3::send(data_start_seq, sizeof(data_start_seq)); // u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_data_start);
   digitalWriteFast(OLED_DC, HIGH); // /* data mode */
 
+#ifdef DMA_PAGE_TRANSFER
+  // DmaSpi.h::pre_cs_impl()
+  SPI0_SR = 0xFF0F0000;
+  SPI0_RSER = SPI_RSER_RFDF_RE | SPI_RSER_RFDF_DIRS | SPI_RSER_TFFF_RE | SPI_RSER_TFFF_DIRS;
+
+  page_dma.sourceBuffer(data, kPageSize);
+  page_dma.enable(); // go
+#else
   spi4teensy3::send(data, kPageSize);
   digitalWriteFast(OLED_CS, OLED_CS_LOW); // U8G_ESC_CS(0)
-
-  // OPTIMIZE setup DMA transfer here, then set OLED_CS to low in Flush
+#endif
 }
