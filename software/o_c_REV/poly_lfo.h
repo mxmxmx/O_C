@@ -44,6 +44,7 @@ class PolyLfo {
   
   void Init();
   void Render(int32_t frequency);
+  void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
   inline void set_shape(uint16_t shape) {
     shape_ = shape;

@@ -10,7 +10,7 @@ App available_apps[] = {
   {"VierfStSpQuaMo", QQ_init, QQ_save, QQ_restore, NULL, QQ_resume,
     QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_leftButtonLong, QQ_encoders, QQ_isr},
   {"frames::poly_lfo", POLYLFO_init, POLYLFO_save, POLYLFO_restore, NULL, POLYLFO_resume,
-    POLYLFO_loop, POLYLFO_menu, scope, POLYLFO_topButton, POLYLFO_lowerButton, POLYLFO_rightButton, POLYLFO_leftButton, POLYLFO_leftButtonLong, POLYLFO_encoders, POLYLFO_isr},
+    POLYLFO_loop, POLYLFO_menu, POLYLFO_screensaver, POLYLFO_topButton, POLYLFO_lowerButton, POLYLFO_rightButton, POLYLFO_leftButton, POLYLFO_leftButtonLong, POLYLFO_encoders, POLYLFO_isr},
 };
 
 struct O_CSettings {

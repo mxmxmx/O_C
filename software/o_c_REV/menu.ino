@@ -118,7 +118,11 @@ inline uint16_t calc_average(const uint16_t *data) {
 
 void scope() {
   GRAPHICS_BEGIN_FRAME(false);
+  scope_render();
+  GRAPHICS_END_FRAME();
+}
 
+void scope_render() {
   switch (scope_update_channel) {
     case DAC_CHANNEL_A:
       DAC::getHistory<DAC_CHANNEL_A>(scope_history);
@@ -151,14 +155,6 @@ void scope() {
     graphics.setPixel(x, 32 + averaged_scope_history[DAC_CHANNEL_C][index]);
     graphics.setPixel(64 + x, 32 + averaged_scope_history[DAC_CHANNEL_D][index]);
   }
-
-/*
-  graphics.drawHLine(0, 0 + (DAC::value(0) >> 11), 64);
-  graphics.drawHLine(64, 0 + (DAC::value(1) >> 11), 64);
-  graphics.drawHLine(0, 32 + (DAC::value(2) >> 11), 64);
-  graphics.drawHLine(64, 32 + (DAC::value(3) >> 11), 64);
-*/
-  GRAPHICS_END_FRAME();
 }
 
 /* --------------------- main menu loop ------------------------  */

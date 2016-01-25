@@ -96,6 +96,9 @@ void POLYLFO_loop() {
   buttons(BUTTON_RIGHT);
 }
 
+static const size_t kSmallPreviewBufferSize = 32;
+uint16_t preview_buffer[kSmallPreviewBufferSize];
+
 void POLYLFO_menu() {
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
@@ -114,8 +117,42 @@ void POLYLFO_menu() {
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, POLYLFO_SETTING_LAST, poly_lfo_state.selected_param, 0)
     const settings::value_attr &attr = PolyLfo::value_attr(current_item);
-    UI_DRAW_SETTING(attr, poly_lfo.get_value(current_item), kUiWideMenuCol1X);
+    if (current_item != POLYLFO_SETTING_SHAPE) {
+      UI_DRAW_SETTING(attr, poly_lfo.get_value(current_item), kUiWideMenuCol1X);
+    } else {
+      uint16_t shape = poly_lfo.get_value(current_item);
+      poly_lfo.lfo.RenderPreview(shape << 8, preview_buffer, kSmallPreviewBufferSize);
+      for (weegfx::coord_t x = 0; x < (weegfx::coord_t)kSmallPreviewBufferSize; ++x)
+        graphics.setPixel(96 + x, y + 8 - (preview_buffer[x] >> 13));
+
+      UI_DRAW_SETTING(attr, shape,  96 - 32);
+    }
   UI_END_ITEMS_LOOP();
+
+  GRAPHICS_END_FRAME();
+}
+
+static const size_t kLargePreviewBufferSize = 64;
+uint16_t large_preview_buffer[kLargePreviewBufferSize];
+
+weegfx::coord_t scanner = 0;
+unsigned scanner_millis = 0;
+static const unsigned SCANNER_RATE = 200;
+
+void POLYLFO_screensaver() {
+  GRAPHICS_BEGIN_FRAME(false);
+
+  uint16_t shape = poly_lfo.get_value(POLYLFO_SETTING_SHAPE) << 8;
+  poly_lfo.lfo.RenderPreview(shape, large_preview_buffer, kLargePreviewBufferSize);
+  for (weegfx::coord_t x = 0; x < 128; ++x) {
+    graphics.setPixel(x, 32 - (large_preview_buffer[(x + scanner) & 63] >> 11));
+  }
+  if (millis() - scanner_millis > SCANNER_RATE) {
+    ++scanner;
+    scanner_millis = millis();
+  }
+
+  scope_render();
 
   GRAPHICS_END_FRAME();
 }
