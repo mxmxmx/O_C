@@ -132,6 +132,9 @@ volatile uint_fast8_t _ENC = false;
 static const uint32_t _ENC_RATE = 15000;
 
 /*  ------------------------ core timer ISR ---------------------------   */
+// 60 = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
+// 66 = 15.1515...kHz
+// 72 = 13.888...kHz
 
 static const uint32_t CORE_TIMER_RATE = 100; // 100uS = 10 Khz
 IntervalTimer CORE_timer;
