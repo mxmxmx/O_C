@@ -163,10 +163,6 @@ void FASTRUN CORE_timer_ISR() {
 
 /*       ---------------------------------------------------------         */
 
-const uint8_t bitmap[8] = {
-  0xf0, 0xf0, 0xf0, 0xf0, 0x0f, 0x0f, 0x0f, 0x0f
-};
-
 void setup(){
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16

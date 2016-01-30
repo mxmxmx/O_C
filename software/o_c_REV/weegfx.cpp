@@ -32,6 +32,11 @@ enum DRAW_MODE {
 };
 using weegfx::Graphics;
 
+
+const uint8_t test_bitmap[8] = {
+  0xf0, 0xf0, 0xf0, 0xf0, 0x0f, 0x0f, 0x0f, 0x0f
+};
+
 // TODO
 // - Bench templated draw_pixel_row (inlined versions) vs. function pointers
 // - Offer specialized functions w/o clipping or specific draw mode?
