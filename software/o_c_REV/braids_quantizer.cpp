@@ -26,12 +26,10 @@
 //
 // Note quantizer
 
-#include "quantizer.h"
+#include "braids_quantizer.h"
 
 #include <algorithm>
 #include <cstdlib>
-
-#define CLIP(x) if (x < -32767) x = -32767; if (x > 32767) x = 32767;
 
 namespace braids {
 

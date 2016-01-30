@@ -143,9 +143,11 @@ unsigned char Rotary::process() {
   unsigned char pinstate = (digitalRead(pin2) << 1) | digitalRead(pin1);
   // Determine new state from the pins and state table.
   state = ttable[state & 0xf][pinstate];
+  state &= 0x30;
   // Return emit bits, ie the generated event.
-  if ((state & 0x30) == 16) { position++; }
-  if ((state & 0x30) == 32) { position--; }
+  if (state == 16) { position++; }
+  if (state == 32) { position--; }
+  return state;
 }
 
 bool Rotary::change() {

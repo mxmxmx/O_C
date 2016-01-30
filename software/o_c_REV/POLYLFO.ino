@@ -1,4 +1,4 @@
-#include "poly_lfo.h"
+#include "frames_poly_lfo.h"
 
 enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_FREQ,

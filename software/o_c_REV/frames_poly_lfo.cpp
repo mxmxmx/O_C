@@ -26,7 +26,7 @@
 //
 // Poly LFO.
 
-#include "poly_lfo.h"
+#include "frames_poly_lfo.h"
 
 #include <cstdio>
 #include <algorithm>

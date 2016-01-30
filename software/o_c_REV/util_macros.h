@@ -12,4 +12,7 @@
   TypeName(const TypeName&);               \
   void operator=(const TypeName&)
 
+
+#define CLIP(x) if (x < -32767) x = -32767; if (x > 32767) x = 32767;
+
 #endif // UTIL_MACROS_H_
