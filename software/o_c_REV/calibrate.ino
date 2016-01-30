@@ -9,9 +9,9 @@
 const uint16_t CALIB_MENU_ITEMS = 18;                           // menu items
 const uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
 const uint16_t _OFFSET = 4890;                                  // DAC offset, initial approx., ish --> -3.5V to 6V
-const uint16_t _ADC_OFFSET = (uint16_t)((float)pow(2,_ADC_RES)*0.6666667f); // ADC offset
+const uint16_t _ADC_OFFSET = (uint16_t)((float)pow(2,OC::ADC::kAdcResolution)*0.6666667f); // ADC offset
 
-ADC::CalibrationData adc_calibration_data = { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET };
+OC::ADC::CalibrationData adc_calibration_data = { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET };
 uint16_t _AVERAGE = 0x0;
 uint16_t _CV = 0x0;
 uint16_t _exit = 0x0;
@@ -253,7 +253,7 @@ void calibrate_main() {
                      encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_1]); 
                      _B_event = 0x0;
                    }
-                   _CV = analogRead(CV1);
+                   _CV = OC::ADC::raw_value(ADC_CHANNEL_1);
                  break;
                  
                  case CV_OFFSET_1:
@@ -261,7 +261,7 @@ void calibrate_main() {
                      encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_2]); 
                      _B_event = 0x0;
                    }
-                   _CV = analogRead(CV2);
+                   _CV = OC::ADC::raw_value(ADC_CHANNEL_2);
                  break;
                  
                  case CV_OFFSET_2:
@@ -269,7 +269,7 @@ void calibrate_main() {
                      encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_3]); 
                      _B_event = 0x0;
                    }
-                   _CV = analogRead(CV3);
+                   _CV = OC::ADC::raw_value(ADC_CHANNEL_3);
                  break;
                  
                  case CV_OFFSET_3:
@@ -277,7 +277,7 @@ void calibrate_main() {
                      encoder[RIGHT].setPos(adc_calibration_data.offset[ADC_CHANNEL_4]); 
                      _B_event = 0x0;
                    }
-                   _CV = analogRead(CV4);
+                   _CV = OC::ADC::raw_value(ADC_CHANNEL_4);
                  break;
                  
                  default:
@@ -487,13 +487,13 @@ uint16_t _average() {
   
   for (int i = 0; i < 50; i++) {
    
-           average +=  analogRead(CV1);
+           average +=  OC::ADC::raw_value(ADC_CHANNEL_1);
            delay(1);
-           average +=  analogRead(CV2);
+           average +=  OC::ADC::raw_value(ADC_CHANNEL_2);
            delay(1);
-           average +=  analogRead(CV3);
+           average +=  OC::ADC::raw_value(ADC_CHANNEL_3);
            delay(1);
-           average +=  analogRead(CV4);
+           average +=  OC::ADC::raw_value(ADC_CHANNEL_4);
            delay(1);
       }
       

@@ -315,7 +315,7 @@ do { \
 
 
 void AutomatonnetzState::render(bool triggered) {
-  int32_t sample = ADC::value<ADC_CHANNEL_1>();
+  int32_t sample = OC::ADC::value<ADC_CHANNEL_1>();
   int root;
   if (sample < 0)
     root = 0;
@@ -328,7 +328,7 @@ void AutomatonnetzState::render(bool triggered) {
   root += current_cell.transpose();
   root += octave() * 12;
 
-  int inversion = current_cell.inversion() + (ADC::value<ADC_CHANNEL_4>() >> 9); // cvval[3];
+  int inversion = current_cell.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9); // cvval[3];
   if (inversion > CELL_MAX_INVERSION * 2)
     inversion = CELL_MAX_INVERSION * 2;
   else if (inversion < CELL_MIN_INVERSION * 2)
@@ -379,8 +379,6 @@ do { \
 
 void Automatonnetz_loop() {
   UI();
-  AT();
-  ADC_SCAN();
   AT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   AT();

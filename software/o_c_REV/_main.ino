@@ -12,12 +12,8 @@ void _loop()
  
    if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   
-   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-    
-   ADC_SCAN();
-  
-   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 
-  
+   if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); }   
+ 
    buttons(BUTTON_TOP);
   
    if (CLK_STATE1) {  CLK_STATE1 = false; _ASR(); } 

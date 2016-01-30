@@ -394,6 +394,16 @@ void Graphics::pretty_print(int value) {
   print(itos<int, true>(value, buf, sizeof(buf)));
 }
 
+void Graphics::pretty_print(int value, size_t width) {
+  char buf[12];
+  char *str = itos<int, true>(value, buf, sizeof(buf));
+
+  while (str > buf &&
+         (size_t)(str - buf) > sizeof(buf) - width)
+    *--str = ' ';
+  print(str);
+}
+
 void Graphics::print(const char *s) {
   while (*s) {
     print(*s++);

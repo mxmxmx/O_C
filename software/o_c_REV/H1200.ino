@@ -137,7 +137,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  int32_t sample = ADC::value<ADC_CHANNEL_1>();
+  int32_t sample = OC::ADC::value<ADC_CHANNEL_1>();
   int root;
   if (sample < 0)
     root = 0;
@@ -147,7 +147,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     root = RANGE;
   root += h1200_settings.root_offset();
   
-  int inversion = h1200_settings.inversion() + (ADC::value<ADC_CHANNEL_4>() >> 9); //cvval[3]; // => octave in original
+  int inversion = h1200_settings.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9); //cvval[3]; // => octave in original
   if (inversion > MAX_INVERSION) inversion = MAX_INVERSION;
   else if (inversion < -MAX_INVERSION) inversion = -MAX_INVERSION;
   h1200_state.tonnetz_state.render(root, inversion);
@@ -212,8 +212,6 @@ do { \
 void H1200_loop() {
   CLOCKIT();
   UI();
-  CLOCKIT();
-  ADC_SCAN();
   CLOCKIT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   CLOCKIT();

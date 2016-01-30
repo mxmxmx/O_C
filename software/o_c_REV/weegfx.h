@@ -74,6 +74,7 @@ public:
   void print(long);
 
   void pretty_print(int);
+  void pretty_print(int, size_t width);
 
   void print(const char *);
   void drawStr(coord_t x, coord_t y, const char *str);

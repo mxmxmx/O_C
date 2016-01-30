@@ -26,7 +26,7 @@
 #include <EEPROM.h>
 
 #include "O_C_gpio.h"
-#include "ADC.h"
+#include "OC_ADC.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
 #include "util_app.h"
@@ -71,20 +71,7 @@ const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 
 extern const uint16_t _ZERO;
 
 /*  ---------------------  CV   stuff  --------------------------------- */
-
-#define _ADC_RATE 1000 // 100us = 1kHz
-#define _ADC_RES  12
-volatile uint_fast8_t _ADC = false;
-extern ADC::CalibrationData adc_calibration_data;
-
-/* --- read  ADC ------ */
-#define ADC_SCAN() \
-do { \
-  if (_ADC) { \
-    _ADC = false; \
-    ADC::Scan(); \
-  } \
-} while (0)
+extern OC::ADC::CalibrationData adc_calibration_data;
 
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
@@ -132,14 +119,13 @@ volatile uint_fast8_t _ENC = false;
 static const uint32_t _ENC_RATE = 15000;
 
 /*  ------------------------ core timer ISR ---------------------------   */
-// 60 = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
-// 66 = 15.1515...kHz
-// 72 = 13.888...kHz
-
-static const uint32_t CORE_TIMER_RATE = 100; // 100uS = 10 Khz
+// 60us = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
+// 66us = 15.1515...kHz
+// 72us = 13.888...kHz
+// 100us = 10Khz
+static const uint32_t CORE_TIMER_RATE = 60;
 IntervalTimer CORE_timer;
 
-uint32_t ADC_timer_counter = 0;
 uint32_t ENC_timer_counter = 0;
 
 void FASTRUN CORE_timer_ISR() {
@@ -157,13 +143,13 @@ void FASTRUN CORE_timer_ISR() {
       display_driver.Begin(frame_buffer.readable_frame());
   }
 
-  // Update ADC/ENC "ISR" here instead of having extra timer interrupts
-  if (ADC_timer_counter < _ADC_RATE / CORE_TIMER_RATE - 1) {
-    ++ADC_timer_counter;
-  } else {
-    ADC_timer_counter = 0;
-    _ADC = true;
-  }
+  // The ADC scan uses async startSingleRead/readSingle and single channel each
+  // loop, so should be fast enough even at 60us (check ADC::busy_waits() == 0)
+  // to verify. Effectively, the scan rate is ISR / 4 / ADC::kAdcSmoothing
+  // 100us: 10kHz / 4 / 4 ~ .6kHz
+  // 60us: 16.666K / 4 / 4 ~ 1kHz
+  // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
+  OC::ADC::Scan();
 
   if (ENC_timer_counter < _ENC_RATE / CORE_TIMER_RATE - 1) {
     ++ENC_timer_counter;
@@ -172,8 +158,7 @@ void FASTRUN CORE_timer_ISR() {
     _ENC = true;
   }
 
-  if (current_app->isr)
-    current_app->isr();
+  APPS::ISR();
 }
 
 /*       ---------------------------------------------------------         */
@@ -185,8 +170,6 @@ const uint8_t bitmap[8] = {
 void setup(){
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
-  analogReadResolution(_ADC_RES);
-  analogReadAveraging(0x10);
   spi4teensy3::init();
   delay(10);
 
@@ -217,7 +200,7 @@ void setup(){
 
   Serial.begin(9600); 
 
-  ADC::Init(&adc_calibration_data);
+  OC::ADC::Init(&adc_calibration_data);
   DAC::Init();
 
   frame_buffer.Init();

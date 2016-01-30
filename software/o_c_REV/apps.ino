@@ -136,6 +136,34 @@ void init_apps() {
   }
 }
 
+void debug_menu() {
+  while (true) {
+
+    GRAPHICS_BEGIN_FRAME(false);
+      graphics.setPrintPos(2, 2); 
+      graphics.print("CV1: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_1>(), 6);
+
+      graphics.setPrintPos(2, 12);
+      graphics.print("CV2: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_2>(), 6);
+
+      graphics.setPrintPos(2, 22);
+      graphics.print("CV3: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_3>(), 6);
+
+      graphics.setPrintPos(2, 32);
+      graphics.print("CV4: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_4>(), 6);
+
+//      graphics.setPrintPos(2, 42);
+//      graphics.print((long)OC::ADC::busy_waits());
+//      graphics.setPrintPos(2, 42); graphics.print(OC::ADC::fail_flag0());
+//      graphics.setPrintPos(2, 52); graphics.print(OC::ADC::fail_flag1());
+    GRAPHICS_END_FRAME();
+
+    button_left.read();
+    if (button_left.event())
+      break;
+  }
+}
+
 void select_app() {
 
   // Save state
@@ -165,6 +193,12 @@ void select_app() {
       }
     }
 
+    button_left.read();
+    if (button_left.event()) {
+      debug_menu();
+      time = millis();
+      redraw = true;
+    }
     button_right.read();
     if (button_right.long_event()) {
       save = true;

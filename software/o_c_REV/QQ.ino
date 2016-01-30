@@ -95,9 +95,9 @@ public:
     if (update) {
       int32_t transpose = get_transpose();
       ADC_CHANNEL source = get_source();
-      int32_t pitch = ADC::value(source);
+      int32_t pitch = OC::ADC::value(source);
       if (index != source) {
-        transpose += (ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
+        transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
       }
       if (transpose > 12) transpose = 12;
       else if (transpose < -12) transpose = -12;
@@ -269,7 +269,6 @@ void QQ_resume() {
 
 #define CLOCK_CHANNEL(i, adc_channel, dac_channel) \
 do { \
-  ADC::ReadImmediate<adc_channel>(); \
   quantizer_channels[i].update<i, dac_channel>(); \
 } while (0)
 
@@ -282,15 +281,11 @@ void QQ_isr() {
 
 void QQ_loop() {
   UI();
-  ADC::ReadImmediate<ADC_CHANNEL_1>();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  ADC::ReadImmediate<ADC_CHANNEL_2>();
   buttons(BUTTON_TOP);
   buttons(BUTTON_BOTTOM);
-  ADC::ReadImmediate<ADC_CHANNEL_3>();
   buttons(BUTTON_LEFT);
   buttons(BUTTON_RIGHT);
-  ADC::ReadImmediate<ADC_CHANNEL_4>();
 }
 
 void QQ_menu() {

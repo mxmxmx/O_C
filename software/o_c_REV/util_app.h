@@ -37,4 +37,13 @@ extern bool SELECT_APP;
 void init_apps();
 void select_app();
 
+namespace APPS {
+
+  inline void ISR() __attribute__((always_inline));
+  inline void ISR() {
+    if (current_app && current_app->isr)
+      current_app->isr();
+  }
+};
+
 #endif // UTIL_APP_H_
