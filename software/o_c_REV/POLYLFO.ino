@@ -1,4 +1,5 @@
 #include "frames_poly_lfo.h"
+#include "util_math.h"
 
 enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_FREQ,
@@ -12,31 +13,38 @@ enum POLYLFO_SETTINGS {
 class PolyLfo : public settings::SettingsBase<PolyLfo, POLYLFO_SETTING_LAST> {
 public:
 
-  int get_freq() const {
+  uint16_t get_freq() const {
     return values_[POLYLFO_SETTING_FREQ];
   }
 
-  int get_shape() const {
+  uint16_t get_shape() const {
     return values_[POLYLFO_SETTING_SHAPE];
   }
 
-  int get_shape_spread() const {
+  uint16_t get_shape_spread() const {
     return values_[POLYLFO_SETTING_SHAPE_SPREAD];
   }
 
-  int get_spread() const {
+  uint16_t get_spread() const {
     return values_[POLYLFO_SETTING_SPREAD];
   }
 
-  int get_coupling() const {
+  uint16_t get_coupling() const {
     return values_[POLYLFO_SETTING_COUPLING];
   }
 
   void Init();
 
   frames::PolyLfo lfo;
-};
 
+  // ISR update is at 16.666kHz, we don't need it that fast so smooth the values to ~1Khz
+  static constexpr size_t kSmoothing = 16;
+
+  SmoothedValue<int32_t, kSmoothing> cv_freq;
+  SmoothedValue<int32_t, kSmoothing> cv_shape;
+  SmoothedValue<int32_t, kSmoothing> cv_spread;
+  SmoothedValue<int32_t, kSmoothing> cv_coupling;
+};
 
 void PolyLfo::Init() {
   init_defaults();
@@ -57,14 +65,37 @@ struct {
   int selected_param;
 } poly_lfo_state;
 
+
+#define SCALE8_16(x) ((((x + 1) << 16) >> 8) - 1)
+
 void FASTRUN POLYLFO_isr() {
 
-  poly_lfo.lfo.set_shape(poly_lfo.get_shape() << 8);
-  poly_lfo.lfo.set_shape_spread(poly_lfo.get_shape_spread() << 8);
-  poly_lfo.lfo.set_spread(poly_lfo.get_spread() << 8);
-  poly_lfo.lfo.set_coupling(poly_lfo.get_coupling() << 8);
+  poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
+  poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
+  poly_lfo.cv_spread.push(OC::ADC::value<ADC_CHANNEL_3>());
+  poly_lfo.cv_coupling.push(OC::ADC::value<ADC_CHANNEL_4>());
 
-  poly_lfo.lfo.Render(poly_lfo.get_freq() << 8);
+  // Range in settings is (0-256] so this gets scaled to (0,65535]
+  // CV value is 12 bit so also needs scaling
+
+  int32_t freq = SCALE8_16(poly_lfo.get_freq()) + (poly_lfo.cv_freq.value() * 16);
+  USAT16(freq);
+
+  int32_t shape = SCALE8_16(poly_lfo.get_shape()) + (poly_lfo.cv_shape.value() * 16);
+  USAT16(shape);
+  poly_lfo.lfo.set_shape(shape);
+
+  int32_t spread = SCALE8_16(poly_lfo.get_spread()) + (poly_lfo.cv_spread.value() * 16);
+  USAT16(spread);
+  poly_lfo.lfo.set_spread(spread);
+
+  int32_t coupling = SCALE8_16(poly_lfo.get_coupling()) + (poly_lfo.cv_coupling.value() * 16);
+  USAT16(coupling);
+  poly_lfo.lfo.set_coupling(coupling);
+
+  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread()));
+
+  poly_lfo.lfo.Render(freq);
   DAC::set<DAC_CHANNEL_A>(poly_lfo.lfo.dac_code(0));
   DAC::set<DAC_CHANNEL_B>(poly_lfo.lfo.dac_code(1));
   DAC::set<DAC_CHANNEL_C>(poly_lfo.lfo.dac_code(2));
