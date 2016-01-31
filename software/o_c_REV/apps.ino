@@ -13,7 +13,9 @@ App available_apps[] = {
     POLYLFO_loop, POLYLFO_menu, POLYLFO_screensaver, POLYLFO_topButton, POLYLFO_lowerButton, POLYLFO_rightButton, POLYLFO_leftButton, POLYLFO_leftButtonLong, POLYLFO_encoders, POLYLFO_isr},
 };
 
-struct O_CSettings {
+namespace OC {
+
+struct Settings {
 
   static const size_t kAppSettingsSize =
     ASR_SETTINGS_SIZE +
@@ -29,12 +31,11 @@ struct O_CSettings {
   size_t used;
 };
 
-#define EEPROM_CALIBRATIONDATA_START 0
-#define EEPROM_CALIBRATIONDATA_LENGTH 64 // calibrate.ino: OCTAVES*uint16_t + ADC_CHANNEL_LAST*unit16_t = 14 * 2 = 28 -> leaves space
+typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_LENGTH, EEPROMStorage::LENGTH, Settings> SettingsStorage;
+}
 
-O_CSettings global_settings;
-typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_LENGTH, EEPROMStorage::LENGTH, O_CSettings> O_CSettingsStorage;
-O_CSettingsStorage settings_storage;
+OC::Settings global_settings;
+OC::SettingsStorage settings_storage;
 
 static const int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 App *current_app = &available_apps[0];
@@ -101,9 +102,10 @@ void init_apps() {
   for (int i = 0; i < APP_COUNT; ++i)
     available_apps[i].init();
 
-  Serial.print("sizeof(settings) : "); Serial.println(sizeof(O_CSettings));
-  Serial.print("PAGESIZE         : "); Serial.println(O_CSettingsStorage::PAGESIZE);
-  Serial.print("PAGES            : "); Serial.println(O_CSettingsStorage::PAGES);
+  Serial.println("Loading app settings...");
+  Serial.print("sizeof(settings) : "); Serial.println(sizeof(OC::Settings));
+  Serial.print("PAGESIZE         : "); Serial.println(OC::SettingsStorage::PAGESIZE);
+  Serial.print("PAGES            : "); Serial.println(OC::SettingsStorage::PAGES);
 
   if (!settings_storage.load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
     Serial.print("Settings not loaded, using defaults...");
@@ -230,8 +232,6 @@ void select_app() {
 
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
-
-  Serial.print("apps: "); Serial.println(encoder[LEFT].pos());
 
   SELECT_APP = false;
   MENU_REDRAW = 1;

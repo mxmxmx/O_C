@@ -77,7 +77,7 @@ public:
   }
 
   template <size_t index, DAC_CHANNEL dac_channel>
-  void update() {
+  inline void update() {
 
     bool update = get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
     if (CLK_STATE[index]) {
@@ -116,9 +116,9 @@ public:
       const int32_t octave = quantized / (12 << 7);
       const int32_t fractional = quantized - octave * (12 << 7);
 
-      int32_t sample = octaves[octave];
+      int32_t sample = OC::calibration_data.octaves[octave];
       if (fractional)
-        sample += (fractional * (octaves[octave + 1] - octaves[octave])) / (12 << 7);
+        sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);
 
       if (last_output_ != sample) {
         MENU_REDRAW = 1;

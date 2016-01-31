@@ -20,7 +20,6 @@ enum DISPLAY_PAGE
 {  
  SCREENSAVER,
  MENU,
- CALIBRATE 
 };  
 
 /* --------------- encoders ---------------------------------------  */

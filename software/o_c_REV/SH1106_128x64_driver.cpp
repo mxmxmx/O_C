@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include <spi4teensy3.h>
 
-#include "O_C_gpio.h"
+#include "OC_gpio.h"
 
 #define DMA_PAGE_TRANSFER
 #ifdef DMA_PAGE_TRANSFER

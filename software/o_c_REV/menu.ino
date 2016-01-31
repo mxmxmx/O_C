@@ -61,9 +61,6 @@ void UI() {
       case MENU:
         current_app->draw_menu();
         break;
-      case CALIBRATE:
-        calibrate();
-        break;
       default: break;
     }
     // MENU_REDRAW = 0; set in GRAPHICS_END_FRAME if drawn

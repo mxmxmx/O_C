@@ -1,5 +1,5 @@
-#ifndef O_C_GPIO_H_
-#define O_C_GPIO_H_
+#ifndef OC_GPIO_H_
+#define OC_GPIO_H_
 
 #define CV1 19
 #define CV2 18
@@ -37,4 +37,4 @@
 #define DEBUG_PIN_1 24
 #define DEBUG_PIN_2 25
 
-#endif // O_C_GPIO_H_
+#endif // OC_GPIO_H_

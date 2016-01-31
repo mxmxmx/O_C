@@ -4,12 +4,14 @@
 *
 */
 
+/*  ------------------------ ASR ------------------------------------  */
+
+#define ASR_MAX_ITEMS 256   // ASR ring buffer size
+
 /*  ASR+quantization params */
 
 #define MAXNOTES 7                    // max. notes per scale (see below)
 #define MAX_DELAY 63                  // max. delay < > ring buffer is 256
-#define RANGE 119                     // [0-119] = 120 semitones < > 10 octaves 
-#define S_RANGE 119<<5                // same thing, spread over 12 bit (ish)
 
 extern int16_t asr_display_params[6]; // ASR params
 extern uint8_t MENU_REDRAW;           // 
@@ -19,14 +21,12 @@ uint16_t asr_outputs[4];              // ASR out
 uint32_t CLK_COUNT  = 0;              // count clocks
 uint8_t  THIS_SCALE = 0;              // track scale change
 
-uint16_t semitones[RANGE+1];          // DAC output LUT
-
 typedef struct ASRbuf
 {
     uint8_t     first;
     uint8_t     last;
     uint8_t     items;
-    uint16_t data[MAX_ITEMS];
+    uint16_t data[ASR_MAX_ITEMS];
 
 } ASRbuf;
 
@@ -80,7 +80,7 @@ void ASR_init() {
     ASR->last  = 0;  
     ASR->items = 0;
 
-    for (int i = 0; i < MAX_ITEMS; i++) {
+    for (int i = 0; i < ASR_MAX_ITEMS; i++) {
         pushASR(ASR, 0);    
     }
     asr_params[1] = asr_display_params[1] = 0; // octave offset

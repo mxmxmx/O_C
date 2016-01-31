@@ -12,9 +12,14 @@ extern void set8565_CHD(uint32_t data);
 
 class DAC {
 public:
-  static const size_t kHistoryDepth = 8;
+  static constexpr size_t kHistoryDepth = 8;
+  static constexpr uint16_t MAX_VALUE = 65535; // DAC fullscale 
 
-  static void Init();
+  struct CalibrationData {
+    int8_t fine[DAC_CHANNEL_LAST];
+  };
+
+  static void Init(CalibrationData *calibration_data);
 
   static void set_all(uint32_t value) {
     for (int i = DAC_CHANNEL_A; i < DAC_CHANNEL_LAST; ++i)
@@ -36,10 +41,10 @@ public:
   }
 
   static void WriteAll() {
-    set8565_CHA(values_[DAC_CHANNEL_A]); 
-    set8565_CHB(values_[DAC_CHANNEL_B]);
-    set8565_CHC(values_[DAC_CHANNEL_C]);
-    set8565_CHD(values_[DAC_CHANNEL_D]);
+    set8565_CHA(values_[DAC_CHANNEL_A] + calibration_data_->fine[DAC_CHANNEL_A]);
+    set8565_CHB(values_[DAC_CHANNEL_B] + calibration_data_->fine[DAC_CHANNEL_B]);
+    set8565_CHC(values_[DAC_CHANNEL_C] + calibration_data_->fine[DAC_CHANNEL_C]);
+    set8565_CHD(values_[DAC_CHANNEL_D] + calibration_data_->fine[DAC_CHANNEL_D]);
 
     size_t tail = history_tail_;
     history_[DAC_CHANNEL_A][tail] = values_[DAC_CHANNEL_A];
@@ -65,6 +70,7 @@ public:
   }
 
 private:
+  static CalibrationData *calibration_data_;
   static uint32_t values_[DAC_CHANNEL_LAST];
   static uint16_t history_[DAC_CHANNEL_LAST][kHistoryDepth];
   static volatile size_t history_tail_;

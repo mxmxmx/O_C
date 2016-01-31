@@ -25,8 +25,9 @@
 #include <rotaryplus.h>
 #include <EEPROM.h>
 
-#include "O_C_gpio.h"
+#include "OC_gpio.h"
 #include "OC_ADC.h"
+#include "OC_calibration.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
 #include "util_app.h"
@@ -60,18 +61,6 @@ Rotary encoder[2] =
 //  UI mode select
 extern uint8_t UI_MODE;
 extern uint8_t MENU_REDRAW;
-
-/*  ------------------------ ASR ------------------------------------  */
-
-#define MAX_VALUE 65535 // DAC fullscale 
-#define MAX_ITEMS 256   // ASR ring buffer size
-#define OCTAVES 10      // # octaves
-uint16_t octaves[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in practice  
-const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
-extern const uint16_t _ZERO;
-
-/*  ---------------------  CV   stuff  --------------------------------- */
-extern OC::ADC::CalibrationData adc_calibration_data;
 
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
@@ -196,8 +185,9 @@ void setup(){
 
   Serial.begin(9600); 
 
-  OC::ADC::Init(&adc_calibration_data);
-  DAC::Init();
+  // Ok, technically we're using the calibration_data before it's loaded...
+  OC::ADC::Init(&OC::calibration_data.adc);
+  DAC::Init(&OC::calibration_data.dac);
 
   frame_buffer.Init();
   display_driver.Init();
@@ -212,11 +202,11 @@ void setup(){
   // splash screen, sort of ... 
   hello();
   delay(2000);
-  // calibrate? else use EEPROM; else use things in theory :
-  if (!digitalRead(butL))  calibrate_main();
-  else if (EEPROM.read(0x2) > 0) read_settings(); 
-  else in_theory(); // uncalibrated DAC code 
-  delay(750);   
+
+  calibration_load();
+  if (!digitalRead(butL))
+    calibration_menu();
+
   // initialize 
   init_DACtable();
   init_apps();

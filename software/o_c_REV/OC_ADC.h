@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "O_C_gpio.h"
+#include "OC_gpio.h"
 
 //#define ENABLE_ADC_DEBUG
 
@@ -52,7 +52,8 @@ public:
 
   struct CalibrationData {
     uint16_t offset[ADC_CHANNEL_LAST];
-    uint16_t scale;
+    uint16_t pitch_cv_scale;
+    uint16_t pitch_cv_offset;
   };
 
   static void Init(CalibrationData *calibration_data);
