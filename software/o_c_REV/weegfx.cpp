@@ -27,7 +27,8 @@ namespace weegfx {
 enum DRAW_MODE {
   DRAW_NORMAL,
   DRAW_INVERSE,
-  DRAW_OVERWRITE // unused, but possible fastest
+  DRAW_OVERWRITE, // unused, but possible fastest
+  DRAW_CLEAR
 };
 };
 using weegfx::Graphics;
@@ -72,7 +73,8 @@ inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
     switch (draw_mode) {
       case weegfx::DRAW_NORMAL: *dst++ |= mask; break;
       case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
-      case weegfx::DRAW_OVERWRITE: *dst = mask; break;
+      case weegfx::DRAW_OVERWRITE: *dst++ = mask; break;
+      case weegfx::DRAW_CLEAR: *dst++ &= ~mask; break;
     }
   }
 }
@@ -152,6 +154,12 @@ void Graphics::drawRect(coord_t x, coord_t y, coord_t w, coord_t h) {
   CLIPX(x, w);
   CLIPY(y, h);
   draw_rect<DRAW_NORMAL>(get_frame_ptr(x, y), y, w, h);
+}
+
+void Graphics::clearRect(coord_t x, coord_t y, coord_t w, coord_t h) {
+  CLIPX(x, w);
+  CLIPY(y, h);
+  draw_rect<DRAW_CLEAR>(get_frame_ptr(x, y), y, w, h);
 }
 
 void Graphics::invertRect(coord_t x, coord_t y, coord_t w, coord_t h) {
