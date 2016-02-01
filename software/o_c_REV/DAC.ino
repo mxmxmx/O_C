@@ -20,7 +20,6 @@
 */
 
 #include <spififo.h>
-#include "util_math.h"
 
 #define SPICLOCK_30MHz   (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR) //(60 / 2) * ((1+1)/2) = 30 MHz (= 24MHz, when F_BUS == 48000000)
 
@@ -53,11 +52,7 @@ uint16_t DAC::history_[DAC_CHANNEL_LAST][DAC::kHistoryDepth];
 /*static*/ 
 volatile size_t DAC::history_tail_;
 
-// if fine > value for a channel, data will underflow.
-// Saturating to uint16_t should fix it and cost a cycle
-
 void set8565_CHA(uint32_t data) {
-  USAT16(data);
   uint32_t _data = DAC::MAX_VALUE - data;
 
   SPIFIFO.write(B00010000, SPI_CONTINUE);
@@ -67,7 +62,6 @@ void set8565_CHA(uint32_t data) {
 }
 
 void set8565_CHB(uint32_t data) {
-  USAT16(data);
   uint32_t _data = DAC::MAX_VALUE - data;
 
   SPIFIFO.write(B00010010, SPI_CONTINUE);
@@ -77,7 +71,6 @@ void set8565_CHB(uint32_t data) {
 }
 
 void set8565_CHC(uint32_t data) {
-  USAT16(data);
   uint32_t _data = DAC::MAX_VALUE - data;
 
   SPIFIFO.write(B00010100, SPI_CONTINUE);
@@ -87,7 +80,6 @@ void set8565_CHC(uint32_t data) {
 }
 
 void set8565_CHD(uint32_t data) {
-  USAT16(data);
   uint32_t _data = DAC::MAX_VALUE - data;
 
   SPIFIFO.write(B00010110, SPI_CONTINUE);
