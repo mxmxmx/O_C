@@ -7,9 +7,18 @@
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 
+enum ECustomScaleIndex {
+  CUSTOM_SCALE_0,
+  CUSTOM_SCALE_1,
+  CUSTOM_SCALE_2,
+  CUSTOM_SCALE_3,
+  CUSTOM_SCALE_LAST
+};
+
 enum EChannelSettings {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
+  CHANNEL_SETTING_MASK,
   CHANNEL_SETTING_UPDATEMODE,
   CHANNEL_SETTING_TRANSPOSE,
   CHANNEL_SETTING_OCTAVE,
@@ -35,6 +44,10 @@ public:
     return values_[CHANNEL_SETTING_ROOT];
   }
 
+  uint16_t get_mask() const {
+    return values_[CHANNEL_SETTING_MASK];
+  }
+
   EChannelUpdateMode get_update_mode() const {
     return static_cast<EChannelUpdateMode>(values_[CHANNEL_SETTING_UPDATEMODE]);
   }
@@ -58,17 +71,22 @@ public:
   void init() {
     force_update_ = false;
     last_scale_ = -1;
+    last_mask_ = 0;
     last_output_ = 0;
     quantizer_.Init();
     update_scale();
   }
 
-  void update_scale() {
-    int scale = get_scale();
-    if (last_scale_ != scale) {
-      quantizer_.Configure(braids::scales[scale]);
+  bool update_scale() {
+    const int scale = get_scale();
+    const uint16_t mask = get_mask();
+    if ((last_scale_ != scale || last_mask_ != mask) | force_update_) {
       last_scale_ = scale;
-      force_update_ = true;
+      last_mask_ = mask;
+      quantizer_.Configure(get_scale_def(scale), mask);
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -85,7 +103,7 @@ public:
       update |= true;
     }
 
-    update_scale();
+    update |= update_scale();
 
     if (force_update_) {
       force_update_ = false;
@@ -129,15 +147,76 @@ public:
     DAC::set<dac_channel>(last_output_ + get_fine());
   }
 
+  int max_mask() const {
+    int num_notes = braids::scales[get_scale()].num_notes;
+    uint16_t mask = ~(0xffffU << num_notes);
+    return mask;
+  }
+
+  static const size_t kBinarySize =
+    sizeof(uint8_t) + // CHANNEL_SETTING_SCALE
+    sizeof(uint8_t) + // CHANNEL_SETTING_ROOT
+    sizeof(uint16_t) + // CHANNEL_SETTING_MASK
+    sizeof(uint8_t) + // CHANNEL_SETTING_UPDATEMODE
+    sizeof(int8_t) + // CHANNEL_SETTING_TRANSPOSE
+    sizeof(int8_t) + // CHANNEL_SETTING_OCTAVE
+    sizeof(uint8_t) + // CHANNEL_SETTING_SOURCE
+    sizeof(int16_t); // CHANNEL_SETTING_FINE
+
+  size_t save_settings(char *storage) {
+    char *ptr = storage;
+    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_SCALE);
+    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_ROOT);
+    ptr = write_setting<uint16_t>(ptr, CHANNEL_SETTING_MASK);
+    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_UPDATEMODE);
+    ptr = write_setting<int8_t>(ptr, CHANNEL_SETTING_TRANSPOSE);
+    ptr = write_setting<int8_t>(ptr, CHANNEL_SETTING_OCTAVE);
+    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_SOURCE);
+    ptr = write_setting<int16_t>(ptr, CHANNEL_SETTING_FINE);
+
+    return (ptr - storage);
+  }
+
+  size_t restore_settings(const char *storage) {
+    const char *ptr = storage;
+    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_SCALE);
+    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_ROOT);
+    ptr = read_setting<uint16_t>(ptr, CHANNEL_SETTING_MASK);
+    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_UPDATEMODE);
+    ptr = read_setting<int8_t>(ptr, CHANNEL_SETTING_TRANSPOSE);
+    ptr = read_setting<int8_t>(ptr, CHANNEL_SETTING_OCTAVE);
+    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_SOURCE);
+    ptr = read_setting<int16_t>(ptr, CHANNEL_SETTING_FINE);
+
+    return (ptr - storage);
+  }
+
+
+  static braids::Scale custom_scales[CUSTOM_SCALE_LAST];
+
+  static const braids::Scale &get_scale_def(int index) {
+    if (index < CUSTOM_SCALE_LAST)
+      return custom_scales[index];
+    else
+      return braids::scales[index - CUSTOM_SCALE_LAST];
+  }
+
 private:
   bool force_update_;
   int last_scale_;
+  uint16_t last_mask_;
   int32_t last_output_;
   braids::Quantizer quantizer_;
 };
 
-static const size_t QUANTIZER_NUM_SCALES = sizeof(braids::scales) / sizeof(braids::scales[0]);
+/*static*/ braids::Scale QuantizerChannel::custom_scales[CUSTOM_SCALE_LAST];
+
+static const size_t QUANTIZER_NUM_SCALES = CUSTOM_SCALE_LAST + sizeof(braids::scales) / sizeof(braids::scales[0]);
 const char* const quantization_values[QUANTIZER_NUM_SCALES] = {
+    "USER1",
+    "USER2",
+    "USER3",
+    "USER4",
     "OFF ",
     "SEMI",
     "IONI",
@@ -199,8 +278,9 @@ const char* const channel_source[ADC_CHANNEL_LAST] = {
 
 /*static*/ template <>
 const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST>::value_attr_[] = {
-  { 1, 0, QUANTIZER_NUM_SCALES - 1, "scale", quantization_values },
+  { CUSTOM_SCALE_LAST + 1, 0, QUANTIZER_NUM_SCALES + CUSTOM_SCALE_LAST - 1, "scale", quantization_values },
   { 0, 0, 11, "root", note_names },
+  { 65535, 1, 65535, "active notes", NULL },
   { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes },
   { 0, -5, 7, "transpose", NULL },
   { 0, -4, 4, "octave", NULL },
@@ -213,12 +293,15 @@ enum EMenuMode {
   MODE_EDIT_CHANNEL
 };
 
+#include "QQ_scale_edit.h"
+
 struct QuadQuantizerState {
   int selected_channel;
   EMenuMode left_encoder_mode;
   int left_encoder_value;
   int selected_param;
-  int32_t raw_cvs[4];
+
+  ScaleEditor scale_editor;
 };
 
 QuadQuantizerState qq_state;
@@ -235,23 +318,34 @@ void QQ_init() {
   qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
   qq_state.left_encoder_value = 0;
   qq_state.selected_param = CHANNEL_SETTING_ROOT;
+  qq_state.scale_editor.Init();
+
+  for (size_t i = 0; i < CUSTOM_SCALE_LAST; ++i)
+    memcpy(&QuantizerChannel::custom_scales[i], &braids::scales[1], sizeof(braids::Scale));
 }
 
-static const size_t QQ_SETTINGS_SIZE = sizeof(int16_t) * CHANNEL_SETTING_LAST * 4;
+static const size_t QQ_SETTINGS_SIZE =
+  CHANNEL_SETTING_LAST * QuantizerChannel::kBinarySize +
+  CUSTOM_SCALE_LAST * sizeof(braids::Scale);
 
 size_t QQ_save(char *storage) {
   size_t used = 0;
   for (size_t i = 0; i < 4; ++i) {
-    used += quantizer_channels[i].save<int16_t>(storage + used);
+    used += quantizer_channels[i].save_settings(storage + used);
   }
+
+  memcpy(storage + used, QuantizerChannel::custom_scales, CUSTOM_SCALE_LAST * sizeof(braids::Scale));
+  used += CUSTOM_SCALE_LAST * sizeof(braids::Scale);
   return used;
 }
 
 size_t QQ_restore(const char *storage) {
   size_t used = 0;
   for (size_t i = 0; i < 4; ++i) {
-    used += quantizer_channels[i].restore<int16_t>(storage + used);
+    used += quantizer_channels[i].restore_settings(storage + used);
   }
+  memcpy(QuantizerChannel::custom_scales, storage + used, CUSTOM_SCALE_LAST * sizeof(braids::Scale));
+  used += CUSTOM_SCALE_LAST * sizeof(braids::Scale);
   return used;
 }
 
@@ -332,15 +426,34 @@ void QQ_menu() {
 
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, CHANNEL_SETTING_LAST, qq_state.selected_param, 1)
     const settings::value_attr &attr = QuantizerChannel::value_attr(current_item);
-    UI_DRAW_SETTING(attr, channel.get_value(current_item), kUiWideMenuCol1X);
+    if (CHANNEL_SETTING_MASK != current_item) {
+      UI_DRAW_SETTING(attr, channel.get_value(current_item), kUiWideMenuCol1X);
+    } else {
+      graphics.print(attr.name);
+      uint16_t mask = channel.get_mask();
+      size_t num_notes = QuantizerChannel::get_scale_def(channel.get_scale()).num_notes;
+      weegfx::coord_t x = kUiDisplayWidth - num_notes * 3;
+      for (size_t i = 0; i < num_notes; ++i, mask >>= 1, x+=3) {
+        if (mask & 0x1)
+          graphics.drawRect(x, y + 1, 2, 8);
+      }
+      UI_END_ITEM();
+    }
   UI_END_ITEMS_LOOP();
+
+  if (qq_state.scale_editor.active())
+    qq_state.scale_editor.Draw();
 
   GRAPHICS_END_FRAME();
 }
 
 bool QQ_encoders() {
+  if (qq_state.scale_editor.active())
+    return qq_state.scale_editor.handle_encoders();
+
   bool changed = false;
   int value = encoder[LEFT].pos();
+
   switch (qq_state.left_encoder_mode) {
     case MODE_EDIT_CHANNEL:
       if (value != qq_state.left_encoder_value) {
@@ -348,7 +461,6 @@ bool QQ_encoders() {
         else if (value < 0) value = 0;
         qq_state.left_encoder_value = value;
         encoder[LEFT].setPos(value);
-        encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
         changed = true;
       }
       break;
@@ -358,7 +470,10 @@ bool QQ_encoders() {
         else if (value < 0) value = 0;
         qq_state.selected_channel = value;
         encoder[LEFT].setPos(value);
-        value = quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param);
+        if (CHANNEL_SETTING_MASK != qq_state.selected_param)
+          value = quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param);
+        else
+          value = 0;
         encoder[RIGHT].setPos(value);
         changed = true;
       }
@@ -367,17 +482,29 @@ bool QQ_encoders() {
 
   QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   value = encoder[RIGHT].pos();
-  if (value != selected.get_value(qq_state.selected_param)) {
-    if (selected.apply_value(qq_state.selected_param, value))
-      selected.force_update();
+  if (CHANNEL_SETTING_MASK != qq_state.selected_param) {
+    if (value != selected.get_value(qq_state.selected_param)) {
+      if (selected.apply_value(qq_state.selected_param, value))
+        selected.force_update();
+    }
     encoder[RIGHT].setPos(selected.get_value(qq_state.selected_param));
     changed = true;
+  } else {
+    if (value && CUSTOM_SCALE_LAST != selected.get_scale()) {
+      qq_state.scale_editor.EditMask(&selected);
+      changed = true;
+    }
   }
 
   return changed;
 }
 
 void QQ_topButton() {
+  if (qq_state.scale_editor.active()) {
+    qq_state.scale_editor.handle_topButton();
+    return;
+  }
+
   QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   if (selected.change_value(CHANNEL_SETTING_OCTAVE, 1)) {
     if (qq_state.selected_param == CHANNEL_SETTING_OCTAVE)
@@ -387,6 +514,11 @@ void QQ_topButton() {
 }
 
 void QQ_lowerButton() {
+  if (qq_state.scale_editor.active()) {
+    qq_state.scale_editor.handle_bottomButton();
+    return;
+  }
+
   QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   if (selected.change_value(CHANNEL_SETTING_OCTAVE, -1)) {
     if (qq_state.selected_param == CHANNEL_SETTING_OCTAVE)
@@ -396,35 +528,59 @@ void QQ_lowerButton() {
 }
 
 void QQ_rightButton() {
+  if (qq_state.scale_editor.active()) {
+    qq_state.scale_editor.handle_rightButton();
+    return;
+  }
+
+  QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
   ++qq_state.selected_param;
   if (qq_state.selected_param >= CHANNEL_SETTING_LAST)
     qq_state.selected_param = CHANNEL_SETTING_ROOT;
-  encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
+  if (CHANNEL_SETTING_MASK != qq_state.selected_param) {
+    encoder[RIGHT].setPos(selected_channel.get_value(qq_state.selected_param));
+  } else {
+    encoder[RIGHT].setPos(0);
+  }
 }
 
 void QQ_leftButton() {
+  if (qq_state.scale_editor.active()) {
+    qq_state.scale_editor.handle_leftButton();
+    return;
+  }
+
+  QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
-    quantizer_channels[qq_state.selected_channel].apply_value(CHANNEL_SETTING_SCALE, qq_state.left_encoder_value);
+    if (selected_channel.apply_value(CHANNEL_SETTING_SCALE, qq_state.left_encoder_value))
+      selected_channel.force_update();
     qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
     encoder[LEFT].setPos(qq_state.selected_channel);
   } else {
     qq_state.left_encoder_mode = MODE_EDIT_CHANNEL;
-    qq_state.left_encoder_value = quantizer_channels[qq_state.selected_channel].get_scale();
+    qq_state.left_encoder_value = selected_channel.get_scale();
     encoder[LEFT].setPos(qq_state.left_encoder_value);
   }
 }
 
 void QQ_leftButtonLong() {
-  if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
-    int scale = qq_state.left_encoder_value;
-    int root = quantizer_channels[qq_state.selected_channel].get_root();
+  if (qq_state.scale_editor.active())
+    return;
+
+  QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
+
+  if (MODE_SELECT_CHANNEL == qq_state.left_encoder_mode) {
+    int scale = selected_channel.get_scale();
+    int root = selected_channel.get_root();
     for (int i = 0; i < 4; ++i) {
-      quantizer_channels[i].apply_value(CHANNEL_SETTING_SCALE, scale);
       quantizer_channels[i].apply_value(CHANNEL_SETTING_ROOT, root);
+      quantizer_channels[i].apply_value(CHANNEL_SETTING_SCALE, scale);
       quantizer_channels[i].force_update();
     }
-
-    qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
-    encoder[LEFT].setPos(qq_state.selected_channel);
+  } else {
+    int scale = qq_state.left_encoder_value;
+    if (scale < CUSTOM_SCALE_LAST) {
+      qq_state.scale_editor.EditScale(&QuantizerChannel::custom_scales[scale], quantization_values[scale]);
+    }
   }
 }

@@ -75,6 +75,20 @@ public:
     return num_settings * sizeof(storage_type);
   }
 
+  template <typename storage_type>
+  char *write_setting(char *dest, size_t index) {
+    storage_type *storage = reinterpret_cast<storage_type *>(dest);
+    *storage++ = values_[index];
+    return (char *)storage;
+  }
+
+  template <typename storage_type>
+  char *read_setting(const char *src, size_t index) {
+    const storage_type *storage = reinterpret_cast<const storage_type*>(src);
+    values_[index] = *storage++;
+    return (char *)storage;
+  }
+
 protected:
 
   int values_[num_settings];

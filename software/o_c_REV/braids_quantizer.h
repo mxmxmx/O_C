@@ -53,11 +53,11 @@ class Quantizer {
   
   int32_t Process(int32_t pitch, int32_t root, int32_t transpose);
   
-  void Configure(const Scale& scale) {
-    Configure(scale.notes, scale.span, scale.num_notes);
+  void Configure(const Scale& scale, uint16_t mask = 0xffff) {
+    Configure(scale.notes, scale.span, scale.num_notes, mask);
   }
  private:
-  void Configure(const int16_t* notes, int16_t span, size_t num_notes);
+  void Configure(const int16_t* notes, int16_t span, size_t num_notes, uint16_t mask);
   bool enabled_;
   int16_t codebook_[128];
   int32_t codeword_;

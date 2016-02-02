@@ -24,7 +24,7 @@ struct Settings {
     QQ_SETTINGS_SIZE +
     POLYLFO_SETTINGS_SIZE;
 
-  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 95>::value;
+  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 97>::value;
 
   uint8_t current_app_index;
   char app_settings[kAppSettingsSize];
@@ -108,7 +108,7 @@ void init_apps() {
   Serial.print("PAGES            : "); Serial.println(OC::SettingsStorage::PAGES);
 
   if (!settings_storage.load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
-    Serial.print("Settings not loaded, using defaults...");
+    Serial.println("Settings not loaded, using defaults...");
     global_settings.current_app_index = DEFAULT_APP_INDEX;
   } else {
     Serial.println("Loaded settings...");
