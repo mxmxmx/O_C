@@ -5,6 +5,7 @@
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "OC_scales.h"
+#include "OC_scale_edit.h"
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 
@@ -83,10 +84,6 @@ public:
     }
   }
 
-  void scale_changed() {
-    force_update_ = true;
-  }
-
   void force_update() {
     force_update_ = true;
   }
@@ -139,6 +136,20 @@ public:
 
     DAC::set<dac_channel>(last_output_ + get_fine());
   }
+
+  // Wrappers for ScaleEdit
+  void scale_changed() {
+    force_update_ = true;
+  }
+
+  uint16_t get_scale_mask() const {
+    return get_mask();
+  }
+
+  void update_scale_mask(uint16_t mask) {
+    apply_value(CHANNEL_SETTING_MASK, mask); // Should automatically be updated
+  }
+  //
 
   static const size_t kBinarySize =
     sizeof(uint8_t) + // CHANNEL_SETTING_SCALE
@@ -214,15 +225,13 @@ enum EMenuMode {
   MODE_EDIT_CHANNEL
 };
 
-#include "OC_scale_edit.h"
-
 struct QuadQuantizerState {
   int selected_channel;
   EMenuMode left_encoder_mode;
   int left_encoder_value;
   int selected_param;
 
-  OC::ScaleEditor scale_editor;
+  OC::ScaleEditor<QuantizerChannel> scale_editor;
 };
 
 QuadQuantizerState qq_state;

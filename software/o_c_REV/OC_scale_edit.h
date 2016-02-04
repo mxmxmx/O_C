@@ -1,6 +1,8 @@
 #ifndef OC_SCALE_EDIT_H_
 #define OC_SCALE_EDIT_H_
 
+#include "OC_bitmaps.h"
+
 extern TimerDebouncedButton<butL, 50, 2000> button_left;
 extern TimerDebouncedButton<butR, 50, 2000> button_right;
 
@@ -10,15 +12,20 @@ namespace OC {
 // Edits both scale length and note note values, as well as a mask of "active"
 // notes that the quantizer uses; some scales are read-only, in which case
 // only the mask is editable
+//
+// The owner class needs to provide callbacks to get notification when values
+// change:
+// void scale_changed();
+// uint16_t get_scale_mask();
+//  void update_scale_mask(uint16_t mask);
+//
 
-static constexpr long kMaxScaleLength = 16;
-static constexpr long kMinScaleLength = 4;
-
+template <typename Owner>
 class ScaleEditor {
 public:
 
   void Init() {
-    channel_ = nullptr;
+    owner_ = nullptr;
     scale_name_ = "?!";
     scale_ = mutable_scale_ = &dummy_scale;
     mask_ = 0;
@@ -27,12 +34,12 @@ public:
   }
 
   bool active() const {
-    return nullptr != channel_;
+    return nullptr != owner_;
   }
 
-  void Edit(QuantizerChannel *channel, const Scale *scale, const char *scale_name) {
+  void Edit(Owner *owner, const Scale *scale, const char *scale_name) {
     Serial.print("Editing const scale "); Serial.println(scale_name);
-    channel_ = channel;
+    owner_ = owner;
     scale_ = scale;
     mutable_scale_ = nullptr;
     scale_name_ = scale_name;
@@ -40,9 +47,9 @@ public:
     BeginEditing();
   }
 
-  void Edit(QuantizerChannel *channel, Scale *mutable_scale, const char *scale_name) {
+  void Edit(Owner *owner, Scale *mutable_scale, const char *scale_name) {
     Serial.print("Editing mutable scale "); Serial.println(scale_name);
-    channel_ = channel;
+    owner_ = owner;
     scale_ = mutable_scale_ = mutable_scale;
     scale_name_ = scale_name;
 
@@ -59,7 +66,7 @@ public:
 
 private:
 
-  QuantizerChannel *channel_;
+  Owner *owner_;
   const char * scale_name_;
   const braids::Scale *scale_;
   Scale *mutable_scale_;
@@ -79,7 +86,7 @@ private:
   void ror_mask(long count);
   void apply_mask(uint16_t mask) {
     mask_ = mask;
-    channel_->apply_value(CHANNEL_SETTING_MASK, mask); // Should automatically be updated
+    owner_->update_scale_mask(mask);
   }
 
   void reset_scale();
@@ -87,15 +94,8 @@ private:
   void change_note(size_t pos, long delta);
 };
 
-const uint8_t bitmap_empty_frame[] = {
-  0xff, 0x81, 0x81, 0xff
-};
-
-const uint8_t bitmap_end_marker[] = {
-  0x66, 0x6f, 0x6f, 0x66
-};
-
-void ScaleEditor::Draw() {
+template <typename Owner>
+void ScaleEditor<Owner>::Draw() {
   size_t num_notes = num_notes_;
 
   static constexpr weegfx::coord_t kMinWidth = 8 * 7;
@@ -151,19 +151,20 @@ void ScaleEditor::Draw() {
     if (mask & 0x1)
       graphics.drawRect(x, y, 4, 8);
     else
-      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame);
+      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4);
 
     if (i == cursor_pos_)
       graphics.drawFrame(x - 2, y - 2, 8, 12);
   }
   if (mutable_scale_) {
-    graphics.drawBitmap8(x, y, 4, bitmap_end_marker);
+    graphics.drawBitmap8(x, y, 4, bitmap_end_marker4);
     if (cursor_pos_ == num_notes)
       graphics.drawFrame(x - 2, y - 2, 8, 12);
   }
 }
 
-bool ScaleEditor::handle_encoders() {
+template <typename Owner>
+bool ScaleEditor<Owner>::handle_encoders() {
   bool changed = false;
 
   long left_value = encoder[LEFT].pos();
@@ -225,7 +226,8 @@ bool ScaleEditor::handle_encoders() {
   return changed;
 }
 
-void ScaleEditor::handle_topButton() {
+template <typename Owner>
+void ScaleEditor<Owner>::handle_topButton() {
   if (button_left.pressed()) {
     if (cursor_pos_ == num_notes_)
       reset_scale();
@@ -236,14 +238,16 @@ void ScaleEditor::handle_topButton() {
     invert_mask();
 }
 
-void ScaleEditor::handle_bottomButton() {
+template <typename Owner>
+void ScaleEditor<Owner>::handle_bottomButton() {
   if (button_left.pressed())
     change_note(cursor_pos_, -128);
   else
     invert_mask();
 }
 
-void ScaleEditor::handle_leftButton() {
+template <typename Owner>
+void ScaleEditor<Owner>::handle_leftButton() {
   uint16_t m = 0x1 << cursor_pos_;
   uint16_t mask = mask_;
 
@@ -260,14 +264,17 @@ void ScaleEditor::handle_leftButton() {
   }
 }
 
-void ScaleEditor::handle_leftButtonLong() {
+template <typename Owner>
+void ScaleEditor<Owner>::handle_leftButtonLong() {
 }
 
-void ScaleEditor::handle_rightButton() {
+template <typename Owner>
+void ScaleEditor<Owner>::handle_rightButton() {
   Close();
 }
 
-void ScaleEditor::invert_mask() {
+template <typename Owner>
+void ScaleEditor<Owner>::invert_mask() {
   uint16_t m = ~(0xffffU << num_notes_);
   uint16_t mask = mask_;
   // Don't invert to zero
@@ -276,7 +283,8 @@ void ScaleEditor::invert_mask() {
   apply_mask(mask);
 }
 
-void ScaleEditor::rol_mask(long count) {
+template <typename Owner>
+void ScaleEditor<Owner>::rol_mask(long count) {
   uint16_t m = ~(0xffffU << num_notes_);
   uint16_t mask = mask_ & m;
   while (count--)
@@ -285,7 +293,8 @@ void ScaleEditor::rol_mask(long count) {
   apply_mask(mask);
 }
 
-void ScaleEditor::ror_mask(long count) {
+template <typename Owner>
+void ScaleEditor<Owner>::ror_mask(long count) {
   uint16_t m = ~(0xffffU << num_notes_);
   uint16_t mask = mask_ & m;
   while (count--)
@@ -294,7 +303,8 @@ void ScaleEditor::ror_mask(long count) {
   apply_mask(mask);
 }
 
-void ScaleEditor::reset_scale() {
+template <typename Owner>
+void ScaleEditor<Owner>::reset_scale() {
   Serial.println("Resetting scale to SEMI");
 
   *mutable_scale_ = braids::scales[1];
@@ -304,7 +314,8 @@ void ScaleEditor::reset_scale() {
   apply_mask(mask_);
 }
 
-void ScaleEditor::change_note(size_t pos, long delta) {
+template <typename Owner>
+void ScaleEditor<Owner>::change_note(size_t pos, long delta) {
   if (mutable_scale_ && pos < num_notes_) {
     int32_t note = mutable_scale_->notes[pos] + delta;
 
@@ -318,15 +329,16 @@ void ScaleEditor::change_note(size_t pos, long delta) {
     mutable_scale_->notes[pos] = note;
 //    braids::SortScale(*mutable_scale_); // TODO side effects?
 
-    channel_->force_update();
+    owner_->scale_changed();
   }
 }
 
-void ScaleEditor::BeginEditing() {
+template <typename Owner>
+void ScaleEditor<Owner>::BeginEditing() {
 
   cursor_pos_ = 0;
   num_notes_ = scale_->num_notes;
-  mask_ = channel_->get_mask();
+  mask_ = owner_->get_scale_mask();
 
   encoder_state_[0] = encoder[LEFT].pos();
   encoder_state_[1] = encoder[RIGHT].pos();
@@ -335,11 +347,12 @@ void ScaleEditor::BeginEditing() {
   encoder[RIGHT].setPos(scale_->notes[cursor_pos_]);
 }
 
-void ScaleEditor::Close() {
+template <typename Owner>
+void ScaleEditor<Owner>::Close() {
   encoder[LEFT].setPos(encoder_state_[LEFT]);
   encoder[RIGHT].setPos(encoder_state_[RIGHT]);
 
-  channel_ = nullptr;
+  owner_ = nullptr;
 }
 
 }; // namespace OC
