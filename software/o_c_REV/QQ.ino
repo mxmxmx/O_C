@@ -413,10 +413,7 @@ bool QQ_encoders() {
     encoder[RIGHT].setPos(0);
     int scale = selected.get_scale();
     if (value && OC::Scales::USER_SCALE_LAST != scale) {
-      if (scale < OC::Scales::USER_SCALE_LAST)
-        qq_state.scale_editor.Edit(&selected, &OC::user_scales[scale], OC::scale_names[scale]);
-      else
-        qq_state.scale_editor.Edit(&selected, &OC::Scales::GetScale(scale), OC::scale_names[scale]);
+      qq_state.scale_editor.Edit(&selected, scale);
       changed = true;
     }
   }
@@ -508,7 +505,7 @@ void QQ_leftButtonLong() {
     int scale = qq_state.left_encoder_value;
     selected_channel.apply_value(CHANNEL_SETTING_SCALE, scale);
     if (scale < OC::Scales::USER_SCALE_LAST) {
-      qq_state.scale_editor.Edit(&selected_channel, &OC::user_scales[scale], OC::scale_names[scale]);
+      qq_state.scale_editor.Edit(&selected_channel, scale);
     }
   }
 }

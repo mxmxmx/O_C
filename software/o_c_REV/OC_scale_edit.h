@@ -37,21 +37,21 @@ public:
     return nullptr != owner_;
   }
 
-  void Edit(Owner *owner, const Scale *scale, const char *scale_name) {
-    Serial.print("Editing const scale "); Serial.println(scale_name);
-    owner_ = owner;
-    scale_ = scale;
-    mutable_scale_ = nullptr;
-    scale_name_ = scale_name;
+  void Edit(Owner *owner, int scale) {
+    if (OC::Scales::USER_SCALE_LAST == scale)
+      return;
 
-    BeginEditing();
-  }
-
-  void Edit(Owner *owner, Scale *mutable_scale, const char *scale_name) {
-    Serial.print("Editing mutable scale "); Serial.println(scale_name);
+    if (scale < OC::Scales::USER_SCALE_LAST) {
+      scale_ = mutable_scale_ = &OC::user_scales[scale];
+      scale_name_ = OC::scale_names[scale];
+      Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+    } else {
+      scale_ = &OC::Scales::GetScale(scale);
+      mutable_scale_ = nullptr;
+      scale_name_ = OC::scale_names[scale];
+      Serial.print("Editing const scale "); Serial.println(scale_name_);
+    }
     owner_ = owner;
-    scale_ = mutable_scale_ = mutable_scale;
-    scale_name_ = scale_name;
 
     BeginEditing();
   }
