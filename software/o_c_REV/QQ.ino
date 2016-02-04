@@ -251,7 +251,7 @@ void QQ_init() {
   qq_state.scale_editor.Init();
 }
 
-static const size_t QQ_SETTINGS_SIZE = CHANNEL_SETTING_LAST * QuantizerChannel::kBinarySize;
+static const size_t QQ_SETTINGS_SIZE = 4 * QuantizerChannel::kBinarySize;
 
 size_t QQ_save(char *storage) {
   size_t used = 0;
