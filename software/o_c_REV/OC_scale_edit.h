@@ -1,17 +1,18 @@
-#ifndef QQ_SCALE_EDIT_H_
-#define QQ_SCALE_EDIT_H_
-
-braids::Scale dummy_scale;
-static constexpr long kMaxScaleLength = 16;
-static constexpr long kMinScaleLength = 4;
+#ifndef OC_SCALE_EDIT_H_
+#define OC_SCALE_EDIT_H_
 
 extern TimerDebouncedButton<butL, 50, 2000> button_left;
 extern TimerDebouncedButton<butR, 50, 2000> button_right;
+
+namespace OC {
 
 // Scale editor
 // Edits both scale length and note note values, as well as a mask of "active"
 // notes that the quantizer uses; some scales are read-only, in which case
 // only the mask is editable
+
+static constexpr long kMaxScaleLength = 16;
+static constexpr long kMinScaleLength = 4;
 
 class ScaleEditor {
 public:
@@ -29,7 +30,7 @@ public:
     return nullptr != channel_;
   }
 
-  void Edit(QuantizerChannel *channel, const braids::Scale *scale, const char *scale_name) {
+  void Edit(QuantizerChannel *channel, const Scale *scale, const char *scale_name) {
     Serial.print("Editing const scale "); Serial.println(scale_name);
     channel_ = channel;
     scale_ = scale;
@@ -39,7 +40,7 @@ public:
     BeginEditing();
   }
 
-  void Edit(QuantizerChannel *channel, braids::Scale *mutable_scale, const char *scale_name) {
+  void Edit(QuantizerChannel *channel, Scale *mutable_scale, const char *scale_name) {
     Serial.print("Editing mutable scale "); Serial.println(scale_name);
     channel_ = channel;
     scale_ = mutable_scale_ = mutable_scale;
@@ -61,7 +62,7 @@ private:
   QuantizerChannel *channel_;
   const char * scale_name_;
   const braids::Scale *scale_;
-  braids::Scale *mutable_scale_;
+  Scale *mutable_scale_;
 
   uint16_t mask_;
   size_t cursor_pos_;
@@ -341,4 +342,6 @@ void ScaleEditor::Close() {
   channel_ = nullptr;
 }
 
-#endif // QQ_SCALE_EDIT_H_
+}; // namespace OC
+
+#endif // OC_SCALE_EDIT_H_

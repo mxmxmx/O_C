@@ -99,6 +99,9 @@ void set_current_app(int index) {
 }
 
 void init_apps() {
+
+  OC::Scales::Init();
+
   for (int i = 0; i < APP_COUNT; ++i)
     available_apps[i].init();
 

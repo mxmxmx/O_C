@@ -4,16 +4,9 @@
 #include "util_settings.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
+#include "OC_scales.h"
 
 // TODO Extend calibration to get exact octave spacing for inputs?
-
-enum ECustomScaleIndex {
-  CUSTOM_SCALE_0,
-  CUSTOM_SCALE_1,
-  CUSTOM_SCALE_2,
-  CUSTOM_SCALE_3,
-  CUSTOM_SCALE_LAST
-};
 
 enum EChannelSettings {
   CHANNEL_SETTING_SCALE,
@@ -83,11 +76,15 @@ public:
     if (force || (last_scale_ != scale || last_mask_ != mask)) {
       last_scale_ = scale;
       last_mask_ = mask;
-      quantizer_.Configure(get_scale_def(scale), mask);
+      quantizer_.Configure(OC::Scales::GetScale(scale), mask);
       return true;
     } else {
       return false;
     }
+  }
+
+  void scale_changed() {
+    force_update_ = true;
   }
 
   void force_update() {
@@ -143,12 +140,6 @@ public:
     DAC::set<dac_channel>(last_output_ + get_fine());
   }
 
-  int max_mask() const {
-    int num_notes = braids::scales[get_scale()].num_notes;
-    uint16_t mask = ~(0xffffU << num_notes);
-    return mask;
-  }
-
   static const size_t kBinarySize =
     sizeof(uint8_t) + // CHANNEL_SETTING_SCALE
     sizeof(uint8_t) + // CHANNEL_SETTING_ROOT
@@ -187,16 +178,6 @@ public:
     return (ptr - storage);
   }
 
-
-  static braids::Scale custom_scales[CUSTOM_SCALE_LAST];
-
-  static const braids::Scale &get_scale_def(int index) {
-    if (index < CUSTOM_SCALE_LAST)
-      return custom_scales[index];
-    else
-      return braids::scales[index - CUSTOM_SCALE_LAST];
-  }
-
 private:
   bool force_update_;
   int last_scale_;
@@ -205,63 +186,7 @@ private:
   braids::Quantizer quantizer_;
 };
 
-/*static*/ braids::Scale QuantizerChannel::custom_scales[CUSTOM_SCALE_LAST];
-
-static const size_t QUANTIZER_NUM_SCALES = CUSTOM_SCALE_LAST + sizeof(braids::scales) / sizeof(braids::scales[0]);
-const char* scale_names[QUANTIZER_NUM_SCALES] = {
-    "USER1",
-    "USER2",
-    "USER3",
-    "USER4",
-    "OFF ",
-    "SEMI",
-    "IONI",
-    "DORI",
-    "PHRY",
-    "LYDI",
-    "MIXO",
-    "AEOL",
-    "LOCR",
-    "BLU+",
-    "BLU-",
-    "PEN+",
-    "PEN-",
-    "FOLK",
-    "JAPA",
-    "GAME",
-    "GYPS",
-    "ARAB",
-    "FLAM",
-    "WHOL",
-    "PYTH",
-    "EB/4",
-    "E /4",
-    "EA/4",
-    "BHAI",
-    "GUNA",
-    "MARW",
-    "SHRI",
-    "PURV",
-    "BILA",
-    "YAMA",
-    "KAFI",
-    "BHIM",
-    "DARB",
-    "RAGE",
-    "KHAM",
-    "MIMA",
-    "PARA",
-    "RANG",
-    "GANG",
-    "KAME",
-    "PAKA",
-    "NATB",
-    "KAUN",
-    "BAIR",
-    "BTOD",
-    "CHAN",
-    "KTOD",
-    "JOGE" };
+static const size_t QUANTIZER_NUM_SCALES = OC::Scales::USER_SCALE_LAST + sizeof(braids::scales) / sizeof(braids::scales[0]);
 
 const char* const update_modes[CHANNEL_UPDATE_LAST] = {
   "trig",
@@ -274,7 +199,7 @@ const char* const channel_source[ADC_CHANNEL_LAST] = {
 
 /*static*/ template <>
 const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST>::value_attr_[] = {
-  { CUSTOM_SCALE_LAST + 1, 0, QUANTIZER_NUM_SCALES + CUSTOM_SCALE_LAST - 1, "scale", scale_names },
+  { OC::Scales::USER_SCALE_LAST + 1, 0, QUANTIZER_NUM_SCALES + OC::Scales::USER_SCALE_LAST - 1, "scale", OC::scale_names },
   { 0, 0, 11, "root", note_names },
   { 65535, 1, 65535, "active notes", NULL },
   { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes },
@@ -289,7 +214,7 @@ enum EMenuMode {
   MODE_EDIT_CHANNEL
 };
 
-#include "QQ_scale_edit.h"
+#include "OC_scale_edit.h"
 
 struct QuadQuantizerState {
   int selected_channel;
@@ -297,7 +222,7 @@ struct QuadQuantizerState {
   int left_encoder_value;
   int selected_param;
 
-  ScaleEditor scale_editor;
+  OC::ScaleEditor scale_editor;
 };
 
 QuadQuantizerState qq_state;
@@ -315,14 +240,11 @@ void QQ_init() {
   qq_state.left_encoder_value = 0;
   qq_state.selected_param = CHANNEL_SETTING_ROOT;
   qq_state.scale_editor.Init();
-
-  for (size_t i = 0; i < CUSTOM_SCALE_LAST; ++i)
-    memcpy(&QuantizerChannel::custom_scales[i], &braids::scales[1], sizeof(braids::Scale));
 }
 
 static const size_t QQ_SETTINGS_SIZE =
   CHANNEL_SETTING_LAST * QuantizerChannel::kBinarySize +
-  CUSTOM_SCALE_LAST * sizeof(braids::Scale);
+  OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale);
 
 size_t QQ_save(char *storage) {
   size_t used = 0;
@@ -330,8 +252,8 @@ size_t QQ_save(char *storage) {
     used += quantizer_channels[i].save_settings(storage + used);
   }
 
-  memcpy(storage + used, QuantizerChannel::custom_scales, CUSTOM_SCALE_LAST * sizeof(braids::Scale));
-  used += CUSTOM_SCALE_LAST * sizeof(braids::Scale);
+  memcpy(storage + used, OC::user_scales, OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale));
+  used += OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale);
   return used;
 }
 
@@ -340,8 +262,8 @@ size_t QQ_restore(const char *storage) {
   for (size_t i = 0; i < 4; ++i) {
     used += quantizer_channels[i].restore_settings(storage + used);
   }
-  memcpy(QuantizerChannel::custom_scales, storage + used, CUSTOM_SCALE_LAST * sizeof(braids::Scale));
-  used += CUSTOM_SCALE_LAST * sizeof(braids::Scale);
+  memcpy(OC::user_scales, storage + used, OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale));
+  used += OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale);
   return used;
 }
 
@@ -414,7 +336,7 @@ void QQ_menu() {
   } else {
     scale = channel.get_scale();
   }
-  graphics.print(scale_names[scale]);
+  graphics.print(OC::scale_names[scale]);
 
   int first_visible_param = qq_state.selected_param - 2;
   if (first_visible_param < CHANNEL_SETTING_ROOT)
@@ -427,7 +349,7 @@ void QQ_menu() {
     } else {
       graphics.print(attr.name);
       uint16_t mask = channel.get_mask();
-      size_t num_notes = QuantizerChannel::get_scale_def(channel.get_scale()).num_notes;
+      size_t num_notes = OC::Scales::GetScale(channel.get_scale()).num_notes;
       weegfx::coord_t x = kUiDisplayWidth - num_notes * 3;
       for (size_t i = 0; i < num_notes; ++i, mask >>= 1, x+=3) {
         if (mask & 0x1)
@@ -488,11 +410,11 @@ bool QQ_encoders() {
   } else {
     encoder[RIGHT].setPos(0);
     int scale = selected.get_scale();
-    if (value && CUSTOM_SCALE_LAST != scale) {
-      if (scale < CUSTOM_SCALE_LAST)
-        qq_state.scale_editor.Edit(&selected, &QuantizerChannel::custom_scales[scale], scale_names[scale]);
+    if (value && OC::Scales::USER_SCALE_LAST != scale) {
+      if (scale < OC::Scales::USER_SCALE_LAST)
+        qq_state.scale_editor.Edit(&selected, &OC::user_scales[scale], OC::scale_names[scale]);
       else
-        qq_state.scale_editor.Edit(&selected, &QuantizerChannel::get_scale_def(scale), scale_names[scale]);
+        qq_state.scale_editor.Edit(&selected, &OC::Scales::GetScale(scale), OC::scale_names[scale]);
       changed = true;
     }
   }
@@ -583,8 +505,8 @@ void QQ_leftButtonLong() {
   } else {
     int scale = qq_state.left_encoder_value;
     selected_channel.apply_value(CHANNEL_SETTING_SCALE, scale);
-    if (scale < CUSTOM_SCALE_LAST) {
-      qq_state.scale_editor.Edit(&selected_channel, &QuantizerChannel::custom_scales[scale], scale_names[scale]);
+    if (scale < OC::Scales::USER_SCALE_LAST) {
+      qq_state.scale_editor.Edit(&selected_channel, &OC::user_scales[scale], OC::scale_names[scale]);
     }
   }
 }
