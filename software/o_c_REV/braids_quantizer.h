@@ -40,6 +40,8 @@ struct Scale {
   int16_t notes[16];
 };
 
+void SortScale(Scale &);
+
 class Quantizer {
  public:
   Quantizer() { }

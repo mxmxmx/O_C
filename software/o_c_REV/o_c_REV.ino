@@ -21,6 +21,7 @@
 *
 */
 
+#include <ADC.h>
 #include <spi4teensy3.h>
 #include <rotaryplus.h>
 #include <EEPROM.h>

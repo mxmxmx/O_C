@@ -33,6 +33,11 @@
 
 namespace braids {
 
+void SortScale(Scale &scale) {
+  std::sort(scale.notes, scale.notes + scale.num_notes);
+}
+
+
 void Quantizer::Init() {
   enabled_ = true;
   codeword_ = 0;
