@@ -242,18 +242,13 @@ void QQ_init() {
   qq_state.scale_editor.Init();
 }
 
-static const size_t QQ_SETTINGS_SIZE =
-  CHANNEL_SETTING_LAST * QuantizerChannel::kBinarySize +
-  OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale);
+static const size_t QQ_SETTINGS_SIZE = CHANNEL_SETTING_LAST * QuantizerChannel::kBinarySize;
 
 size_t QQ_save(char *storage) {
   size_t used = 0;
   for (size_t i = 0; i < 4; ++i) {
     used += quantizer_channels[i].save_settings(storage + used);
   }
-
-  memcpy(storage + used, OC::user_scales, OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale));
-  used += OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale);
   return used;
 }
 
@@ -262,8 +257,6 @@ size_t QQ_restore(const char *storage) {
   for (size_t i = 0; i < 4; ++i) {
     used += quantizer_channels[i].restore_settings(storage + used);
   }
-  memcpy(OC::user_scales, storage + used, OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale));
-  used += OC::Scales::USER_SCALE_LAST * sizeof(OC::Scale);
   return used;
 }
 

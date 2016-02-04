@@ -24,10 +24,13 @@ struct Settings {
     QQ_SETTINGS_SIZE +
     POLYLFO_SETTINGS_SIZE;
 
-  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 97>::value;
+  static const uint32_t FOURCC = FOURCC<'O', 'C', 0, 98>::value;
 
   uint8_t current_app_index;
   char app_settings[kAppSettingsSize];
+
+  OC::Scale user_scales[OC::Scales::USER_SCALE_LAST];
+
   size_t used;
 };
 
@@ -44,7 +47,12 @@ static const uint32_t SELECT_APP_TIMEOUT = 15000;
 static const int DEFAULT_APP_INDEX = 1;
 
 
-void save_app_settings() {
+void save_settings() {
+  Serial.println("Saving settings...");
+
+  memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
+  Serial.print("Saving user scales: "); Serial.println(sizeof(OC::user_scales));
+
   char *storage = global_settings.app_settings;
   global_settings.used = 0;
   for (int i = 0; i < APP_COUNT; ++i) {
@@ -54,7 +62,9 @@ void save_app_settings() {
       global_settings.used += used;
     }
   }
-  Serial.print("App settings saved: "); Serial.println(global_settings.used);
+  Serial.print("App settings used : "); Serial.println(global_settings.used);
+  settings_storage.save(global_settings);
+  Serial.print("page_index        : "); Serial.println(settings_storage.page_index());
 }
 
 void restore_app_settings() {
@@ -115,8 +125,10 @@ void init_apps() {
     global_settings.current_app_index = DEFAULT_APP_INDEX;
   } else {
     Serial.println("Loaded settings...");
-    Serial.print("page_index       : "); Serial.println(settings_storage.page_index());
-    Serial.print("current_app_index: "); Serial.println(global_settings.current_app_index);
+    Serial.print("page_index         : "); Serial.println(settings_storage.page_index());
+    Serial.print("current_app_index  : "); Serial.println(global_settings.current_app_index);
+    Serial.print("Loading user scales: "); Serial.println(sizeof(OC::user_scales));
+    memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
     restore_app_settings();
   }
   set_current_app(global_settings.current_app_index);
@@ -219,12 +231,8 @@ void select_app() {
   }
 
   set_current_app(selected);
-  if (save) {
-    Serial.println("Saving settings...");
-    save_app_settings();
-    settings_storage.save(global_settings);
-    Serial.print("page_index       : "); Serial.println(settings_storage.page_index());
-  }
+  if (save) 
+    save_settings();
 
   // Restore state
   encoder[LEFT].setPos(encoder_values[0]);
