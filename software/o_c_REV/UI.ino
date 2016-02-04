@@ -28,12 +28,12 @@ enum DISPLAY_PAGE
 uint8_t SLOWDOWN = 0; 
 
 /* encoders isr */
-void left_encoder_ISR() 
+void FASTRUN left_encoder_ISR() 
 {
   encoder[LEFT].process();
 }
 
-void right_encoder_ISR() 
+void FASTRUN right_encoder_ISR() 
 {
   encoder[RIGHT].process();
 }

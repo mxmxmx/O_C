@@ -171,10 +171,11 @@ void Graphics::invertRect(coord_t x, coord_t y, coord_t w, coord_t h) {
 void Graphics::drawFrame(coord_t x, coord_t y, coord_t w, coord_t h) {
 
   // Obvious candidate for optimizing
+  // TODO Check w/h
   drawHLine(x, y, w);
-  drawVLine(x, y, h);
-  drawVLine(x + w, y, h);
-  drawHLine(x, y + h, w);
+  drawVLine(x, y + 1, h - 1);
+  drawVLine(x + w - 1, y + 1, h - 1);
+  drawHLine(x, y + h - 1, w);
 }
 
 void Graphics::drawHLine(coord_t x, coord_t y, coord_t w) {
@@ -406,6 +407,16 @@ void Graphics::pretty_print(int value) {
   char buf[12];
   print(itos<int, true>(value, buf, sizeof(buf)));
 }
+
+void Graphics::print(uint16_t value, size_t width) {
+  char buf[12];
+  char *str = itos<uint16_t, false>(value, buf, sizeof(buf));
+  while (str > buf &&
+         (size_t)(str - buf) >= sizeof(buf) - width)
+    *--str = ' ';
+  print(str);
+}
+
 
 void Graphics::pretty_print(int value, size_t width) {
   char buf[12];
