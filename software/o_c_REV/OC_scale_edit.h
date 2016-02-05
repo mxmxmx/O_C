@@ -254,8 +254,8 @@ void ScaleEditor<Owner>::handle_leftButton() {
   if (cursor_pos_ < num_notes_) {
     // toggle note active state; avoid 0 mask
     if (mask & m) {
-      mask &= ~m;
-      if (!mask) mask |= m;
+      if ((mask & ~(0xffff << num_notes_)) != m)
+        mask &= ~m;
     } else {
       mask |= m;
     }
