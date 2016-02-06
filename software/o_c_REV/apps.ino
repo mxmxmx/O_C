@@ -2,7 +2,7 @@
 
 App available_apps[] = {
   {"ASR", ASR_init, ASR_save, ASR_restore, NULL, ASR_resume,
-    ASR_loop, ASR_menu, screensaver, topButton, lowerButton, rightButton, leftButton, NULL, update_ENC, NULL},
+    ASR_loop, ASR_menu, screensaver, ASR_topButton, ASR_lowerButton, ASR_rightButton, ASR_leftButton, ASR_leftButtonLong, ASR_encoders, ASR_isr},
   {"Harrington 1200", H1200_init, H1200_save, H1200_restore, NULL, H1200_resume,
     H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_leftButtonLong, H1200_encoders, NULL},
   {"Automatonnetz", Automatonnetz_init, Automatonnetz_save, Automatonnetz_restore, NULL, Automatonnetz_resume,
@@ -19,7 +19,7 @@ struct GlobalSettings {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','S',0>::value;
 
   uint8_t current_app_index;
-  OC::Scale user_scales[OC::Scales::USER_SCALE_LAST];
+  OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
 };
 
 struct AppData {

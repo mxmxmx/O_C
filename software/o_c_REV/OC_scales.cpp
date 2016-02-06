@@ -3,21 +3,24 @@
 
 namespace OC {
 
-Scale user_scales[Scales::USER_SCALE_LAST];
+Scale user_scales[Scales::SCALE_USER_LAST];
 Scale dummy_scale;
 
 /*static*/
+const int Scales::NUM_SCALES = OC::Scales::SCALE_USER_LAST + sizeof(braids::scales) / sizeof(braids::scales[0]);
+
+/*static*/
 void Scales::Init() {
-  for (size_t i = 0; i < USER_SCALE_LAST; ++i)
+  for (size_t i = 0; i < SCALE_USER_LAST; ++i)
     memcpy(&user_scales[i], &braids::scales[1], sizeof(Scale));
 }
 
 /*static*/
 const Scale &Scales::GetScale(int index) {
-  if (index < USER_SCALE_LAST)
+  if (index < SCALE_USER_LAST)
     return user_scales[index];
   else
-    return braids::scales[index - USER_SCALE_LAST];
+    return braids::scales[index - SCALE_USER_LAST];
 }
 
 const char* const scale_names[] = {

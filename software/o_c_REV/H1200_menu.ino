@@ -1,9 +1,8 @@
 #include "OC_bitmaps.h"
-
-/*static*/ const char * const note_names[12] = { "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B " };
+#include "OC_strings.h"
 
 const char *note_name(int note) {
-  return note_names[(note + 120) % 12];
+  return OC::Strings::note_names[(note + 120) % 12];
 }
 
 void H1200_menu() {
@@ -104,7 +103,7 @@ void H1200_screensaver() {
 
     value = (value + 120) % 12;
     graphics.setPrintPos(x_col_2, y);
-    graphics.print(note_names[value]);
+    graphics.print(OC::Strings::note_names[value]);
     normalized[i] = value;
   }
   y = 0;

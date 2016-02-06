@@ -197,8 +197,6 @@ private:
   braids::Quantizer quantizer_;
 };
 
-static const size_t QUANTIZER_NUM_SCALES = OC::Scales::USER_SCALE_LAST + sizeof(braids::scales) / sizeof(braids::scales[0]);
-
 const char* const update_modes[CHANNEL_UPDATE_LAST] = {
   "trig",
   "cont"
@@ -210,8 +208,8 @@ const char* const channel_source[ADC_CHANNEL_LAST] = {
 
 /*static*/ template <>
 const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST>::value_attr_[] = {
-  { OC::Scales::USER_SCALE_LAST + 1, 0, QUANTIZER_NUM_SCALES + OC::Scales::USER_SCALE_LAST - 1, "scale", OC::scale_names },
-  { 0, 0, 11, "root", note_names },
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names },
+  { 0, 0, 11, "root", OC::Strings::note_names },
   { 65535, 1, 65535, "active notes", NULL },
   { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes },
   { 0, -5, 7, "transpose", NULL },
@@ -377,7 +375,7 @@ bool QQ_encoders() {
   switch (qq_state.left_encoder_mode) {
     case MODE_EDIT_CHANNEL:
       if (value != qq_state.left_encoder_value) {
-        if (value >= (int)QUANTIZER_NUM_SCALES) value = QUANTIZER_NUM_SCALES - 1;
+        if (value >= (int)OC::Scales::NUM_SCALES) value = OC::Scales::NUM_SCALES - 1;
         else if (value < 0) value = 0;
         qq_state.left_encoder_value = value;
         encoder[LEFT].setPos(value);
@@ -412,7 +410,7 @@ bool QQ_encoders() {
   } else {
     encoder[RIGHT].setPos(0);
     int scale = selected.get_scale();
-    if (value && OC::Scales::USER_SCALE_LAST != scale) {
+    if (value && OC::Scales::SCALE_NONE != scale) {
       qq_state.scale_editor.Edit(&selected, scale);
       changed = true;
     }
@@ -504,8 +502,7 @@ void QQ_leftButtonLong() {
   } else {
     int scale = qq_state.left_encoder_value;
     selected_channel.apply_value(CHANNEL_SETTING_SCALE, scale);
-    if (scale < OC::Scales::USER_SCALE_LAST) {
+    if (scale != OC::Scales::SCALE_NONE)
       qq_state.scale_editor.Edit(&selected_channel, scale);
-    }
   }
 }

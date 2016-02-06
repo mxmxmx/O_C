@@ -38,10 +38,10 @@ public:
   }
 
   void Edit(Owner *owner, int scale) {
-    if (OC::Scales::USER_SCALE_LAST == scale)
+    if (OC::Scales::SCALE_NONE == scale)
       return;
 
-    if (scale < OC::Scales::USER_SCALE_LAST) {
+    if (scale < OC::Scales::SCALE_USER_LAST) {
       scale_ = mutable_scale_ = &OC::user_scales[scale];
       scale_name_ = OC::scale_names[scale];
       Serial.print("Editing mutable scale "); Serial.println(scale_name_);
@@ -307,7 +307,7 @@ template <typename Owner>
 void ScaleEditor<Owner>::reset_scale() {
   Serial.println("Resetting scale to SEMI");
 
-  *mutable_scale_ = braids::scales[1];
+  *mutable_scale_ = OC::Scales::GetScale(OC::Scales::SCALE_SEMI);
   num_notes_ = mutable_scale_->num_notes;
   cursor_pos_ = num_notes_;
   mask_ = ~(0xfff << num_notes_);

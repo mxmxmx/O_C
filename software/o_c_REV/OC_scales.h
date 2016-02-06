@@ -14,12 +14,16 @@ static constexpr long kMinScaleLength = 4;
 class Scales {
 public:
 
-  enum EUserScale {
-    USER_SCALE_0,
-    USER_SCALE_1,
-    USER_SCALE_2,
-    USER_SCALE_3,
-    USER_SCALE_LAST
+	static const int NUM_SCALES;
+
+  enum {
+    SCALE_USER_0,
+    SCALE_USER_1,
+    SCALE_USER_2,
+    SCALE_USER_3,
+    SCALE_USER_LAST, // index 0 in braids::scales
+    SCALE_SEMI,
+    SCALE_NONE = SCALE_USER_LAST,
   };
 
   static void Init();
@@ -27,7 +31,7 @@ public:
 };
 
 extern const char *const scale_names[];
-extern Scale user_scales[OC::Scales::USER_SCALE_LAST];
+extern Scale user_scales[OC::Scales::SCALE_USER_LAST];
 extern Scale dummy_scale;
 
 };
