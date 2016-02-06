@@ -9,6 +9,28 @@
 
 #define TRANSPOSE_FIXED 0x0
 
+// CV input gain multipliers 
+const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
+};
+
+//  https://github.com/PaulStoffregen/Audio/blob/master/utility/dspinst.h
+
+static inline int32_t signed_multiply_32x16b(int32_t a, uint32_t b) __attribute__((always_inline, unused));
+static inline int32_t signed_multiply_32x16b(int32_t a, uint32_t b)
+{
+  int32_t out;
+  asm volatile("smulwb %0, %1, %2" : "=r" (out) : "r" (a), "r" (b));
+  return out;
+}
+
+static inline int32_t signed_saturate_rshift(int32_t val, int bits, int rshift) __attribute__((always_inline, unused));
+static inline int32_t signed_saturate_rshift(int32_t val, int bits, int rshift)
+{
+  int32_t out;
+  asm volatile("ssat %0, %1, %2, asr %3" : "=r" (out) : "I" (bits), "r" (val), "I" (rshift));
+  return out;
+}
+
 enum ASRSettings {
   ASR_SETTING_SCALE,
   ASR_SETTING_OCTAVE, 
@@ -190,23 +212,34 @@ public:
 
       if (update) {        
    
+        int8_t _root  = get_root();
+        int8_t _index = get_index();
+        int8_t _mult  = get_mult();
+        
         clocks_cnt_++;
-        if (get_root() != last_root_) clocks_cnt_ = 0;
 
-        last_root_ = get_root();
+        if (_root != last_root_) clocks_cnt_ = 0;
 
-        int8_t  _index =  SCALED_ADC(ADC_CHANNEL_2, 5) + get_index();
+        last_root_ = _root;
+
+        _index +=  SCALED_ADC(ADC_CHANNEL_2, 5);
 
         if (!digitalReadFast(TR2)) _hold(_ASR, _index);   
         else {
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
              int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
-          
+
+            // scale incoming CV
+             if (_mult != 9) {
+               _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
+               _pitch = signed_saturate_rshift(_pitch, 16, 0);
+             }
+             
              _pitch = (_pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
              _pitch += 3 * 12 << 7; // offset for LUT range
     
-             int32_t _quantized = quantizer_.Process(_pitch, (get_root() + 60) << 7, TRANSPOSE_FIXED);
+             int32_t _quantized = quantizer_.Process(_pitch, (_root + 60) << 7, TRANSPOSE_FIXED);
 
              if (!digitalReadFast(TR3)) _octave++;
              else if (!digitalReadFast(TR4)) _octave--;
@@ -290,7 +323,7 @@ const settings::value_attr settings::SettingsBase<ASR, ASR_SETTING_LAST>::value_
   { 0, 0, 11, "root", OC::Strings::note_names },
   { 65535, 1, 65535, "active notes", NULL }, // mask
   { 0, 0, 63, "index", NULL },
-  { 0, 0, 19, "mult/att", mult },
+  { 9, 0, 19, "mult/att", mult },
 };
 
 struct ASRState {
@@ -359,12 +392,10 @@ bool ASR_encoders() {
   value = encoder[RIGHT].pos();
  
   if (ASR_SETTING_MASK != asr_state.selected_param) {
-     if (value != asr.get_value(asr_state.selected_param)) {
-        if (asr.apply_value(asr_state.selected_param, value))
-          asr.force_update();
-      }
-      encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
-      changed = true;
+     if (value != asr.get_value(asr_state.selected_param))
+        asr.apply_value(asr_state.selected_param, value);
+     encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
+     changed = true;
   } else {
     encoder[RIGHT].setPos(0);
     int scale = asr.get_scale();
