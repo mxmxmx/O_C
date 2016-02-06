@@ -239,7 +239,7 @@ QuantizerChannel quantizer_channels[4];
 
 void QQ_init() {
   for (size_t i = 0; i < 4; ++i) {
-    quantizer_channels[i].init_defaults();
+    quantizer_channels[i].InitDefaults();
     quantizer_channels[i].init();
     quantizer_channels[i].apply_value(CHANNEL_SETTING_SOURCE, (int)i); // override
   }

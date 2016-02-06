@@ -39,7 +39,7 @@ public:
 
 
 void PolyLfo::Init() {
-  init_defaults();
+  InitDefaults();
   lfo.Init();
 }
 

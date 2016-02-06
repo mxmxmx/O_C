@@ -1,7 +1,7 @@
 #ifndef UTIL_UI_H_
 #define UTIL_UI_H_
 
-#define UI_DEFAULT_FONT u8g_font_6x12
+#define UI_DEFAULT_FONT nullptr
 
 static const uint8_t kUiDefaultFontH = 12;
 static const uint8_t kUiTitleTextY = 0;

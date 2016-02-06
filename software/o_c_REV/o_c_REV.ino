@@ -42,10 +42,6 @@
 //#define ENABLE_DEBUG_PINS
 #include "util_debugpins.h"
 
-// Work-around until there are fonts available
-const char *u8g_font_10x20 = "";
-const char *u8g_font_6x12 = "";
-
 FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 weegfx::Graphics graphics;

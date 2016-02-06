@@ -151,13 +151,13 @@ void ScaleEditor<Owner>::Draw() {
     if (mask & 0x1)
       graphics.drawRect(x, y, 4, 8);
     else
-      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4);
+      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4x8);
 
     if (i == cursor_pos_)
       graphics.drawFrame(x - 2, y - 2, 8, 12);
   }
   if (mutable_scale_) {
-    graphics.drawBitmap8(x, y, 4, bitmap_end_marker4);
+    graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
     if (cursor_pos_ == num_notes)
       graphics.drawFrame(x - 2, y - 2, 8, 12);
   }

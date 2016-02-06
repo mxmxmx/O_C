@@ -3,8 +3,10 @@
 
 namespace OC {
 
-extern const uint8_t bitmap_empty_frame4[];
-extern const uint8_t bitmap_end_marker4[];
+extern const uint8_t bitmap_empty_frame4x8[];
+extern const uint8_t bitmap_end_marker4x8[];
+extern const uint8_t circle_disk_bitmap_8x8[];
+extern const uint8_t circle_bitmap_8x8[];
 
 };
 

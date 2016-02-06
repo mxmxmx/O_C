@@ -33,7 +33,7 @@ void H1200_leftButton() {
 }
 
 void H1200_leftButtonLong() {
-  h1200_settings.init_defaults();
+  h1200_settings.InitDefaults();
 
   encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
   h1200_state.value_changed = true;

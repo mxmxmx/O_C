@@ -21,6 +21,23 @@ struct value_attr {
   }
 };
 
+// Provide a very simple "settings" base.
+// Settings values are an array of ints that are accessed by index, usually the
+// owning class will use an enum for clarity, and provide specific getter
+// functions for each value.
+//
+// The values are decsribed using the per-class value_attr array and allow min,
+// max and default values. To set the defaults, call ::InitDefaults at least
+// once before using the class. The min/max values are enforced when setting
+// or modifying values. Classes shouldn't normally have to access the values_
+// directly.
+//
+// In a vague attempt to "save space" in storage, save/restore functions can be
+// typed to a smaller data type, or individual values saved as different types
+// by hand.
+//
+// TODO Cleanup save/restore
+//
 template <typename clazz, size_t num_settings>
 class SettingsBase {
 public:
@@ -52,7 +69,7 @@ public:
     return value_attr_[i];
   }
 
-  void init_defaults() {
+  void InitDefaults() {
     for (size_t s = 0; s < num_settings; ++s)
       values_[s] = value_attr_[s].default_value();
   }
@@ -85,7 +102,7 @@ public:
   template <typename storage_type>
   char *read_setting(const char *src, size_t index) {
     const storage_type *storage = reinterpret_cast<const storage_type*>(src);
-    values_[index] = *storage++;
+    apply_value(index, *storage++);
     return (char *)storage;
   }
 

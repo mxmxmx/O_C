@@ -71,7 +71,7 @@ void UI() {
 
 void hello() {
   GRAPHICS_BEGIN_FRAME(true);
-  graphics.setFont(u8g_font_6x12);
+  //graphics.setFont(u8g_font_6x12);
   graphics.setPrintPos(4, 2); graphics.print("ornaments&crimes");
   graphics.invertRect(0, 0, 128, 14);
 
@@ -158,8 +158,7 @@ void scope_render() {
 
 void ASR_menu() {
   GRAPHICS_BEGIN_FRAME(false);
-
-  graphics.setFont(u8g_font_6x12);
+  //graphics.setFont(u8g_font_6x12);
 
   uint8_t i, h, w, x, y;
   h = 11; // == OFFSET + u8g.getFontAscent()-u8g.getFontDescent();
