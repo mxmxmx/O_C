@@ -375,16 +375,18 @@ bool ASR_encoders() {
   value = encoder[RIGHT].pos();
  
   if (ASR_SETTING_MASK != asr_state.selected_param) {
-     if (value != asr.get_value(asr_state.selected_param))
+     if (value != asr.get_value(asr_state.selected_param)) {
         asr.apply_value(asr_state.selected_param, value);
+       changed = true;
+     }
      encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
-     changed = true;
   } else {
     encoder[RIGHT].setPos(0);
     int scale = asr.get_scale();
-    if (value && OC::Scales::SCALE_NONE != scale)
+    if (value && OC::Scales::SCALE_NONE != scale) {
       asr_state.scale_editor.Edit(&asr, scale);
-    changed = true;
+      changed = true;
+    }
   }
 
   return changed;

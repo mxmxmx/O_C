@@ -404,9 +404,9 @@ bool QQ_encoders() {
     if (value != selected.get_value(qq_state.selected_param)) {
       if (selected.apply_value(qq_state.selected_param, value))
         selected.force_update();
+      changed = true;
     }
     encoder[RIGHT].setPos(selected.get_value(qq_state.selected_param));
-    changed = true;
   } else {
     encoder[RIGHT].setPos(0);
     int scale = selected.get_scale();
