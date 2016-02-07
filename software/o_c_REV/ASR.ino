@@ -230,6 +230,11 @@ public:
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
              int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
              int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 9) - 1);  // when no signal, ADC should default to zero
+
+             if (_mult < 0)
+                _mult = 0;
+             else if (_mult > 19)
+                _mult = 19;
            
             // scale incoming CV
              if (_mult != 9) {
