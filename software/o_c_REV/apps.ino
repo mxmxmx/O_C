@@ -15,6 +15,8 @@ App available_apps[] = {
 
 namespace OC {
 
+extern void debug_menu();
+
 struct GlobalSettings {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','S',0>::value;
 
@@ -129,27 +131,31 @@ void init_apps() {
   for (auto &app : available_apps)
     app.init();
 
-  Serial.print("Loading global settings: "); Serial.println(sizeof(OC::GlobalSettings));
-  Serial.print(" PAGESIZE: "); Serial.println(OC::GlobalSettingsStorage::PAGESIZE);
-  Serial.print(" PAGES   : "); Serial.println(OC::GlobalSettingsStorage::PAGES);
-
-  if (!global_settings_storage.load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
-    Serial.println("Settings not loaded or invalid, using defaults...");
-    global_settings.current_app_index = DEFAULT_APP_INDEX;
+  if (!digitalRead(but_top) && !digitalRead(but_bot)) {
+    Serial.print("Skipping loading of global/app settings");
   } else {
-    Serial.print("Loaded settings, current_app_index is ");
-    Serial.println(global_settings.current_app_index);
-    memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
-  }
+    Serial.print("Loading global settings: "); Serial.println(sizeof(OC::GlobalSettings));
+    Serial.print(" PAGESIZE: "); Serial.println(OC::GlobalSettingsStorage::PAGESIZE);
+    Serial.print(" PAGES   : "); Serial.println(OC::GlobalSettingsStorage::PAGES);
 
-  Serial.print("Loading app data: "); Serial.println(sizeof(OC::AppData));
-  Serial.print(" PAGESIZE: "); Serial.println(OC::AppDataStorage::PAGESIZE);
-  Serial.print(" PAGES   : "); Serial.println(OC::AppDataStorage::PAGES);
+    if (!global_settings_storage.load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
+      Serial.println("Settings not loaded or invalid, using defaults...");
+      global_settings.current_app_index = DEFAULT_APP_INDEX;
+    } else {
+      Serial.print("Loaded settings, current_app_index is ");
+      Serial.println(global_settings.current_app_index);
+      memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
+    }
 
-  if (!app_data_storage.load(app_settings)) {
-    Serial.println("App data not loaded, using defaults...");
-  } else {
-    restore_app_data();
+    Serial.print("Loading app data: "); Serial.println(sizeof(OC::AppData));
+    Serial.print(" PAGESIZE: "); Serial.println(OC::AppDataStorage::PAGESIZE);
+    Serial.print(" PAGES   : "); Serial.println(OC::AppDataStorage::PAGES);
+
+    if (!app_data_storage.load(app_settings)) {
+      Serial.println("App data not loaded, using defaults...");
+    } else {
+      restore_app_data();
+    }
   }
 
   set_current_app(global_settings.current_app_index);
@@ -159,47 +165,10 @@ void init_apps() {
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
 
-  if (!digitalRead(but_top)) {
-    set_current_app(0);
-    draw_app_menu(0);
-    while (!digitalRead(but_top));
-  } else if (!digitalRead(but_bot)) {
-    set_current_app(2);
-    draw_app_menu(2);
-    while (!digitalRead(but_bot));
-  } else if (!digitalRead(butR)) {
-    select_app();
-  } else {
+  if (!digitalRead(butR))
+    SELECT_APP = true;
+  else
     delay(500);
-  }
-}
-
-void debug_menu() {
-  while (true) {
-
-    GRAPHICS_BEGIN_FRAME(false);
-      graphics.setPrintPos(2, 2); 
-      graphics.print("CV1: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_1>(), 6);
-
-      graphics.setPrintPos(2, 12);
-      graphics.print("CV2: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_2>(), 6);
-
-      graphics.setPrintPos(2, 22);
-      graphics.print("CV3: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_3>(), 6);
-
-      graphics.setPrintPos(2, 32);
-      graphics.print("CV4: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_4>(), 6);
-
-//      graphics.setPrintPos(2, 42);
-//      graphics.print((long)OC::ADC::busy_waits());
-//      graphics.setPrintPos(2, 42); graphics.print(OC::ADC::fail_flag0());
-//      graphics.setPrintPos(2, 52); graphics.print(OC::ADC::fail_flag1());
-    GRAPHICS_END_FRAME();
-
-    button_left.read();
-    if (button_left.event())
-      break;
-  }
 }
 
 void select_app() {
@@ -233,7 +202,8 @@ void select_app() {
 
     button_left.read();
     if (button_left.event()) {
-      debug_menu();
+      Serial.println("DEBUG MENU");
+      OC::debug_menu();
       time = millis();
       redraw = true;
     }

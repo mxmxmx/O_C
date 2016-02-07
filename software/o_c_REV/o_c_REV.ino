@@ -51,8 +51,8 @@ unsigned long LAST_REDRAW_TIME = 0;
 
 Rotary encoder[2] =
 {
-  {encL1, encL2}, 
-  {encR1, encR2}
+  Rotary(encL1, encL2),
+  Rotary(encR1, encR2)
 }; 
 
 //  UI mode select
@@ -113,6 +113,7 @@ static const uint32_t CORE_TIMER_RATE = 60;
 IntervalTimer CORE_timer;
 
 uint32_t ENC_timer_counter = 0;
+volatile bool CORE_app_isr_enabled = false;
 
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
@@ -144,7 +145,8 @@ void FASTRUN CORE_timer_ISR() {
     _ENC = true;
   }
 
-  APPS::ISR();
+  if (CORE_app_isr_enabled)
+    APPS::ISR();
 }
 
 /*       ---------------------------------------------------------         */
@@ -207,6 +209,7 @@ void setup(){
   // initialize 
   init_DACtable();
   init_apps();
+  CORE_app_isr_enabled = true;
 }
 
 
