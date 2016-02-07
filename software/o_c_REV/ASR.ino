@@ -3,6 +3,7 @@
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
+#include "extern/dspinst.h"
 
 #define SCALED_ADC(channel, shift) \
 (0x1+(OC::ADC::value<channel>() >> shift))
@@ -12,24 +13,6 @@
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
 };
-
-//  https://github.com/PaulStoffregen/Audio/blob/master/utility/dspinst.h
-
-static inline int32_t signed_multiply_32x16b(int32_t a, uint32_t b) __attribute__((always_inline, unused));
-static inline int32_t signed_multiply_32x16b(int32_t a, uint32_t b)
-{
-  int32_t out;
-  asm volatile("smulwb %0, %1, %2" : "=r" (out) : "r" (a), "r" (b));
-  return out;
-}
-
-static inline int32_t signed_saturate_rshift(int32_t val, int bits, int rshift) __attribute__((always_inline, unused));
-static inline int32_t signed_saturate_rshift(int32_t val, int bits, int rshift)
-{
-  int32_t out;
-  asm volatile("ssat %0, %1, %2, asr %3" : "=r" (out) : "I" (bits), "r" (val), "I" (rshift));
-  return out;
-}
 
 enum ASRSettings {
   ASR_SETTING_SCALE,

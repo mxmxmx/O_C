@@ -31,7 +31,7 @@
 #include <cstdio>
 #include <algorithm>
 
-#include "stmlib_utils_dsp.h"
+#include "extern/stmlib_utils_dsp.h"
 
 #include "frames_resources.h"
 
