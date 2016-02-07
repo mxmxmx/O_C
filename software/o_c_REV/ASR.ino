@@ -229,7 +229,7 @@ public:
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
              int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
-             int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 9) - 1);  // when no signal, ADC should default to zero
+             int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 8) - 1);  
 
              if (_mult < 0)
                 _mult = 0;
