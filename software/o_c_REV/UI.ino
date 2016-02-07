@@ -12,17 +12,6 @@ enum DISPLAY_PAGE
 
 /* --------------- encoders ---------------------------------------  */
 
-/* encoders isr */
-void FASTRUN left_encoder_ISR() 
-{
-  encoder[LEFT].process();
-}
-
-void FASTRUN right_encoder_ISR() 
-{
-  encoder[RIGHT].process();
-}
-
 int LAST_ENCODER_VALUE[2] = {-1, -1};
 
 void encoders() {

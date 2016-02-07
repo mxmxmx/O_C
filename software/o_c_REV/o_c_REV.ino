@@ -104,6 +104,17 @@ enum encoders
 volatile uint_fast8_t _ENC = false;
 static const uint32_t _ENC_RATE = 15000;
 
+/* encoders isr */
+void FASTRUN left_encoder_ISR() 
+{
+  encoder[LEFT].process();
+}
+
+void FASTRUN right_encoder_ISR() 
+{
+  encoder[RIGHT].process();
+}
+
 /*  ------------------------ core timer ISR ---------------------------   */
 // 60us = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
 // 66us = 15.1515...kHz
