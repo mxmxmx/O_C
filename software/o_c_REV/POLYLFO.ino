@@ -38,7 +38,7 @@ public:
   frames::PolyLfo lfo;
 
   // ISR update is at 16.666kHz, we don't need it that fast so smooth the values to ~1Khz
-  static constexpr size_t kSmoothing = 16;
+  static constexpr int32_t kSmoothing = 16;
 
   SmoothedValue<int32_t, kSmoothing> cv_freq;
   SmoothedValue<int32_t, kSmoothing> cv_shape;
@@ -79,19 +79,16 @@ void FASTRUN POLYLFO_isr() {
   // CV value is 12 bit so also needs scaling
 
   int32_t freq = SCALE8_16(poly_lfo.get_freq()) + (poly_lfo.cv_freq.value() * 16);
-  USAT16(freq);
+  freq = USAT16(freq);
 
   int32_t shape = SCALE8_16(poly_lfo.get_shape()) + (poly_lfo.cv_shape.value() * 16);
-  USAT16(shape);
-  poly_lfo.lfo.set_shape(shape);
+  poly_lfo.lfo.set_shape(USAT16(shape));
 
   int32_t spread = SCALE8_16(poly_lfo.get_spread()) + (poly_lfo.cv_spread.value() * 16);
-  USAT16(spread);
-  poly_lfo.lfo.set_spread(spread);
+  poly_lfo.lfo.set_spread(USAT16(spread));
 
   int32_t coupling = SCALE8_16(poly_lfo.get_coupling()) + (poly_lfo.cv_coupling.value() * 16);
-  USAT16(coupling);
-  poly_lfo.lfo.set_coupling(coupling);
+  poly_lfo.lfo.set_coupling(USAT16(coupling));
 
   poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread()));
 
@@ -232,6 +229,21 @@ bool POLYLFO_encoders() {
   }
 
   return changed;
+}
+
+void POLYLFO_debug() {
+  graphics.setPrintPos(2, 12);
+  graphics.print(poly_lfo.cv_shape.value());
+  graphics.print(" ");
+  int32_t value = SCALE8_16(poly_lfo.get_shape());
+  graphics.print(value);
+  graphics.print(" ");
+  graphics.print(poly_lfo.cv_shape.value() * 16);
+  value += poly_lfo.cv_shape.value() * 16;
+  graphics.setPrintPos(2, 22);
+  graphics.print(value); graphics.print(" ");
+  value = USAT16(value);
+  graphics.print(value);
 }
 
 

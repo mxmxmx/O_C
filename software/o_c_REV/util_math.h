@@ -30,7 +30,7 @@ inline uint32_t USAT16(int32_t value) {
   return result;
 }
 
-template <typename T, unsigned smoothing>
+template <typename T, T smoothing>
 struct SmoothedValue {
   SmoothedValue() : value_(0) { }
 
