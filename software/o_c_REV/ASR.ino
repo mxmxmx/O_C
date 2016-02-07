@@ -178,6 +178,24 @@ public:
        _ASR->data[_hold[1]] = asr_outputs[0];
        _ASR->data[_hold[2]] = asr_outputs[1];
        _ASR->data[_hold[3]] = asr_outputs[2];
+
+        // octave up/down
+        int8_t _offset = 0;
+        if (!digitalReadFast(TR3)) 
+          _offset++;
+        else if (!digitalReadFast(TR4)) 
+          _offset--;
+
+        if (_offset) {
+
+           uint8_t _octave;
+           for (int i = 0; i < 4; i++) {
+                // imprecise, but good enough ... ? 
+                _octave = asr_outputs[i] / OC::calibration_data.octaves[0];  // should be: OC::calibration_data.octaves[1]? ie octaves[0] defaults to zero ?
+                if (_octave > 0 && _octave < 9) 
+                    asr_outputs[i] += OC::calibration_data.octaves[_octave + _offset] - OC::calibration_data.octaves[_octave];
+           } 
+        }       
     }  
 
   inline void update() {
@@ -197,7 +215,6 @@ public:
    
         int8_t _root  = get_root();
         int8_t _index = get_index();
-        int8_t _mult  = get_mult();
         
         clocks_cnt_++;
 
@@ -212,7 +229,8 @@ public:
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
              int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
-
+             int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 9) - 1);  // when no signal, ADC should default to zero
+           
             // scale incoming CV
              if (_mult != 9) {
                _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
