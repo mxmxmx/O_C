@@ -43,7 +43,7 @@ class PolyLfo {
   ~PolyLfo() { }
   
   void Init();
-  void Render(int32_t frequency);
+  void Render(int32_t frequency, bool reset_phase);
   void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
   inline void set_shape(uint16_t shape) {

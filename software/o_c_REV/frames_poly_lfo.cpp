@@ -67,6 +67,7 @@ void PolyLfo::Init() {
   shape_spread_ = 0;
   coupling_ = 0;
   std::fill(&value_[0], &value_[kNumChannels], 0);
+  std::fill(&phase_[0], &phase_[kNumChannels], 0);
 }
 
 /* static */
@@ -78,25 +79,30 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency) {
   return (a + ((b - a) * (index & 0x1f) >> 5)) << shifts;
 }
 
-void PolyLfo::Render(int32_t frequency) {
+void PolyLfo::Render(int32_t frequency, bool reset_phase) {
   uint16_t rainbow_index = frequency < 0 ? 0 : (frequency > 65535 ? 65535 : frequency);
   for (uint8_t i = 0; i < 3; ++i) {
     int16_t a = rainbow_[rainbow_index >> 12][i];
     int16_t b = rainbow_[(rainbow_index >> 12) + 1][i];
     color_[i] = a + ((b - a) * (rainbow_index & 0x0fff) >> 12);
   }
-  
-  // Advance phasors.
-  if (spread_ >= 0) {
-    phase_[0] += FrequencyToPhaseIncrement(frequency);
-    uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
-    phase_[1] = phase_[0] + phase_difference;
-    phase_[2] = phase_[1] + phase_difference;
-    phase_[3] = phase_[2] + phase_difference;
+
+  // reset phase
+  if (reset_phase) {
+    std::fill(&phase_[0], &phase_[kNumChannels], 0);
   } else {
-    for (uint8_t i = 0; i < kNumChannels; ++i) {
-      phase_[i] += FrequencyToPhaseIncrement(frequency);
-      frequency -= 5040 * spread_ >> 15;
+    // Advance phasors.
+    if (spread_ >= 0) {
+      phase_[0] += FrequencyToPhaseIncrement(frequency);
+      uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
+      phase_[1] = phase_[0] + phase_difference;
+      phase_[2] = phase_[1] + phase_difference;
+      phase_[3] = phase_[2] + phase_difference;
+    } else {
+      for (uint8_t i = 0; i < kNumChannels; ++i) {
+        phase_[i] += FrequencyToPhaseIncrement(frequency);
+        frequency -= 5040 * spread_ >> 15;
+      }
     }
   }
   

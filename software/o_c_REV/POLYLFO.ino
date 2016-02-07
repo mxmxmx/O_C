@@ -1,5 +1,6 @@
 #include "frames_poly_lfo.h"
 #include "util_math.h"
+#include "OC_digital_inputs.h"
 
 enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_FREQ,
@@ -35,7 +36,20 @@ public:
 
   void Init();
 
+  void freeze() {
+    frozen_ = true;
+  }
+
+  void thaw() {
+    frozen_ = false;
+  }
+
+  bool frozen() const {
+    return frozen_;
+  }
+
   frames::PolyLfo lfo;
+  bool frozen_;
 
   // ISR update is at 16.666kHz, we don't need it that fast so smooth the values to ~1Khz
   static constexpr int32_t kSmoothing = 16;
@@ -49,6 +63,7 @@ public:
 void PolyLfo::Init() {
   InitDefaults();
   lfo.Init();
+  frozen_= false;
 }
 
 /*static*/ template <>
@@ -69,6 +84,9 @@ struct {
 #define SCALE8_16(x) ((((x + 1) << 16) >> 8) - 1)
 
 void FASTRUN POLYLFO_isr() {
+
+  bool reset_phase = OC::DigitalInputs::clocked<TR1>();
+  bool freeze = OC::DigitalInputs::read_immediate<TR2>();
 
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
@@ -92,7 +110,9 @@ void FASTRUN POLYLFO_isr() {
 
   poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread()));
 
-  poly_lfo.lfo.Render(freq);
+  if (!freeze && !poly_lfo.frozen())
+    poly_lfo.lfo.Render(freq, reset_phase);
+
   DAC::set<DAC_CHANNEL_A>(poly_lfo.lfo.dac_code(0));
   DAC::set<DAC_CHANNEL_B>(poly_lfo.lfo.dac_code(1));
   DAC::set<DAC_CHANNEL_C>(poly_lfo.lfo.dac_code(2));
