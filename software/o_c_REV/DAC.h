@@ -1,6 +1,8 @@
 #ifndef DAC_H_
 #define DAC_H_
 
+#include "util_math.h"
+
 enum DAC_CHANNEL {
   DAC_CHANNEL_A, DAC_CHANNEL_B, DAC_CHANNEL_C, DAC_CHANNEL_D, DAC_CHANNEL_LAST
 };
@@ -41,10 +43,23 @@ public:
   }
 
   static void WriteAll() {
-    set8565_CHA(values_[DAC_CHANNEL_A] + calibration_data_->fine[DAC_CHANNEL_A]);
-    set8565_CHB(values_[DAC_CHANNEL_B] + calibration_data_->fine[DAC_CHANNEL_B]);
-    set8565_CHC(values_[DAC_CHANNEL_C] + calibration_data_->fine[DAC_CHANNEL_C]);
-    set8565_CHD(values_[DAC_CHANNEL_D] + calibration_data_->fine[DAC_CHANNEL_D]);
+    int32_t value;
+
+    value = static_cast<int32_t>(values_[DAC_CHANNEL_A]) + calibration_data_->fine[DAC_CHANNEL_A];
+    USAT16(value);
+    set8565_CHA(value);
+
+    value = static_cast<int32_t>(values_[DAC_CHANNEL_B]) + calibration_data_->fine[DAC_CHANNEL_B];
+    USAT16(value);
+    set8565_CHB(value);
+
+    value = static_cast<int32_t>(values_[DAC_CHANNEL_C]) + calibration_data_->fine[DAC_CHANNEL_C];
+    USAT16(value);
+    set8565_CHC(value);
+
+    value = static_cast<int32_t>(values_[DAC_CHANNEL_D]) + calibration_data_->fine[DAC_CHANNEL_D];
+    USAT16(value);
+    set8565_CHD(value);
 
     size_t tail = history_tail_;
     history_[DAC_CHANNEL_A][tail] = values_[DAC_CHANNEL_A];

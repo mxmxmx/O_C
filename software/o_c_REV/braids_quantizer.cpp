@@ -33,6 +33,11 @@
 
 namespace braids {
 
+void SortScale(Scale &scale) {
+  std::sort(scale.notes, scale.notes + scale.num_notes);
+}
+
+
 void Quantizer::Init() {
   enabled_ = true;
   codeword_ = 0;
@@ -47,13 +52,22 @@ void Quantizer::Init() {
 void Quantizer::Configure(
     const int16_t* notes,
     int16_t span,
-    size_t num_notes) {
-  enabled_ = notes != NULL && num_notes != 0 && span != 0;
+    size_t num_notes,
+    uint16_t mask) {
+  enabled_ = notes != NULL && num_notes != 0 && span != 0 && mask;
   if (enabled_) {
     int32_t octave = 0;
     size_t note = 0;
     int16_t root = 0;
     for (int32_t i = 0; i < 64; ++i) {
+      while (!(mask & (0x1 << note))) {
+        ++note;
+        if (note >= num_notes) {
+          note = 0;
+          ++octave;
+        }
+      }
+
       int32_t up = root + notes[note] + span * octave;
       int32_t down = root + notes[num_notes - 1 - note] + (-octave - 1) * span;
       CLIP(up)

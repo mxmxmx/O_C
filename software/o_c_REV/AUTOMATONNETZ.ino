@@ -2,6 +2,7 @@
 #include "util_settings.h"
 #include "util_ui.h"
 #include "tonnetz_state.h"
+#include "OC_bitmaps.h"
 
 // Drive the tonnetz transformations from a grid of cells that contain the type
 // of transformation and other goodies. Instead of stepping through the grid
@@ -114,7 +115,7 @@ public:
   static const size_t HISTORY_LENGTH = 4;
 
   void init() {
-    init_defaults();
+    InitDefaults();
     memset(cells_, 0, sizeof(cells_));
     grid.init(cells_);
     memset(&ui, 0, sizeof(ui));
@@ -493,9 +494,6 @@ static const weegfx::coord_t kScreenSaverX = 64 + 2;
 static const weegfx::coord_t kScreenSaverY = 5;
 static const weegfx::coord_t kScreenSaverGrid = 55 / 5;
 
-extern const uint8_t circle_disk_bitmap_8x8[];
-extern const uint8_t circle_bitmap_8x8[];
-
 void Automatonnetz_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
 
@@ -510,7 +508,7 @@ void Automatonnetz_screensaver() {
   vec2<size_t> last_pos = automatonnetz_state.history(0);
   graphics.drawBitmap8(kScreenSaverX + last_pos.x * kScreenSaverGrid - 3,
                        kScreenSaverY + last_pos.y * kScreenSaverGrid - 3,
-                       8, circle_disk_bitmap_8x8);
+                       8, OC::circle_disk_bitmap_8x8);
   for (size_t i = 1; i < AutomatonnetzState::HISTORY_LENGTH; ++i) {
     const vec2<size_t> &current = automatonnetz_state.history(i);
     graphics.drawLine(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid,
@@ -518,7 +516,7 @@ void Automatonnetz_screensaver() {
 
     graphics.drawBitmap8(kScreenSaverX + current.x * kScreenSaverGrid - 3,
                          kScreenSaverY + current.y * kScreenSaverGrid - 3,
-                         8, circle_bitmap_8x8);
+                         8, OC::circle_bitmap_8x8);
     last_pos = current;
   }
 

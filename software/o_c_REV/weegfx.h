@@ -54,6 +54,7 @@ public:
   inline void setPixel(coord_t x, coord_t y) __attribute__((always_inline));
 
   void drawRect(coord_t x, coord_t y, coord_t w, coord_t h);
+  void clearRect(coord_t x, coord_t y, coord_t w, coord_t h);
   void invertRect(coord_t x, coord_t y, coord_t w, coord_t h);
   void drawFrame(coord_t x, coord_t y, coord_t w, coord_t h);
 
@@ -71,6 +72,7 @@ public:
 
   void print(char);
   void print(int);
+  void print(uint16_t, size_t width);
   void print(long);
 
   void pretty_print(int);

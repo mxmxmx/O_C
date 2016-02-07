@@ -177,7 +177,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 }
 
 void H1200_init() {
-  h1200_settings.init_defaults();
+  h1200_settings.InitDefaults();
   h1200_state.init();
   init_circle_lut();
 }

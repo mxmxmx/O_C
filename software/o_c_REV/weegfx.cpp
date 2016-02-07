@@ -27,7 +27,8 @@ namespace weegfx {
 enum DRAW_MODE {
   DRAW_NORMAL,
   DRAW_INVERSE,
-  DRAW_OVERWRITE // unused, but possible fastest
+  DRAW_OVERWRITE, // unused, but possible fastest
+  DRAW_CLEAR
 };
 };
 using weegfx::Graphics;
@@ -72,7 +73,8 @@ inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
     switch (draw_mode) {
       case weegfx::DRAW_NORMAL: *dst++ |= mask; break;
       case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
-      case weegfx::DRAW_OVERWRITE: *dst = mask; break;
+      case weegfx::DRAW_OVERWRITE: *dst++ = mask; break;
+      case weegfx::DRAW_CLEAR: *dst++ &= ~mask; break;
     }
   }
 }
@@ -154,6 +156,12 @@ void Graphics::drawRect(coord_t x, coord_t y, coord_t w, coord_t h) {
   draw_rect<DRAW_NORMAL>(get_frame_ptr(x, y), y, w, h);
 }
 
+void Graphics::clearRect(coord_t x, coord_t y, coord_t w, coord_t h) {
+  CLIPX(x, w);
+  CLIPY(y, h);
+  draw_rect<DRAW_CLEAR>(get_frame_ptr(x, y), y, w, h);
+}
+
 void Graphics::invertRect(coord_t x, coord_t y, coord_t w, coord_t h) {
   CLIPX(x, w);
   CLIPY(y, h);
@@ -163,10 +171,11 @@ void Graphics::invertRect(coord_t x, coord_t y, coord_t w, coord_t h) {
 void Graphics::drawFrame(coord_t x, coord_t y, coord_t w, coord_t h) {
 
   // Obvious candidate for optimizing
+  // TODO Check w/h
   drawHLine(x, y, w);
-  drawVLine(x, y, h);
-  drawVLine(x + w, y, h);
-  drawHLine(x, y + h, w);
+  drawVLine(x, y + 1, h - 1);
+  drawVLine(x + w - 1, y + 1, h - 1);
+  drawHLine(x, y + h - 1, w);
 }
 
 void Graphics::drawHLine(coord_t x, coord_t y, coord_t w) {
@@ -398,6 +407,16 @@ void Graphics::pretty_print(int value) {
   char buf[12];
   print(itos<int, true>(value, buf, sizeof(buf)));
 }
+
+void Graphics::print(uint16_t value, size_t width) {
+  char buf[12];
+  char *str = itos<uint16_t, false>(value, buf, sizeof(buf));
+  while (str > buf &&
+         (size_t)(str - buf) >= sizeof(buf) - width)
+    *--str = ' ';
+  print(str);
+}
+
 
 void Graphics::pretty_print(int value, size_t width) {
   char buf[12];

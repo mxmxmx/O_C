@@ -47,7 +47,7 @@ public:
 };
 
 void PolyLfo::Init() {
-  init_defaults();
+  InitDefaults();
   lfo.Init();
 }
 
@@ -107,7 +107,7 @@ void POLYLFO_init() {
   poly_lfo.Init();
 }
 
-static const size_t POLYLFO_SETTINGS_SIZE = sizeof(uint16_t) * POLYLFO_SETTING_LAST;
+static const size_t POLYLFO_SETTINGS_SIZE = sizeof(uint8_t) * POLYLFO_SETTING_LAST;
 
 size_t POLYLFO_save(char *storage) {
   return poly_lfo.save<uint8_t>(storage);

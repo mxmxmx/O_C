@@ -1,162 +1,163 @@
-/*
-*
-* ASR / ring buffer / quantization
-*
-*/
+#include "util_settings.h"
+#include "util_ui.h"
+#include "OC_scales.h"
+#include "OC_scale_edit.h"
+#include "OC_strings.h"
+#include "extern/dspinst.h"
 
-/*  ------------------------ ASR ------------------------------------  */
+#define SCALED_ADC(channel, shift) \
+(0x1+(OC::ADC::value<channel>() >> shift))
+
+#define TRANSPOSE_FIXED 0x0
+
+// CV input gain multipliers 
+const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
+};
+
+enum ASRSettings {
+  ASR_SETTING_SCALE,
+  ASR_SETTING_OCTAVE, 
+  ASR_SETTING_ROOT,
+  ASR_SETTING_MASK,
+  ASR_SETTING_INDEX,
+  ASR_SETTING_MULT,
+  ASR_SETTING_LAST
+};
 
 #define ASR_MAX_ITEMS 256   // ASR ring buffer size
-
-/*  ASR+quantization params */
-
-#define MAXNOTES 7                    // max. notes per scale (see below)
-#define MAX_DELAY 63                  // max. delay < > ring buffer is 256
-
-extern int16_t asr_display_params[6]; // ASR params
-extern uint8_t MENU_REDRAW;           // 
-volatile uint16_t display_clock;      // 
-int16_t  asr_params[6];               // ASR params :: scale, octave, offset, delay, nps, attenuation
-uint16_t asr_outputs[4];              // ASR out
-uint32_t CLK_COUNT  = 0;              // count clocks
-uint8_t  THIS_SCALE = 0;              // track scale change
 
 typedef struct ASRbuf
 {
     uint8_t     first;
     uint8_t     last;
     uint8_t     items;
-    uint16_t data[ASR_MAX_ITEMS];
+    int32_t data[ASR_MAX_ITEMS];
 
 } ASRbuf;
 
-ASRbuf *ASR;
-                                
-/* update ASR params + etc */
+class ASR : public settings::SettingsBase<ASR, ASR_SETTING_LAST> {
+public:
 
-#define SCALED_ADC(channel, shift) \
-(0x1+(OC::ADC::value<channel>() >> shift))
+  int get_scale() const {
+      return values_[ASR_SETTING_SCALE];
+  }
 
-void FASTRUN _ASR() {
+  uint16_t get_mask() const {
+    return values_[ASR_SETTING_MASK];
+  }
 
-         /*  update asr_params < > scale, octave, offset, delay, nps, attenuation */
-        uint8_t _scale     =  asr_params[0];            // id scale
-        int8_t  _transpose =  SCALED_ADC(ADC_CHANNEL_4, 9) + asr_params[1]; // cvval[3] octave +/-
-        int32_t _sample    =  OC::ADC::value<ADC_CHANNEL_1>() + asr_params[2]; // cvval[0] offset + CV
-        int8_t  _index     =  SCALED_ADC(ADC_CHANNEL_2, 5) + asr_params[3]; // cvval[1] index -64/64 
-        int8_t  _num       =  SCALED_ADC(ADC_CHANNEL_3, 8) + asr_params[4]; // cvval[2] # notes -8/8
-    
-        _sample *= (asr_params[5]); // att/mult
-        _sample = _sample >> 4;
-        // if the scale changed, reset ASR index
-        if (_scale != THIS_SCALE) CLK_COUNT = 0;  
-        // hold? or quantize       
-        if (!digitalReadFast(TR2)) _hold(ASR, _index);                                 
-        else {
-             if (!digitalReadFast(TR3)) _transpose++;
-             if (!digitalReadFast(TR4)) _transpose--;
-             _sample = quant_sc(_sample, _scale, _transpose, _num); 
-             // update + output 
-             updateASR_indexed(ASR, _sample, _index); 
-        }
-       
-        THIS_SCALE = _scale;    
-        CLK_COUNT++;
-        
-        if (UI_MODE)  {
-              _CLK_TIMESTAMP = millis();
-              display_clock = true;      
-        }
-        else MENU_REDRAW = 1;             
-}  
+  int get_root() const {
+    return values_[ASR_SETTING_ROOT];
+  }
 
-/*   -----------------------------------------------------     */
+  int get_index() const {
+    return values_[ASR_SETTING_INDEX];
+  }
 
-void ASR_init() {
+  int get_octave() const {
+    return values_[ASR_SETTING_OCTAVE];
+  }
 
-    ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
+  int get_mult() const {
+    return values_[ASR_SETTING_MULT];
+  }
 
-    ASR->first = 0;
-    ASR->last  = 0;  
-    ASR->items = 0;
-
-    for (int i = 0; i < ASR_MAX_ITEMS; i++) {
-        pushASR(ASR, 0);    
-    }
-    asr_params[1] = asr_display_params[1] = 0; // octave offset
-    asr_params[4] = asr_display_params[4] = MAXNOTES; // init parameters: nps
-    asr_params[5] = 16; // att/mult
-}  
-
-static const size_t ASR_SETTINGS_SIZE = sizeof(asr_params);
-
-/* Saving app state */
-size_t ASR_save(char *storage) {
-    memcpy(storage, asr_params, sizeof(asr_params));
-    return ASR_SETTINGS_SIZE;
-}
-
-/* Restore app state */
-size_t ASR_restore(const char *storage) {
-    memcpy(asr_params, storage, sizeof(asr_params));
-    memcpy(asr_display_params, asr_params, sizeof(asr_params));
-    return ASR_SETTINGS_SIZE;
-}
-
-/* add new sample: */
-
-void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {
+  void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {
  
         _ASR->items++;
         _ASR->data[_ASR->last] = _sample;
         _ASR->last = (_ASR->last+1); 
-}
+  }
 
-/* pop first element (oldest): */
-
-void popASR(struct ASRbuf* _ASR) {
+  void popASR(struct ASRbuf* _ASR) {
  
         _ASR->first=(_ASR->first+1); 
         _ASR->items--;
-}
+  }
 
-/* ASR + ringbuffer */
-
-void updateASR_indexed(struct ASRbuf* _ASR, uint16_t _sample, int8_t _delay) {
-  
-    uint8_t out;
-    int16_t _max_delay = CLK_COUNT>>2; 
+  void init() {
     
-    popASR(_ASR);            // remove sample (oldest) 
-    pushASR(_ASR, _sample);  // push new sample into buffer (last) 
-    
-    // don't mix up scales 
-    if (_delay < 0) _delay = 0;
-    else if (_delay > _max_delay) _delay = _max_delay;       
-      
-    out  = (_ASR->last)-1;
-    out -= _delay;
-    asr_outputs[0] = _ASR->data[out--];
-    out -= _delay;
-    asr_outputs[1] = _ASR->data[out--];
-    out -= _delay;
-    asr_outputs[2] = _ASR->data[out--];
-    out -= _delay;
-    asr_outputs[3] = _ASR->data[out--];
-    // write to DAC:
-    DAC::set<DAC_CHANNEL_A>(asr_outputs[0]); //  >> out 1 
-    DAC::set<DAC_CHANNEL_B>(asr_outputs[1]); //  >> out 2 
-    DAC::set<DAC_CHANNEL_C>(asr_outputs[2]); //  >> out 3  
-    DAC::set<DAC_CHANNEL_D>(asr_outputs[3]); //  >> out 4 
-}
+    force_update_ = false;
+    last_scale_ = -1;
+    last_root_ = 0;
+    last_mask_ = 0;
+    quantizer_.Init();
+    update_scale(true);
 
-/* ---------- don't update ringbuffer, just move the 4 values ------------- */
+    _ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
 
-void _hold(struct ASRbuf* _ASR, int8_t _delay) {
+    _ASR->first = 0;
+    _ASR->last  = 0;  
+    _ASR->items = 0;
+
+    for (int i = 0; i < ASR_MAX_ITEMS; i++) {
+        pushASR(_ASR, 0);    
+    }
+  }
+
+  bool update_scale(bool force) {
+    const int scale = get_scale();
+    const uint16_t mask = get_mask();
+    if (force || (last_scale_ != scale || last_mask_ != mask)) {
+      last_scale_ = scale;
+      last_mask_ = mask;
+      clocks_cnt_ = 0; // prevent ring buffer
+      quantizer_.Configure(OC::Scales::GetScale(scale), mask);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void force_update() {
+    force_update_ = true;
+  }
+
+  // Wrappers for ScaleEdit
+  void scale_changed() {
+    force_update_ = true;
+  }
+
+  uint16_t get_scale_mask() const {
+    return get_mask();
+  }
+
+  void update_scale_mask(uint16_t mask) {
+    apply_value(ASR_SETTING_MASK, mask); // Should automatically be updated
+  }
+  //
   
+  void updateASR_indexed(struct ASRbuf* _ASR, int32_t _s, int16_t _index) {
+
+        uint8_t out;
+        uint16_t _clocks = clocks_cnt_;
+        int16_t _delay = _index;
+        int16_t _max_delay = _clocks>>2; 
+        
+        popASR(_ASR);            // remove sample (oldest) 
+        pushASR(_ASR, _s);       // push new sample into buffer (last) 
+        
+        // don't mix up scales 
+        if (_delay < 0) _delay = 0;
+        else if (_delay > _max_delay) _delay = _max_delay;       
+          
+        out  = (_ASR->last)-1;
+        out -= _delay;
+        asr_outputs[0] = _ASR->data[out--];
+        out -= _delay;
+        asr_outputs[1] = _ASR->data[out--];
+        out -= _delay;
+        asr_outputs[2] = _ASR->data[out--];
+        out -= _delay;
+        asr_outputs[3] = _ASR->data[out--];
+  }
+
+  void _hold(struct ASRbuf* _ASR, int16_t _index) {
   
         uint8_t out, _hold[4];
-        int16_t _max_delay = CLK_COUNT>>2; 
+        int16_t _clocks = clocks_cnt_;
+        int16_t _delay = _index;
+        int16_t _max_delay = _clocks>>2; 
 
         // don't mix up scales 
         if (_delay < 0) _delay = 0;
@@ -171,15 +172,337 @@ void _hold(struct ASRbuf* _ASR, int8_t _delay) {
         asr_outputs[2] = _ASR->data[out--];
         _hold[3] = out -= _delay;
         asr_outputs[3] = _ASR->data[out--];
-    
-       // write to DAC:
-        DAC::set<DAC_CHANNEL_A>(asr_outputs[0]); //  >> out 1 
-        DAC::set<DAC_CHANNEL_B>(asr_outputs[1]); //  >> out 2 
-        DAC::set<DAC_CHANNEL_C>(asr_outputs[2]); //  >> out 3  
-        DAC::set<DAC_CHANNEL_D>(asr_outputs[3]); //  >> out 4 
+
        // hold :
        _ASR->data[_hold[0]] = asr_outputs[3];  
        _ASR->data[_hold[1]] = asr_outputs[0];
        _ASR->data[_hold[2]] = asr_outputs[1];
        _ASR->data[_hold[3]] = asr_outputs[2];
-}  
+    }  
+
+  inline void update() {
+
+     bool forced_update = force_update_;
+     force_update_ = false;
+
+     bool update = forced_update;
+      
+     if (CLK_STATE[0]) {
+      CLK_STATE[0] = false;
+      update |= true;
+      }
+      update |= update_scale(forced_update);
+
+      if (update) {        
+   
+        int8_t _root  = get_root();
+        int8_t _index = get_index();
+        int8_t _mult  = get_mult();
+        
+        clocks_cnt_++;
+
+        if (_root != last_root_) clocks_cnt_ = 0;
+
+        last_root_ = _root;
+
+        _index +=  SCALED_ADC(ADC_CHANNEL_2, 5);
+
+        if (!digitalReadFast(TR2)) _hold(_ASR, _index);   
+        else {
+
+             int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
+             int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
+
+            // scale incoming CV
+             if (_mult != 9) {
+               _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
+               _pitch = signed_saturate_rshift(_pitch, 16, 0);
+             }
+             
+             _pitch = (_pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
+             _pitch += 3 * 12 << 7; // offset for LUT range
+    
+             int32_t _quantized = quantizer_.Process(_pitch, (_root + 60) << 7, TRANSPOSE_FIXED);
+
+             if (!digitalReadFast(TR3)) _octave++;
+             else if (!digitalReadFast(TR4)) _octave--;
+
+             _quantized += _octave * 12 << 7;
+
+             if (_quantized > (120 << 7))
+                 _quantized = 120 << 7;
+             else if (_quantized < 0)
+                _quantized = 0;
+
+            const int32_t octave = _quantized / (12 << 7);
+            const int32_t fractional = _quantized - octave * (12 << 7);
+
+            int32_t sample = OC::calibration_data.octaves[octave];
+            if (fractional)
+               sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);    
+
+            updateASR_indexed(_ASR, sample, _index); 
+         }
+        // write to DAC:
+        DAC::set<DAC_CHANNEL_A>(asr_outputs[0]); //  >> out 1 
+        DAC::set<DAC_CHANNEL_B>(asr_outputs[1]); //  >> out 2 
+        DAC::set<DAC_CHANNEL_C>(asr_outputs[2]); //  >> out 3  
+        DAC::set<DAC_CHANNEL_D>(asr_outputs[3]); //  >> out 4 
+        MENU_REDRAW = 1;
+      }
+  }
+
+  static const size_t kBinarySize =
+      sizeof(uint8_t) + // scale
+      sizeof(int8_t) + // octave
+      sizeof(uint8_t) + // root
+      sizeof(uint16_t) + // mask
+      sizeof(int8_t) + // index
+      sizeof(uint16_t); // mult
+
+  size_t save_settings(char *storage) {
+    char *ptr = storage;
+    ptr = write_setting<uint8_t>(ptr, ASR_SETTING_SCALE);
+    ptr = write_setting<int8_t>(ptr, ASR_SETTING_OCTAVE);
+    ptr = write_setting<uint8_t>(ptr, ASR_SETTING_ROOT);
+    ptr = write_setting<uint16_t>(ptr, ASR_SETTING_MASK);
+    ptr = write_setting<int8_t>(ptr, ASR_SETTING_INDEX);
+    ptr = write_setting<uint16_t>(ptr, ASR_SETTING_MULT);
+
+    return (ptr - storage);
+  }
+
+  size_t restore_settings(const char *storage) {
+    const char *ptr = storage;
+    ptr = read_setting<uint8_t>(ptr, ASR_SETTING_SCALE);
+    ptr = read_setting<int8_t>(ptr, ASR_SETTING_OCTAVE);
+    ptr = read_setting<uint8_t>(ptr, ASR_SETTING_ROOT);
+    ptr = read_setting<uint16_t>(ptr, ASR_SETTING_MASK);
+    ptr = read_setting<int8_t>(ptr, ASR_SETTING_INDEX);
+    ptr = read_setting<uint16_t>(ptr, ASR_SETTING_MULT);
+
+    return (ptr - storage);
+  }    
+
+private:
+  bool force_update_;
+  int last_scale_;
+  int last_root_;
+  uint16_t last_mask_;
+  uint32_t clocks_cnt_;
+  braids::Quantizer quantizer_;
+  int32_t asr_outputs[4];  
+  ASRbuf *_ASR;
+};
+
+const char* const mult[20] = {
+  "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0"
+};
+
+/*static*/ template <>
+const settings::value_attr settings::SettingsBase<ASR, ASR_SETTING_LAST>::value_attr_[] = {
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names },
+  { 0, -5, 5, "octave", NULL }, // octave
+  { 0, 0, 11, "root", OC::Strings::note_names },
+  { 65535, 1, 65535, "active notes", NULL }, // mask
+  { 0, 0, 63, "index", NULL },
+  { 9, 0, 19, "mult/att", mult },
+};
+
+struct ASRState {
+ 
+  int left_encoder_value;
+  int selected_param;
+
+  OC::ScaleEditor<ASR> scale_editor;
+};
+
+ASRState asr_state;
+ASR asr;
+
+void ASR_init() {
+
+  asr.InitDefaults();
+  asr.init();
+  asr_state.left_encoder_value  = 0;
+  asr_state.selected_param = ASR_SETTING_ROOT;
+  asr_state.scale_editor.Init();
+}
+
+size_t ASR_restore(const char *storage) {
+   size_t used = 0;
+   used += asr.restore_settings(storage + used);
+   return used;
+}
+
+void ASR_resume() {
+
+  encoder[LEFT].setPos(asr_state.left_encoder_value);
+  encoder[RIGHT].setPos(asr_state.selected_param);
+}
+
+void ASR_loop() {
+
+  UI();
+  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
+  buttons(BUTTON_TOP);
+  buttons(BUTTON_BOTTOM);
+  buttons(BUTTON_LEFT);
+  buttons(BUTTON_RIGHT);      
+}
+
+void ASR_isr() {
+  
+  asr.update();
+}
+
+bool ASR_encoders() {
+
+  if (asr_state.scale_editor.active())
+      return asr_state.scale_editor.handle_encoders();
+
+  bool changed = false;
+  int value = encoder[LEFT].pos();
+
+  if (value != asr_state.left_encoder_value) {
+        if (value >= (int)OC::Scales::NUM_SCALES) value = OC::Scales::NUM_SCALES - 1;
+        else if (value < 0) value = 0;
+        asr_state.left_encoder_value = value;
+        encoder[LEFT].setPos(value);
+        changed = true;
+  }
+  
+  value = encoder[RIGHT].pos();
+ 
+  if (ASR_SETTING_MASK != asr_state.selected_param) {
+     if (value != asr.get_value(asr_state.selected_param)) {
+        asr.apply_value(asr_state.selected_param, value);
+       changed = true;
+     }
+     encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
+  } else {
+    encoder[RIGHT].setPos(0);
+    int scale = asr.get_scale();
+    if (value && OC::Scales::SCALE_NONE != scale) {
+      asr_state.scale_editor.Edit(&asr, scale);
+      changed = true;
+    }
+  }
+
+  return changed;
+ }
+
+void ASR_topButton() {
+
+  asr.change_value(ASR_SETTING_OCTAVE, 1);
+}
+
+void ASR_lowerButton() {
+
+   asr.change_value(ASR_SETTING_OCTAVE, -1); 
+}
+
+void ASR_rightButton() {
+
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.handle_rightButton();
+    return;
+  }
+  
+  ++asr_state.selected_param;
+  if (asr_state.selected_param >= ASR_SETTING_LAST)
+    asr_state.selected_param = ASR_SETTING_ROOT;
+  if (ASR_SETTING_MASK != asr_state.selected_param) {
+    encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
+  } else {
+    encoder[RIGHT].setPos(0);
+  }
+}
+
+void ASR_leftButton() {
+ 
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.handle_leftButton();
+    return;
+  }
+  
+  if (asr_state.left_encoder_value != asr.get_scale())
+    asr.apply_value(ASR_SETTING_SCALE, asr_state.left_encoder_value);
+}
+
+void ASR_leftButtonLong() {
+
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.handle_leftButtonLong();
+    return;
+  }
+
+  int scale = asr_state.left_encoder_value;
+  asr.apply_value(ASR_SETTING_SCALE, scale);
+  if (scale != OC::Scales::SCALE_NONE) 
+      asr_state.scale_editor.Edit(&asr, scale);
+}
+
+size_t ASR_save(char *storage) {
+  
+  size_t used = 0;
+  used += asr.save_settings(storage + used);
+  return used;
+}
+
+void ASR_menu() {
+ 
+  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
+
+  graphics.setFont(UI_DEFAULT_FONT);
+
+  static const weegfx::coord_t kStartX = 0;
+  
+  UI_DRAW_TITLE(kStartX);
+  
+  graphics.setPrintPos(2, 2);
+  // print scale:
+  int scale = asr_state.left_encoder_value;
+  if (asr.get_scale() == scale)
+    graphics.print("> ");
+  else
+    graphics.print("- ");
+  graphics.print(OC::scale_names[scale]);
+
+  // print octave offset: 
+  int oct = asr.get_octave();
+  graphics.setPrintPos(95, kUiTitleTextY+2);
+  if (oct >= 0) 
+    graphics.print("+");
+  graphics.print(oct);
+  
+  UI_START_MENU(kStartX);
+  
+  int first_visible_param = ASR_SETTING_ROOT;
+  
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, ASR_SETTING_LAST, asr_state.selected_param, 0)
+    const settings::value_attr &attr = ASR::value_attr(current_item);
+    if (ASR_SETTING_MASK != current_item) {
+      UI_DRAW_SETTING(attr, asr.get_value(current_item), kUiWideMenuCol1X);
+    } else {
+      graphics.print(attr.name);
+      uint16_t mask = asr.get_mask();
+      size_t num_notes = OC::Scales::GetScale(asr.get_scale()).num_notes;
+      weegfx::coord_t x = kUiDisplayWidth - num_notes * 3;
+      for (size_t i = 0; i < num_notes; ++i, mask >>= 1, x+=3) {
+        if (mask & 0x1)
+          graphics.drawRect(x, y + 1, 2, 8);
+      }
+      UI_END_ITEM();
+    }
+  UI_END_ITEMS_LOOP();
+
+  if (asr_state.scale_editor.active())  
+    asr_state.scale_editor.Draw();
+    
+  GRAPHICS_END_FRAME();
+}
+
+static const size_t ASR_SETTINGS_SIZE = ASR::kBinarySize;
+
+

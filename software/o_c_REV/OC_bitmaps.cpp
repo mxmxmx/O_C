@@ -1,0 +1,23 @@
+#include <stdint.h>
+#include "OC_bitmaps.h"
+
+namespace OC {
+
+const uint8_t bitmap_empty_frame4x8[] = {
+  0xff, 0x81, 0x81, 0xff
+};
+
+const uint8_t bitmap_end_marker4x8[] = {
+  0x66, 0x6f, 0x6f, 0x66
+};
+
+
+const uint8_t circle_disk_bitmap_8x8[] = {
+  0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
+};
+
+const uint8_t circle_bitmap_8x8[] = {
+  0, 0x18, 0x24, 0x42, 0x42, 0x24, 0x18, 0
+};
+
+};

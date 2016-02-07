@@ -1,7 +1,23 @@
 #ifndef UTIL_UI_H_
 #define UTIL_UI_H_
 
-#define UI_DEFAULT_FONT u8g_font_6x12
+#include "weegfx.h"
+#include "util_framebuffer.h"
+#include "SH1106_128x64_Driver.h"
+#include "util_button.h"
+#include "util_debugpins.h"
+
+extern TimerDebouncedButton<butL, 50, 2000> button_left;
+extern TimerDebouncedButton<butR, 50, 2000> button_right;
+
+extern weegfx::Graphics graphics;
+extern FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
+
+extern uint8_t MENU_REDRAW;
+extern unsigned long LAST_REDRAW_TIME;
+
+
+#define UI_DEFAULT_FONT nullptr
 
 static const uint8_t kUiDefaultFontH = 12;
 static const uint8_t kUiTitleTextY = 0;

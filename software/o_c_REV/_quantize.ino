@@ -1,3 +1,4 @@
+#define MAXNOTES 7                    // max. notes per scale (see below)
 
 /*  scales ... look like this: */
 /*  names must be added to const String abc[MAXSCALES] (menu.ino) */

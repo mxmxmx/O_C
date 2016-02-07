@@ -2,6 +2,7 @@
 #define OC_CALIBRATION_H_
 
 #include "OC_ADC.h"
+#include "OC_storage.h"
 #include "DAC.h"
 #include "util_pagestorage.h"
 #include "EEPROMStorage.h"
@@ -20,9 +21,6 @@ static constexpr uint16_t _ZERO = 0x3;                                     // "z
 #define VERBOSE_PRINTLN(x) do {} while (0)
 #endif
 
-#define EEPROM_CALIBRATIONDATA_START 0
-#define EEPROM_CALIBRATIONDATA_LENGTH 64 // calibrate.ino: OCTAVES*uint16_t + ADC_CHANNEL_LAST*unit16_t = 14 * 2 = 28 -> leaves space
-
 namespace OC {
 
 struct CalibrationData {
@@ -34,7 +32,7 @@ struct CalibrationData {
   ADC::CalibrationData adc;
 };
 
-typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_LENGTH, CalibrationData> CalibrationStorage;
+typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_END, CalibrationData> CalibrationStorage;
 
 extern CalibrationData calibration_data;
 };
