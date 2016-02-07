@@ -87,6 +87,15 @@ public:
   }
 
   /**
+   * Use this instead of load to get a valid state for saving
+   */
+  void Init() {
+    page_index_ = -1;
+    page_.header.fourcc = DATA_TYPE::FOURCC;
+    page_.header.size = sizeof(DATA_TYPE);
+  }
+
+  /**
    * Scan all pages to find the newest to load.
    * If no data found, initialize internal page to empty.
    * @param data [out] loaded data if load successful, else unmodified

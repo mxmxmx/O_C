@@ -132,7 +132,9 @@ void init_apps() {
     app.init();
 
   if (!digitalRead(but_top) && !digitalRead(but_bot)) {
-    Serial.print("Skipping loading of global/app settings");
+    Serial.println("Skipping loading of global/app settings");
+    global_settings_storage.Init();
+    app_data_storage.Init();
   } else {
     Serial.print("Loading global settings: "); Serial.println(sizeof(OC::GlobalSettings));
     Serial.print(" PAGESIZE: "); Serial.println(OC::GlobalSettingsStorage::PAGESIZE);
