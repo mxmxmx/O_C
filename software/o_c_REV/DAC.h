@@ -46,20 +46,16 @@ public:
     int32_t value;
 
     value = static_cast<int32_t>(values_[DAC_CHANNEL_A]) + calibration_data_->fine[DAC_CHANNEL_A];
-    USAT16(value);
-    set8565_CHA(value);
+    set8565_CHA(USAT16(value));
 
     value = static_cast<int32_t>(values_[DAC_CHANNEL_B]) + calibration_data_->fine[DAC_CHANNEL_B];
-    USAT16(value);
-    set8565_CHB(value);
+    set8565_CHB(USAT16(value));
 
     value = static_cast<int32_t>(values_[DAC_CHANNEL_C]) + calibration_data_->fine[DAC_CHANNEL_C];
-    USAT16(value);
-    set8565_CHC(value);
+    set8565_CHC(USAT16(value));
 
     value = static_cast<int32_t>(values_[DAC_CHANNEL_D]) + calibration_data_->fine[DAC_CHANNEL_D];
-    USAT16(value);
-    set8565_CHD(value);
+    set8565_CHD(USAT16(value));
 
     size_t tail = history_tail_;
     history_[DAC_CHANNEL_A][tail] = values_[DAC_CHANNEL_A];
