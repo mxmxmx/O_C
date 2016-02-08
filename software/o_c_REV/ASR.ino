@@ -195,9 +195,7 @@ public:
            for (int i = 0; i < 4; i++) {
                 // imprecise, but good enough ... ? 
                 _pitch = asr_outputs[i];
-                if (_pitch < CALIBRATION_DEFAULT_OFFSET) 
-                    _octave = 0;
-                else {
+                if (_pitch > CALIBRATION_DEFAULT_OFFSET)  {
                     _octave = (_pitch - CALIBRATION_DEFAULT_OFFSET) / CALIBRATION_DEFAULT_STEP;
                     if (_octave > 0 && _octave < 9) 
                         asr_outputs[i] += OC::calibration_data.octaves[_octave + _offset] - OC::calibration_data.octaves[_octave];
