@@ -10,6 +10,7 @@
 
 #define TRANSPOSE_FIXED 0x0
 #define CALIBRATION_DEFAULT_STEP 6553
+#define CALIBRATION_DEFAULT_OFFSET 4890
 
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
@@ -190,11 +191,17 @@ public:
         if (_offset) {
 
            uint8_t _octave;
+           uint32_t _pitch;
            for (int i = 0; i < 4; i++) {
                 // imprecise, but good enough ... ? 
-                _octave = asr_outputs[i] / CALIBRATION_DEFAULT_STEP;
-                if (_octave > 0 && _octave < 9) 
-                    asr_outputs[i] += OC::calibration_data.octaves[_octave + _offset] - OC::calibration_data.octaves[_octave];
+                _pitch = asr_outputs[i];
+                if (_pitch < CALIBRATION_DEFAULT_OFFSET) 
+                    _octave = 0;
+                else {
+                    _octave = (_pitch - CALIBRATION_DEFAULT_OFFSET) / CALIBRATION_DEFAULT_STEP;
+                    if (_octave > 0 && _octave < 9) 
+                        asr_outputs[i] += OC::calibration_data.octaves[_octave + _offset] - OC::calibration_data.octaves[_octave];
+                }
            } 
         }       
     }  
