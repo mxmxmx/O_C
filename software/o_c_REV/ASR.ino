@@ -9,6 +9,7 @@
 (0x1+(OC::ADC::value<channel>() >> shift))
 
 #define TRANSPOSE_FIXED 0x0
+#define CALIBRATION_DEFAULT_STEP 6553
 
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
@@ -191,7 +192,7 @@ public:
            uint8_t _octave;
            for (int i = 0; i < 4; i++) {
                 // imprecise, but good enough ... ? 
-                _octave = asr_outputs[i] / OC::calibration_data.octaves[0];  // should be: OC::calibration_data.octaves[1]? ie octaves[0] defaults to zero ?
+                _octave = asr_outputs[i] / CALIBRATION_DEFAULT_STEP;
                 if (_octave > 0 && _octave < 9) 
                     asr_outputs[i] += OC::calibration_data.octaves[_octave + _offset] - OC::calibration_data.octaves[_octave];
            } 
@@ -229,13 +230,13 @@ public:
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
              int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
-             int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 8) - 1);  
+             int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 8) - 1);  // when no signal, ADC should default to zero
 
              if (_mult < 0)
                 _mult = 0;
              else if (_mult > 19)
                 _mult = 19;
-           
+        
             // scale incoming CV
              if (_mult != 9) {
                _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
