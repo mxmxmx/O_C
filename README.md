@@ -1,8 +1,10 @@
-O_C
+Ornaments & Crimes
 ===
 
-ornament+crime
+Extended ornament+crime firmware, for features see https://github.com/patrickdowling/O_C/wiki
 
+
+###Original Info:
 
 eurorack / teensy 3.x DAC8565 quad 16bit CV module w/ oled display
 
