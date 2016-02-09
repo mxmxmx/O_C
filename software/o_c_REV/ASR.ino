@@ -39,7 +39,18 @@ class ASR : public settings::SettingsBase<ASR, ASR_SETTING_LAST> {
 public:
 
   int get_scale() const {
-      return values_[ASR_SETTING_SCALE];
+    return values_[ASR_SETTING_SCALE];
+  }
+
+  void set_scale(int scale) {
+    if (scale != get_scale()) {
+      const OC::Scale &scale_def = OC::Scales::GetScale(scale);
+      uint16_t mask = get_mask();
+      if (0 == (mask & ~(0xffff << scale_def.num_notes)))
+        mask |= 0x1;
+      apply_value(ASR_SETTING_MASK, mask);
+      apply_value(ASR_SETTING_SCALE, scale);
+    }
   }
 
   uint16_t get_mask() const {
@@ -424,7 +435,7 @@ void ASR_leftButton() {
   }
   
   if (asr_state.left_encoder_value != asr.get_scale())
-    asr.apply_value(ASR_SETTING_SCALE, asr_state.left_encoder_value);
+    asr.set_scale(asr_state.left_encoder_value);
 }
 
 void ASR_leftButtonLong() {
@@ -435,7 +446,7 @@ void ASR_leftButtonLong() {
   }
 
   int scale = asr_state.left_encoder_value;
-  asr.apply_value(ASR_SETTING_SCALE, scale);
+  asr.set_scale(asr_state.left_encoder_value);
   if (scale != OC::Scales::SCALE_NONE) 
       asr_state.scale_editor.Edit(&asr, scale);
 }
