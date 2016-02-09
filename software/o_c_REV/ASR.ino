@@ -186,11 +186,8 @@ public:
      force_update_ = false;
 
      bool update = forced_update;
-      
-     if (CLK_STATE[0]) {
-      CLK_STATE[0] = false;
-      update |= true;
-      }
+     if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>())
+      update = true;
       update |= update_scale(forced_update);
 
       if (update) {        

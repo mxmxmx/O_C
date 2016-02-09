@@ -94,11 +94,10 @@ public:
     force_update_ = false;
 
     bool update = forced_update || get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
-    if (CLK_STATE[index]) {
-      CLK_STATE[index] = false;
-      update |= true;
-    }
-    update |= update_scale(forced_update);
+    if (OC::DigitalInputs::clocked<static_cast<OC::DigitalInput>(index)>())
+      update = true;
+    if (update_scale(forced_update))
+      update = true;
 
     if (update) {
       int32_t transpose = get_transpose();

@@ -29,6 +29,7 @@
 #include "OC_gpio.h"
 #include "OC_ADC.h"
 #include "OC_calibration.h"
+#include "OC_digital_inputs.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
 #include "util_app.h"
@@ -65,25 +66,6 @@ uint32_t _CLK_TIMESTAMP = 0;
 uint32_t _BUTTONS_TIMESTAMP = 0;
 static const uint16_t TRIG_LENGTH = 150;
 static const uint16_t DEBOUNCE = 250;
-
-volatile int CLK_STATE[4] = {0,0,0,0};
-#define CLK_STATE1 (CLK_STATE[TR1])
-
-void FASTRUN tr1_ISR() {  
-    CLK_STATE[TR1] = true; 
-}  // main clock
-
-void FASTRUN tr2_ISR() {
-  CLK_STATE[TR2] = true;
-}
-
-void FASTRUN tr3_ISR() {
-  CLK_STATE[TR3] = true;
-}
-
-void FASTRUN tr4_ISR() {
-  CLK_STATE[TR4] = true;
-}
 
 uint32_t _UI_TIMESTAMP;
 
@@ -174,19 +156,10 @@ void setup(){
   pinMode(but_top, INPUT);
   pinMode(but_bot, INPUT);
   buttons_init();
- 
-  pinMode(TR1, INPUT); // INPUT_PULLUP);
-  pinMode(TR2, INPUT);
-  pinMode(TR3, INPUT);
-  pinMode(TR4, INPUT);
 
   DebugPins::Init();
+  OC::DigitalInputs::Init();
 
-  // clock ISR 
-  attachInterrupt(TR1, tr1_ISR, FALLING);
-  attachInterrupt(TR2, tr2_ISR, FALLING);
-  attachInterrupt(TR3, tr3_ISR, FALLING);
-  attachInterrupt(TR4, tr4_ISR, FALLING);
   // encoder ISR 
   attachInterrupt(encL1, left_encoder_ISR, CHANGE);
   attachInterrupt(encL2, left_encoder_ISR, CHANGE);

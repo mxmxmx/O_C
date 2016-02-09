@@ -85,8 +85,8 @@ struct {
 
 void FASTRUN POLYLFO_isr() {
 
-  bool reset_phase = OC::DigitalInputs::clocked<TR1>();
-  bool freeze = OC::DigitalInputs::read_immediate<TR2>();
+  bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
+  bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
 
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
