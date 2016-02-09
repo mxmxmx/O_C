@@ -189,15 +189,15 @@ static const unsigned SCANNER_RATE = 200;
 void POLYLFO_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
 
-  uint16_t shape = poly_lfo.get_value(POLYLFO_SETTING_SHAPE) << 8;
-  poly_lfo.lfo.RenderPreview(shape, large_preview_buffer, kLargePreviewBufferSize);
-  for (weegfx::coord_t x = 0; x < 128; ++x) {
-    graphics.setPixel(x, 32 - (large_preview_buffer[(x + scanner) & 63] >> 11));
-  }
-  if (millis() - scanner_millis > SCANNER_RATE) {
-    ++scanner;
-    scanner_millis = millis();
-  }
+//  uint16_t shape = poly_lfo.get_value(POLYLFO_SETTING_SHAPE) << 8;
+//  poly_lfo.lfo.RenderPreview(shape, large_preview_buffer, kLargePreviewBufferSize);
+//  for (weegfx::coord_t x = 0; x < 128; ++x) {
+//    graphics.setPixel(x, 32 - (large_preview_buffer[(x + scanner) & 63] >> 11));
+//  }
+//  if (millis() - scanner_millis > SCANNER_RATE) {
+//    ++scanner;
+//    scanner_millis = millis();
+//  }
 
   scope_render();
 
