@@ -54,7 +54,7 @@ void Quantizer::Configure(
     int16_t span,
     size_t num_notes,
     uint16_t mask) {
-  enabled_ = notes != NULL && num_notes != 0 && span != 0 && mask;
+  enabled_ = notes != NULL && num_notes != 0 && span != 0 && (mask & ~(0xffff<<num_notes));
   if (enabled_) {
     int32_t octave = 0;
     size_t note = 0;

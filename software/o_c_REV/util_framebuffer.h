@@ -49,7 +49,7 @@ public:
 
 private:
 
-  uint8_t frame_memory_[kFrameSize * frames];
+  uint8_t frame_memory_[kFrameSize * frames] __attribute__ ((aligned (4)));;
   uint8_t *frame_buffers_[frames];
 
   volatile size_t write_ptr_;

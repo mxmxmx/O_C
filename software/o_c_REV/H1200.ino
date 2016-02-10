@@ -105,12 +105,12 @@ do { \
   DAC::set<dac>(dac_code); \
 } while (0)
 
-static const uint32_t TRIGGER_MASK_TR1 = 0x1;
-static const uint32_t TRIGGER_MASK_P = 0x2;
-static const uint32_t TRIGGER_MASK_L = 0x4;
-static const uint32_t TRIGGER_MASK_R = 0x8;
-static const uint32_t TRIGGER_MASK_DIRTY = 0x10;
-static const uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
+static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
+static constexpr uint32_t TRIGGER_MASK_P = OC::DIGITAL_INPUT_2_MASK;
+static constexpr uint32_t TRIGGER_MASK_L = OC::DIGITAL_INPUT_3_MASK;
+static constexpr uint32_t TRIGGER_MASK_R = OC::DIGITAL_INPUT_4_MASK;
+static constexpr uint32_t TRIGGER_MASK_DIRTY = 0x10;
+static constexpr uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
 
 void FASTRUN H1200_clock(uint32_t triggers) {
 
@@ -200,11 +200,11 @@ void H1200_resume() {
 
 #define CLOCKIT() \
 do { \
-  uint32_t triggers = 0; \
-  if (CLK_STATE[TR1]) { triggers |= TRIGGER_MASK_TR1; CLK_STATE[TR1] = false; } \
-  if (CLK_STATE[TR2]) { triggers |= TRIGGER_MASK_P; CLK_STATE[TR2] = false; } \
-  if (CLK_STATE[TR3]) { triggers |= TRIGGER_MASK_L; CLK_STATE[TR3] = false; } \
-  if (CLK_STATE[TR4]) { triggers |= TRIGGER_MASK_R; CLK_STATE[TR4] = false; } \
+  uint32_t triggers = \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>(); \
   if (h1200_state.value_changed) { triggers |= TRIGGER_MASK_DIRTY; h1200_state.value_changed = false; } \
   H1200_clock(triggers); \
 } while (0)

@@ -31,9 +31,9 @@ const char *clock_fraction_names[] = {
   "", "1/8", "1/7", "1/6", "1/5", "1/4", "1/3", "1/2"
 };
 
-static const uint8_t TRIGGER_MASK_GRID = 0x1;
-static const uint8_t TRIGGER_MASK_ARP = 0x2;
-static const uint32_t kTriggerOutMs = 5;
+static constexpr uint32_t TRIGGER_MASK_GRID = OC::DIGITAL_INPUT_1_MASK;
+static constexpr uint32_t TRIGGER_MASK_ARP = OC::DIGITAL_INPUT_2_MASK;
+static constexpr uint32_t kTriggerOutMs = 5;
 
 enum ECellSettings {
   CELL_SETTING_TRANSFORM,
@@ -169,7 +169,7 @@ public:
     return static_cast<EClearMode>(values_[GRID_SETTING_CLEARMODE]);
   }
 
-  void clock(uint8_t triggers);
+  void clock(uint32_t triggers);
   void reset();
   void render(bool triggered);
   void update_trigger_out();
@@ -253,7 +253,7 @@ void Automatonnetz_init() {
   automatonnetz_state.reset();
 }
 
-void AutomatonnetzState::clock(uint8_t triggers) {
+void AutomatonnetzState::clock(uint32_t triggers) {
   bool triggered = false;
   if (triggers & TRIGGER_MASK_GRID) {
     switch (grid.current_cell().event()) {
@@ -284,7 +284,7 @@ void AutomatonnetzState::clock(uint8_t triggers) {
 
       MENU_REDRAW = 1;
     }
-  } else if ((triggers & TRIGGER_MASK_ARP) && digitalReadFast(TR4)) {
+  } else if ((triggers & TRIGGER_MASK_ARP) && !OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()) {
     // arp disabled if TR4 high, gpio is inverted
     if (arp_index_ < 2)
         ++arp_index_;
@@ -371,9 +371,9 @@ void AutomatonnetzState::update_trigger_out() {
 #define AT() \
 do { \
   automatonnetz_state.update_trigger_out(); \
-  uint8_t triggers = 0; \
-  if (CLK_STATE[TR1]) { CLK_STATE[TR1] = false; triggers |= TRIGGER_MASK_GRID; } \
-  if (CLK_STATE[TR2]) { CLK_STATE[TR2] = false; triggers |= TRIGGER_MASK_ARP; } \
+  uint32_t triggers = \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>(); \
   if (triggers) \
     automatonnetz_state.clock(triggers); \
 } while (0)
