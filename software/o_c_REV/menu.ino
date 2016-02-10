@@ -23,10 +23,10 @@ void UI() {
   if (  MENU_REDRAW != 0 ) {
     switch(UI_MODE) {
       case SCREENSAVER:
-        current_app->draw_screensaver();
+        OC::current_app->draw_screensaver();
         break;
       case MENU:
-        current_app->draw_menu();
+        OC::current_app->draw_menu();
         break;
       default: break;
     }

@@ -4,8 +4,8 @@
 #include "weegfx.h"
 #include "util_framebuffer.h"
 #include "SH1106_128x64_Driver.h"
-#include "util_button.h"
-#include "util_debugpins.h"
+#include "util/util_button.h"
+#include "util/util_debugpins.h"
 
 extern TimerDebouncedButton<butL, 50, 2000> button_left;
 extern TimerDebouncedButton<butR, 50, 2000> button_right;

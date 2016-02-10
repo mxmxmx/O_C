@@ -1,6 +1,10 @@
-#include "frames_poly_lfo.h"
-#include "util_math.h"
+#include "OC_apps.h"
 #include "OC_digital_inputs.h"
+
+#include "util/util_math.h"
+#include "util/util_settings.h"
+#include "util_ui.h"
+#include "frames_poly_lfo.h"
 
 enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_FREQ,
@@ -265,5 +269,3 @@ void POLYLFO_debug() {
   value = USAT16(value);
   graphics.print(value);
 }
-
-

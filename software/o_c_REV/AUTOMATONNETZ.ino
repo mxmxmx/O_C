@@ -1,5 +1,5 @@
-#include "util_grid.h"
-#include "util_settings.h"
+#include "util/util_grid.h"
+#include "util/util_settings.h"
 #include "util_ui.h"
 #include "tonnetz_state.h"
 #include "OC_bitmaps.h"

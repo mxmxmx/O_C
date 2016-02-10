@@ -30,7 +30,7 @@
 #define BRAIDS_QUANTIZER_H_
 
 //#include "stmlib/stmlib.h"
-#include "util_macros.h"
+#include "util/util_macros.h"
 
 namespace braids {
   

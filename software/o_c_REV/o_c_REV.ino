@@ -26,22 +26,22 @@
 #include <rotaryplus.h>
 #include <EEPROM.h>
 
+#include "OC_apps.h"
 #include "OC_gpio.h"
 #include "OC_ADC.h"
 #include "OC_calibration.h"
 #include "OC_digital_inputs.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
-#include "util_app.h"
-#include "util_button.h"
-#include "util_pagestorage.h"
+#include "util/util_button.h"
+#include "util/util_pagestorage.h"
 #include "util_framebuffer.h"
 #include "page_display_driver.h"
 #include "weegfx.h"
 #include "SH1106_128x64_driver.h"
 
 //#define ENABLE_DEBUG_PINS
-#include "util_debugpins.h"
+#include "util/util_debugpins.h"
 
 FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
@@ -139,7 +139,7 @@ void FASTRUN CORE_timer_ISR() {
   }
 
   if (CORE_app_isr_enabled)
-    APPS::ISR();
+    OC::APPS::ISR();
 }
 
 /*       ---------------------------------------------------------         */
@@ -192,7 +192,7 @@ void setup(){
 
   // initialize 
   init_DACtable();
-  init_apps();
+  OC::APPS::Init();
   CORE_app_isr_enabled = true;
 }
 
@@ -205,8 +205,8 @@ void loop() {
 
   while (1) {
     // don't change current_app while it's running
-    if (SELECT_APP) select_app();
-    current_app->loop();
+    if (SELECT_APP) OC::APPS::Select();
+    OC::current_app->loop();
     if (UI_MODE) timeout();
     if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
       MENU_REDRAW = 1;

@@ -1,6 +1,6 @@
 
 #include "tonnetz_state.h"
-#include "util_settings.h"
+#include "util/util_settings.h"
 
 extern uint16_t semitones[RANGE+1];
 

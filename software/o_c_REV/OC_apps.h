@@ -1,5 +1,7 @@
-#ifndef UTIL_APP_H_
-#define UTIL_APP_H_
+#ifndef OC_APP_H_
+#define OC_APP_H_
+
+namespace OC {
 
 // This is a very poor-man's application "switching" framework. The main UI/
 // drawing functions are mostly unchanged and just call into the current_app
@@ -33,11 +35,11 @@ struct App {
 };
 
 extern App *current_app;
-extern bool SELECT_APP;
-void init_apps();
-void select_app();
 
 namespace APPS {
+
+  void Init();
+  void Select();
 
   inline void ISR() __attribute__((always_inline));
   inline void ISR() {
@@ -46,4 +48,8 @@ namespace APPS {
   }
 };
 
-#endif // UTIL_APP_H_
+};
+
+extern bool SELECT_APP;
+
+#endif // OC_APP_H_

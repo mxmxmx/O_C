@@ -1,7 +1,7 @@
 #ifndef DAC_H_
 #define DAC_H_
 
-#include "util_math.h"
+#include "util/util_math.h"
 
 enum DAC_CHANNEL {
   DAC_CHANNEL_A, DAC_CHANNEL_B, DAC_CHANNEL_C, DAC_CHANNEL_D, DAC_CHANNEL_LAST

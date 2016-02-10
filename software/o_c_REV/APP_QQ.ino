@@ -1,11 +1,15 @@
 /*
  * Quad quantizer mode
  */
-#include "util_settings.h"
+
+#include "OC_apps.h"
+#include "OC_strings.h"
+#include "util/util_settings.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
+#include "util_ui.h"
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 

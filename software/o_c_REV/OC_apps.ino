@@ -1,6 +1,9 @@
-#include "util_app.h"
+#include "OC_apps.h"
 
-App available_apps[] = {
+extern int LAST_ENCODER_VALUE[2];
+
+
+OC::App available_apps[] = {
   {"ASR", ASR_init, ASR_save, ASR_restore, NULL, ASR_resume,
     ASR_loop, ASR_menu, screensaver, ASR_topButton, ASR_lowerButton, ASR_rightButton, ASR_leftButton, ASR_leftButtonLong, ASR_encoders, ASR_isr},
   {"Harrington 1200", H1200_init, H1200_save, H1200_restore, NULL, H1200_resume,
@@ -12,6 +15,7 @@ App available_apps[] = {
   {"frames::poly_lfo", POLYLFO_init, POLYLFO_save, POLYLFO_restore, NULL, POLYLFO_resume,
     POLYLFO_loop, POLYLFO_menu, POLYLFO_screensaver, POLYLFO_topButton, POLYLFO_lowerButton, POLYLFO_rightButton, POLYLFO_leftButton, POLYLFO_leftButtonLong, POLYLFO_encoders, POLYLFO_isr},
 };
+static constexpr int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 
 namespace OC {
 
@@ -40,7 +44,7 @@ struct AppData {
 
 typedef PageStorage<EEPROMStorage, EEPROM_GLOBALSETTINGS_START, EEPROM_GLOBALSETTINGS_END, GlobalSettings> GlobalSettingsStorage;
 typedef PageStorage<EEPROMStorage, EEPROM_APPDATA_START, EEPROM_APPDATA_END, AppData> AppDataStorage;
-}
+};
 
 OC::GlobalSettings global_settings;
 OC::GlobalSettingsStorage global_settings_storage;
@@ -48,8 +52,7 @@ OC::GlobalSettingsStorage global_settings_storage;
 OC::AppData app_settings;
 OC::AppDataStorage app_data_storage;
 
-static const int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
-App *current_app = &available_apps[0];
+OC::App *OC::current_app = &available_apps[0];
 bool SELECT_APP = false;
 static const uint32_t SELECT_APP_TIMEOUT = 15000;
 static const int DEFAULT_APP_INDEX = 1;
@@ -122,10 +125,10 @@ void draw_app_menu(int selected) {
 
 void set_current_app(int index) {
   global_settings.current_app_index = index;
-  current_app = &available_apps[index];
+  OC::current_app = &available_apps[index];
 }
 
-void init_apps() {
+void OC::APPS::Init() {
 
   OC::Scales::Init();
   for (auto &app : available_apps)
@@ -161,8 +164,8 @@ void init_apps() {
   }
 
   set_current_app(global_settings.current_app_index);
-  if (current_app->resume)
-    current_app->resume();
+  if (OC::current_app->resume)
+    OC::current_app->resume();
 
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
@@ -173,12 +176,12 @@ void init_apps() {
     delay(500);
 }
 
-void select_app() {
+void OC::APPS::Select() {
 
   // Save state
   int encoder_values[2] = { encoder[LEFT].pos(), encoder[RIGHT].pos() };
-  if (current_app->suspend)
-    current_app->suspend();
+  if (OC::current_app->suspend)
+    OC::current_app->suspend();
 
   int selected = global_settings.current_app_index;
   encoder[RIGHT].setPos(selected);
@@ -233,8 +236,8 @@ void select_app() {
   encoder[LEFT].setPos(encoder_values[0]);
   encoder[RIGHT].setPos(encoder_values[1]);
 
-  if (current_app->resume)
-    current_app->resume();
+  if (OC::current_app->resume)
+    OC::current_app->resume();
 
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
