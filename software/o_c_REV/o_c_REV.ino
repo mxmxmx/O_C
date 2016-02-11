@@ -199,13 +199,17 @@ void setup(){
 
 /*  ---------    main loop  --------  */
 
-void loop() {
+void FASTRUN loop() {
   _UI_TIMESTAMP = millis();
   UI_MODE = 1;
 
   while (1) {
     // don't change current_app while it's running
-    if (SELECT_APP) OC::APPS::Select();
+    if (SELECT_APP) {
+      CORE_app_isr_enabled = false;
+      OC::APPS::Select();
+      CORE_app_isr_enabled = true;
+    }
     OC::current_app->loop();
     if (UI_MODE) timeout();
     if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
