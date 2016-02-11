@@ -162,41 +162,12 @@ public:
     sizeof(uint8_t) + // CHANNEL_SETTING_SOURCE
     sizeof(int16_t); // CHANNEL_SETTING_FINE
 
-  size_t save_settings(char *storage) {
-    char *ptr = storage;
-    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_SCALE);
-    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_ROOT);
-    ptr = write_setting<uint16_t>(ptr, CHANNEL_SETTING_MASK);
-    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_UPDATEMODE);
-    ptr = write_setting<int8_t>(ptr, CHANNEL_SETTING_TRANSPOSE);
-    ptr = write_setting<int8_t>(ptr, CHANNEL_SETTING_OCTAVE);
-    ptr = write_setting<uint8_t>(ptr, CHANNEL_SETTING_SOURCE);
-    ptr = write_setting<int16_t>(ptr, CHANNEL_SETTING_FINE);
-
-    return (ptr - storage);
-  }
-
-  size_t restore_settings(const char *storage) {
-    const char *ptr = storage;
-    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_SCALE);
-    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_ROOT);
-    ptr = read_setting<uint16_t>(ptr, CHANNEL_SETTING_MASK);
-    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_UPDATEMODE);
-    ptr = read_setting<int8_t>(ptr, CHANNEL_SETTING_TRANSPOSE);
-    ptr = read_setting<int8_t>(ptr, CHANNEL_SETTING_OCTAVE);
-    ptr = read_setting<uint8_t>(ptr, CHANNEL_SETTING_SOURCE);
-    ptr = read_setting<int16_t>(ptr, CHANNEL_SETTING_FINE);
-
-    return (ptr - storage);
-  }
-
 private:
   bool force_update_;
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_output_;
   braids::Quantizer quantizer_;
-
 
   bool update_scale(bool force) {
     const int scale = get_scale();
@@ -222,16 +193,15 @@ const char* const channel_source[ADC_CHANNEL_LAST] = {
   "CV1", "CV2", "CV3", "CV4"
 };
 
-/*static*/ template <>
-const settings::value_attr settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST>::value_attr_[] = {
-  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names },
-  { 0, 0, 11, "root", OC::Strings::note_names },
-  { 65535, 1, 65535, "active notes", NULL },
-  { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes },
-  { 0, -5, 7, "transpose", NULL },
-  { 0, -4, 4, "octave", NULL },
-  { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", channel_source},
-  { 0, -999, 999, "fine", NULL },
+SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
+  { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 },
+  { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes, settings::STORAGE_TYPE_U8 },
+  { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
+  { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", channel_source, settings::STORAGE_TYPE_U8},
+  { 0, -999, 999, "fine", NULL, settings::STORAGE_TYPE_I16 },
 };
 
 enum EMenuMode {
@@ -265,23 +235,27 @@ void QQ_init() {
   qq_state.scale_editor.Init();
 }
 
-static const size_t QQ_SETTINGS_SIZE = 4 * QuantizerChannel::kBinarySize;
+size_t QQ_storageSize() {
+  return 4 * QuantizerChannel::storageSize();
+}
 
-size_t QQ_save(char *storage) {
+size_t QQ_save(void *storage) {
   size_t used = 0;
   for (size_t i = 0; i < 4; ++i) {
-    used += quantizer_channels[i].save_settings(storage + used);
+    used += quantizer_channels[i].Save(static_cast<char*>(storage) + used);
   }
   return used;
 }
 
-size_t QQ_restore(const char *storage) {
+size_t QQ_restore(const void *storage) {
   size_t used = 0;
   for (size_t i = 0; i < 4; ++i) {
-    used += quantizer_channels[i].restore_settings(storage + used);
+    used += quantizer_channels[i].Restore(static_cast<const char*>(storage) + used);
   }
   return used;
 }
+
+void QQ_suspend() { }
 
 void QQ_resume() {
   switch (qq_state.left_encoder_mode) {

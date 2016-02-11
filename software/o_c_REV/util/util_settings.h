@@ -3,12 +3,19 @@
 
 namespace settings {
 
+enum StorageType {
+  STORAGE_TYPE_I8, STORAGE_TYPE_U8,
+  STORAGE_TYPE_I16, STORAGE_TYPE_U16,
+  STORAGE_TYPE_I32, STORAGE_TYPE_U32,
+};
+
 struct value_attr {
   const int default_;
   const int min_;
   const int max_;
   const char *name;
   const char * const *value_names;
+  StorageType storage_type;
 
   int default_value() const {
     return default_;
@@ -32,11 +39,11 @@ struct value_attr {
 // or modifying values. Classes shouldn't normally have to access the values_
 // directly.
 //
-// In a vague attempt to "save space" in storage, save/restore functions can be
-// typed to a smaller data type, or individual values saved as different types
-// by hand.
+// To try and save some storage space, each setting can be stored as a smaller
+// type as specified in the attributes. For even more compact representations,
+// the owning class can pack things differently if required.
 //
-// TODO Cleanup save/restore
+// TODO: Save/Restore is still kind of sucky
 //
 template <typename clazz, size_t num_settings>
 class SettingsBase {
@@ -74,43 +81,81 @@ public:
       values_[s] = value_attr_[s].default_value();
   }
 
-  template <typename storage_type>
-  size_t save(void *dest) const {
-    storage_type *storage = static_cast<storage_type *>(dest);
-    for (size_t s = 0; s < num_settings; ++s)
-      *storage++ = static_cast<storage_type>(values_[s]);
-
-    return num_settings * sizeof(storage_type);
+  size_t Save(void *dest) const {
+    size_t written = 0;
+    for (size_t s = 0; s < num_settings; ++s) {
+      char *storage = static_cast<char *>(dest) + written;
+      switch(value_attr_[s].storage_type) {
+        case STORAGE_TYPE_I8: written += write_setting<int8_t>(storage, s); break;
+        case STORAGE_TYPE_U8: written += write_setting<uint8_t>(storage, s); break;
+        case STORAGE_TYPE_I16: written += write_setting<int16_t>(storage, s); break;
+        case STORAGE_TYPE_U16: written += write_setting<uint16_t>(storage, s); break;
+        case STORAGE_TYPE_I32: written += write_setting<int32_t>(storage, s); break;
+        case STORAGE_TYPE_U32: written += write_setting<uint32_t>(storage, s); break;
+      }
+    }
+    return written;
   }
 
-  template <typename storage_type>
-  size_t restore(const void *src) {
-    const storage_type *storage = static_cast<const storage_type *>(src);
-    for (size_t s = 0; s < num_settings; ++s)
-      apply_value(s, *storage++);
-
-    return num_settings * sizeof(storage_type);
+  size_t Restore(const void *src) {
+    size_t read = 0;
+    for (size_t s = 0; s < num_settings; ++s) {
+      const char *storage = static_cast<const char *>(src) + read;
+      switch(value_attr_[s].storage_type) {
+        case STORAGE_TYPE_I8: read += read_setting<int8_t>(storage, s); break;
+        case STORAGE_TYPE_U8: read += read_setting<uint8_t>(storage, s); break;
+        case STORAGE_TYPE_I16: read += read_setting<int16_t>(storage, s); break;
+        case STORAGE_TYPE_U16: read += read_setting<uint16_t>(storage, s); break;
+        case STORAGE_TYPE_I32: read += read_setting<int32_t>(storage, s); break;
+        case STORAGE_TYPE_U32: read += read_setting<uint32_t>(storage, s); break;
+      }
+    }
+    return read;
   }
 
-  template <typename storage_type>
-  char *write_setting(char *dest, size_t index) {
-    storage_type *storage = reinterpret_cast<storage_type *>(dest);
-    *storage++ = values_[index];
-    return (char *)storage;
-  }
-
-  template <typename storage_type>
-  char *read_setting(const char *src, size_t index) {
-    const storage_type *storage = reinterpret_cast<const storage_type*>(src);
-    apply_value(index, *storage++);
-    return (char *)storage;
+  static size_t storageSize() {
+    return storage_size_;
   }
 
 protected:
 
   int values_[num_settings];
   static const settings::value_attr value_attr_[];
+  static const size_t storage_size_;
+
+  template <typename storage_type>
+  size_t write_setting(void *dest, size_t index) const {
+    storage_type *storage = reinterpret_cast<storage_type *>(dest);
+    *storage = values_[index];
+    return sizeof(storage_type);
+  }
+
+  template <typename storage_type>
+  size_t read_setting(const void *src, size_t index) {
+    const storage_type *storage = reinterpret_cast<const storage_type*>(src);
+    apply_value(index, *storage);
+    return sizeof(storage_type);
+  }
+
+  static size_t calc_storage_size() {
+    size_t s = 0;
+    for (auto attr : value_attr_)
+      switch(attr.storage_type) {
+        case STORAGE_TYPE_I8: s += sizeof(int8_t); break;
+        case STORAGE_TYPE_U8: s += sizeof(uint8_t); break;
+        case STORAGE_TYPE_I16: s += sizeof(int16_t); break;
+        case STORAGE_TYPE_U16: s += sizeof(uint16_t); break;
+        case STORAGE_TYPE_I32: s += sizeof(int32_t); break;
+        case STORAGE_TYPE_U32: s += sizeof(uint32_t); break;
+      }
+    if (s & 1) ++s;
+    return s;
+  }
 };
+
+#define SETTINGS_DECLARE(clazz, last) \
+template <> const size_t settings::SettingsBase<clazz, last>::storage_size_ = settings::SettingsBase<clazz, last>::calc_storage_size(); \
+template <> const settings::value_attr settings::SettingsBase<clazz, last>::value_attr_[] =
 
 }; // namespace settings
 

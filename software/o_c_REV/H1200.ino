@@ -65,12 +65,12 @@ const char * const mode_names[] = {
   "maj", "min"
 };
 
-/*static*/ template<> const settings::value_attr settings::SettingsBase<H1200Settings, H1200_SETTING_LAST>::value_attr_[] = {
-  {12, -24, 36, "transpose", NULL},
-  {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names},
-  {0, -3, 3, "inversion", NULL},
-  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "trigger prio", trigger_mode_names},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names}
+SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
+  {12, -24, 36, "transpose", NULL, settings::STORAGE_TYPE_I8},
+  {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names, settings::STORAGE_TYPE_U8},
+  {0, -3, 3, "inversion", NULL, settings::STORAGE_TYPE_I8},
+  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "trigger prio", trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names, settings::STORAGE_TYPE_U8}
 };
 
 struct H1200State {
@@ -182,15 +182,19 @@ void H1200_init() {
   init_circle_lut();
 }
 
-static const size_t H1200_SETTINGS_SIZE = sizeof(int8_t) * H1200_SETTING_LAST;
-
-size_t H1200_save(char *storage) {
-  return h1200_settings.save<int8_t>(storage);
+size_t H1200_storageSize() {
+  return H1200Settings::storageSize();
 }
 
-size_t H1200_restore(const char *storage) {
-  return h1200_settings.restore<int8_t>(storage);
+size_t H1200_save(void *storage) {
+  return h1200_settings.Save(storage);
 }
+
+size_t H1200_restore(const void *storage) {
+  return h1200_settings.Restore(storage);
+}
+
+void H1200_suspend() { }
 
 void H1200_resume() {
   encoder[LEFT].setPos(h1200_state.cursor_pos);

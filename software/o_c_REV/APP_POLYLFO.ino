@@ -70,13 +70,12 @@ void PolyLfo::Init() {
   frozen_= false;
 }
 
-/*static*/ template <>
-const settings::value_attr settings::SettingsBase<PolyLfo, POLYLFO_SETTING_LAST>::value_attr_[] = {
-  { 64, 0, 255, "FREQ", NULL },
-  { 0, 0, 255, "SHAPE", NULL },
-  { 128, 0, 255, "SHAPE SPREAD", NULL },
-  { 128, 0, 255, "SPREAD", NULL },
-  { 128, 0, 255, "COUPLING", NULL },
+SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
+  { 64, 0, 255, "FREQ", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "SHAPE", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "SHAPE SPREAD", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "SPREAD", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "COUPLING", NULL, settings::STORAGE_TYPE_U8 },
 };
 
 PolyLfo poly_lfo;
@@ -128,14 +127,16 @@ void POLYLFO_init() {
   poly_lfo.Init();
 }
 
-static const size_t POLYLFO_SETTINGS_SIZE = sizeof(uint8_t) * POLYLFO_SETTING_LAST;
-
-size_t POLYLFO_save(char *storage) {
-  return poly_lfo.save<uint8_t>(storage);
+size_t POLYLFO_storageSize() {
+  return PolyLfo::storageSize();
 }
 
-size_t POLYLFO_restore(const char *storage) {
-  return poly_lfo.restore<uint8_t>(storage);
+size_t POLYLFO_save(void *storage) {
+  return poly_lfo.Save(storage);
+}
+
+size_t POLYLFO_restore(const void *storage) {
+  return poly_lfo.Restore(storage);
 }
 
 void POLYLFO_loop() {
@@ -206,6 +207,9 @@ void POLYLFO_screensaver() {
   scope_render();
 
   GRAPHICS_END_FRAME();
+}
+
+void POLYLFO_suspend() {
 }
 
 void POLYLFO_resume() {

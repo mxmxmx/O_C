@@ -289,38 +289,6 @@ public:
       }
   }
 
-  static const size_t kBinarySize =
-      sizeof(uint8_t) + // scale
-      sizeof(int8_t) + // octave
-      sizeof(uint8_t) + // root
-      sizeof(uint16_t) + // mask
-      sizeof(int8_t) + // index
-      sizeof(uint16_t); // mult
-
-  size_t save_settings(char *storage) {
-    char *ptr = storage;
-    ptr = write_setting<uint8_t>(ptr, ASR_SETTING_SCALE);
-    ptr = write_setting<int8_t>(ptr, ASR_SETTING_OCTAVE);
-    ptr = write_setting<uint8_t>(ptr, ASR_SETTING_ROOT);
-    ptr = write_setting<uint16_t>(ptr, ASR_SETTING_MASK);
-    ptr = write_setting<int8_t>(ptr, ASR_SETTING_INDEX);
-    ptr = write_setting<uint16_t>(ptr, ASR_SETTING_MULT);
-
-    return (ptr - storage);
-  }
-
-  size_t restore_settings(const char *storage) {
-    const char *ptr = storage;
-    ptr = read_setting<uint8_t>(ptr, ASR_SETTING_SCALE);
-    ptr = read_setting<int8_t>(ptr, ASR_SETTING_OCTAVE);
-    ptr = read_setting<uint8_t>(ptr, ASR_SETTING_ROOT);
-    ptr = read_setting<uint16_t>(ptr, ASR_SETTING_MASK);
-    ptr = read_setting<int8_t>(ptr, ASR_SETTING_INDEX);
-    ptr = read_setting<uint16_t>(ptr, ASR_SETTING_MULT);
-
-    return (ptr - storage);
-  }    
-
 private:
   bool force_update_;
   int last_scale_;
@@ -336,14 +304,13 @@ const char* const mult[20] = {
   "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0"
 };
 
-/*static*/ template <>
-const settings::value_attr settings::SettingsBase<ASR, ASR_SETTING_LAST>::value_attr_[] = {
-  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names },
-  { 0, -5, 5, "octave", NULL }, // octave
-  { 0, 0, 11, "root", OC::Strings::note_names },
-  { 65535, 1, 65535, "active notes", NULL }, // mask
-  { 0, 0, 63, "index", NULL },
-  { 9, 0, 19, "mult/att", mult },
+SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
+  { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
+  { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
+  { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
+  { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U16 },
 };
 
 struct ASRState {
@@ -366,11 +333,15 @@ void ASR_init() {
   asr_state.scale_editor.Init();
 }
 
-size_t ASR_restore(const char *storage) {
-   size_t used = 0;
-   used += asr.restore_settings(storage + used);
-   return used;
+size_t ASR_storageSize() {
+  return ASR::storageSize();
 }
+
+size_t ASR_restore(const void *storage) {
+  return asr.Restore(storage);
+}
+
+void ASR_suspend() { }
 
 void ASR_resume() {
 
@@ -480,11 +451,8 @@ void ASR_leftButtonLong() {
       asr_state.scale_editor.Edit(&asr, scale);
 }
 
-size_t ASR_save(char *storage) {
-  
-  size_t used = 0;
-  used += asr.save_settings(storage + used);
-  return used;
+size_t ASR_save(void *storage) {
+  return asr.Save(storage);
 }
 
 void ASR_menu() {
@@ -539,7 +507,3 @@ void ASR_menu() {
     
   GRAPHICS_END_FRAME();
 }
-
-static const size_t ASR_SETTINGS_SIZE = ASR::kBinarySize;
-
-

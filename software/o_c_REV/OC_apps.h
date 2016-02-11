@@ -1,6 +1,8 @@
 #ifndef OC_APP_H_
 #define OC_APP_H_
 
+#include "util/util_misc.h"
+
 namespace OC {
 
 // This is a very poor-man's application "switching" framework. The main UI/
@@ -11,11 +13,13 @@ namespace OC {
 // interface class and virtual functions instead.
 //
 struct App {
+  uint16_t id;
 	const char *name;
 
-  void (*init)(); // one-time init
-  size_t (*save)(char *);
-  size_t (*restore)(const char *);
+  void (*Init)(); // one-time init
+  size_t (*storageSize)();
+  size_t (*Save)(void *);
+  size_t (*Restore)(const void *);
 
   void (*suspend)(); // Called before run-time switch
   void (*resume)(); // Called after run-time switch to this app
@@ -46,6 +50,8 @@ namespace APPS {
     if (current_app && current_app->isr)
       current_app->isr();
   }
+
+  App *find(uint16_t id);
 };
 
 };

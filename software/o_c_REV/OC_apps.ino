@@ -2,19 +2,28 @@
 
 extern int LAST_ENCODER_VALUE[2];
 
+#define DECLARE_APP(a, b, name, prefix, isr) \
+{ TWOCC<a,b>::value, name, \
+  prefix ## _init, prefix ## _storageSize, prefix ## _save, prefix ## _restore, \
+  prefix ## _suspend, prefix ## _resume, \
+  prefix ## _loop, prefix ## _menu, prefix ## _screensaver, \
+  prefix ## _topButton, prefix ## _lowerButton, \
+  prefix ## _rightButton, prefix ## _leftButton, prefix ## _leftButtonLong, \
+  prefix ## _encoders, \
+  isr \
+}
+
+#define ASR_screensaver screensaver
+#define QQ_screensaver screensaver
 
 OC::App available_apps[] = {
-  {"ASR", ASR_init, ASR_save, ASR_restore, NULL, ASR_resume,
-    ASR_loop, ASR_menu, screensaver, ASR_topButton, ASR_lowerButton, ASR_rightButton, ASR_leftButton, ASR_leftButtonLong, ASR_encoders, ASR_isr},
-  {"Harrington 1200", H1200_init, H1200_save, H1200_restore, NULL, H1200_resume,
-    H1200_loop, H1200_menu, H1200_screensaver, H1200_topButton, H1200_lowerButton, H1200_rightButton, H1200_leftButton, H1200_leftButtonLong, H1200_encoders, NULL},
-  {"Automatonnetz", Automatonnetz_init, Automatonnetz_save, Automatonnetz_restore, NULL, Automatonnetz_resume,
-    Automatonnetz_loop, Automatonnetz_menu, Automatonnetz_screensaver, Automatonnetz_topButton, Automatonnetz_lowerButton, Automatonnetz_rightButton, Automatonnetz_leftButton, Automatonnetz_leftButtonLong, Automatonnetz_encoders, NULL},
-  {"VierfStSpQuaMo", QQ_init, QQ_save, QQ_restore, NULL, QQ_resume,
-    QQ_loop, QQ_menu, screensaver, QQ_topButton, QQ_lowerButton, QQ_rightButton, QQ_leftButton, QQ_leftButtonLong, QQ_encoders, QQ_isr},
-  {"frames::poly_lfo", POLYLFO_init, POLYLFO_save, POLYLFO_restore, NULL, POLYLFO_resume,
-    POLYLFO_loop, POLYLFO_menu, POLYLFO_screensaver, POLYLFO_topButton, POLYLFO_lowerButton, POLYLFO_rightButton, POLYLFO_leftButton, POLYLFO_leftButtonLong, POLYLFO_encoders, POLYLFO_isr},
+  DECLARE_APP('A','S', "ASR", ASR, ASR_isr),
+  DECLARE_APP('H','A', "Harrington 1200", H1200, nullptr),
+  DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, nullptr),
+  DECLARE_APP('Q','Q', "VierfStSpQuaMo", QQ, QQ_isr),
+  DECLARE_APP('P','L', "frames::poly_lfo", POLYLFO, POLYLFO_isr)
 };
+
 static constexpr int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
 
 namespace OC {
@@ -24,19 +33,21 @@ extern void debug_menu();
 struct GlobalSettings {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','S',0>::value;
 
+  // TODO: Save app id instead of index?
+
   uint8_t current_app_index;
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
 };
 
-struct AppData {
-  static constexpr uint32_t FOURCC = FOURCC<'O','C','A',0>::value;
+struct AppChunkHeader {
+  uint16_t id;
+  uint16_t length;
+} __attribute__((packed));
 
-  static const size_t kAppDataSize =
-    ASR_SETTINGS_SIZE +
-    H1200_SETTINGS_SIZE +
-    AUTOMATONNETZ_SETTINGS_SIZE +
-    QQ_SETTINGS_SIZE +
-    POLYLFO_SETTINGS_SIZE;
+struct AppData {
+  static constexpr uint32_t FOURCC = FOURCC<'O','C','A',2>::value;
+
+  static const size_t kAppDataSize = EEPROM_APPDATA_BINARY_SIZE;
 
   char data[kAppDataSize];
   size_t used;
@@ -59,46 +70,73 @@ static const int DEFAULT_APP_INDEX = 1;
 
 
 void save_global_settings() {
-  Serial.println("Saving global settings...");
+  serial_printf("Saving global settings...\n");
 
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
 
-  global_settings_storage.save(global_settings);
-  Serial.print("page_index       : "); Serial.println(global_settings_storage.page_index());
+  global_settings_storage.Save(global_settings);
+  serial_printf("page_index       : %u\n", global_settings_storage.page_index());
 }
 
 void save_app_data() {
-  Serial.println("Saving app data...");
+  serial_printf("Saving app data... (%u bytes available)\n", OC::AppData::kAppDataSize);
 
-  char *storage = app_settings.data;
   app_settings.used = 0;
-  for (int i = 0; i < APP_COUNT; ++i) {
-    if (available_apps[i].save) {
-      size_t used = available_apps[i].save(storage);
-      storage += used;
+  char *data = app_settings.data;
+  char *data_end = data + OC::AppData::kAppDataSize;
+  for (const auto &app : available_apps) {
+    size_t storage_size = app.storageSize() + sizeof(OC::AppChunkHeader);
+    if (app.Save) {
+      if (data + storage_size > data_end) {
+        serial_printf("*********************\n");
+        serial_printf("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES IN %u\n", app.name, storage_size, OC::AppData::kAppDataSize);
+        serial_printf("*********************\n");
+        continue;
+      }
+
+      OC::AppChunkHeader *header = reinterpret_cast<OC::AppChunkHeader *>(data);
+      header->id = app.id;
+      header->length = storage_size;
+      size_t used = app.Save(header + 1);
+      serial_printf("%s (%x) : Saved %u bytes... (%u)\n", app.name, app.id, used, storage_size);
+
       app_settings.used += used;
+      data += header->length;
     }
   }
-  Serial.print("App settings used: "); Serial.println(app_settings.used);
-  app_data_storage.save(app_settings);
-  Serial.print("page_index       : "); Serial.println(app_data_storage.page_index());
+  serial_printf("App settings used: %u\n", app_settings.used);
+  app_data_storage.Save(app_settings);
+  serial_printf("page_index       : %u\n", app_data_storage.page_index());
 }
 
 void restore_app_data() {
+  serial_printf("Restoring app data...");
 
-  Serial.println("Restoring app data...");
-
-  const char *storage = app_settings.data;
+  const char *data = app_settings.data;
+  const char *data_end = data + app_settings.used;
   size_t restored_bytes = 0;
-  for (int i = 0; i < APP_COUNT; ++i) {
-    if (available_apps[i].restore) {
-      size_t used = available_apps[i].restore(storage);
-      storage += used;
-      restored_bytes += used;
+
+  while (data < data_end) {
+    const OC::AppChunkHeader *header = reinterpret_cast<const OC::AppChunkHeader *>(data);
+    if (data + header->length > data_end) {
+      serial_printf("Uh oh, app chunk header length %u exceeds available data...\n", header->length);
+      break;
     }
+    OC::App *app = OC::APPS::find(header->id);
+    if (!app) {
+      serial_printf("App %x not found, ignoring chunk...\n", app->id);
+      break;
+    }
+    size_t used = 0;
+    if (app->Restore) {
+      serial_printf("%s (%x): Restoring from %u bytes...\n", app->name, header->id, header->length);
+      used = app->Restore(header + 1);
+    }
+    restored_bytes += used;
+    data += header->length;
   }
-  Serial.print("App data restored: "); Serial.print(restored_bytes);
-  Serial.print(", expected: "); Serial.println(app_settings.used);
+
+  serial_printf("App data restored: %u, expected %u\n", restored_bytes, app_settings.used);
 }
 
 void draw_app_menu(int selected) {
@@ -128,35 +166,44 @@ void set_current_app(int index) {
   OC::current_app = &available_apps[index];
 }
 
+
+OC::App *OC::APPS::find(uint16_t id) {
+  for (auto &app : available_apps)
+    if (app.id == id) return &app;
+
+  return nullptr;
+}
+
 void OC::APPS::Init() {
 
   OC::Scales::Init();
   for (auto &app : available_apps)
-    app.init();
+    app.Init();
 
   if (!digitalRead(but_top) && !digitalRead(but_bot)) {
-    Serial.println("Skipping loading of global/app settings");
+    serial_printf("Skipping loading of global/app settings\n");
     global_settings_storage.Init();
     app_data_storage.Init();
   } else {
-    Serial.print("Loading global settings: "); Serial.println(sizeof(OC::GlobalSettings));
-    Serial.print(" PAGESIZE: "); Serial.println(OC::GlobalSettingsStorage::PAGESIZE);
-    Serial.print(" PAGES   : "); Serial.println(OC::GlobalSettingsStorage::PAGES);
+    serial_printf("Loading global settings: struct size is %u, PAGESIZE=%u, PAGES=%u\n",
+                  sizeof(OC::GlobalSettings),
+                  OC::GlobalSettingsStorage::PAGESIZE,
+                  OC::GlobalSettingsStorage::PAGES);
 
-    if (!global_settings_storage.load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
+    if (!global_settings_storage.Load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
       Serial.println("Settings not loaded or invalid, using defaults...");
       global_settings.current_app_index = DEFAULT_APP_INDEX;
     } else {
-      Serial.print("Loaded settings, current_app_index is ");
-      Serial.println(global_settings.current_app_index);
+      serial_printf("Loaded settings, current_app_index is %d\n", global_settings.current_app_index);
       memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
     }
 
-    Serial.print("Loading app data: "); Serial.println(sizeof(OC::AppData));
-    Serial.print(" PAGESIZE: "); Serial.println(OC::AppDataStorage::PAGESIZE);
-    Serial.print(" PAGES   : "); Serial.println(OC::AppDataStorage::PAGES);
+    serial_printf("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u\n",
+                  sizeof(OC::AppData),
+                  OC::AppDataStorage::PAGESIZE,
+                  OC::AppDataStorage::PAGES);
 
-    if (!app_data_storage.load(app_settings)) {
+    if (!app_data_storage.Load(app_settings)) {
       Serial.println("App data not loaded, using defaults...");
     } else {
       restore_app_data();

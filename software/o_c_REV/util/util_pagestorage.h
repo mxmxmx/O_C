@@ -21,6 +21,8 @@
 #ifndef PAGESTORAGE_H_
 #define PAGESTORAGE_H_
 
+#include "util_misc.h"
+
 enum EStorageMode {
   STORAGE_UPDATE,
   STORAGE_WRITE
@@ -101,7 +103,7 @@ public:
    * @param data [out] loaded data if load successful, else unmodified
    * @return true if data loaded
    */
-  bool load(DATA_TYPE &data) {
+  bool Load(DATA_TYPE &data) {
 
     page_index_ = -1;
     memset(&page_, 0, sizeof(page_));
@@ -139,7 +141,7 @@ public:
    * @param data data to be stored
    * @return true if data was written to storage
    */
-  bool save(const DATA_TYPE &data) {
+  bool Save(const DATA_TYPE &data) {
 
     bool dirty = false;
     const uint8_t *src = (const uint8_t*)&data;
@@ -184,12 +186,6 @@ protected:
 
     return c ^ 0xffff;
   }
-};
-
-template <uint32_t a, uint32_t b, uint32_t c, uint32_t d>
-struct FOURCC
-{
-  static const uint32_t value = ((a&0xff) << 24) | ((b&0xff) << 16) | ((c&0xff) << 8) | (d&0xff);
 };
 
 #endif // PAGESTORAGE_H_
