@@ -47,8 +47,7 @@ struct AppChunkHeader {
 struct AppData {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','A',2>::value;
 
-  static const size_t kAppDataSize = EEPROM_APPDATA_BINARY_SIZE;
-
+  static constexpr size_t kAppDataSize = EEPROM_APPDATA_BINARY_SIZE;
   char data[kAppDataSize];
   size_t used;
 };
@@ -122,11 +121,22 @@ void restore_app_data() {
       serial_printf("Uh oh, app chunk header length %u exceeds available data...\n", header->length);
       break;
     }
+
     OC::App *app = OC::APPS::find(header->id);
     if (!app) {
       serial_printf("App %x not found, ignoring chunk...\n", app->id);
-      break;
+      if (!header->length)
+        break;
+      data += header->length;
+      continue;
     }
+    const size_t len = header->length - sizeof(OC::AppChunkHeader);
+    if (len != app->storageSize()) {
+      serial_printf("%s (%x): header size %u != storage size %u, skipping...\n", app->name, header->id, len, app->storageSize());
+      data += header->length;
+      continue;
+    }
+
     size_t used = 0;
     if (app->Restore) {
       serial_printf("%s (%x): Restoring from %u bytes...\n", app->name, header->id, header->length);
