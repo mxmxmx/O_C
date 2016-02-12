@@ -139,7 +139,7 @@ void ScaleEditor<Owner>::Draw() {
       graphics.print(' ');
     graphics.print(scale_->notes[cursor_pos_], 4);
   } else {
-    graphics.print(num_notes, 2);
+    graphics.print((int)num_notes, 2);
   }
 /*
   if (mutable_scale_) {
