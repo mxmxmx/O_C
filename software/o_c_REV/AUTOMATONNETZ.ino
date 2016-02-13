@@ -377,7 +377,6 @@ do { \
 } while (0)
 
 void Automatonnetz_loop() {
-  UI();
   AT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   AT();

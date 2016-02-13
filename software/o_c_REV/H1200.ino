@@ -215,8 +215,6 @@ do { \
 
 void H1200_loop() {
   CLOCKIT();
-  UI();
-  CLOCKIT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   CLOCKIT();
   buttons(BUTTON_BOTTOM);

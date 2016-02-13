@@ -4,12 +4,6 @@
 *
 */
 
-enum DISPLAY_PAGE 
-{  
- SCREENSAVER,
- MENU,
-};  
-
 /* --------------- encoders ---------------------------------------  */
 
 int LAST_ENCODER_VALUE[2] = {-1, -1};
@@ -32,7 +26,7 @@ void encoders() {
   }
 
   if (changed) {
-    UI_MODE = MENU;
+    UI_MODE = UI::DISPLAY_MENU;
     MENU_REDRAW = 1;
     _UI_TIMESTAMP = millis();
   }
@@ -91,6 +85,6 @@ void buttons(uint8_t _button) {
   if (button_pressed) {
     _BUTTONS_TIMESTAMP = millis();
     _UI_TIMESTAMP = millis();
-    UI_MODE = MENU;
+    UI_MODE = UI::DISPLAY_MENU;
   }
 }

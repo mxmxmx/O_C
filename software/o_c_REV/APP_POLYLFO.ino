@@ -148,7 +148,6 @@ size_t POLYLFO_restore(const void *storage) {
 }
 
 void POLYLFO_loop() {
-  UI();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   buttons(BUTTON_TOP);
   buttons(BUTTON_BOTTOM);

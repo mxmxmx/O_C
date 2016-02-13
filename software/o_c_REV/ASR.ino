@@ -350,8 +350,6 @@ void ASR_resume() {
 }
 
 void ASR_loop() {
-
-  UI();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   buttons(BUTTON_TOP);
   buttons(BUTTON_BOTTOM);

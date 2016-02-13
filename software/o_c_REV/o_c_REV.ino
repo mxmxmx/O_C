@@ -31,6 +31,7 @@
 #include "OC_ADC.h"
 #include "OC_calibration.h"
 #include "OC_digital_inputs.h"
+#include "OC_ui.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
 #include "util/util_button.h"
@@ -48,17 +49,17 @@ PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 weegfx::Graphics graphics;
 
 unsigned long LAST_REDRAW_TIME = 0;
-#define REDRAW_TIMEOUT_MS 1
+static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
+static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
+
+uint_fast8_t UI_MODE = UI::DISPLAY_MENU;
+uint_fast8_t MENU_REDRAW = true;
 
 Rotary encoder[2] =
 {
   Rotary(encL1, encL2),
   Rotary(encR1, encR2)
 }; 
-
-//  UI mode select
-extern uint8_t UI_MODE;
-extern uint8_t MENU_REDRAW;
 
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
@@ -144,7 +145,7 @@ void FASTRUN CORE_timer_ISR() {
 
 /*       ---------------------------------------------------------         */
 
-void setup(){
+void setup() {
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
   spi4teensy3::init();
@@ -196,12 +197,11 @@ void setup(){
   CORE_app_isr_enabled = true;
 }
 
-
 /*  ---------    main loop  --------  */
 
 void FASTRUN loop() {
   _UI_TIMESTAMP = millis();
-  UI_MODE = 1;
+  UI_MODE = UI::DISPLAY_MENU;
 
   while (1) {
     // don't change current_app while it's running
@@ -210,9 +210,29 @@ void FASTRUN loop() {
       OC::APPS::Select();
       CORE_app_isr_enabled = true;
     }
+
+    // Refresh display
+    if (MENU_REDRAW) {
+      if (UI::DISPLAY_MENU == UI_MODE)
+        OC::current_app->draw_menu();
+      else
+        OC::current_app->draw_screensaver();
+      // MENU_REDRAW reset in GRAPHICS_END_FRAME if drawn
+    }
+
+    // Run current app
     OC::current_app->loop();
-    if (UI_MODE) timeout();
-    if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
+
+    // Check UI timeouts for screensaver/forced redraw
+    unsigned long now = millis();
+    if (UI::DISPLAY_MENU == UI_MODE) {
+      if (now - _UI_TIMESTAMP > SCREENSAVER_TIMEOUT_MS) {
+        UI_MODE = UI::DISPLAY_SCREENSAVER;
+        MENU_REDRAW = 1;
+      }
+    }
+
+    if (now - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
       MENU_REDRAW = 1;
   }
 }

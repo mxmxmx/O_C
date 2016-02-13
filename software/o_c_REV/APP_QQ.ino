@@ -152,16 +152,6 @@ public:
   }
   //
 
-  static const size_t kBinarySize =
-    sizeof(uint8_t) + // CHANNEL_SETTING_SCALE
-    sizeof(uint8_t) + // CHANNEL_SETTING_ROOT
-    sizeof(uint16_t) + // CHANNEL_SETTING_MASK
-    sizeof(uint8_t) + // CHANNEL_SETTING_UPDATEMODE
-    sizeof(int8_t) + // CHANNEL_SETTING_TRANSPOSE
-    sizeof(int8_t) + // CHANNEL_SETTING_OCTAVE
-    sizeof(uint8_t) + // CHANNEL_SETTING_SOURCE
-    sizeof(int16_t); // CHANNEL_SETTING_FINE
-
 private:
   bool force_update_;
   int last_scale_;
@@ -282,7 +272,6 @@ void QQ_isr() {
 }
 
 void QQ_loop() {
-  UI();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   buttons(BUTTON_TOP);
   buttons(BUTTON_BOTTOM);

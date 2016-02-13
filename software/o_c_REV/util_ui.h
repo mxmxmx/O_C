@@ -13,7 +13,7 @@ extern TimerDebouncedButton<butR, 50, 2000> button_right;
 extern weegfx::Graphics graphics;
 extern FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 
-extern uint8_t MENU_REDRAW;
+extern uint_fast8_t MENU_REDRAW;
 extern unsigned long LAST_REDRAW_TIME;
 
 
