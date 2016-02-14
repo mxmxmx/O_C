@@ -34,36 +34,30 @@ namespace streams {
 
 // using namespace stmlib;
 
-const int64_t sigma = 10.0 * (1 << 24);
-const int64_t rho = 28.0 * (1 << 24);
-const int64_t beta = 8.0 / 3.0 * (1 << 24);
+//const int64_t sigma = 10.0 * (1 << 24);
+//const int64_t rho = 28.0 * (1 << 24);
+//const int64_t beta = 8.0 / 3.0 * (1 << 24);
 
 void LorenzGenerator::Init() {
   x_ = 0.1 * (1 << 24);
   y_ = 0;
   z_ = 0;
-  rate_ = 128;
-//  vcf_amount_ = 0;
-//  vca_amount_ = 0;
 }
 
 void LorenzGenerator::Process(
-//    int16_t audio,
-    int32_t excite,
+    int32_t freq,
     bool reset) {
-//    uint16_t* gain,
-//    uint16_t* frequency) {
-//  vcf_amount_ += (target_vcf_amount_ - vcf_amount_) >> 8;
-//  vca_amount_ += (target_vca_amount_ - vca_amount_) >> 8;
-  int32_t rate = rate_ + (excite >> 8);
-//  CONSTRAIN(rate, 0, 256);
+  int32_t rate = rate_ + (freq >> 8);
   if (rate < 0) rate = 0;
   if (rate > 255) rate = 255;
+
+  if (reset) Init() ;
+
   int64_t dt = static_cast<int64_t>(lut_lorenz_rate[rate] >> 5);
   
-  int32_t x = x_ + (dt * ((sigma * (y_ - x_)) >> 24) >> 24);
-  int32_t y = y_ + (dt * ((x_ * (rho - z_) >> 24) - y_) >> 24);
-  int32_t z = z_ + (dt * ((x_ * int64_t(y_) >> 24) - (beta * z_ >> 24)) >> 24);
+  int32_t x = x_ + (dt * ((sigma_ * (y_ - x_)) >> 24) >> 24);
+  int32_t y = y_ + (dt * ((x_ * (rho_ - z_) >> 24) - y_) >> 24);
+  int32_t z = z_ + (dt * ((x_ * int64_t(y_) >> 24) - (beta_ * z_ >> 24)) >> 24);
   
   x_ = x;
   y_ = y;
@@ -79,15 +73,6 @@ void LorenzGenerator::Process(
   // just make channel D the mean of the others for now
   dac_code_[3] = ((x_scaled + y_scaled + z_scaled) * 10) >> 5 ;
 
-///  if (index_) {
-//    // On channel 2, z and y are inverted to get more variety!
-//    z = z_scaled;
-//    z_scaled = x_scaled;
-//    x_scaled = z;
-//  }
-  
-//  *gain = z_scaled * vca_amount_ >> 15;
-//  *frequency = 65535 + ((x_scaled - 65535) * vcf_amount_ >> 15);
 }
 
 }  // namespace streams

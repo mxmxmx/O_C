@@ -4,7 +4,9 @@
 
 enum LORENZ_SETTINGS {
   LORENZ_SETTING_FREQ,
-  LORENZ_SETTING_D_OUTPUT,
+  LORENZ_SETTING_SIGMA,
+  LORENZ_SETTING_RHO,
+  LORENZ_SETTING_BETA,
   LORENZ_SETTING_LAST
 };
 
@@ -15,21 +17,17 @@ public:
     return values_[LORENZ_SETTING_FREQ];
   }
 
-  uint16_t get_d_output() const {
-    return values_[LORENZ_SETTING_D_OUTPUT];
+  uint16_t get_sigma() const {
+    return values_[LORENZ_SETTING_SIGMA];
   }
 
-//  uint16_t get_shape_spread() const {
-//    return values_[POLYLFO_SETTING_SHAPE_SPREAD];
-//  }
-//
-//  uint16_t get_spread() const {
-//    return values_[POLYLFO_SETTING_SPREAD];
-//  }
-//
-//  uint16_t get_coupling() const {
-//    return values_[POLYLFO_SETTING_COUPLING];
-//  }
+  uint16_t get_rho() const {
+    return values_[LORENZ_SETTING_RHO];
+  }
+
+  uint16_t get_beta() const {
+    return values_[LORENZ_SETTING_BETA];
+  }
 
   void Init();
 
@@ -52,9 +50,9 @@ public:
   static constexpr int32_t kSmoothing = 16;
 
   SmoothedValue<int32_t, kSmoothing> cv_freq;
-//  SmoothedValue<int32_t, kSmoothing> cv_shape;
-//  SmoothedValue<int32_t, kSmoothing> cv_spread;
-//  SmoothedValue<int32_t, kSmoothing> cv_coupling;
+  SmoothedValue<int32_t, kSmoothing> cv_sigma;
+  SmoothedValue<int32_t, kSmoothing> cv_rho;
+  SmoothedValue<int32_t, kSmoothing> cv_beta;
 };
 
 void LorenzGenerator::Init() {
@@ -64,11 +62,10 @@ void LorenzGenerator::Init() {
 }
 
 SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
-  { 64, 0, 255, "FREQ", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "D OUTPUT", NULL, settings::STORAGE_TYPE_U8 },
-//  { 128, 0, 255, "SHAPE SPREAD", NULL },
-//  { 128, 0, 255, "SPREAD", NULL },
-//  { 128, 0, 255, "COUPLING", NULL },
+  { 0, 0, 255, "FREQ", NULL, settings::STORAGE_TYPE_U8 },
+  { 10, 7, 20, "SIGMA", NULL, settings::STORAGE_TYPE_U8 }, // 10 is sweet spot
+  { 28, 24, 35, "RHO", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
+  { 8, 4, 11, "BETA", NULL, settings::STORAGE_TYPE_U8 }, // 8 (/3) is sweet spot
 };
 
 LorenzGenerator lorenz_generator;
@@ -85,9 +82,9 @@ void FASTRUN LORENZ_isr() {
   bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
 
   lorenz_generator.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
-//  poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
-//  poly_lfo.cv_spread.push(OC::ADC::value<ADC_CHANNEL_3>());
-//  poly_lfo.cv_coupling.push(OC::ADC::value<ADC_CHANNEL_4>());
+  lorenz_generator.cv_sigma.push(OC::ADC::value<ADC_CHANNEL_2>());
+  lorenz_generator.cv_rho.push(OC::ADC::value<ADC_CHANNEL_3>());
+  lorenz_generator.cv_beta.push(OC::ADC::value<ADC_CHANNEL_4>());
 
   // Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
@@ -95,16 +92,17 @@ void FASTRUN LORENZ_isr() {
   int32_t freq = SCALE8_16(lorenz_generator.get_freq()) + (lorenz_generator.cv_freq.value() * 16);
   freq = USAT16(freq);
 
-//  int32_t shape = SCALE8_16(poly_lfo.get_shape()) + (poly_lfo.cv_shape.value() * 16);
-//  poly_lfo.lfo.set_shape(USAT16(shape));
-//
-//  int32_t spread = SCALE8_16(poly_lfo.get_spread()) + (poly_lfo.cv_spread.value() * 16);
-//  poly_lfo.lfo.set_spread(USAT16(spread));
-//
-//  int32_t coupling = SCALE8_16(poly_lfo.get_coupling()) + (poly_lfo.cv_coupling.value() * 16);
-//  poly_lfo.lfo.set_coupling(USAT16(coupling));
-//
-//  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread()));
+  // int32_t sigma = lorenz_generator.get_sigma() + (lorenz_generator.cv_sigma.value() << 7);
+  int32_t sigma = lorenz_generator.get_sigma() ;
+  lorenz_generator.lorenz.set_sigma(USAT16(sigma));
+
+  // int32_t rho = lorenz_generator.get_rho() + (lorenz_generator.cv_rho.value() << 6);
+  int32_t rho = lorenz_generator.get_rho() ;
+  lorenz_generator.lorenz.set_rho(USAT16(rho));
+
+  // int32_t beta = lorenz_generator.get_beta() + (lorenz_generator.cv_beta.value() << 6);
+  int32_t beta = lorenz_generator.get_beta() ;
+  lorenz_generator.lorenz.set_beta(USAT16(beta));
 
   if (!freeze && !lorenz_generator.frozen())
     lorenz_generator.lorenz.Process(freq, reset_phase);
@@ -116,7 +114,7 @@ void FASTRUN LORENZ_isr() {
 }
 
 void LORENZ_init() {
-  lorenz_generator_state.selected_param = LORENZ_SETTING_FREQ;
+  lorenz_generator_state.selected_param = LORENZ_SETTING_SIGMA;
   lorenz_generator.Init();
 }
 
@@ -154,10 +152,10 @@ void LORENZ_menu() {
   graphics.print("FREQ ");
   graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
 
-  int first_visible_param = LORENZ_SETTING_D_OUTPUT; 
-  /*poly_lfo_state.selected_param - 1;
-  if (first_visible_param < POLYLFO_SETTING_SHAPE)
-    first_visible_param = POLYLFO_SETTING_SHAPE;*/
+  int first_visible_param = LORENZ_SETTING_SIGMA; 
+//  lorenz_generator_state.selected_param - 1;
+//  if (first_visible_param < LORENZ_SETTING_SIGMA)
+//    first_visible_param = LORENZ_SETTING_SIGMA;
 
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, lorenz_generator_state.selected_param, 0)
@@ -207,19 +205,20 @@ void LORENZ_handleEvent(OC::AppEvent event) {
 }
 
 void LORENZ_topButton() {
-  lorenz_generator.change_value(LORENZ_SETTING_FREQ, 32);
-  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
+//  lorenz_generator.change_value(LORENZ_SETTING_FREQ, 32);
+//  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
+  lorenz_generator.Init();
 }
 
 void LORENZ_lowerButton() {
-  lorenz_generator.change_value(LORENZ_SETTING_FREQ, -32);
-  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
+//  lorenz_generator.change_value(LORENZ_SETTING_FREQ, -32);
+//  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
 }
 
 void LORENZ_rightButton() {
   ++lorenz_generator_state.selected_param;
   if (lorenz_generator_state.selected_param >= LORENZ_SETTING_LAST)
-    lorenz_generator_state.selected_param = LORENZ_SETTING_FREQ;
+    lorenz_generator_state.selected_param = LORENZ_SETTING_SIGMA;
   encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
 }
 

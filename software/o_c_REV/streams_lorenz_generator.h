@@ -44,25 +44,24 @@ class LorenzGenerator {
   
   void Init();
   
-  void Process(int32_t excite, bool reset);
-//      int16_t audio,
-//      uint16_t* gain,
-//      uint16_t* frequency);
+  void Process(int32_t freq, bool reset);
   
   void set_index(uint8_t index) {
     index_ = index;
   }
-  
-//  void Configure(bool alternate, int32_t* parameters, int32_t* globals) {
-//    rate_ = parameters[0] >> 8;
-//    int32_t vcf_amount = 65535 - parameters[1];
-//    int32_t vca_amount = parameters[1];
-//    if (vcf_amount >= 32767) vcf_amount = 32767;
-//    if (vca_amount >= 32767) vca_amount = 32767;
-//    target_vcf_amount_ = vcf_amount;
-//    target_vca_amount_ = vca_amount;
-//  }
 
+  inline void set_sigma(uint16_t sigma) {
+    sigma_ = (double)sigma * (1 << 24);
+  }
+
+  inline void set_rho(uint16_t rho) {
+    rho_ = (double)rho * (1 << 24);
+  }
+
+  inline void set_beta(uint16_t beta) {
+    beta_ = (double)beta  / 3.0 * (1 << 24);
+  }
+  
  inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
@@ -70,10 +69,9 @@ class LorenzGenerator {
  private:
   int32_t x_, y_, z_;
   int32_t rate_;
-//  int32_t vcf_amount_;
-//  int32_t vca_amount_;
-//  int32_t target_vcf_amount_;
-//  int32_t target_vca_amount_;
+
+  int64_t sigma_, rho_, beta_ ;
+  
   // O+C
   uint16_t dac_code_[kNumChannels];
  
