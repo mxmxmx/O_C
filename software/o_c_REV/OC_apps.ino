@@ -31,7 +31,7 @@ namespace OC {
 extern void debug_menu();
 
 struct GlobalSettings {
-  static constexpr uint32_t FOURCC = FOURCC<'O','C','S',0>::value;
+  static constexpr uint32_t FOURCC = FOURCC<'O','C','S',1>::value;
 
   // TODO: Save app id instead of index?
 
@@ -109,7 +109,7 @@ void save_app_data() {
 }
 
 void restore_app_data() {
-  serial_printf("Restoring app data...");
+  serial_printf("Restoring app data...\n");
 
   const char *data = app_settings.data;
   const char *data_end = data + app_settings.used;
@@ -176,7 +176,6 @@ void set_current_app(int index) {
   OC::current_app = &available_apps[index];
 }
 
-
 OC::App *OC::APPS::find(uint16_t id) {
   for (auto &app : available_apps)
     if (app.id == id) return &app;
@@ -201,7 +200,7 @@ void OC::APPS::Init() {
                   OC::GlobalSettingsStorage::PAGES);
 
     if (!global_settings_storage.Load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
-      Serial.println("Settings not loaded or invalid, using defaults...");
+      serial_printf("Settings not loaded or invalid, using defaults... (index=%u, APP_COUNT=%u)\n", global_settings.current_app_index, APP_COUNT);
       global_settings.current_app_index = DEFAULT_APP_INDEX;
     } else {
       serial_printf("Loaded settings, current_app_index is %d\n", global_settings.current_app_index);

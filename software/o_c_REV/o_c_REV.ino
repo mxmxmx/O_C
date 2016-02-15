@@ -27,6 +27,7 @@
 #include <EEPROM.h>
 
 #include "OC_apps.h"
+#include "OC_config.h"
 #include "OC_gpio.h"
 #include "OC_ADC.h"
 #include "OC_calibration.h"
@@ -49,8 +50,6 @@ PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 weegfx::Graphics graphics;
 
 unsigned long LAST_REDRAW_TIME = 0;
-static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
-static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
 
 uint_fast8_t UI_MODE = UI::DISPLAY_MENU;
 uint_fast8_t MENU_REDRAW = true;
@@ -99,13 +98,7 @@ void FASTRUN right_encoder_ISR()
 }
 
 /*  ------------------------ core timer ISR ---------------------------   */
-// 60us = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
-// 66us = 15.1515...kHz
-// 72us = 13.888...kHz
-// 100us = 10Khz
-static const uint32_t CORE_TIMER_RATE = 60;
 IntervalTimer CORE_timer;
-
 uint32_t ENC_timer_counter = 0;
 volatile bool CORE_app_isr_enabled = false;
 
@@ -132,7 +125,7 @@ void FASTRUN CORE_timer_ISR() {
   // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
   OC::ADC::Scan();
 
-  if (ENC_timer_counter < _ENC_RATE / CORE_TIMER_RATE - 1) {
+  if (ENC_timer_counter < _ENC_RATE / OC_CORE_TIMER_RATE - 1) {
     ++ENC_timer_counter;
   } else {
     ENC_timer_counter = 0;
@@ -181,7 +174,7 @@ void setup() {
   // to have an "enabled" flag, or at least set current_app to nullptr during
   // load/save/app selection
 
-  CORE_timer.begin(CORE_timer_ISR, CORE_TIMER_RATE);
+  CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
 
   // splash screen, sort of ... 
   hello();

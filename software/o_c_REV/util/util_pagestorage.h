@@ -23,6 +23,12 @@
 
 #include "util_misc.h"
 
+#ifdef DEBUG_STORAGE
+#define STORAGE_PRINTF(...) serial_printf(##__VA_ARGS__)
+#else
+#define STORAGE_PRINTF(...)
+#endif
+
 enum EStorageMode {
   STORAGE_UPDATE,
   STORAGE_WRITE
@@ -111,6 +117,11 @@ public:
     page_data next_page;
     for (size_t i = 0; i < PAGES; ++i) {
       STORAGE::read(BASE_ADDR + i * PAGESIZE, &next_page, sizeof(next_page));
+
+      STORAGE_PRINTF("[%u]\n", BASE_ADDR + i * PAGESIZE);
+      STORAGE_PRINTF("FOURCC:%u (%u)\n", next_page.header.fourcc, DATA_TYPE::FOURCC);
+      STORAGE_PRINTF("size  :%u (%u)\n", next_page.header.size, sizeof(DATA_TYPE));
+      STORAGE_PRINTF("gen   :%u (%u)\n", next_page.header.generation, next_page.header.generation + 1);
 
       if ((DATA_TYPE::FOURCC != next_page.header.fourcc) ||
           (sizeof(DATA_TYPE) != next_page.header.size) ||
