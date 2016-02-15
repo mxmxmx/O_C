@@ -44,8 +44,8 @@ class LorenzGenerator {
   
   void Init();
   
-  void Process(int32_t freq, bool reset);
-  
+  void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2);
+ 
   void set_index(uint8_t index) {
     index_ = index;
   }
@@ -67,8 +67,10 @@ class LorenzGenerator {
   }
 
  private:
-  int32_t x_, y_, z_;
-  int32_t rate_;
+  int32_t x1_, y1_, z1_;
+  int32_t rate1_;
+  int32_t x2_, y2_, z2_;
+  int32_t rate2_;
 
   int64_t sigma_, rho_, beta_ ;
   
