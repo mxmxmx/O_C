@@ -341,12 +341,19 @@ size_t ASR_restore(const void *storage) {
   return asr.Restore(storage);
 }
 
-void ASR_suspend() { }
-
-void ASR_resume() {
-
-  encoder[LEFT].setPos(asr_state.left_encoder_value);
-  encoder[RIGHT].setPos(asr_state.selected_param);
+void ASR_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(asr_state.left_encoder_value);
+      if (ASR_SETTING_MASK != asr_state.selected_param)
+        encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
+      else
+        encoder[RIGHT].setPos(0);
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }
 }
 
 void ASR_loop() {

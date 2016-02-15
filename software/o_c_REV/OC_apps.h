@@ -5,6 +5,12 @@
 
 namespace OC {
 
+enum AppEvent {
+  APP_EVENT_SUSPEND,
+  APP_EVENT_RESUME,
+  APP_EVENT_SCREENSAVER
+};
+
 // This is a very poor-man's application "switching" framework. The main UI/
 // drawing functions are mostly unchanged and just call into the current_app
 // hooks.
@@ -21,8 +27,7 @@ struct App {
   size_t (*Save)(void *);
   size_t (*Restore)(const void *);
 
-  void (*suspend)(); // Called before run-time switch
-  void (*resume)(); // Called after run-time switch to this app
+  void (*handleEvent)(AppEvent); // Generic event handler
 
   void (*loop)(); // main loop function
   void (*draw_menu)(); 

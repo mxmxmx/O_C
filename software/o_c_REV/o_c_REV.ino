@@ -108,7 +108,7 @@ void FASTRUN CORE_timer_ISR() {
   if (display_driver.Flush())
     frame_buffer.read();
 
-  DAC::WriteAll();
+  DAC::Update();
 
   if (display_driver.frame_valid()) {
     display_driver.Update();
@@ -222,6 +222,7 @@ void FASTRUN loop() {
       if (now - _UI_TIMESTAMP > SCREENSAVER_TIMEOUT_MS) {
         UI_MODE = UI::DISPLAY_SCREENSAVER;
         MENU_REDRAW = 1;
+        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER);
       }
     }
 

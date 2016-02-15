@@ -544,17 +544,22 @@ size_t Automatonnetz_restore(const void *dest) {
   return used;
 }
 
-void Automatonnetz_suspend() { }
-
-void Automatonnetz_resume() {
-  encoder[LEFT].setPos(automatonnetz_state.ui.selected_row * GRID_SIZE + automatonnetz_state.ui.selected_col);
-  if (automatonnetz_state.ui.edit_cell) {
-    const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
-    encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));
-  } else {
-    encoder[RIGHT].setPos(automatonnetz_state.get_value(automatonnetz_state.ui.selected_param));
-  }
-  automatonnetz_state.reset();
+void Automatonnetz_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(automatonnetz_state.ui.selected_row * GRID_SIZE + automatonnetz_state.ui.selected_col);
+      if (automatonnetz_state.ui.edit_cell) {
+        const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
+        encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));
+      } else {
+        encoder[RIGHT].setPos(automatonnetz_state.get_value(automatonnetz_state.ui.selected_param));
+      }
+      automatonnetz_state.reset();
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }   
 }
 
 void Automatonnetz_topButton() {

@@ -216,12 +216,16 @@ void POLYLFO_screensaver() {
   GRAPHICS_END_FRAME();
 }
 
-void POLYLFO_suspend() {
-}
-
-void POLYLFO_resume() {
-  encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
-  encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
+void POLYLFO_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
+      encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }
 }
 
 void POLYLFO_topButton() {

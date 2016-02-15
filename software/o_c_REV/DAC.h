@@ -42,7 +42,7 @@ public:
     return values_[index];
   }
 
-  static void WriteAll() {
+  static void Update() {
     int32_t value;
 
     value = static_cast<int32_t>(values_[DAC_CHANNEL_A]) + calibration_data_->fine[DAC_CHANNEL_A];

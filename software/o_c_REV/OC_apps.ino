@@ -5,7 +5,7 @@ extern int LAST_ENCODER_VALUE[2];
 #define DECLARE_APP(a, b, name, prefix, isr) \
 { TWOCC<a,b>::value, name, \
   prefix ## _init, prefix ## _storageSize, prefix ## _save, prefix ## _restore, \
-  prefix ## _suspend, prefix ## _resume, \
+  prefix ## _handleEvent, \
   prefix ## _loop, prefix ## _menu, prefix ## _screensaver, \
   prefix ## _topButton, prefix ## _lowerButton, \
   prefix ## _rightButton, prefix ## _leftButton, prefix ## _leftButtonLong, \
@@ -220,8 +220,7 @@ void OC::APPS::Init() {
   }
 
   set_current_app(global_settings.current_app_index);
-  if (OC::current_app->resume)
-    OC::current_app->resume();
+  OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
 
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
@@ -236,8 +235,7 @@ void OC::APPS::Select() {
 
   // Save state
   int encoder_values[2] = { encoder[LEFT].pos(), encoder[RIGHT].pos() };
-  if (OC::current_app->suspend)
-    OC::current_app->suspend();
+  OC::current_app->handleEvent(OC::APP_EVENT_SUSPEND);
 
   int selected = global_settings.current_app_index;
   encoder[RIGHT].setPos(selected);
@@ -292,8 +290,7 @@ void OC::APPS::Select() {
   encoder[LEFT].setPos(encoder_values[0]);
   encoder[RIGHT].setPos(encoder_values[1]);
 
-  if (OC::current_app->resume)
-    OC::current_app->resume();
+  OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
 
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();

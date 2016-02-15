@@ -194,12 +194,17 @@ size_t H1200_restore(const void *storage) {
   return h1200_settings.Restore(storage);
 }
 
-void H1200_suspend() { }
-
-void H1200_resume() {
-  encoder[LEFT].setPos(h1200_state.cursor_pos);
-  encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
-  h1200_state.tonnetz_state.reset(h1200_settings.mode());
+void H1200_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(h1200_state.cursor_pos);
+      encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
+      h1200_state.tonnetz_state.reset(h1200_settings.mode());
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }
 }
 
 #define CLOCKIT() \

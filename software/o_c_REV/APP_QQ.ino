@@ -245,18 +245,26 @@ size_t QQ_restore(const void *storage) {
   return used;
 }
 
-void QQ_suspend() { }
-
-void QQ_resume() {
-  switch (qq_state.left_encoder_mode) {
-    case MODE_EDIT_CHANNEL:
-      encoder[LEFT].setPos(qq_state.left_encoder_value);
+void QQ_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      switch (qq_state.left_encoder_mode) {
+        case MODE_EDIT_CHANNEL:
+          encoder[LEFT].setPos(qq_state.left_encoder_value);
+          break;
+        case MODE_SELECT_CHANNEL:
+          encoder[LEFT].setPos(qq_state.selected_channel);
+          break;
+      }
+      if (CHANNEL_SETTING_MASK != qq_state.selected_param)
+        encoder[RIGHT].setPos(selected_channel.get_value(qq_state.selected_param));
+      else
+        encoder[RIGHT].setPos(0);
       break;
-    case MODE_SELECT_CHANNEL:
-      encoder[LEFT].setPos(qq_state.selected_channel);
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
       break;
   }
-  encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
 }
 
 #define CLOCK_CHANNEL(i, adc_channel, dac_channel) \
