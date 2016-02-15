@@ -21,7 +21,8 @@ OC::App available_apps[] = {
   DECLARE_APP('H','A', "Harrington 1200", H1200, nullptr),
   DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, nullptr),
   DECLARE_APP('Q','Q', "VierfStSpQuaMo", QQ, QQ_isr),
-  DECLARE_APP('P','L', "frames::poly_lfo", POLYLFO, POLYLFO_isr)
+  DECLARE_APP('P','L', "frames::poly_lfo", POLYLFO, POLYLFO_isr),
+  DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr)
 };
 
 static constexpr int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);

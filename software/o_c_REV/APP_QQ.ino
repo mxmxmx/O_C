@@ -257,7 +257,7 @@ void QQ_handleEvent(OC::AppEvent event) {
           break;
       }
       if (CHANNEL_SETTING_MASK != qq_state.selected_param)
-        encoder[RIGHT].setPos(selected_channel.get_value(qq_state.selected_param));
+        encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
       else
         encoder[RIGHT].setPos(0);
       break;
