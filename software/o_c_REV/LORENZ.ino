@@ -163,6 +163,12 @@ void LORENZ_menu() {
   graphics.setPrintPos(66, 2);
   graphics.print("FREQ2 ");
   graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+  if (lorenz_generator_state.selected_generator) {
+      graphics.invertRect(66, 0, 127, 10);
+  } else {
+      graphics.invertRect(2, 0, 64, 10);    
+  }
+  
 
   int first_visible_param = LORENZ_SETTING_SIGMA; 
 
@@ -237,6 +243,12 @@ void LORENZ_rightButton() {
 
 void LORENZ_leftButton() {
   lorenz_generator_state.selected_generator = !lorenz_generator_state.selected_generator;
+  if (lorenz_generator_state.selected_generator) {
+        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+  } else {
+        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+  }
+
 }
 
 void LORENZ_leftButtonLong() {
