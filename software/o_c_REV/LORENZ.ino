@@ -158,11 +158,15 @@ void LORENZ_menu() {
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);
   graphics.setPrintPos(2, 2);
-  graphics.print("FREQ1 ");
+  graphics.print("R1=");
   graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+  graphics.print("+");
+  graphics.print(lorenz_generator.cv_freq1.value() >> 4);
   graphics.setPrintPos(66, 2);
-  graphics.print("FREQ2 ");
+  graphics.print("R2=");
   graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+  graphics.print("+");
+  graphics.print(lorenz_generator.cv_freq2.value() >> 4);
   if (lorenz_generator_state.selected_generator) {
       graphics.invertRect(66, 0, 127, 10);
   } else {
