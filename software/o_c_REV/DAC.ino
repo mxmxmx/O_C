@@ -40,7 +40,7 @@ void DAC::Init(CalibrationData *calibration_data) {
   if (F_BUS == 60000000 || F_BUS == 48000000) SPIFIFO.begin(DAC_CS, SPICLOCK_30MHz, SPI_MODE0);  
 
   set_all(0xffff);
-  WriteAll();
+  Update();
 }
 
 /*static*/

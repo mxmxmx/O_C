@@ -1,4 +1,4 @@
-// Copyright 2015 Olivier Gillet.
+// Copyright 2014 Olivier Gillet.
 //
 // Author: Olivier Gillet (ol.gillet@gmail.com)
 //
@@ -24,52 +24,64 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Note quantizer
+// Lorenz system.
 
-#ifndef BRAIDS_QUANTIZER_H_
-#define BRAIDS_QUANTIZER_H_
+#ifndef STREAMS_LORENZ_GENERATOR_H_
+#define STREAMS_LORENZ_GENERATOR_H_
 
-//#include "stmlib/stmlib.h"
 #include "util/util_macros.h"
+// #include "stmlib/stmlib.h"
+// #include "streams/meta_parameters.h"
 
-namespace braids {
-  
-struct Scale {
-  int16_t span;
-  size_t num_notes;
-  int16_t notes[16];
-};
+namespace streams {
 
-void SortScale(Scale &);
+const size_t kNumChannels = 4;
 
-class Quantizer {
+class LorenzGenerator {
  public:
-  Quantizer() { }
-  ~Quantizer() { }
+  LorenzGenerator() { }
+  ~LorenzGenerator() { }
   
   void Init();
   
-  int32_t Process(int32_t pitch) {
-    return Process(pitch, 0, 0);
+  void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2);
+ 
+  void set_index(uint8_t index) {
+    index_ = index;
+  }
+
+  inline void set_sigma(uint16_t sigma) {
+    sigma_ = (double)sigma * (1 << 24);
+  }
+
+  inline void set_rho(uint16_t rho) {
+    rho_ = (double)rho * (1 << 24);
+  }
+
+  inline void set_beta(uint16_t beta) {
+    beta_ = (double)beta  / 3.0 * (1 << 24);
   }
   
-  int32_t Process(int32_t pitch, int32_t root, int32_t transpose);
-  
-  void Configure(const Scale& scale, uint16_t mask = 0xffff) {
-    Configure(scale.notes, scale.span, scale.num_notes, mask);
+ inline const uint16_t dac_code(uint8_t index) const {
+    return dac_code_[index];
   }
+
  private:
-  void Configure(const int16_t* notes, int16_t span, size_t num_notes, uint16_t mask);
-  bool enabled_;
-  int16_t codebook_[128];
-  int32_t codeword_;
-  int32_t transpose_;
-  int32_t previous_boundary_;
-  int32_t next_boundary_;
+  int32_t x1_, y1_, z1_;
+  int32_t rate1_;
+  int32_t x2_, y2_, z2_;
+  int32_t rate2_;
+
+  int64_t sigma_, rho_, beta_ ;
   
-  DISALLOW_COPY_AND_ASSIGN(Quantizer);
+  // O+C
+  uint16_t dac_code_[kNumChannels];
+ 
+  uint8_t index_;
+  
+  DISALLOW_COPY_AND_ASSIGN(LorenzGenerator);
 };
 
-}  // namespace braids
+}  // namespace streams
 
-#endif // BRAIDS_QUANTIZER_H_
+#endif  // STREAMS_LORENZ_GENERATOR_H_

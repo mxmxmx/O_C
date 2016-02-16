@@ -21,6 +21,14 @@
 #ifndef PAGESTORAGE_H_
 #define PAGESTORAGE_H_
 
+#include "util_misc.h"
+
+#ifdef DEBUG_STORAGE
+#define STORAGE_PRINTF(...) serial_printf(##__VA_ARGS__)
+#else
+#define STORAGE_PRINTF(...)
+#endif
+
 enum EStorageMode {
   STORAGE_UPDATE,
   STORAGE_WRITE
@@ -101,7 +109,7 @@ public:
    * @param data [out] loaded data if load successful, else unmodified
    * @return true if data loaded
    */
-  bool load(DATA_TYPE &data) {
+  bool Load(DATA_TYPE &data) {
 
     page_index_ = -1;
     memset(&page_, 0, sizeof(page_));
@@ -109,6 +117,11 @@ public:
     page_data next_page;
     for (size_t i = 0; i < PAGES; ++i) {
       STORAGE::read(BASE_ADDR + i * PAGESIZE, &next_page, sizeof(next_page));
+
+      STORAGE_PRINTF("[%u]\n", BASE_ADDR + i * PAGESIZE);
+      STORAGE_PRINTF("FOURCC:%u (%u)\n", next_page.header.fourcc, DATA_TYPE::FOURCC);
+      STORAGE_PRINTF("size  :%u (%u)\n", next_page.header.size, sizeof(DATA_TYPE));
+      STORAGE_PRINTF("gen   :%u (%u)\n", next_page.header.generation, next_page.header.generation + 1);
 
       if ((DATA_TYPE::FOURCC != next_page.header.fourcc) ||
           (sizeof(DATA_TYPE) != next_page.header.size) ||
@@ -139,7 +152,7 @@ public:
    * @param data data to be stored
    * @return true if data was written to storage
    */
-  bool save(const DATA_TYPE &data) {
+  bool Save(const DATA_TYPE &data) {
 
     bool dirty = false;
     const uint8_t *src = (const uint8_t*)&data;
@@ -184,12 +197,6 @@ protected:
 
     return c ^ 0xffff;
   }
-};
-
-template <uint32_t a, uint32_t b, uint32_t c, uint32_t d>
-struct FOURCC
-{
-  static const uint32_t value = ((a&0xff) << 24) | ((b&0xff) << 16) | ((c&0xff) << 8) | (d&0xff);
 };
 
 #endif // PAGESTORAGE_H_

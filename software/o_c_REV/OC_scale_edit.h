@@ -17,7 +17,7 @@ namespace OC {
 // change:
 // void scale_changed();
 // uint16_t get_scale_mask();
-//  void update_scale_mask(uint16_t mask);
+// void update_scale_mask(uint16_t mask);
 //
 
 template <typename Owner>
@@ -80,18 +80,23 @@ private:
   void BeginEditing();
   void Close();
 
+  bool move_cursor(long pos);
+
   void toggle_mask();
-  void invert_mask();
-  void rol_mask(long count);
-  void ror_mask(long count);
+  void invert_mask(); 
+
+  uint16_t rol_mask(long count);
+  uint16_t ror_mask(long count);
+
   void apply_mask(uint16_t mask) {
-    mask_ = mask;
-    owner_->update_scale_mask(mask);
+    if (mask_ != mask) {
+      mask_ = mask;
+      owner_->update_scale_mask(mask_);
+    }
   }
 
   void reset_scale();
-
-  void change_note(size_t pos, long delta);
+  void change_note(size_t pos, long delta, bool notify);
 };
 
 template <typename Owner>
@@ -134,7 +139,7 @@ void ScaleEditor<Owner>::Draw() {
       graphics.print(' ');
     graphics.print(scale_->notes[cursor_pos_], 4);
   } else {
-    graphics.print(num_notes, 2);
+    graphics.print((int)num_notes, 2);
   }
 /*
   if (mutable_scale_) {
@@ -166,24 +171,18 @@ void ScaleEditor<Owner>::Draw() {
 template <typename Owner>
 bool ScaleEditor<Owner>::handle_encoders() {
   bool changed = false;
+  bool scale_changed = false;
+  uint16_t mask = mask_;
 
-  long left_value = encoder[LEFT].pos();
-  if (left_value != (long)cursor_pos_) {
-    const long max = mutable_scale_ ? num_notes_ : num_notes_ - 1;
-    if (left_value < 0) left_value = 0;
-    else if (left_value >= max) left_value = max;
-
-    cursor_pos_ = left_value;
-    encoder[RIGHT].setPos(0);
+  if (move_cursor(encoder[LEFT].pos()))
     changed = true;
-  }
 
   long right_value = encoder[RIGHT].pos();
   if (mutable_scale_) {
     if (cursor_pos_ < num_notes_) {
       if (button_left.pressed()) {
-        change_note(cursor_pos_, right_value);
-        changed = true;
+        change_note(cursor_pos_, right_value, false);
+        changed = scale_changed = true;
         right_value = 0;
       }
     } else {
@@ -198,32 +197,55 @@ bool ScaleEditor<Owner>::handle_encoders() {
         num_notes_ = num_notes;
         if (right_value > 0) {
           for (size_t pos = cursor_pos_; pos < num_notes_; ++pos)
-            change_note(pos, 0);
+            change_note(pos, 0, false);
 
-          uint16_t mask = ~(0xffff << (num_notes_ - cursor_pos_)) << cursor_pos_;
-          mask_ |= mask;
+          // Enable new notes by default
+          mask |= ~(0xffff << (num_notes_ - cursor_pos_)) << cursor_pos_;
+        } else {
+          // scale might be shortened to where no notes are active in mask
+          if (0 == (mask & ~(0xffff < num_notes_)))
+            mask |= 0x1;
         }
 
         mutable_scale_->num_notes = num_notes_;
-        left_value = cursor_pos_ = num_notes_;
+        cursor_pos_ = num_notes_;
         right_value = 0;
-        changed = true;
+        changed = scale_changed = true;
       }
     }
   }
 
   if (right_value) {
     if (right_value < 0)
-      ror_mask(-right_value);
+      mask = ror_mask(-right_value);
     else
-      rol_mask(right_value);
+      mask = rol_mask(right_value);
     changed = true;
   }
-  right_value = 0;
 
-  encoder[LEFT].setPos(left_value);
-  encoder[RIGHT].setPos(right_value);
+  // This isn't entirely atomic
+  apply_mask(mask);
+  if (scale_changed)
+    owner_->scale_changed();
+
+  encoder[LEFT].setPos(cursor_pos_);
+  encoder[RIGHT].setPos(0);
   return changed;
+}
+
+template <typename Owner>
+bool ScaleEditor<Owner>::move_cursor(long pos) {
+  if (pos != (long)cursor_pos_) {
+    const long max = mutable_scale_ ? num_notes_ : num_notes_ - 1;
+    if (pos < 0) pos = 0;
+    else if (pos >= max) pos = max;
+
+    cursor_pos_ = pos;
+    encoder[RIGHT].setPos(0);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 template <typename Owner>
@@ -232,7 +254,7 @@ void ScaleEditor<Owner>::handle_topButton() {
     if (cursor_pos_ == num_notes_)
       reset_scale();
     else
-      change_note(cursor_pos_, 128);
+      change_note(cursor_pos_, 128, true);
   }
   else
     invert_mask();
@@ -241,7 +263,7 @@ void ScaleEditor<Owner>::handle_topButton() {
 template <typename Owner>
 void ScaleEditor<Owner>::handle_bottomButton() {
   if (button_left.pressed())
-    change_note(cursor_pos_, -128);
+    change_note(cursor_pos_, -128, true);
   else
     invert_mask();
 }
@@ -284,23 +306,23 @@ void ScaleEditor<Owner>::invert_mask() {
 }
 
 template <typename Owner>
-void ScaleEditor<Owner>::rol_mask(long count) {
+uint16_t ScaleEditor<Owner>::rol_mask(long count) {
   uint16_t m = ~(0xffffU << num_notes_);
   uint16_t mask = mask_ & m;
   while (count--)
     mask = (mask << 1) | ((mask >> (num_notes_ - 1)) & 0x1);
   mask |= ~m;
-  apply_mask(mask);
+  return mask;
 }
 
 template <typename Owner>
-void ScaleEditor<Owner>::ror_mask(long count) {
+uint16_t ScaleEditor<Owner>::ror_mask(long count) {
   uint16_t m = ~(0xffffU << num_notes_);
   uint16_t mask = mask_ & m;
   while (count--)
     mask = (mask >> 1) | ((mask & 0x1) << (num_notes_ - 1));
   mask |= ~m;
-  apply_mask(mask);
+  return mask;
 }
 
 template <typename Owner>
@@ -315,7 +337,7 @@ void ScaleEditor<Owner>::reset_scale() {
 }
 
 template <typename Owner>
-void ScaleEditor<Owner>::change_note(size_t pos, long delta) {
+void ScaleEditor<Owner>::change_note(size_t pos, long delta, bool notify) {
   if (mutable_scale_ && pos < num_notes_) {
     int32_t note = mutable_scale_->notes[pos] + delta;
 
@@ -329,7 +351,8 @@ void ScaleEditor<Owner>::change_note(size_t pos, long delta) {
     mutable_scale_->notes[pos] = note;
 //    braids::SortScale(*mutable_scale_); // TODO side effects?
 
-    owner_->scale_changed();
+    if (notify)
+      owner_->scale_changed();
   }
 }
 

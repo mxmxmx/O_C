@@ -26,28 +26,33 @@
 #include <rotaryplus.h>
 #include <EEPROM.h>
 
+#include "OC_apps.h"
+#include "OC_config.h"
 #include "OC_gpio.h"
 #include "OC_ADC.h"
 #include "OC_calibration.h"
+#include "OC_digital_inputs.h"
+#include "OC_ui.h"
 #include "DAC.h"
 #include "EEPROMStorage.h"
-#include "util_app.h"
-#include "util_button.h"
-#include "util_pagestorage.h"
+#include "util/util_button.h"
+#include "util/util_pagestorage.h"
 #include "util_framebuffer.h"
 #include "page_display_driver.h"
 #include "weegfx.h"
 #include "SH1106_128x64_driver.h"
 
 //#define ENABLE_DEBUG_PINS
-#include "util_debugpins.h"
+#include "util/util_debugpins.h"
 
 FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 weegfx::Graphics graphics;
 
 unsigned long LAST_REDRAW_TIME = 0;
-#define REDRAW_TIMEOUT_MS 1
+
+uint_fast8_t UI_MODE = UI::DISPLAY_MENU;
+uint_fast8_t MENU_REDRAW = true;
 
 Rotary encoder[2] =
 {
@@ -55,35 +60,12 @@ Rotary encoder[2] =
   Rotary(encR1, encR2)
 }; 
 
-//  UI mode select
-extern uint8_t UI_MODE;
-extern uint8_t MENU_REDRAW;
-
 /*  --------------------- clk / buttons / ISR -------------------------   */
 
 uint32_t _CLK_TIMESTAMP = 0;
 uint32_t _BUTTONS_TIMESTAMP = 0;
 static const uint16_t TRIG_LENGTH = 150;
 static const uint16_t DEBOUNCE = 250;
-
-volatile int CLK_STATE[4] = {0,0,0,0};
-#define CLK_STATE1 (CLK_STATE[TR1])
-
-void FASTRUN tr1_ISR() {  
-    CLK_STATE[TR1] = true; 
-}  // main clock
-
-void FASTRUN tr2_ISR() {
-  CLK_STATE[TR2] = true;
-}
-
-void FASTRUN tr3_ISR() {
-  CLK_STATE[TR3] = true;
-}
-
-void FASTRUN tr4_ISR() {
-  CLK_STATE[TR4] = true;
-}
 
 uint32_t _UI_TIMESTAMP;
 
@@ -116,13 +98,7 @@ void FASTRUN right_encoder_ISR()
 }
 
 /*  ------------------------ core timer ISR ---------------------------   */
-// 60us = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
-// 66us = 15.1515...kHz
-// 72us = 13.888...kHz
-// 100us = 10Khz
-static const uint32_t CORE_TIMER_RATE = 60;
 IntervalTimer CORE_timer;
-
 uint32_t ENC_timer_counter = 0;
 volatile bool CORE_app_isr_enabled = false;
 
@@ -132,7 +108,7 @@ void FASTRUN CORE_timer_ISR() {
   if (display_driver.Flush())
     frame_buffer.read();
 
-  DAC::WriteAll();
+  DAC::Update();
 
   if (display_driver.frame_valid()) {
     display_driver.Update();
@@ -149,7 +125,7 @@ void FASTRUN CORE_timer_ISR() {
   // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
   OC::ADC::Scan();
 
-  if (ENC_timer_counter < _ENC_RATE / CORE_TIMER_RATE - 1) {
+  if (ENC_timer_counter < _ENC_RATE / OC_CORE_TIMER_RATE - 1) {
     ++ENC_timer_counter;
   } else {
     ENC_timer_counter = 0;
@@ -157,12 +133,12 @@ void FASTRUN CORE_timer_ISR() {
   }
 
   if (CORE_app_isr_enabled)
-    APPS::ISR();
+    OC::APPS::ISR();
 }
 
 /*       ---------------------------------------------------------         */
 
-void setup(){
+void setup() {
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
   spi4teensy3::init();
@@ -174,19 +150,10 @@ void setup(){
   pinMode(but_top, INPUT);
   pinMode(but_bot, INPUT);
   buttons_init();
- 
-  pinMode(TR1, INPUT); // INPUT_PULLUP);
-  pinMode(TR2, INPUT);
-  pinMode(TR3, INPUT);
-  pinMode(TR4, INPUT);
 
   DebugPins::Init();
+  OC::DigitalInputs::Init();
 
-  // clock ISR 
-  attachInterrupt(TR1, tr1_ISR, FALLING);
-  attachInterrupt(TR2, tr2_ISR, FALLING);
-  attachInterrupt(TR3, tr3_ISR, FALLING);
-  attachInterrupt(TR4, tr4_ISR, FALLING);
   // encoder ISR 
   attachInterrupt(encL1, left_encoder_ISR, CHANGE);
   attachInterrupt(encL2, left_encoder_ISR, CHANGE);
@@ -207,7 +174,7 @@ void setup(){
   // to have an "enabled" flag, or at least set current_app to nullptr during
   // load/save/app selection
 
-  CORE_timer.begin(CORE_timer_ISR, CORE_TIMER_RATE);
+  CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
 
   // splash screen, sort of ... 
   hello();
@@ -219,23 +186,47 @@ void setup(){
 
   // initialize 
   init_DACtable();
-  init_apps();
+  OC::APPS::Init();
   CORE_app_isr_enabled = true;
 }
 
-
 /*  ---------    main loop  --------  */
 
-void loop() {
+void FASTRUN loop() {
   _UI_TIMESTAMP = millis();
-  UI_MODE = 1;
+  UI_MODE = UI::DISPLAY_MENU;
 
   while (1) {
     // don't change current_app while it's running
-    if (SELECT_APP) select_app();
-    current_app->loop();
-    if (UI_MODE) timeout();
-    if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
+    if (SELECT_APP) {
+      CORE_app_isr_enabled = false;
+      OC::APPS::Select();
+      CORE_app_isr_enabled = true;
+    }
+
+    // Refresh display
+    if (MENU_REDRAW) {
+      if (UI::DISPLAY_MENU == UI_MODE)
+        OC::current_app->draw_menu();
+      else
+        OC::current_app->draw_screensaver();
+      // MENU_REDRAW reset in GRAPHICS_END_FRAME if drawn
+    }
+
+    // Run current app
+    OC::current_app->loop();
+
+    // Check UI timeouts for screensaver/forced redraw
+    unsigned long now = millis();
+    if (UI::DISPLAY_MENU == UI_MODE) {
+      if (now - _UI_TIMESTAMP > SCREENSAVER_TIMEOUT_MS) {
+        UI_MODE = UI::DISPLAY_SCREENSAVER;
+        MENU_REDRAW = 1;
+        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER);
+      }
+    }
+
+    if (now - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
       MENU_REDRAW = 1;
   }
 }

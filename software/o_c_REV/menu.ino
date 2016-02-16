@@ -4,36 +4,6 @@
 *
 */
 
-uint8_t UI_MODE = 0;
-uint8_t MENU_REDRAW = 0;
-static const uint16_t SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
-
-/* ----------- time out UI ---------------- */ 
-
-void timeout() {
-   if (millis() - _UI_TIMESTAMP > SCREENSAVER_TIMEOUT_MS) {
-    UI_MODE = SCREENSAVER;
-    MENU_REDRAW = 1;
-  } 
-}
-
-/* -----------   draw menu  --------------- */ 
-
-void UI() {
-  if (  MENU_REDRAW != 0 ) {
-    switch(UI_MODE) {
-      case SCREENSAVER:
-        current_app->draw_screensaver();
-        break;
-      case MENU:
-        current_app->draw_menu();
-        break;
-      default: break;
-    }
-    // MENU_REDRAW = 0; set in GRAPHICS_END_FRAME if drawn
-  }
-}  
-
 /* -----------  splash  ------------------- */  
 
 void hello() {

@@ -1,5 +1,15 @@
-#ifndef UTIL_APP_H_
-#define UTIL_APP_H_
+#ifndef OC_APP_H_
+#define OC_APP_H_
+
+#include "util/util_misc.h"
+
+namespace OC {
+
+enum AppEvent {
+  APP_EVENT_SUSPEND,
+  APP_EVENT_RESUME,
+  APP_EVENT_SCREENSAVER
+};
 
 // This is a very poor-man's application "switching" framework. The main UI/
 // drawing functions are mostly unchanged and just call into the current_app
@@ -9,14 +19,15 @@
 // interface class and virtual functions instead.
 //
 struct App {
+  uint16_t id;
 	const char *name;
 
-  void (*init)(); // one-time init
-  size_t (*save)(char *);
-  size_t (*restore)(const char *);
+  void (*Init)(); // one-time init
+  size_t (*storageSize)();
+  size_t (*Save)(void *);
+  size_t (*Restore)(const void *);
 
-  void (*suspend)(); // Called before run-time switch
-  void (*resume)(); // Called after run-time switch to this app
+  void (*handleEvent)(AppEvent); // Generic event handler
 
   void (*loop)(); // main loop function
   void (*draw_menu)(); 
@@ -33,17 +44,23 @@ struct App {
 };
 
 extern App *current_app;
-extern bool SELECT_APP;
-void init_apps();
-void select_app();
 
 namespace APPS {
+
+  void Init();
+  void Select();
 
   inline void ISR() __attribute__((always_inline));
   inline void ISR() {
     if (current_app && current_app->isr)
       current_app->isr();
   }
+
+  App *find(uint16_t id);
 };
 
-#endif // UTIL_APP_H_
+};
+
+extern bool SELECT_APP;
+
+#endif // OC_APP_H_

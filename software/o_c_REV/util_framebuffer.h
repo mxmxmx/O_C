@@ -1,7 +1,7 @@
 #ifndef UTIL_FRAMEBUFFER_H_
 #define UTIL_FRAMEBUFFER_H_
 
-#include "util_macros.h"
+#include "util/util_macros.h"
 
 // - This could be specialized for frames == 2 (i.e. double-buffer)
 // - Takes some short-cuts so assumes correct order of calls
@@ -49,7 +49,7 @@ public:
 
 private:
 
-  uint8_t frame_memory_[kFrameSize * frames];
+  uint8_t frame_memory_[kFrameSize * frames] __attribute__ ((aligned (4)));;
   uint8_t *frame_buffers_[frames];
 
   volatile size_t write_ptr_;

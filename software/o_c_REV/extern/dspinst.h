@@ -104,6 +104,19 @@ static inline int32_t multiply_32x32_rshift32(int32_t a, int32_t b)
 #endif
 }
 
+// computes (((uint64_t)a[31:0] * (uint64_t)b[31:0]) >> 32)
+static inline uint32_t multiply_u32xu32_rshift32(uint32_t a, uint32_t b) __attribute__((always_inline));
+static inline uint32_t multiply_u32xu32_rshift32(uint32_t a, uint32_t b)
+{
+#if defined(KINETISK)
+  uint32_t out, tmp;
+  asm volatile("umull %0, %1, %2, %3" : "=r" (tmp), "=r" (out) : "r" (a), "r" (b));
+  return out;
+#elif defined(KINETISL)
+  return 0; // TODO....
+#endif
+}
+
 // computes (((int64_t)a[31:0] * (int64_t)b[31:0] + 0x8000000) >> 32)
 static inline int32_t multiply_32x32_rshift32_rounded(int32_t a, int32_t b) __attribute__((always_inline, unused));
 static inline int32_t multiply_32x32_rshift32_rounded(int32_t a, int32_t b)

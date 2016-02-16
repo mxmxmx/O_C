@@ -1,6 +1,6 @@
 
 #include "tonnetz_state.h"
-#include "util_settings.h"
+#include "util/util_settings.h"
 
 extern uint16_t semitones[RANGE+1];
 
@@ -65,12 +65,12 @@ const char * const mode_names[] = {
   "maj", "min"
 };
 
-/*static*/ template<> const settings::value_attr settings::SettingsBase<H1200Settings, H1200_SETTING_LAST>::value_attr_[] = {
-  {12, -24, 36, "transpose", NULL},
-  {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names},
-  {0, -3, 3, "inversion", NULL},
-  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "trigger prio", trigger_mode_names},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names}
+SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
+  {12, -24, 36, "transpose", NULL, settings::STORAGE_TYPE_I8},
+  {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names, settings::STORAGE_TYPE_U8},
+  {0, -3, 3, "inversion", NULL, settings::STORAGE_TYPE_I8},
+  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "trigger prio", trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names, settings::STORAGE_TYPE_U8}
 };
 
 struct H1200State {
@@ -105,12 +105,12 @@ do { \
   DAC::set<dac>(dac_code); \
 } while (0)
 
-static const uint32_t TRIGGER_MASK_TR1 = 0x1;
-static const uint32_t TRIGGER_MASK_P = 0x2;
-static const uint32_t TRIGGER_MASK_L = 0x4;
-static const uint32_t TRIGGER_MASK_R = 0x8;
-static const uint32_t TRIGGER_MASK_DIRTY = 0x10;
-static const uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
+static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
+static constexpr uint32_t TRIGGER_MASK_P = OC::DIGITAL_INPUT_2_MASK;
+static constexpr uint32_t TRIGGER_MASK_L = OC::DIGITAL_INPUT_3_MASK;
+static constexpr uint32_t TRIGGER_MASK_R = OC::DIGITAL_INPUT_4_MASK;
+static constexpr uint32_t TRIGGER_MASK_DIRTY = 0x10;
+static constexpr uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
 
 void FASTRUN H1200_clock(uint32_t triggers) {
 
@@ -182,36 +182,43 @@ void H1200_init() {
   init_circle_lut();
 }
 
-static const size_t H1200_SETTINGS_SIZE = sizeof(int8_t) * H1200_SETTING_LAST;
-
-size_t H1200_save(char *storage) {
-  return h1200_settings.save<int8_t>(storage);
+size_t H1200_storageSize() {
+  return H1200Settings::storageSize();
 }
 
-size_t H1200_restore(const char *storage) {
-  return h1200_settings.restore<int8_t>(storage);
+size_t H1200_save(void *storage) {
+  return h1200_settings.Save(storage);
 }
 
-void H1200_resume() {
-  encoder[LEFT].setPos(h1200_state.cursor_pos);
-  encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
-  h1200_state.tonnetz_state.reset(h1200_settings.mode());
+size_t H1200_restore(const void *storage) {
+  return h1200_settings.Restore(storage);
+}
+
+void H1200_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(h1200_state.cursor_pos);
+      encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
+      h1200_state.tonnetz_state.reset(h1200_settings.mode());
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }
 }
 
 #define CLOCKIT() \
 do { \
-  uint32_t triggers = 0; \
-  if (CLK_STATE[TR1]) { triggers |= TRIGGER_MASK_TR1; CLK_STATE[TR1] = false; } \
-  if (CLK_STATE[TR2]) { triggers |= TRIGGER_MASK_P; CLK_STATE[TR2] = false; } \
-  if (CLK_STATE[TR3]) { triggers |= TRIGGER_MASK_L; CLK_STATE[TR3] = false; } \
-  if (CLK_STATE[TR4]) { triggers |= TRIGGER_MASK_R; CLK_STATE[TR4] = false; } \
+  uint32_t triggers = \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>(); \
   if (h1200_state.value_changed) { triggers |= TRIGGER_MASK_DIRTY; h1200_state.value_changed = false; } \
   H1200_clock(triggers); \
 } while (0)
 
 void H1200_loop() {
-  CLOCKIT();
-  UI();
   CLOCKIT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   CLOCKIT();

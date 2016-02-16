@@ -1,9 +1,14 @@
-#include "frames_poly_lfo.h"
-#include "util_math.h"
+#include "OC_apps.h"
 #include "OC_digital_inputs.h"
 
+#include "util/util_math.h"
+#include "util/util_settings.h"
+#include "util_ui.h"
+#include "frames_poly_lfo.h"
+
 enum POLYLFO_SETTINGS {
-  POLYLFO_SETTING_FREQ,
+  POLYLFO_SETTING_COARSE,
+  POLYLFO_SETTING_FINE,
   POLYLFO_SETTING_SHAPE,
   POLYLFO_SETTING_SHAPE_SPREAD,
   POLYLFO_SETTING_SPREAD,
@@ -14,8 +19,12 @@ enum POLYLFO_SETTINGS {
 class PolyLfo : public settings::SettingsBase<PolyLfo, POLYLFO_SETTING_LAST> {
 public:
 
-  uint16_t get_freq() const {
-    return values_[POLYLFO_SETTING_FREQ];
+  uint16_t get_coarse() const {
+    return values_[POLYLFO_SETTING_COARSE];
+  }
+
+  int16_t get_fine() const {
+    return values_[POLYLFO_SETTING_FINE];
   }
 
   uint16_t get_shape() const {
@@ -66,18 +75,19 @@ void PolyLfo::Init() {
   frozen_= false;
 }
 
-/*static*/ template <>
-const settings::value_attr settings::SettingsBase<PolyLfo, POLYLFO_SETTING_LAST>::value_attr_[] = {
-  { 64, 0, 255, "FREQ", NULL },
-  { 0, 0, 255, "SHAPE", NULL },
-  { 128, 0, 255, "SHAPE SPREAD", NULL },
-  { 128, 0, 255, "SPREAD", NULL },
-  { 128, 0, 255, "COUPLING", NULL },
+SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
+  { 64, 0, 255, "COARSE", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, -128, 127, "FINE", NULL, settings::STORAGE_TYPE_I16 },
+  { 0, 0, 255, "SHAPE", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, -128, 127, "SHAPE SPREAD", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, -128, 127, "SPREAD", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, -128, 127, "COUPLING", NULL, settings::STORAGE_TYPE_I8 },
 };
 
 PolyLfo poly_lfo;
 struct {
   int selected_param;
+  POLYLFO_SETTINGS left_edit_mode;
 } poly_lfo_state;
 
 
@@ -85,8 +95,8 @@ struct {
 
 void FASTRUN POLYLFO_isr() {
 
-  bool reset_phase = OC::DigitalInputs::clocked<TR1>();
-  bool freeze = OC::DigitalInputs::read_immediate<TR2>();
+  bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
+  bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
 
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
@@ -96,19 +106,19 @@ void FASTRUN POLYLFO_isr() {
   // Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
 
-  int32_t freq = SCALE8_16(poly_lfo.get_freq()) + (poly_lfo.cv_freq.value() * 16);
+  int32_t freq = SCALE8_16(poly_lfo.get_coarse()) + (poly_lfo.cv_freq.value() * 16) + poly_lfo.get_fine() * 2;
   freq = USAT16(freq);
 
   int32_t shape = SCALE8_16(poly_lfo.get_shape()) + (poly_lfo.cv_shape.value() * 16);
   poly_lfo.lfo.set_shape(USAT16(shape));
 
-  int32_t spread = SCALE8_16(poly_lfo.get_spread()) + (poly_lfo.cv_spread.value() * 16);
+  int32_t spread = SCALE8_16(poly_lfo.get_spread() + 128) + (poly_lfo.cv_spread.value() * 16);
   poly_lfo.lfo.set_spread(USAT16(spread));
 
-  int32_t coupling = SCALE8_16(poly_lfo.get_coupling()) + (poly_lfo.cv_coupling.value() * 16);
+  int32_t coupling = SCALE8_16(poly_lfo.get_coupling() + 128) + (poly_lfo.cv_coupling.value() * 16);
   poly_lfo.lfo.set_coupling(USAT16(coupling));
 
-  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread()));
+  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread() + 128));
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);
@@ -121,21 +131,23 @@ void FASTRUN POLYLFO_isr() {
 
 void POLYLFO_init() {
   poly_lfo_state.selected_param = POLYLFO_SETTING_SHAPE;
+  poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
   poly_lfo.Init();
 }
 
-static const size_t POLYLFO_SETTINGS_SIZE = sizeof(uint8_t) * POLYLFO_SETTING_LAST;
-
-size_t POLYLFO_save(char *storage) {
-  return poly_lfo.save<uint8_t>(storage);
+size_t POLYLFO_storageSize() {
+  return PolyLfo::storageSize();
 }
 
-size_t POLYLFO_restore(const char *storage) {
-  return poly_lfo.restore<uint8_t>(storage);
+size_t POLYLFO_save(void *storage) {
+  return poly_lfo.Save(storage);
+}
+
+size_t POLYLFO_restore(const void *storage) {
+  return poly_lfo.Restore(storage);
 }
 
 void POLYLFO_loop() {
-  UI();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   buttons(BUTTON_TOP);
   buttons(BUTTON_BOTTOM);
@@ -154,8 +166,8 @@ void POLYLFO_menu() {
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);
   graphics.setPrintPos(2, 2);
-  graphics.print("FREQ ");
-  graphics.print(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
+  graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
+  graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
 
   int first_visible_param = POLYLFO_SETTING_SHAPE; /*poly_lfo_state.selected_param - 1;
   if (first_visible_param < POLYLFO_SETTING_SHAPE)
@@ -204,19 +216,26 @@ void POLYLFO_screensaver() {
   GRAPHICS_END_FRAME();
 }
 
-void POLYLFO_resume() {
-  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
-  encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
+void POLYLFO_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
+      encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }
 }
 
 void POLYLFO_topButton() {
-  poly_lfo.change_value(POLYLFO_SETTING_FREQ, 32);
-  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
+  poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
+  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_COARSE));
 }
 
 void POLYLFO_lowerButton() {
-  poly_lfo.change_value(POLYLFO_SETTING_FREQ, -32);
-  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
+  poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
+  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_COARSE));
 }
 
 void POLYLFO_rightButton() {
@@ -227,6 +246,12 @@ void POLYLFO_rightButton() {
 }
 
 void POLYLFO_leftButton() {
+  if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode) {
+    poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
+  } else {
+    poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+  }
+  encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
 }
 
 void POLYLFO_leftButtonLong() {
@@ -235,9 +260,9 @@ void POLYLFO_leftButtonLong() {
 bool POLYLFO_encoders() {
   bool changed = false;
   int value = encoder[LEFT].pos();
-  if (value != poly_lfo.get_value(POLYLFO_SETTING_FREQ)) {
-    poly_lfo.apply_value(POLYLFO_SETTING_FREQ, value);
-    encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_FREQ));
+  if (value != poly_lfo.get_value(poly_lfo_state.left_edit_mode)) {
+    poly_lfo.apply_value(poly_lfo_state.left_edit_mode, value);
+    encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
     changed = true;
   }
 
@@ -265,5 +290,3 @@ void POLYLFO_debug() {
   value = USAT16(value);
   graphics.print(value);
 }
-
-

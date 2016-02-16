@@ -1,5 +1,5 @@
-#include "util_grid.h"
-#include "util_settings.h"
+#include "util/util_grid.h"
+#include "util/util_settings.h"
 #include "util_ui.h"
 #include "tonnetz_state.h"
 #include "OC_bitmaps.h"
@@ -31,9 +31,9 @@ const char *clock_fraction_names[] = {
   "", "1/8", "1/7", "1/6", "1/5", "1/4", "1/3", "1/2"
 };
 
-static const uint8_t TRIGGER_MASK_GRID = 0x1;
-static const uint8_t TRIGGER_MASK_ARP = 0x2;
-static const uint32_t kTriggerOutMs = 5;
+static constexpr uint32_t TRIGGER_MASK_GRID = OC::DIGITAL_INPUT_1_MASK;
+static constexpr uint32_t TRIGGER_MASK_ARP = OC::DIGITAL_INPUT_2_MASK;
+static constexpr uint32_t kTriggerOutMs = 5;
 
 enum ECellSettings {
   CELL_SETTING_TRANSFORM,
@@ -76,12 +76,11 @@ const char *cell_event_names[] = {
   "rndT"
 };
 
-/*static*/ template<>
-const settings::value_attr settings::SettingsBase<TransformCell, CELL_SETTING_LAST>::value_attr_[] = {
-  {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "tra  ", tonnetz::transform_names_str},
-  {0, -12, 12, "off  ", NULL},
-  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "inv  ", NULL},
-  {0, CELL_EVENT_NONE, CELL_EVENT_LAST - 1, "evt  ", cell_event_names}
+SETTINGS_DECLARE(TransformCell, CELL_SETTING_LAST) {
+  {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "tra  ", tonnetz::transform_names_str, settings::STORAGE_TYPE_U8},
+  {0, -12, 12, "off  ", NULL, settings::STORAGE_TYPE_I8},
+  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "inv  ", NULL, settings::STORAGE_TYPE_I8},
+  {0, CELL_EVENT_NONE, CELL_EVENT_LAST - 1, "evt  ", cell_event_names, settings::STORAGE_TYPE_U8}
 };
 
 enum EGridSettings {
@@ -169,7 +168,7 @@ public:
     return static_cast<EClearMode>(values_[GRID_SETTING_CLEARMODE]);
   }
 
-  void clock(uint8_t triggers);
+  void clock(uint32_t triggers);
   void reset();
   void render(bool triggered);
   void update_trigger_out();
@@ -213,22 +212,16 @@ const char * const clear_mode_names[] = {
   "zero", "rT", "rTev"
 };
 
-/*static*/ template<>
-const settings::value_attr settings::SettingsBase<AutomatonnetzState, GRID_SETTING_LAST>::value_attr_[] = {
-  {8, 0, 8*GRID_SIZE - 1, "dx   ", NULL},
-  {4, 0, 8*GRID_SIZE - 1, "dy   ", NULL},
-  {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names},
-  {0, -3, 3, "oct  ", NULL},
-  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "outA ", outputa_mode_names},
-  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names},
+SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
+  {8, 0, 8*GRID_SIZE - 1, "dx   ", NULL, settings::STORAGE_TYPE_I8},
+  {4, 0, 8*GRID_SIZE - 1, "dy   ", NULL, settings::STORAGE_TYPE_I8},
+  {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names, settings::STORAGE_TYPE_U8},
+  {0, -3, 3, "oct  ", NULL, settings::STORAGE_TYPE_I8},
+  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "outA ", outputa_mode_names, settings::STORAGE_TYPE_U8},
+  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names, settings::STORAGE_TYPE_U8},
 };
 
 AutomatonnetzState automatonnetz_state;
-
-static const size_t AUTOMATONNETZ_SETTINGS_SIZE =
-  sizeof(int8_t) * GRID_SETTING_LAST +
-  GRID_SIZE * GRID_SIZE * sizeof(int8_t) * CELL_SETTING_LAST;
-
 
 void Automatonnetz_init() {
   init_circle_lut();
@@ -253,7 +246,12 @@ void Automatonnetz_init() {
   automatonnetz_state.reset();
 }
 
-void AutomatonnetzState::clock(uint8_t triggers) {
+size_t Automatonnetz_storageSize() {
+  return AutomatonnetzState::storageSize() +
+    GRID_SIZE * TransformCell::storageSize();
+}
+
+void AutomatonnetzState::clock(uint32_t triggers) {
   bool triggered = false;
   if (triggers & TRIGGER_MASK_GRID) {
     switch (grid.current_cell().event()) {
@@ -284,7 +282,7 @@ void AutomatonnetzState::clock(uint8_t triggers) {
 
       MENU_REDRAW = 1;
     }
-  } else if ((triggers & TRIGGER_MASK_ARP) && digitalReadFast(TR4)) {
+  } else if ((triggers & TRIGGER_MASK_ARP) && !OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()) {
     // arp disabled if TR4 high, gpio is inverted
     if (arp_index_ < 2)
         ++arp_index_;
@@ -371,15 +369,14 @@ void AutomatonnetzState::update_trigger_out() {
 #define AT() \
 do { \
   automatonnetz_state.update_trigger_out(); \
-  uint8_t triggers = 0; \
-  if (CLK_STATE[TR1]) { CLK_STATE[TR1] = false; triggers |= TRIGGER_MASK_GRID; } \
-  if (CLK_STATE[TR2]) { CLK_STATE[TR2] = false; triggers |= TRIGGER_MASK_ARP; } \
+  uint32_t triggers = \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() | \
+    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>(); \
   if (triggers) \
     automatonnetz_state.clock(triggers); \
 } while (0)
 
 void Automatonnetz_loop() {
-  UI();
   AT();
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   AT();
@@ -529,31 +526,40 @@ void Automatonnetz_screensaver() {
   GRAPHICS_END_FRAME();
 }
 
-size_t Automatonnetz_save(char *storage) {
-  size_t used = automatonnetz_state.save<int8_t>(storage);
+size_t Automatonnetz_save(void *dest) {
+  char *storage = static_cast<char *>(dest);
+  size_t used = automatonnetz_state.Save(storage);
   for (size_t cell = 0; cell < GRID_SIZE*GRID_SIZE; ++cell)
-    used += automatonnetz_state.cells_[cell].save<int8_t>(storage + used);
+    used += automatonnetz_state.cells_[cell].Save(storage + used);
 
   return used;
 }
 
-size_t Automatonnetz_restore(const char *storage) {
-  size_t used = automatonnetz_state.restore<int8_t>(storage);
+size_t Automatonnetz_restore(const void *dest) {
+  const char *storage = static_cast<const char *>(dest);
+  size_t used = automatonnetz_state.Restore(storage);
   for (size_t cell = 0; cell < GRID_SIZE * GRID_SIZE; ++cell)
-    used += automatonnetz_state.cells_[cell].restore<int8_t>(storage + used);
+    used += automatonnetz_state.cells_[cell].Restore(storage + used);
 
   return used;
 }
 
-void Automatonnetz_resume() {
-  encoder[LEFT].setPos(automatonnetz_state.ui.selected_row * GRID_SIZE + automatonnetz_state.ui.selected_col);
-  if (automatonnetz_state.ui.edit_cell) {
-    const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
-    encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));
-  } else {
-    encoder[RIGHT].setPos(automatonnetz_state.get_value(automatonnetz_state.ui.selected_param));
-  }
-  automatonnetz_state.reset();
+void Automatonnetz_handleEvent(OC::AppEvent event) {
+  switch (event) {
+    case OC::APP_EVENT_RESUME:
+      encoder[LEFT].setPos(automatonnetz_state.ui.selected_row * GRID_SIZE + automatonnetz_state.ui.selected_col);
+      if (automatonnetz_state.ui.edit_cell) {
+        const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_col, automatonnetz_state.ui.selected_row);
+        encoder[RIGHT].setPos(cell.get_value(automatonnetz_state.ui.selected_cell_param));
+      } else {
+        encoder[RIGHT].setPos(automatonnetz_state.get_value(automatonnetz_state.ui.selected_param));
+      }
+      automatonnetz_state.reset();
+      break;
+    case OC::APP_EVENT_SUSPEND:
+    case OC::APP_EVENT_SCREENSAVER:
+      break;
+  }   
 }
 
 void Automatonnetz_topButton() {

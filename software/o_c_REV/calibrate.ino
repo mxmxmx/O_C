@@ -39,7 +39,7 @@ void calibration_load() {
   Serial.print("CalibrationStorage::PAGES   : "); Serial.println(OC::CalibrationStorage::PAGES);
 
   calibration_reset();
-  if (!OC::calibration_storage.load(OC::calibration_data)) {
+  if (!OC::calibration_storage.Load(OC::calibration_data)) {
     if (EEPROM.read(0x2) > 0) {
       Serial.println("Calibration not loaded, non-zero data found, trying to import...");
       calibration_read_old();
@@ -52,7 +52,7 @@ void calibration_load() {
 
 void calibration_save() {
   Serial.println("Saving calibration data...");
-//  OC::calibration_storage.save(OC::calibration_data);
+//  OC::calibration_storage.Save(OC::calibration_data);
 }
 
 enum CALIBRATION_STEP {  

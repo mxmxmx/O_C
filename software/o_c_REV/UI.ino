@@ -4,12 +4,6 @@
 *
 */
 
-enum DISPLAY_PAGE 
-{  
- SCREENSAVER,
- MENU,
-};  
-
 /* --------------- encoders ---------------------------------------  */
 
 int LAST_ENCODER_VALUE[2] = {-1, -1};
@@ -22,7 +16,7 @@ void encoders() {
       (LAST_ENCODER_VALUE[RIGHT] != encoder[RIGHT].pos());
 
   if (UI_MODE) {
-    changed |= current_app->update_encoders();
+    changed |= OC::current_app->update_encoders();
     LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
     LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
   } else {
@@ -32,7 +26,7 @@ void encoders() {
   }
 
   if (changed) {
-    UI_MODE = MENU;
+    UI_MODE = UI::DISPLAY_MENU;
     MENU_REDRAW = 1;
     _UI_TIMESTAMP = millis();
   }
@@ -53,7 +47,7 @@ void buttons(uint8_t _button) {
   switch(_button) {
     case BUTTON_TOP: { 
       if (!digitalReadFast(but_top) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-        if (UI_MODE) current_app->top_button();
+        if (UI_MODE) OC::current_app->top_button();
         button_pressed = true;
       }
     }
@@ -61,7 +55,7 @@ void buttons(uint8_t _button) {
 
     case BUTTON_BOTTOM: {
       if (!digitalReadFast(but_bot) && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) {
-        if (UI_MODE) current_app->lower_button();
+        if (UI_MODE) OC::current_app->lower_button();
         button_pressed = true;
       }
     }
@@ -70,10 +64,10 @@ void buttons(uint8_t _button) {
     case BUTTON_LEFT: {
       button_pressed = button_left.read();
       if (button_left.long_event() && UI_MODE) {
-        if (current_app->left_button_long)
-          current_app->left_button_long();
+        if (OC::current_app->left_button_long)
+          OC::current_app->left_button_long();
       } else if (button_left.event() && UI_MODE) {
-          current_app->left_button();
+          OC::current_app->left_button();
       }
     }
     break;
@@ -83,7 +77,7 @@ void buttons(uint8_t _button) {
       if (button_right.long_event())
         SELECT_APP = true;
       else if (button_right.event() && UI_MODE)
-        current_app->right_button();
+        OC::current_app->right_button();
     }
     break;
   }
@@ -91,6 +85,6 @@ void buttons(uint8_t _button) {
   if (button_pressed) {
     _BUTTONS_TIMESTAMP = millis();
     _UI_TIMESTAMP = millis();
-    UI_MODE = MENU;
+    UI_MODE = UI::DISPLAY_MENU;
   }
 }

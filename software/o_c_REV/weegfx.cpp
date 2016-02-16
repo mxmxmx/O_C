@@ -21,7 +21,7 @@
 #include "weegfx.h"
 #include <string.h>
 #include <Arduino.h>
-#include "util_macros.h"
+#include "util/util_macros.h"
 
 namespace weegfx {
 enum DRAW_MODE {
@@ -329,7 +329,7 @@ void Graphics::drawCircle(coord_t center_x, coord_t center_y, coord_t r) {
   }
 }
 
-#include "gfx_font_6x8.h"
+#include "extern/gfx_font_6x8.h"
 
 void Graphics::print(char c) {
   if (c < 32 || c > 127) {
@@ -408,6 +408,15 @@ void Graphics::pretty_print(int value) {
   print(itos<int, true>(value, buf, sizeof(buf)));
 }
 
+void Graphics::print(int value, size_t width) {
+  char buf[15];
+  char *str = itos<int, true>(value, buf, sizeof(buf));
+  while (str > buf &&
+         (size_t)(str - buf) >= sizeof(buf) - width)
+    *--str = ' ';
+  print(str);
+}
+
 void Graphics::print(uint16_t value, size_t width) {
   char buf[12];
   char *str = itos<uint16_t, false>(value, buf, sizeof(buf));
@@ -416,7 +425,6 @@ void Graphics::print(uint16_t value, size_t width) {
     *--str = ' ';
   print(str);
 }
-
 
 void Graphics::pretty_print(int value, size_t width) {
   char buf[12];
