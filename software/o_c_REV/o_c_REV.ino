@@ -34,7 +34,7 @@
 #include "OC_digital_inputs.h"
 #include "OC_ui.h"
 #include "DAC.h"
-#include "EEPROMStorage.h"
+#include "util/EEPROMStorage.h"
 #include "util/util_button.h"
 #include "util/util_pagestorage.h"
 #include "util_framebuffer.h"
