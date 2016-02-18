@@ -189,7 +189,7 @@ void FASTRUN LORENZ_isr() {
 }
 
 void LORENZ_init() {
-  lorenz_generator_state.selected_param = LORENZ_SETTING_SIGMA;
+  lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
   lorenz_generator.Init();
 }
 
@@ -233,7 +233,7 @@ void LORENZ_menu() {
   }
   
 
-  int first_visible_param = LORENZ_SETTING_SIGMA; 
+  int first_visible_param = LORENZ_SETTING_RHO1; 
 
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, lorenz_generator_state.selected_param, 0)
@@ -300,7 +300,7 @@ void LORENZ_lowerButton() {
 void LORENZ_rightButton() {
   ++lorenz_generator_state.selected_param;
   if (lorenz_generator_state.selected_param >= LORENZ_SETTING_LAST)
-    lorenz_generator_state.selected_param = LORENZ_SETTING_SIGMA;
+    lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
   encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
 }
 
