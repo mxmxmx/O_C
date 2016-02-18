@@ -1,3 +1,4 @@
+/*
 #include "OC_apps.h"
 #include "OC_digital_inputs.h"
 
@@ -171,8 +172,10 @@ void HARMONOGRAPH_menu() {
 
   int first_visible_param = HARMONOGRAPH_SETTING_SHAPE; /*poly_lfo_state.selected_param - 1;
   if (first_visible_param < HARMONOGRAPH_SETTING_SHAPE)
-    first_visible_param = HARMONOGRAPH_SETTING_SHAPE;*/
+    first_visible_param = HARMONOGRAPH_SETTING_SHAPE;
+*/
 
+/*
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, HARMONOGRAPH_SETTING_LAST, poly_lfo_state.selected_param, 0)
     const settings::value_attr &attr = HarmonoGraph::value_attr(current_item);
@@ -200,7 +203,9 @@ static const unsigned SCANNER_RATE = 200;
 
 void HARMONOGRAPH_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
+*/ 
 
+/*
 //  uint16_t shape = harmono_graph.get_value(HARMONOGRAPH_SETTING_SHAPE) << 8;
 //  harmono_graph.harmonograph.RenderPreview(shape, large_preview_buffer, kLargePreviewBufferSize);
 //  for (weegfx::coord_t x = 0; x < 128; ++x) {
@@ -290,3 +295,5 @@ void HARMONOGRAPH_debug() {
   value = USAT16(value);
   graphics.print(value);
 }
+*/
+

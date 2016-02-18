@@ -17,11 +17,11 @@ extern int LAST_ENCODER_VALUE[2];
 #define QQ_screensaver screensaver
 
 OC::App available_apps[] = {
-  DECLARE_APP('A','S', "ASR", ASR, ASR_isr),
+  DECLARE_APP('A','S', "CopierMaschine", ASR, ASR_isr),
   DECLARE_APP('H','A', "Harrington 1200", H1200, nullptr),
   DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, nullptr),
   DECLARE_APP('Q','Q', "VierfStSpQuaMo", QQ, QQ_isr),
-  DECLARE_APP('P','L', "frames::poly_lfo", POLYLFO, POLYLFO_isr),
+  DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr)
 };
 
