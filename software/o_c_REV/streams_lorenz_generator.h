@@ -44,7 +44,7 @@ class LorenzGenerator {
   
   void Init();
   
-  void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2);
+  void Process(int32_t freq1, int32_t freq2, bool reset);
  
   void set_index(uint8_t index) {
     index_ = index;
@@ -54,14 +54,34 @@ class LorenzGenerator {
     sigma_ = (double)sigma * (1 << 24);
   }
 
-  inline void set_rho(uint16_t rho) {
-    rho_ = (double)rho * (1 << 24);
+  inline void set_rho1(uint16_t rho) {
+    rho1_ = (double)rho * (1 << 24);
+  }
+
+  inline void set_rho2(uint16_t rho) {
+    rho2_ = (double)rho * (1 << 24);
   }
 
   inline void set_beta(uint16_t beta) {
     beta_ = (double)beta  / 3.0 * (1 << 24);
   }
-  
+
+  inline void set_out_a(uint8_t out_a) {
+    out_a_ = out_a;
+  }
+
+  inline void set_out_b(uint8_t out_b) {
+    out_b_ = out_b;
+  }
+
+  inline void set_out_c(uint8_t out_c) {
+    out_c_ = out_c;
+  }
+
+  inline void set_out_d(uint8_t out_d) {
+    out_d_ = out_d;
+  }
+ 
  inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
@@ -72,7 +92,9 @@ class LorenzGenerator {
   int32_t x2_, y2_, z2_;
   int32_t rate2_;
 
-  int64_t sigma_, rho_, beta_ ;
+  uint8_t out_a_, out_b_, out_c_, out_d_ ;
+
+  int64_t sigma_, rho1_, rho2_, beta_ ;
   
   // O+C
   uint16_t dac_code_[kNumChannels];
