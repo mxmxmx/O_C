@@ -6,13 +6,16 @@
 
 enum EEnvelopeSettings {
   ENV_SETTING_TYPE,
-  ENV_SETTING_SEG1_VALUE,
-  ENV_SETTING_SEG2_VALUE,
+  ENV_SETTING_SEG1_TIME,
+  ENV_SETTING_SEG2_TIME,
+  ENV_SETTING_SEG3_TIME,
+  ENV_SETTING_SEG4_TIME,
   ENV_SETTING_LAST
 };
 
 enum EEnvelopeType {
   ENV_TYPE_AD,
+  ENV_TYPE_ASDR,
   ENV_TYPE_LAST
 };
 
@@ -23,32 +26,47 @@ public:
 
   void Init();
 
+  EEnvelopeType get_type() const {
+    return static_cast<EEnvelopeType>(values_[ENV_SETTING_TYPE]);
+  }
+
+  int get_segment_time(int segment) const {
+    return values_[ENV_SETTING_SEG1_TIME + segment];
+  }
+
+  // Utils
+  int get_segment_level(int segment) const {
+    return (segment & 1) ? 32767 : 0;
+  }
+
   int active_segments() const {
     return 2;
   }
 
-  int get_level(int segment) const {
-    return (segment & 1) ? 32767 : 0;
+  void ISR() {
   }
 
-  static constexpr int32_t kSmoothing = 16;
-  SmoothedValue<int32_t, kSmoothing> cv1;
-  SmoothedValue<int32_t, kSmoothing> cv2;
-  SmoothedValue<int32_t, kSmoothing> cv3;
-  SmoothedValue<int32_t, kSmoothing> cv4;
 };
 
 void EnvelopeGenerator::Init() {
   InitDefaults();
 }
 
-SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
-  { ENV_TYPE_AD, ENV_TYPE_AD, ENV_TYPE_AD, "TYPE", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "A", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "D", NULL, settings::STORAGE_TYPE_U16 }
+const char* const envelope_types[ENV_TYPE_LAST] = {
+  "AD", "ADSR"
 };
 
-struct QuadEnvelopeGenerator {
+SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
+  { ENV_TYPE_AD, ENV_TYPE_AD, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "S1T", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S2T", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S3T", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S4T", NULL, settings::STORAGE_TYPE_U16 }
+};
+
+class QuadEnvelopeGenerator {
+public:
+  static constexpr int32_t kCvSmoothing = 16;
 
   void Init() {
     for (auto &env : envelopes_)
@@ -59,9 +77,16 @@ struct QuadEnvelopeGenerator {
   }
 
   void ISR() {
-  }
+    cv1.push(OC::ADC::value<ADC_CHANNEL_1>());
+    cv2.push(OC::ADC::value<ADC_CHANNEL_2>());
+    cv3.push(OC::ADC::value<ADC_CHANNEL_3>());
+    cv4.push(OC::ADC::value<ADC_CHANNEL_4>());
 
-  EnvelopeGenerator envelopes_[4];
+    // Read digital
+
+    for (auto &env : envelopes_)
+      env.ISR();
+  }
 
   struct {
     int selected_channel;
@@ -71,6 +96,13 @@ struct QuadEnvelopeGenerator {
   EnvelopeGenerator &selected() {
     return envelopes_[ui.selected_channel];
   }
+
+  EnvelopeGenerator envelopes_[4];
+
+  SmoothedValue<int32_t, kCvSmoothing> cv1;
+  SmoothedValue<int32_t, kCvSmoothing> cv2;
+  SmoothedValue<int32_t, kCvSmoothing> cv3;
+  SmoothedValue<int32_t, kCvSmoothing> cv4;
 };
 
 QuadEnvelopeGenerator envgen;
@@ -136,10 +168,10 @@ void ENVGEN_menu() {
   for (int segment = 0; segment < env.active_segments(); ++segment) {
     weegfx::coord_t startx = endx;
     weegfx::coord_t starty = endy;
-    int value = env.get_value(ENV_SETTING_SEG1_VALUE + segment);
+    int value = env.get_segment_time(segment);
     weegfx::coord_t w = 1 + (value >> 3);
     endx += w;
-    endy = 48 - (env.get_level(ENV_SETTING_SEG1_VALUE + segment) >> 10);
+    endy = 48 - (env.get_segment_level(ENV_SETTING_SEG1_TIME + segment) >> 10);
 
     graphics.drawLine(startx, starty, endx, endy);
     if (segment == envgen.ui.selected_segment) {
@@ -153,21 +185,18 @@ void ENVGEN_menu() {
 
 void ENVGEN_topButton() {
   auto &selected_env = envgen.selected();
-  selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, 32);
+  selected_env.change_value(ENV_SETTING_SEG1_TIME + envgen.ui.selected_segment, 32);
 }
 
 void ENVGEN_lowerButton() {
   auto &selected_env = envgen.selected();
-  selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, -32); 
+  selected_env.change_value(ENV_SETTING_SEG1_TIME + envgen.ui.selected_segment, -32); 
 }
 
 void ENVGEN_rightButton() {
   auto const &selected_env = envgen.selected();
-  if (envgen.ui.selected_segment < selected_env.active_segments() - 1) {
-    ++envgen.ui.selected_segment;
-  } else {
-    envgen.ui.selected_segment = 0;
-  }
+  ++envgen.ui.selected_segment;
+  CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.active_segments() - 1);
   encoder[RIGHT].setPos(0);
 }
 
@@ -180,8 +209,7 @@ bool ENVGEN_encoders() {
 
   if (left_value) {
     left_value += envgen.ui.selected_channel;
-    if (left_value < 0) left_value = 0;
-    else if (left_value > 3) left_value = 3;
+    CONSTRAIN(left_value, 0, 3);
     envgen.ui.selected_channel = left_value;
     right_value = 0;
     changed = true;
@@ -189,7 +217,7 @@ bool ENVGEN_encoders() {
 
   if (right_value) {
     auto &selected_env = envgen.selected();
-    changed = selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
+    changed = selected_env.change_value(ENV_SETTING_SEG1_TIME + envgen.ui.selected_segment, right_value);
   }
 
   encoder[LEFT].setPos(0);

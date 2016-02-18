@@ -362,8 +362,7 @@ bool QQ_encoders() {
   switch (qq_state.left_encoder_mode) {
     case MODE_EDIT_CHANNEL:
       if (value != qq_state.left_encoder_value) {
-        if (value >= (int)OC::Scales::NUM_SCALES) value = OC::Scales::NUM_SCALES - 1;
-        else if (value < 0) value = 0;
+        CONSTRAIN(value, 0, (int)OC::Scales::NUM_SCALES - 1);
         qq_state.left_encoder_value = value;
         encoder[LEFT].setPos(value);
         changed = true;
@@ -371,8 +370,7 @@ bool QQ_encoders() {
       break;
     case MODE_SELECT_CHANNEL:
       if (value != qq_state.selected_channel) {
-        if (value > 3) value = 3;
-        else if (value < 0) value = 0;
+        CONSTRAIN(value, 0, 3);
         qq_state.selected_channel = value;
         encoder[LEFT].setPos(value);
         if (CHANNEL_SETTING_MASK != qq_state.selected_param)
