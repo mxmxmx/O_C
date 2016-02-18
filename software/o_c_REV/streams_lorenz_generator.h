@@ -1,6 +1,9 @@
 // Copyright 2014 Olivier Gillet.
+// Copyright 2016 Tim Churches
 //
-// Author: Olivier Gillet (ol.gillet@gmail.com)
+// Original Author: Olivier Gillet (ol.gillet@gmail.com)
+// Modifications for use of this code in firmare for the Ornaments and Crime modue:
+// Tim Churches (tim.churches@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -51,12 +54,14 @@ class LorenzGenerator {
   }
 
  
-  inline void set_rho1(uint16_t rho) {
-    rho1_ = (double)rho * (1 << 24);
+  inline void set_rho1(int16_t rho) {
+    // rho1_ = (double)rho * (1 << 24);
+    rho1_ = (double)rho * (1 << 16);
   }
 
-  inline void set_rho2(uint16_t rho) {
-    rho2_ = (double)rho * (1 << 24);
+  inline void set_rho2(int16_t rho) {
+    // rho2_ = (double)rho * (1 << 24);
+    rho2_ = (double)rho * (1 << 16);
   }
 
   inline void set_out_c(uint8_t out_c) {

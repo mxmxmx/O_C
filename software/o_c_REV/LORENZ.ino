@@ -159,16 +159,17 @@ void FASTRUN LORENZ_isr() {
   int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
 
-  int32_t rho1 = lorenz_generator.get_rho1() + (lorenz_generator.cv_rho1.value() << 6);
-  // int32_t rho1 = lorenz_generator.get_rho1() ;
-  if (rho1 < 24) rho1 = 24;
-  else if (rho1 > 39) rho1 = 39 ;
+  const int32_t rho_lower_limit = 24 << 8 ;
+  const int32_t rho_upper_limit = 39 << 8 ;
+
+  int32_t rho1 = SCALE8_16(lorenz_generator.get_rho1()) + lorenz_generator.cv_rho1.value() ;
+  if (rho1 < rho_lower_limit) rho1 = rho_lower_limit;
+  else if (rho1 > rho_upper_limit) rho1 = rho_upper_limit ;
   lorenz_generator.lorenz.set_rho1(USAT16(rho1));
 
-  int32_t rho2 = lorenz_generator.get_rho2() + (lorenz_generator.cv_rho2.value() << 6);
-  // int32_t rho2 = lorenz_generator.get_rho2() ;
-  if (rho2 < 24) rho2 = 24;
-  else if (rho2 > 39) rho2 = 39 ;
+  int32_t rho2 = SCALE8_16(lorenz_generator.get_rho2()) + lorenz_generator.cv_rho2.value() ;
+  if (rho2 < rho_lower_limit) rho2 = rho_lower_limit;
+  else if (rho2 > rho_upper_limit) rho2 = rho_upper_limit ;
   lorenz_generator.lorenz.set_rho2(USAT16(rho2));
 
   uint8_t out_c = lorenz_generator.get_out_c() ;
@@ -220,11 +221,17 @@ void LORENZ_menu() {
   UI_DRAW_TITLE(kStartX);
   graphics.setPrintPos(2, 2);
   graphics.print("FREQ1 ");
-  graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ1) + (lorenz_generator.cv_freq1.value() >> 4));
+  int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
+  freq1 = USAT16(freq1);
+  // graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ1) + (lorenz_generator.cv_freq1.value() >> 4));
+  graphics.print(freq1 >> 8);
   graphics.setPrintPos(66, 2);
   graphics.print("FREQ2 ");
-  graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ2) + (lorenz_generator.cv_freq2.value() >> 4));
-  if (lorenz_generator_state.selected_generator) {
+  int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
+  freq2 = USAT16(freq2);
+  // graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ2) + (lorenz_generator.cv_freq2.value() >> 4));
+  graphics.print(freq2 >> 8);
+ if (lorenz_generator_state.selected_generator) {
       graphics.invertRect(66, 0, 127, 10);
   } else {
       graphics.invertRect(2, 0, 64, 10);    
