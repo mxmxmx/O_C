@@ -7,10 +7,6 @@ enum LORENZ_SETTINGS {
   LORENZ_SETTING_FREQ2,
   LORENZ_SETTING_RHO1,
   LORENZ_SETTING_RHO2,
-  LORENZ_SETTING_SIGMA,
-  LORENZ_SETTING_BETA,
-  LORENZ_SETTING_OUT_A,
-  LORENZ_SETTING_OUT_B,
   LORENZ_SETTING_OUT_C,
   LORENZ_SETTING_OUT_D,
   LORENZ_SETTING_LAST
@@ -23,6 +19,21 @@ enum ELorenzOutputMap {
   LORENZ_OUTPUT_X2,
   LORENZ_OUTPUT_Y2,
   LORENZ_OUTPUT_Z2,
+  LORENZ_OUTPUT_X1_PLUS_Y1,
+  LORENZ_OUTPUT_X1_PLUS_Z1,
+  LORENZ_OUTPUT_Y1_PLUS_Z1,
+  LORENZ_OUTPUT_X2_PLUS_Y2,
+  LORENZ_OUTPUT_X2_PLUS_Z2,
+  LORENZ_OUTPUT_Y2_PLUS_Z2,
+  LORENZ_OUTPUT_X1_PLUS_X2,
+  LORENZ_OUTPUT_X1_PLUS_Y2,
+  LORENZ_OUTPUT_X1_PLUS_Z2,
+  LORENZ_OUTPUT_Y1_PLUS_X2,
+  LORENZ_OUTPUT_Y1_PLUS_Y2,
+  LORENZ_OUTPUT_Y1_PLUS_Z2,
+  LORENZ_OUTPUT_Z1_PLUS_X2,
+  LORENZ_OUTPUT_Z1_PLUS_Y2,
+  LORENZ_OUTPUT_Z1_PLUS_Z2,
   LORENZ_OUTPUT_LAST,
 };
 
@@ -33,6 +44,21 @@ const char * const lorenz_output_names[] = {
   "x2",
   "y2",
   "z2",
+  "x1+y1",
+  "x1+z1",
+  "y1+z1",
+  "x2+y2",
+  "x2+z2",
+  "y2+z2",
+  "x1+x2",
+  "x1+y2",
+  "x1+z2",
+  "y1+x2",
+  "y1+y2",
+  "y1+z2",
+  "z1+x2",
+  "z1+y2",
+  "z1+z2",
 };
 
 class LorenzGenerator : public settings::SettingsBase<LorenzGenerator, LORENZ_SETTING_LAST> {
@@ -52,22 +78,6 @@ public:
 
   uint16_t get_rho2() const {
     return values_[LORENZ_SETTING_RHO2];
-  }
-
-  uint16_t get_sigma() const {
-    return values_[LORENZ_SETTING_SIGMA];
-  }
-
-  uint16_t get_beta() const {
-    return values_[LORENZ_SETTING_BETA];
-  }
-
-  uint8_t get_out_a() const {
-    return values_[LORENZ_SETTING_OUT_A];
-  }
-
-  uint8_t get_out_b() const {
-    return values_[LORENZ_SETTING_OUT_B];
   }
 
   uint8_t get_out_c() const {
@@ -113,12 +123,8 @@ void LorenzGenerator::Init() {
 SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
   { 0, 0, 255, "FREQ 1", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "FREQ 2", NULL, settings::STORAGE_TYPE_U8 },
-  { 28, 24, 45, "RHO 1", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
-  { 28, 24, 45, "RHO 2", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
-  { 10, 7, 20, "SIGMA", NULL, settings::STORAGE_TYPE_U8 }, // 10 is sweet spot
-  { 8, 4, 11, "BETA", NULL, settings::STORAGE_TYPE_U8 }, // 8 (/3) is sweet spot
-  {LORENZ_OUTPUT_X1, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outA ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {LORENZ_OUTPUT_Y1, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outB ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  { 28, 24, 39, "RHO 1", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
+  { 28, 24, 39, "RHO 2", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
   {LORENZ_OUTPUT_X2, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outC ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {LORENZ_OUTPUT_Y2, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outD ", lorenz_output_names, settings::STORAGE_TYPE_U8},
 };
@@ -155,23 +161,15 @@ void FASTRUN LORENZ_isr() {
 
   int32_t rho1 = lorenz_generator.get_rho1() + (lorenz_generator.cv_rho1.value() << 6);
   // int32_t rho1 = lorenz_generator.get_rho1() ;
+  if (rho1 < 24) rho1 = 24;
+  else if (rho1 > 39) rho1 = 39 ;
   lorenz_generator.lorenz.set_rho1(USAT16(rho1));
 
   int32_t rho2 = lorenz_generator.get_rho2() + (lorenz_generator.cv_rho2.value() << 6);
   // int32_t rho2 = lorenz_generator.get_rho2() ;
+  if (rho2 < 24) rho2 = 24;
+  else if (rho2 > 39) rho2 = 39 ;
   lorenz_generator.lorenz.set_rho2(USAT16(rho2));
-
-  int32_t sigma = lorenz_generator.get_sigma() ;
-  lorenz_generator.lorenz.set_sigma(USAT16(sigma));
-
-  int32_t beta = lorenz_generator.get_beta() ;
-  lorenz_generator.lorenz.set_beta(USAT16(beta));
-
-  uint8_t out_a = lorenz_generator.get_out_a() ;
-  lorenz_generator.lorenz.set_out_a(out_a);
-
-  uint8_t out_b = lorenz_generator.get_out_b() ;
-  lorenz_generator.lorenz.set_out_b(out_b);
 
   uint8_t out_c = lorenz_generator.get_out_c() ;
   lorenz_generator.lorenz.set_out_c(out_c);

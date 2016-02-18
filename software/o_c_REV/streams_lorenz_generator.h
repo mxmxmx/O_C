@@ -50,28 +50,13 @@ class LorenzGenerator {
     index_ = index;
   }
 
-  inline void set_sigma(uint16_t sigma) {
-    sigma_ = (double)sigma * (1 << 24);
-  }
-
+ 
   inline void set_rho1(uint16_t rho) {
     rho1_ = (double)rho * (1 << 24);
   }
 
   inline void set_rho2(uint16_t rho) {
     rho2_ = (double)rho * (1 << 24);
-  }
-
-  inline void set_beta(uint16_t beta) {
-    beta_ = (double)beta  / 3.0 * (1 << 24);
-  }
-
-  inline void set_out_a(uint8_t out_a) {
-    out_a_ = out_a;
-  }
-
-  inline void set_out_b(uint8_t out_b) {
-    out_b_ = out_b;
   }
 
   inline void set_out_c(uint8_t out_c) {
@@ -92,7 +77,7 @@ class LorenzGenerator {
   int32_t x2_, y2_, z2_;
   int32_t rate2_;
 
-  uint8_t out_a_, out_b_, out_c_, out_d_ ;
+  uint8_t out_c_, out_d_ ;
 
   int64_t sigma_, rho1_, rho2_, beta_ ;
   

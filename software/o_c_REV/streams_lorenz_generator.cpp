@@ -39,14 +39,29 @@ enum ELorenzOutputMap {
   LORENZ_OUTPUT_X2,
   LORENZ_OUTPUT_Y2,
   LORENZ_OUTPUT_Z2,
+  LORENZ_OUTPUT_X1_PLUS_Y1,
+  LORENZ_OUTPUT_X1_PLUS_Z1,
+  LORENZ_OUTPUT_Y1_PLUS_Z1,
+  LORENZ_OUTPUT_X2_PLUS_Y2,
+  LORENZ_OUTPUT_X2_PLUS_Z2,
+  LORENZ_OUTPUT_Y2_PLUS_Z2,
+  LORENZ_OUTPUT_X1_PLUS_X2,
+  LORENZ_OUTPUT_X1_PLUS_Y2,
+  LORENZ_OUTPUT_X1_PLUS_Z2,
+  LORENZ_OUTPUT_Y1_PLUS_X2,
+  LORENZ_OUTPUT_Y1_PLUS_Y2,
+  LORENZ_OUTPUT_Y1_PLUS_Z2,
+  LORENZ_OUTPUT_Z1_PLUS_X2,
+  LORENZ_OUTPUT_Z1_PLUS_Y2,
+  LORENZ_OUTPUT_Z1_PLUS_Z2,
   LORENZ_OUTPUT_LAST,
 };
 
 // using namespace stmlib;
 
-//const int64_t sigma = 10.0 * (1 << 24);
+const int64_t sigma = 10.0 * (1 << 24);
 //const int64_t rho = 28.0 * (1 << 24);
-//const int64_t beta = 8.0 / 3.0 * (1 << 24);
+const int64_t beta = 8.0 / 3.0 * (1 << 24);
 
 void LorenzGenerator::Init() {
   x1_ = 0.1 * (1 << 24);
@@ -71,9 +86,9 @@ void LorenzGenerator::Process(
   if (reset) Init() ; 
 
   int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
-  int32_t x1 = x1_ + (dt1 * ((sigma_ * (y1_ - x1_)) >> 24) >> 24);
+  int32_t x1 = x1_ + (dt1 * ((sigma * (y1_ - x1_)) >> 24) >> 24);
   int32_t y1 = y1_ + (dt1 * ((x1_ * (rho1_ - z1_) >> 24) - y1_) >> 24);
-  int32_t z1 = z1_ + (dt1 * ((x1_ * int64_t(y1_) >> 24) - (beta_ * z1_ >> 24)) >> 24); 
+  int32_t z1 = z1_ + (dt1 * ((x1_ * int64_t(y1_) >> 24) - (beta * z1_ >> 24)) >> 24); 
   x1_ = x1;
   y1_ = y1;
   z1_ = z1; 
@@ -82,9 +97,9 @@ void LorenzGenerator::Process(
   int32_t y1_scaled = (y1 >> 14) + 32769;
 
   int64_t dt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 5);
-  int32_t x2 = x2_ + (dt2 * ((sigma_ * (y2_ - x2_)) >> 24) >> 24);
+  int32_t x2 = x2_ + (dt2 * ((sigma * (y2_ - x2_)) >> 24) >> 24);
   int32_t y2 = y2_ + (dt2 * ((x2_ * (rho2_ - z2_) >> 24) - y2_) >> 24);
-  int32_t z2 = z2_ + (dt2 * ((x2_ * int64_t(y2_) >> 24) - (beta_ * z2_ >> 24)) >> 24); 
+  int32_t z2 = z2_ + (dt2 * ((x2_ * int64_t(y2_) >> 24) - (beta * z2_ >> 24)) >> 24); 
   x2_ = x2;
   y2_ = y2;
   z2_ = z2; 
@@ -92,52 +107,10 @@ void LorenzGenerator::Process(
   int32_t x2_scaled = (x2 >> 14) + 32769;
   int32_t y2_scaled = (y2 >> 14) + 32769;
 
-  switch (out_a_) {
-    case LORENZ_OUTPUT_X1:
-      dac_code_[0] = x1_scaled;
-      break;
-    case LORENZ_OUTPUT_Y1:
-      dac_code_[0] = y1_scaled;
-      break;
-    case LORENZ_OUTPUT_Z1:
-      dac_code_[0] = z1_scaled;
-      break;
-    case LORENZ_OUTPUT_X2:
-      dac_code_[0] = x2_scaled;
-      break;
-    case LORENZ_OUTPUT_Y2:
-      dac_code_[0] = y2_scaled;
-      break;
-    case LORENZ_OUTPUT_Z2:
-      dac_code_[0] = z2_scaled;
-      break;
-    default:
-      break;
-  }
-
-  switch (out_b_) {
-    case LORENZ_OUTPUT_X1:
-      dac_code_[1] = x1_scaled;
-      break;
-    case LORENZ_OUTPUT_Y1:
-      dac_code_[1] = y1_scaled;
-      break;
-    case LORENZ_OUTPUT_Z1:
-      dac_code_[1] = z1_scaled;
-      break;
-    case LORENZ_OUTPUT_X2:
-      dac_code_[1] = x2_scaled;
-      break;
-    case LORENZ_OUTPUT_Y2:
-      dac_code_[1] = y2_scaled;
-      break;
-    case LORENZ_OUTPUT_Z2:
-      dac_code_[1] = z2_scaled;
-      break;
-    default:
-      break;
-  }
-
+ 
+  dac_code_[0] = x1_scaled;
+  dac_code_[1] = y1_scaled;
+  
   switch (out_c_) {
     case LORENZ_OUTPUT_X1:
       dac_code_[2] = x1_scaled;
@@ -157,7 +130,52 @@ void LorenzGenerator::Process(
     case LORENZ_OUTPUT_Z2:
       dac_code_[2] = z2_scaled;
       break;
-    default:
+    case LORENZ_OUTPUT_X1_PLUS_Y1:
+      dac_code_[2] = (x1_scaled + y1_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Z1:
+      dac_code_[2] = (x1_scaled + z1_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_Z1:
+      dac_code_[2] = (y1_scaled + z1_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X2_PLUS_Y2:
+      dac_code_[2] = (x2_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X2_PLUS_Z2:
+      dac_code_[2] = (x2_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y2_PLUS_Z2:
+      dac_code_[2] = (y2_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_X2:
+      dac_code_[2] = (x1_scaled + x2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Y2:
+      dac_code_[2] = (x1_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Z2:
+      dac_code_[2] = (x1_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_X2:
+      dac_code_[2] = (y1_scaled + x2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_Y2:
+      dac_code_[2] = (y1_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_Z2:
+      dac_code_[2] = (y1_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Z1_PLUS_X2:
+      dac_code_[2] = (z1_scaled + x2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Z1_PLUS_Y2:
+      dac_code_[2] = (z1_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Z1_PLUS_Z2:
+      dac_code_[2] = (z1_scaled + z2_scaled) >> 1;
+      break;
+     default:
       break;
   }
 
@@ -179,6 +197,51 @@ void LorenzGenerator::Process(
       break;
     case LORENZ_OUTPUT_Z2:
       dac_code_[3] = z2_scaled;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Y1:
+      dac_code_[3] = (x1_scaled + y1_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Z1:
+      dac_code_[3] = (x1_scaled + z1_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_Z1:
+      dac_code_[3] = (y1_scaled + z1_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X2_PLUS_Y2:
+      dac_code_[3] = (x2_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X2_PLUS_Z2:
+      dac_code_[3] = (x2_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y2_PLUS_Z2:
+      dac_code_[3] = (y2_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_X2:
+      dac_code_[3] = (x1_scaled + x2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Y2:
+      dac_code_[3] = (x1_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_X1_PLUS_Z2:
+      dac_code_[3] = (x1_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_X2:
+      dac_code_[3] = (y1_scaled + x2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_Y2:
+      dac_code_[3] = (y1_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Y1_PLUS_Z2:
+      dac_code_[3] = (y1_scaled + z2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Z1_PLUS_X2:
+      dac_code_[3] = (z1_scaled + x2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Z1_PLUS_Y2:
+      dac_code_[3] = (z1_scaled + y2_scaled) >> 1;
+      break;
+    case LORENZ_OUTPUT_Z1_PLUS_Z2:
+      dac_code_[3] = (z1_scaled + z2_scaled) >> 1;
       break;
     default:
       break;
