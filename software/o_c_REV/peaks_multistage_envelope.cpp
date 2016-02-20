@@ -27,9 +27,7 @@
 // Multistage envelope.
 
 #include "peaks_multistage_envelope.h"
-
 #include "extern/stmlib_utils_dsp.h"
-
 #include "peaks_resources.h"
 
 namespace peaks {
@@ -80,6 +78,42 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
   value_ = a + ((b - a) * (t >> 1) >> 15);
   phase_ += phase_increment_;
   return value_;
+}
+
+size_t MultistageEnvelope::render_preview(int16_t *values, uint32_t *segment_starts) const {
+  size_t points = 0;
+  uint16_t num_segments = num_segments_;
+  int32_t start_value = level_[0];
+  for (uint16_t segment = 0; segment < num_segments; ++segment) {
+    if (sustain_point_ && segment == sustain_point_) {
+      *segment_starts++ = points;
+      size_t width = 16;
+      while (--width) {
+        *values++ = start_value;
+        ++points;
+      }
+    }
+
+    uint32_t width = 1 + (time_[segment]>>11);
+    uint32_t phase = 0;
+    uint32_t phase_increment = (0xff << 24) / width;
+
+    int32_t a = start_value;
+    int32_t b = level_[segment + 1];
+    *segment_starts++ = points;
+    while (width--) {
+      uint16_t t = Interpolate824(
+          lookup_table_table[LUT_ENV_LINEAR + shape_[segment]], phase);
+
+      *values++ = a + ((b - a) * (t >> 1) >> 15);
+      ++points;
+      phase += phase_increment;
+    }
+    start_value = b;
+  }
+
+  *segment_starts = 0xffffffff;
+  return points;
 }
 
 }  // namespace peaks
