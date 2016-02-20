@@ -5,7 +5,7 @@
 #include "OC_storage.h"
 #include "DAC.h"
 #include "util/util_pagestorage.h"
-#include "EEPROMStorage.h"
+#include "util/EEPROMStorage.h"
 
 #define OCTAVES 10      // # octaves
 static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4

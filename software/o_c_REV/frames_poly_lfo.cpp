@@ -122,7 +122,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     int16_t value = Crossfade(a, b, phase, wavetable_index << 4);
     value_[i] = Interpolate824(sine, phase);
     level_[i] = (value + 32768) >> 8;
-    dac_code_[i] = value + 32769; //Keyframer::ConvertToDacCode(value + 32768, 0);
+    dac_code_[i] = value + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     wavetable_index += shape_spread_;
   }
 }

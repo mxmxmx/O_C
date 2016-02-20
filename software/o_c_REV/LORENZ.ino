@@ -135,9 +135,6 @@ struct {
   bool selected_generator;
 } lorenz_generator_state;
 
-
-#define SCALE8_16(x) ((((x + 1) << 16) >> 8) - 1)
-
 void FASTRUN LORENZ_isr() {
 
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();

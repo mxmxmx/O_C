@@ -248,7 +248,7 @@ void Automatonnetz_init() {
 
 size_t Automatonnetz_storageSize() {
   return AutomatonnetzState::storageSize() +
-    GRID_SIZE * TransformCell::storageSize();
+    GRID_SIZE * GRID_SIZE * TransformCell::storageSize();
 }
 
 void AutomatonnetzState::clock(uint32_t triggers) {
