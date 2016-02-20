@@ -90,9 +90,6 @@ struct {
   POLYLFO_SETTINGS left_edit_mode;
 } poly_lfo_state;
 
-
-#define SCALE8_16(x) ((((x + 1) << 16) >> 8) - 1)
-
 void FASTRUN POLYLFO_isr() {
 
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
