@@ -8,6 +8,9 @@
 // peaks::MultistageEnvelope allow setting of more parameters per stage, but
 // that will involve more editing code, so keeping things simple for now
 // with one value per stage.
+//
+// MultistageEnvelope maps times to lut_env_increments directly, so only 256 discrete values (no interpolation)
+// Levels are 0-32767 to be positive on Peaks' bipolar output
 
 enum EEnvelopeSettings {
   ENV_SETTING_TYPE,
@@ -20,9 +23,15 @@ enum EEnvelopeSettings {
 
 enum EEnvelopeType {
   ENV_TYPE_AD,
+  ENV_TYPE_ADSR,
+  ENV_TYPE_ADR,
   ENV_TYPE_AR,
-  ENV_TYPE_ASDR,
-  ENV_TYPE_LAST
+  ENV_TYPE_ADSAR,
+  ENV_TYPE_ADAR,
+  ENV_TYPE_AD_LOOP,
+  ENV_TYPE_ADR_LOOP,
+  ENV_TYPE_ADAR_LOOP,
+  ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
 
 class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
@@ -45,15 +54,21 @@ public:
     switch (get_type()) {
       case ENV_TYPE_AD:
       case ENV_TYPE_AR:
+      case ENV_TYPE_AD_LOOP:
         return 2;
-      case ENV_TYPE_ASDR:
+      case ENV_TYPE_ADR:
+      case ENV_TYPE_ADSR:
+      case ENV_TYPE_ADSAR:
+      case ENV_TYPE_ADAR:
+      case ENV_TYPE_ADR_LOOP:
+      case ENV_TYPE_ADAR_LOOP:
         return 4;
       default: break;
     }
     return 0;
   }
 
-  template <DAC_CHANNEL dac_channel>
+  template <OC::DigitalInput gate_input, DAC_CHANNEL dac_channel>
   void Update() {
     uint16_t s1 = USAT16(SCALE8_16(static_cast<uint32_t>(get_segment_value(0))));
     uint16_t s2 = USAT16(SCALE8_16(static_cast<uint32_t>(get_segment_value(1))));
@@ -63,53 +78,67 @@ public:
     EEnvelopeType type = get_type();
     switch (type) {
       case ENV_TYPE_AD: env_.set_ad(s1, s2); break;
-      case ENV_TYPE_AR: env_.set_ar(s1, s1); break;
-      case ENV_TYPE_ASDR: env_.set_adsr(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_ADSR: env_.set_adsr(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_ADR: env_.set_adr(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_AR: env_.set_ar(s1, s2); break;
+      case ENV_TYPE_ADSAR: env_.set_adsar(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_ADAR: env_.set_adar(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_AD_LOOP: env_.set_ad_loop(s1, s2); break;
+      case ENV_TYPE_ADR_LOOP: env_.set_adr_loop(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_ADAR_LOOP: env_.set_adar_loop(s1, s2, s3>>1, s4); break;
       default:
-        break;
+      break;
     }
+
     if (type != last_type_) {
       last_type_ = type;
+      env_.reset();
       env_.set_hard_reset(true);
     }
 
-/*
-    // Update env if necessary
-    // generate gates
+    uint8_t gate_state = 0;
+    if (OC::DigitalInputs::clocked<gate_input>())
+      gate_state |= peaks::CONTROL_GATE_RISING;
 
-    uint8_t control_flags = 0;
-    uint16_t value = env_.ProcessSingleSample(control_flags);
+    bool gate_raised = OC::DigitalInputs::read_immediate<gate_input>();
+    if (gate_raised)
+      gate_state |= peaks::CONTROL_GATE;
+    else if (gate_raised_)
+      gate_state |= peaks::CONTROL_GATE_FALLING;
+    gate_raised_ = gate_raised;
 
-    // scale range? Offset to 0
+    // TODO Scale range or offset?
+    uint32_t value = OC::calibration_data.octaves[_ZERO] + env_.ProcessSingleSample(gate_state);
     DAC::set<dac_channel>(value);
-*/
   }
 
-  size_t render_preview(int16_t *values, uint32_t *segments) const {
-    return env_.render_preview(values, segments);
+  size_t render_preview(int16_t *values, uint32_t *segments, uint32_t *loops, uint32_t &current_phase) const {
+    return env_.render_preview(values, segments, loops, current_phase);
   }
 
 private:
   peaks::MultistageEnvelope env_;
   EEnvelopeType last_type_;
+  bool gate_raised_;
 };
 
 void EnvelopeGenerator::Init() {
   InitDefaults();
   env_.Init();
   last_type_ = ENV_TYPE_LAST;
+  gate_raised_ = false;
 }
 
 const char* const envelope_types[ENV_TYPE_LAST] = {
-  "AD", "AR", "ADSR"
+  "AD", "ADSR", "ADR", "AR", "ADSAR", "ADAR", "AD_LOOP", "ADR_LOOP", "ADAR_LOOP"
 };
 
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
-  { ENV_TYPE_AD, ENV_TYPE_AD, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "S1T", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "S2T", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "S3T", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "S4T", NULL, settings::STORAGE_TYPE_U16 }
+  { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S2", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 }
 };
 
 class QuadEnvelopeGenerator {
@@ -134,10 +163,10 @@ public:
 
     // Read digital
 
-    envelopes_[0].Update<DAC_CHANNEL_A>();
-    envelopes_[1].Update<DAC_CHANNEL_B>();
-    envelopes_[2].Update<DAC_CHANNEL_C>();
-    envelopes_[3].Update<DAC_CHANNEL_D>();
+    envelopes_[0].Update<OC::DIGITAL_INPUT_1, DAC_CHANNEL_A>();
+    envelopes_[1].Update<OC::DIGITAL_INPUT_2, DAC_CHANNEL_B>();
+    envelopes_[2].Update<OC::DIGITAL_INPUT_3, DAC_CHANNEL_C>();
+    envelopes_[3].Update<OC::DIGITAL_INPUT_4, DAC_CHANNEL_D>();
   }
 
   enum LeftEncoderMode {
@@ -210,6 +239,7 @@ void ENVGEN_loop() {
 
 int16_t preview_values[128];
 uint32_t preview_segments[peaks::kMaxNumSegments];
+uint32_t preview_loops[peaks::kMaxNumSegments];
 
 void ENVGEN_menu() {
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
@@ -240,28 +270,35 @@ void ENVGEN_menu() {
   }
   y += kUiLineH;
 
-  static weegfx::coord_t pt = 0;
+  uint32_t current_phase = 0;
   weegfx::coord_t x = 0;
-  size_t w = env.render_preview(preview_values, preview_segments);
+  size_t w = env.render_preview(preview_values, preview_segments, preview_loops, current_phase);
   int16_t *data = preview_values;
   while (w--) {
-    graphics.setPixel(x++, 61 - (*data++ >> 10));
+    graphics.setPixel(x++, 58 - (*data++ >> 10));
   }
 
   uint32_t *segments = preview_segments;
   while (*segments != 0xffffffff) {
     weegfx::coord_t x = *segments++;
     weegfx::coord_t value = preview_values[x] >> 10;
-    graphics.drawVLine(x, 61 - value, value);
+    graphics.drawVLine(x, 58 - value, value);
+  }
+
+  uint32_t *loops = preview_loops;
+  if (*loops != 0xffffffff) {
+    weegfx::coord_t start = *loops++;
+    weegfx::coord_t end = *loops++;
+    graphics.setPixel(start, 60);
+    graphics.setPixel(end, 60);
+    graphics.drawHLine(start, 61, end - start + 1);
   }
 
   const int selected_segment = envgen.ui.selected_segment;
   graphics.setPrintPos(2 + preview_segments[selected_segment], y);
   graphics.print(env.get_segment_value(selected_segment));
 
-  // test "fps" indicator
-  graphics.drawHLine(0, 63, pt);
-  pt = (pt + 1) & 127;
+  graphics.drawHLine(0, 63, current_phase);
 
   GRAPHICS_END_FRAME();
 }
@@ -311,7 +348,7 @@ bool ENVGEN_encoders() {
       envgen.ui.selected_channel = left_value;
     } else {
       left_value += envgen.ui.left_encoder_value;
-      CONSTRAIN(left_value, ENV_TYPE_AD, ENV_TYPE_LAST - 1);
+      CONSTRAIN(left_value, ENV_TYPE_FIRST, ENV_TYPE_LAST - 1);
       envgen.ui.left_encoder_value = left_value;
     }
     right_value = 0;

@@ -306,9 +306,17 @@ class MultistageEnvelope {
   inline void set_hard_reset(bool hard_reset) {
     hard_reset_ = hard_reset;
   }
+
+  inline void reset() {
+    if (segment_ > num_segments_) {
+      segment_ = 0;
+      phase_ = 0;
+      value_ = 0;
+    }
+  }
  
   // Render preview, max 128 px
-  size_t render_preview(int16_t *values, uint32_t *segment_starts) const;
+  size_t render_preview(int16_t *values, uint32_t *segment_starts, uint32_t *loops, uint32_t &current_phase) const;
 
  private:
   int16_t level_[kMaxNumSegments];

@@ -80,11 +80,22 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
   return value_;
 }
 
-size_t MultistageEnvelope::render_preview(int16_t *values, uint32_t *segment_starts) const {
+size_t MultistageEnvelope::render_preview(
+    int16_t *values,
+    uint32_t *segment_starts,
+    uint32_t *loops,
+    uint32_t &current_phase) const {
   size_t points = 0;
   uint16_t num_segments = num_segments_;
   int32_t start_value = level_[0];
+  bool loop_end = true;
   for (uint16_t segment = 0; segment < num_segments; ++segment) {
+
+    if (loop_end_ && segment == loop_start_) {
+      *loops++ = points;
+      loop_end = false;
+    }
+
     if (sustain_point_ && segment == sustain_point_) {
       *segment_starts++ = points;
       size_t width = 16;
@@ -98,6 +109,10 @@ size_t MultistageEnvelope::render_preview(int16_t *values, uint32_t *segment_sta
     uint32_t phase = 0;
     uint32_t phase_increment = (0xff << 24) / width;
 
+    if (segment == segment_) {
+      current_phase = points + ((phase_ >> 24) * width / 256);
+    }
+
     int32_t a = start_value;
     int32_t b = level_[segment + 1];
     *segment_starts++ = points;
@@ -110,9 +125,16 @@ size_t MultistageEnvelope::render_preview(int16_t *values, uint32_t *segment_sta
       phase += phase_increment;
     }
     start_value = b;
+    if (loop_end_ && segment == loop_end_) {
+      *loops++ = points;
+      loop_end = true;
+    }
   }
+  if (!loop_end)
+    *loops++ = points;
 
   *segment_starts = 0xffffffff;
+  *loops = 0xffffffff;
   return points;
 }
 
