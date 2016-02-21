@@ -28,6 +28,7 @@
 
 #include "OC_apps.h"
 #include "OC_config.h"
+#include "OC_debug.h"
 #include "OC_gpio.h"
 #include "OC_ADC.h"
 #include "OC_calibration.h"
@@ -102,8 +103,11 @@ IntervalTimer CORE_timer;
 uint32_t ENC_timer_counter = 0;
 volatile bool CORE_app_isr_enabled = false;
 
+SmoothedValue<uint32_t, 16> OC::CORE_ISR_cycles;
+
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
+  debug::CycleMeasurement cycles;
 
   if (display_driver.Flush())
     frame_buffer.read();
@@ -134,6 +138,8 @@ void FASTRUN CORE_timer_ISR() {
 
   if (CORE_app_isr_enabled)
     OC::APPS::ISR();
+
+  OC::CORE_ISR_cycles.push(cycles.read());
 }
 
 /*       ---------------------------------------------------------         */
@@ -198,11 +204,8 @@ void FASTRUN loop() {
 
   while (1) {
     // don't change current_app while it's running
-    if (SELECT_APP) {
-      CORE_app_isr_enabled = false;
+    if (SELECT_APP)
       OC::APPS::Select();
-      CORE_app_isr_enabled = true;
-    }
 
     // Refresh display
     if (MENU_REDRAW) {

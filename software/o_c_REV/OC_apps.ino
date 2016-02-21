@@ -112,7 +112,7 @@ void save_app_data() {
 }
 
 void restore_app_data() {
-  serial_printf("Restoring app data...\n");
+  serial_printf("Restoring app data from page_index %d, used=%u\n", app_data_storage.page_index(), app_settings.used);
 
   const char *data = app_settings.data;
   const char *data_end = data + app_settings.used;
@@ -283,6 +283,9 @@ void OC::APPS::Select() {
     }
   }
 
+  CORE_app_isr_enabled = false;
+  delay(1);
+
   set_current_app(selected);
   if (save) {
     save_global_settings();
@@ -301,4 +304,6 @@ void OC::APPS::Select() {
   SELECT_APP = false;
   MENU_REDRAW = 1;
   _UI_TIMESTAMP = millis();
+
+  CORE_app_isr_enabled = true;
 }
