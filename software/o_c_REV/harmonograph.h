@@ -38,7 +38,7 @@
 
 namespace streams {
 
-const size_t kNumChannels = 4;
+const size_t kNumHgChannels = 4;
 
 class HarmonoGraph {
  public:
@@ -77,11 +77,11 @@ class HarmonoGraph {
   }
 
  private:
-  double t_, p1_, f1_, d1_ ;
+  double t_, p1_, f1_, d1_, p2_, f2_, d2_ ;
   int32_t rate_;
 
   // O+C
-  uint16_t dac_code_[kNumChannels];
+  uint16_t dac_code_[kNumHgChannels];
  
   uint8_t index_;
   

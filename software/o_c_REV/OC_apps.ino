@@ -24,8 +24,8 @@ OC::App available_apps[] = {
   DECLARE_APP('Q','Q', "VierfStSpQuaMo", QQ, QQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
-  DECLARE_APP('E','G', "Twice Piqued", ENVGEN, ENVGEN_isr)
-  DECLARE_APP('H','G', "a monograph", HARMONOGRAPH, HARMONOGRAPH_isr)
+  DECLARE_APP('E','G', "Twice Piqued", ENVGEN, ENVGEN_isr),
+  DECLARE_APP('H','G', "a monograph", HARMONOGRAPH, HARMONOGRAPH_isr),
 };
 
 static constexpr int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);

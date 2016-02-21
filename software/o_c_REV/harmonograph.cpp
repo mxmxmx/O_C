@@ -68,12 +68,13 @@ void HarmonoGraph::Process(
   double xt = exp(-d1_ * t_) * sin(t_ * f1_ + p1_) + exp(-d2_ * t_) * sin(t_ * f2_ + p2_) ;
   
   // range will be about -2.0 to 2.0
-  xt *= (float)(1 << 14);
+  xt *= (double)(1 << 14);
 
-  dac_code_[0] = xt;
-  dac_code_[1] = xt;
-  dac_code_[2] = xt;
-  dac_code_[3] = xt;
+  uint16_t xt_int = static_cast<uint16_t>(xt) ;
+  dac_code_[0] = xt_int;
+  dac_code_[1] = xt_int;
+  dac_code_[2] = xt_int;
+  dac_code_[3] = xt_int;
 
 }
 
