@@ -45,11 +45,13 @@ namespace streams {
 //  yt = function(t) exp(-d[3]*t)*sin(t*f[3]+p[3])+exp(-d[4]*t)*sin(t*f[4]+p[4])
 
 void HarmonoGraph::Init() {
-  t_ = 0 ;
-  
-  d1_ = 0.1 * (1 << 24);
-  f1_ = 0;
-  p1_ = 0;
+  t_ = 0.0 ;
+  d1_ = 0.007919166 ;
+  d2_ = 0.009562618 ;
+  f1_ = 1.980494 ;
+  f2_ = 3.000783 ;
+  p1_ = 0.5672615 ;
+  p2_ = 1.599879 ;
 }
 
 void HarmonoGraph::Process(
@@ -61,9 +63,12 @@ void HarmonoGraph::Process(
 
   if (reset) Init() ; 
 
-  int64_t dt = static_cast<int64_t>(lut_lorenz_rate[rate] >> 5);
+  double dt = static_cast<double>(lut_lorenz_rate[rate]) / 335544000.0 ;
   t_ += dt ;
-  float_t xt = exp(-d1_ * t_) * sin(t_ * f1_ + p1_) + exp(-d2_ * t_) * sin(t_ * f2_ + p2_) ;
+  double xt = exp(-d1_ * t_) * sin(t_ * f1_ + p1_) + exp(-d2_ * t_) * sin(t_ * f2_ + p2_) ;
+  
+  // range will be about -2.0 to 2.0
+  xt *= (float)(1 << 14);
 
   dac_code_[0] = xt;
   dac_code_[1] = xt;

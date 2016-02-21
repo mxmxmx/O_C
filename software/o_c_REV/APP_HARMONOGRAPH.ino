@@ -3,7 +3,7 @@
 #include "OC_digital_inputs.h"
 
 enum HARMONOGRAPH_SETTINGS {
-  HARMONOGRAPH_SETTING_FREQ1,
+  HARMONOGRAPH_SETTING_FREQ,
   HARMONOGRAPH_SETTING_FREQ2,
   HARMONOGRAPH_SETTING_RHO1,
   HARMONOGRAPH_SETTING_RHO2,
@@ -16,8 +16,8 @@ enum HARMONOGRAPH_SETTINGS {
 class HarmonoGraph : public settings::SettingsBase<HarmonoGraph, HARMONOGRAPH_SETTING_LAST> {
 public:
 
-  uint16_t get_freq1() const {
-    return values_[HARMONOGRAPH_SETTING_FREQ1];
+  uint16_t get_freq() const {
+    return values_[HARMONOGRAPH_SETTING_FREQ];
   }
 
   uint16_t get_freq2() const {
@@ -60,7 +60,7 @@ public:
   // ISR update is at 16.666kHz, we don't need it that fast so smooth the values to ~1Khz
   static constexpr int32_t kSmoothing = 16;
 
-  SmoothedValue<int32_t, kSmoothing> cv_freq1;
+  SmoothedValue<int32_t, kSmoothing> cv_freq;
   SmoothedValue<int32_t, kSmoothing> cv_freq2;
   SmoothedValue<int32_t, kSmoothing> cv_rho1;
   SmoothedValue<int32_t, kSmoothing> cv_rho2;
@@ -73,7 +73,7 @@ void HarmonoGraph::Init() {
 }
 
 SETTINGS_DECLARE(HarmonoGraph, HARMONOGRAPH_SETTING_LAST) {
-  { 0, 0, 255, "FREQ 1", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "FREQ", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "FREQ 2", NULL, settings::STORAGE_TYPE_U8 },
   { 28, 24, 39, "RHO 1", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
   { 28, 24, 39, "RHO 2", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
@@ -95,16 +95,16 @@ void FASTRUN HARMONOGRAPH_isr() {
   // bool reset_phase2 = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>();
   //bool freeze2 = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>();
 
-  lorenz_generator.cv_freq1.push(OC::ADC::value<ADC_CHANNEL_1>());
-  lorenz_generator.cv_rho1.push(OC::ADC::value<ADC_CHANNEL_2>());
-  lorenz_generator.cv_freq2.push(OC::ADC::value<ADC_CHANNEL_3>());
-  lorenz_generator.cv_rho2.push(OC::ADC::value<ADC_CHANNEL_4>());
+  harmono_graph.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
+  harmono_graph..cv_rho1.push(OC::ADC::value<ADC_CHANNEL_2>());
+  harmono_graph..cv_freq2.push(OC::ADC::value<ADC_CHANNEL_3>());
+  harmono_graph..cv_rho2.push(OC::ADC::value<ADC_CHANNEL_4>());
 
   // Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
 
-  int32_t freq1 = SCALE8_16(harmono_graph.get_freq1()) + (harmono_graph.cv_freq1.value() * 16);
-  freq1 = USAT16(freq1);
+  int32_t freq = SCALE8_16(harmono_graph.get_freq()) + (harmono_graph.cv_freq.value() * 16);
+  freq = USAT16(freq);
 
   int32_t freq2 = SCALE8_16(harmono_graph.get_freq2()) + (harmono_graph.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
@@ -115,21 +115,21 @@ void FASTRUN HARMONOGRAPH_isr() {
   int32_t rho1 = SCALE8_16(harmono_graph.get_rho1()) + harmono_graph.cv_rho1.value() ;
   if (rho1 < rho_lower_limit) rho1 = rho_lower_limit;
   else if (rho1 > rho_upper_limit) rho1 = rho_upper_limit ;
-  harmono_graph.harmonograph.set_rho1(USAT16(rho1));
+  // harmono_graph.harmonograph.set_rho1(USAT16(rho1));
 
   int32_t rho2 = SCALE8_16(harmono_graph.get_rho2()) + harmono_graph.cv_rho2.value() ;
   if (rho2 < rho_lower_limit) rho2 = rho_lower_limit;
   else if (rho2 > rho_upper_limit) rho2 = rho_upper_limit ;
-  harmono_graph.harmonograph.set_rho2(USAT16(rho2));
+  // harmono_graph.harmonograph.set_rho2(USAT16(rho2));
 
   uint8_t out_c = harmono_graph.get_out_c() ;
-  harmono_graph.harmonograph.set_out_c(out_c);
+  // harmono_graph.harmonograph.set_out_c(out_c);
 
   uint8_t out_d = harmono_graph.get_out_d() ;
-  harmono_graph.harmonograph.set_out_d(out_d);
+  // harmono_graph.harmonograph.set_out_d(out_d);
 
   if (!freeze && !harmono_graph.frozen())
-    harmono_graph.harmonograph.Process(freq1, freq2, reset_phase);
+    harmono_graph.harmonograph.Process(freq, reset_phase);
 
   DAC::set<DAC_CHANNEL_A>(harmono_graph.harmonograph.dac_code(0));
   DAC::set<DAC_CHANNEL_B>(harmono_graph.harmonograph.dac_code(1));
@@ -144,19 +144,19 @@ void LORENZ_init() {
 
 // Up to here.
 
-size_t LORENZ_storageSize() {
-  return LorenzGenerator::storageSize();
+size_t HARMONOGRAPH_storageSize() {
+  return HarmonoGraph::storageSize();
 }
 
-size_t LORENZ_save(void *storage) {
-  return lorenz_generator.Save(storage);
+size_t HARMONOGRAPH_save(void *storage) {
+  return harmono_graph.Save(storage);
 }
 
-size_t LORENZ_restore(const void *storage) {
-  return lorenz_generator.Restore(storage);
+size_t HARMONOGRAPH_restore(const void *storage) {
+  return harmono_graph.Restore(storage);
 }
 
-void LORENZ_loop() {
+void HARMONOGRAPH_loop() {
   if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
   buttons(BUTTON_TOP);
   buttons(BUTTON_BOTTOM);
@@ -164,7 +164,7 @@ void LORENZ_loop() {
   buttons(BUTTON_RIGHT);
 }
 
-void LORENZ_menu() {
+void HARMONOGRAPH_menu() {
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
   graphics.setFont(UI_DEFAULT_FONT);
@@ -172,70 +172,40 @@ void LORENZ_menu() {
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);
   graphics.setPrintPos(2, 2);
-  graphics.print("FREQ1 ");
-  int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
-  freq1 = USAT16(freq1);
-  // graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ1) + (lorenz_generator.cv_freq1.value() >> 4));
-  graphics.print(freq1 >> 8);
-  graphics.setPrintPos(66, 2);
-  graphics.print("FREQ2 ");
-  int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
-  freq2 = USAT16(freq2);
-  // graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ2) + (lorenz_generator.cv_freq2.value() >> 4));
-  graphics.print(freq2 >> 8);
- if (lorenz_generator_state.selected_generator) {
-      graphics.invertRect(66, 0, 127, 10);
-  } else {
-      graphics.invertRect(2, 0, 64, 10);    
-  }
-  
+  graphics.print("FREQ ");
+  int32_t freq = SCALE8_16(harmono_graph.get_freq1()) + (harmono_graph.cv_freq1.value() * 16);
+  freq1 = USAT16(freq);
+  graphics.print(freq >> 8);
 
-  int first_visible_param = LORENZ_SETTING_RHO1; 
+  int first_visible_param = HARMONOGRAPH_SETTING_RHO1; 
 
   UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, lorenz_generator_state.selected_param, 0)
-    const settings::value_attr &attr = LorenzGenerator::value_attr(current_item);
-    UI_DRAW_SETTING(attr, lorenz_generator.get_value(current_item), kUiWideMenuCol1X);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, harmono_graph_state.selected_param, 0)
+    const settings::value_attr &attr = HarmonoGraph::value_attr(current_item);
+    UI_DRAW_SETTING(attr, harmono_graph.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
 
   GRAPHICS_END_FRAME();
 }
 
-// static const size_t kLargePreviewBufferSize = 64;
-// uint16_t large_preview_buffer[kLargePreviewBufferSize];
 
-// weegfx::coord_t scanner = 0;
-// unsigned scanner_millis = 0;
-// static const unsigned SCANNER_RATE = 200;
-
-void LORENZ_screensaver() {
+void HARMONOGRAPH_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
 
-//  uint16_t shape = poly_lfo.get_value(POLYLFO_SETTING_SHAPE) << 8;
-//  poly_lfo.lfo.RenderPreview(shape, large_preview_buffer, kLargePreviewBufferSize);
-//  for (weegfx::coord_t x = 0; x < 128; ++x) {
-//    graphics.setPixel(x, 32 - (large_preview_buffer[(x + scanner) & 63] >> 11));
-//  }
-//  if (millis() - scanner_millis > SCANNER_RATE) {
-//    ++scanner;
-//    scanner_millis = millis();
-//  }
-
-// lorenz_scope_render();
 scope_render();
 
   GRAPHICS_END_FRAME();
 }
 
-void LORENZ_handleEvent(OC::AppEvent event) {
+void HARMONOGRAPH_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      if (lorenz_generator_state.selected_generator) {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));    
+      if (harmono_graph_state.selected_generator) {
+        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2));    
       } else {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+        encoder[LEFT].setPos(harmono_graph.get_value(HARMONO_SETTING_FREQ));
       }
-      encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
+      encoder[RIGHT].setPos(harmono_graph.get_value(harmono_graph_state.selected_param));
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -243,69 +213,69 @@ void LORENZ_handleEvent(OC::AppEvent event) {
   }
 }
 
-void LORENZ_topButton() {
-//  lorenz_generator.change_value(LORENZ_SETTING_FREQ, 32);
-//  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
-  lorenz_generator.lorenz.Init();
+void HARMONOGRAPH_topButton() {
+//  lorenz_generator.change_value(HARMONOGRAPH_SETTING_FREQ, 32);
+//  encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
+  harmono_graph.harmonograph.Init();
 }
 
-void LORENZ_lowerButton() {
-//  lorenz_generator.change_value(LORENZ_SETTING_FREQ, -32);
-//  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
+void HARMONOGRAPH_lowerButton() {
+//  lorenz_generator.change_value(HARMONOGRAPH_SETTING_FREQ, -32);
+//  encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
 }
 
-void LORENZ_rightButton() {
-  ++lorenz_generator_state.selected_param;
-  if (lorenz_generator_state.selected_param >= LORENZ_SETTING_LAST)
-    lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
-  encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
+void HARMONOGRAPH_rightButton() {
+  ++harmono_graph_state.selected_param;
+  if (harmono_graph_state.selected_param >= HARMONOGRAPH_SETTING_LAST)
+    harmono_graph_state.selected_param = HARMONOGRAPH_SETTING_RHO1;
+  encoder[RIGHT].setPos(harmono_graph.get_value(harmono_graph_state.selected_param));
 }
 
-void LORENZ_leftButton() {
-  lorenz_generator_state.selected_generator = !lorenz_generator_state.selected_generator;
-  if (lorenz_generator_state.selected_generator) {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+void HARMONOGRAPH_leftButton() {
+  harmono_graph_state.selected_generator = !harmono_graph_state.selected_generator;
+  if (harmono_graph_state.selected_generator) {
+        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2));
   } else {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
   }
 
 }
 
-void LORENZ_leftButtonLong() {
+void HARMONOGRAPH_leftButtonLong() {
 }
 
-bool LORENZ_encoders() {
+bool HARMONOGRAPH_encoders() {
   bool changed = false;
   int value = encoder[LEFT].pos();
-  if (lorenz_generator_state.selected_generator) {
-    if (value != lorenz_generator.get_value(LORENZ_SETTING_FREQ2)) {
-      lorenz_generator.apply_value(LORENZ_SETTING_FREQ2, value);
-      encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+  if (harmono_graph_state.selected_generator) {
+    if (value != harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2)) {
+      harmono_graph.apply_value(HARMONOGRAPH_SETTING_FREQ2, value);
+      encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2));
       changed = true;
     }
   } else {
-    if (value != lorenz_generator.get_value(LORENZ_SETTING_FREQ1)) {
-      lorenz_generator.apply_value(LORENZ_SETTING_FREQ1, value);
-      encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+    if (value != harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ)) {
+      harmono_graph.apply_value(HARMONOGRAPH_SETTING_FREQ, value);
+      encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
       changed = true;
     }
   }
 
   value = encoder[RIGHT].pos();
-  if (value != lorenz_generator.get_value(lorenz_generator_state.selected_param)) {
-    lorenz_generator.apply_value(lorenz_generator_state.selected_param, value);
-    encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
+  if (value != harmono_graph.get_value(harmono_graph_state.selected_param)) {
+    harmono_graph.apply_value(harmono_graph_state.selected_param, value);
+    encoder[RIGHT].setPos(harmono_graph.get_value(lorenz_generator_state.selected_param));
     changed = true;
   }
 
   return changed;
 }
 
-void LORENZ_debug() {
+void HARMONOGRAPH_debug() {
   graphics.setPrintPos(2, 12);
-  graphics.print(lorenz_generator.cv_freq1.value());
+  graphics.print(harmono_graph.cv_freq.value());
   graphics.print(" ");
-  int32_t value = SCALE8_16(lorenz_generator.get_freq1());
+  int32_t value = SCALE8_16(harmono_graph.get_freq());
   graphics.print(value);
 //  graphics.print(" ");
 //  graphics.print(lorenz_generator.cv_shape.value() * 16);

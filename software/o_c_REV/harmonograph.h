@@ -54,30 +54,30 @@ class HarmonoGraph {
   }
 
  
-  inline void set_rho1(int16_t rho) {
-    // rho1_ = (double)rho * (1 << 24);
-    rho1_ = (double)rho * (1 << 16);
-  }
-
-  inline void set_rho2(int16_t rho) {
-    // rho2_ = (double)rho * (1 << 24);
-    rho2_ = (double)rho * (1 << 16);
-  }
-
-  inline void set_out_c(uint8_t out_c) {
-    out_c_ = out_c;
-  }
-
-  inline void set_out_d(uint8_t out_d) {
-    out_d_ = out_d;
-  }
+//   inline void set_rho1(int16_t rho) {
+//     // rho1_ = (double)rho * (1 << 24);
+//     rho1_ = (double)rho * (1 << 16);
+//   }
+// 
+//   inline void set_rho2(int16_t rho) {
+//     // rho2_ = (double)rho * (1 << 24);
+//     rho2_ = (double)rho * (1 << 16);
+//   }
+// 
+//   inline void set_out_c(uint8_t out_c) {
+//     out_c_ = out_c;
+//   }
+// 
+//   inline void set_out_d(uint8_t out_d) {
+//     out_d_ = out_d;
+//   }
  
  inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
 
  private:
-  double p1_, f1_, d1_ ;
+  double t_, p1_, f1_, d1_ ;
   int32_t rate_;
 
   // O+C
