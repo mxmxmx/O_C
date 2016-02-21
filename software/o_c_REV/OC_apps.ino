@@ -77,7 +77,7 @@ void save_global_settings() {
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
 
   global_settings_storage.Save(global_settings);
-  serial_printf("page_index       : %u\n", global_settings_storage.page_index());
+  serial_printf("Saved global settings in page_index %d\n", global_settings_storage.page_index());
 }
 
 void save_app_data() {
@@ -100,15 +100,15 @@ void save_app_data() {
       header->id = app.id;
       header->length = storage_size;
       size_t used = app.Save(header + 1);
-      serial_printf("%s (%x) : Saved %u bytes... (%u)\n", app.name, app.id, used, storage_size);
+      serial_printf("* %s (%x) : Saved %u bytes... (%u)\n", app.name, app.id, used, storage_size);
 
-      app_settings.used += used;
+      app_settings.used += header->length;
       data += header->length;
     }
   }
   serial_printf("App settings used: %u\n", app_settings.used);
   app_data_storage.Save(app_settings);
-  serial_printf("page_index       : %u\n", app_data_storage.page_index());
+  serial_printf("Saved app settings in page_index %d\n", app_data_storage.page_index());
 }
 
 void restore_app_data() {
@@ -121,7 +121,7 @@ void restore_app_data() {
   while (data < data_end) {
     const OC::AppChunkHeader *header = reinterpret_cast<const OC::AppChunkHeader *>(data);
     if (data + header->length > data_end) {
-      serial_printf("Uh oh, app chunk header length %u exceeds available data...\n", header->length);
+      serial_printf("Uh oh, app chunk header length %u exceeds available data left (%u)\n", header->length, data_end - data);
       break;
     }
 
@@ -135,17 +135,17 @@ void restore_app_data() {
     }
     const size_t len = header->length - sizeof(OC::AppChunkHeader);
     if (len != app->storageSize()) {
-      serial_printf("%s (%x): header size %u != storage size %u, skipping...\n", app->name, header->id, len, app->storageSize());
+      serial_printf("* %s (%x): header size %u != storage size %u, skipping...\n", app->name, header->id, len, app->storageSize());
       data += header->length;
       continue;
     }
 
     size_t used = 0;
     if (app->Restore) {
-      serial_printf("%s (%x): Restoring from %u bytes...\n", app->name, header->id, header->length);
       used = app->Restore(header + 1);
+      serial_printf("* %s (%x): Restored %u from %u bytes...\n", app->name, header->id, used, header->length);
     }
-    restored_bytes += used;
+    restored_bytes += header->length;
     data += header->length;
   }
 
@@ -203,10 +203,12 @@ void OC::APPS::Init() {
                   OC::GlobalSettingsStorage::PAGES);
 
     if (!global_settings_storage.Load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
-      serial_printf("Settings not loaded or invalid, using defaults... (index=%u, APP_COUNT=%u)\n", global_settings.current_app_index, APP_COUNT);
+      serial_printf("Settings not loaded or invalid, using defaults... (index=%u, APP_COUNT=%u)\n",
+                    global_settings.current_app_index, APP_COUNT);
       global_settings.current_app_index = DEFAULT_APP_INDEX;
     } else {
-      serial_printf("Loaded settings, current_app_index is %d\n", global_settings.current_app_index);
+      serial_printf("Loaded settings from page_index %d, current_app_index is %d\n",
+                    global_settings_storage.page_index(),global_settings.current_app_index);
       memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
     }
 

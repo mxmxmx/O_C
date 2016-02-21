@@ -23,8 +23,9 @@
 
 #include "util_misc.h"
 
+//#define DEBUG_STORAGE
 #ifdef DEBUG_STORAGE
-#define STORAGE_PRINTF(...) serial_printf(##__VA_ARGS__)
+#define STORAGE_PRINTF(fmt, ...) serial_printf(fmt, ##__VA_ARGS__)
 #else
 #define STORAGE_PRINTF(...)
 #endif
@@ -119,18 +120,21 @@ public:
       STORAGE::read(BASE_ADDR + i * PAGESIZE, &next_page, sizeof(next_page));
 
       STORAGE_PRINTF("[%u]\n", BASE_ADDR + i * PAGESIZE);
-      STORAGE_PRINTF("FOURCC:%u (%u)\n", next_page.header.fourcc, DATA_TYPE::FOURCC);
+      STORAGE_PRINTF("FOURCC:%x (%x)\n", next_page.header.fourcc, DATA_TYPE::FOURCC);
       STORAGE_PRINTF("size  :%u (%u)\n", next_page.header.size, sizeof(DATA_TYPE));
-      STORAGE_PRINTF("gen   :%u (%u)\n", next_page.header.generation, next_page.header.generation + 1);
+      STORAGE_PRINTF("gen   :%u (%u)\n", next_page.header.generation, page_.header.generation);
 
       if ((DATA_TYPE::FOURCC != next_page.header.fourcc) ||
           (sizeof(DATA_TYPE) != next_page.header.size) ||
           (next_page.header.checksum != checksum(next_page)) ||
-          (next_page.header.generation != page_.header.generation + 1)) {
-        if (FASTSCAN)
+          (next_page.header.generation < page_.header.generation && page_.header.generation != -1)) {
+        if (FASTSCAN) {
+          STORAGE_PRINTF("Aborting scan at page %d\n", i);
           break;
-        else
+        } else {
+          STORAGE_PRINTF("Ignoring page %d\n", i);
           continue;
+        }
       }
 
       page_index_ = i;
