@@ -178,9 +178,8 @@ void setup() {
   display_driver.Init();
   graphics.Init();
  
-  // TODO This automatically invokes current_app->isr so it might be necessary
-  // to have an "enabled" flag, or at least set current_app to nullptr during
-  // load/save/app selection
+  GRAPHICS_BEGIN_FRAME(true);
+  GRAPHICS_END_FRAME();
 
   CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
 
