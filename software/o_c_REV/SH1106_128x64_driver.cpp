@@ -14,7 +14,7 @@ static DMAChannel page_dma;
 /*static*/ uint8_t SH1106_128x64_Driver::data_start_seq[] = {
 // u8g_dev_ssd1306_128x64_data_start
   0x10, /* set upper 4 bit of the col adr to 0 */
-  0x00, /* set lower 4 bit of the col adr to 0 */
+  0x02, /* set lower 4 bit of the col adr to 0 */
   0x00  /* 0xb0 | page */  
 };
 

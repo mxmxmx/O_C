@@ -57,6 +57,7 @@ void HarmonoGraph::Init() {
 void HarmonoGraph::Process(
     int32_t freq,
     bool reset) {
+  
   int32_t rate = rate_ + (freq >> 8);
   if (rate < 0) rate = 0;
   if (rate > 255) rate = 255;
@@ -68,9 +69,11 @@ void HarmonoGraph::Process(
   double xt = exp(-d1_ * t_) * sin(t_ * f1_ + p1_) + exp(-d2_ * t_) * sin(t_ * f2_ + p2_) ;
   
   // range will be about -2.0 to 2.0
-  xt *= (double)(1 << 14);
-
+  xt = (xt + 2.0) * (double)(1 << 14);
+  
   uint16_t xt_int = static_cast<uint16_t>(xt) ;
+  
+  // uint16_t xt_int = 0 ;
   dac_code_[0] = xt_int;
   dac_code_[1] = xt_int;
   dac_code_[2] = xt_int;

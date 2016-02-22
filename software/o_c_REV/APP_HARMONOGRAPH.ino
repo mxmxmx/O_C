@@ -4,11 +4,6 @@
 
 enum HARMONOGRAPH_SETTINGS {
   HARMONOGRAPH_SETTING_FREQ,
-  HARMONOGRAPH_SETTING_FREQ2,
-  HARMONOGRAPH_SETTING_RHO1,
-  HARMONOGRAPH_SETTING_RHO2,
-  HARMONOGRAPH_SETTING_OUT_C,
-  HARMONOGRAPH_SETTING_OUT_D,
   HARMONOGRAPH_SETTING_LAST
 };
 
@@ -20,25 +15,6 @@ public:
     return values_[HARMONOGRAPH_SETTING_FREQ];
   }
 
-  uint16_t get_freq2() const {
-    return values_[HARMONOGRAPH_SETTING_FREQ2];
-  }
-
-  uint16_t get_rho1() const {
-    return values_[HARMONOGRAPH_SETTING_RHO1];
-  }
-
-  uint16_t get_rho2() const {
-    return values_[HARMONOGRAPH_SETTING_RHO2];
-  }
-
-  uint8_t get_out_c() const {
-    return values_[HARMONOGRAPH_SETTING_OUT_C];
-  }
-
-  uint8_t get_out_d() const {
-    return values_[HARMONOGRAPH_SETTING_OUT_D];
-  }
 
   void Init();
 
@@ -61,9 +37,9 @@ public:
   static constexpr int32_t kSmoothing = 16;
 
   SmoothedValue<int32_t, kSmoothing> cv_freq;
-  SmoothedValue<int32_t, kSmoothing> cv_freq2;
-  SmoothedValue<int32_t, kSmoothing> cv_rho1;
-  SmoothedValue<int32_t, kSmoothing> cv_rho2;
+  // SmoothedValue<int32_t, kSmoothing> cv_freq2;
+  // SmoothedValue<int32_t, kSmoothing> cv_rho1;
+  // SmoothedValue<int32_t, kSmoothing> cv_rho2;
 };
 
 void HarmonoGraph::Init() {
@@ -74,15 +50,11 @@ void HarmonoGraph::Init() {
 
 SETTINGS_DECLARE(HarmonoGraph, HARMONOGRAPH_SETTING_LAST) {
   { 0, 0, 255, "FREQ", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 255, "FREQ 2", NULL, settings::STORAGE_TYPE_U8 },
-  { 28, 24, 39, "RHO 1", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
-  { 28, 24, 39, "RHO 2", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
 };
 
 HarmonoGraph harmono_graph;
 struct {
   int selected_param;
-  bool selected_generator;
 } harmono_graph_state;
 
 
@@ -96,9 +68,9 @@ void FASTRUN HARMONOGRAPH_isr() {
   //bool freeze2 = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>();
 
   harmono_graph.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
-  harmono_graph.cv_rho1.push(OC::ADC::value<ADC_CHANNEL_2>());
-  harmono_graph.cv_freq2.push(OC::ADC::value<ADC_CHANNEL_3>());
-  harmono_graph.cv_rho2.push(OC::ADC::value<ADC_CHANNEL_4>());
+  // harmono_graph.cv_rho1.push(OC::ADC::value<ADC_CHANNEL_2>());
+  // harmono_graph.cv_freq2.push(OC::ADC::value<ADC_CHANNEL_3>());
+  // harmono_graph.cv_rho2.push(OC::ADC::value<ADC_CHANNEL_4>());
 
   // Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
@@ -106,27 +78,6 @@ void FASTRUN HARMONOGRAPH_isr() {
   int32_t freq = SCALE8_16(harmono_graph.get_freq()) + (harmono_graph.cv_freq.value() * 16);
   freq = USAT16(freq);
 
-  int32_t freq2 = SCALE8_16(harmono_graph.get_freq2()) + (harmono_graph.cv_freq2.value() * 16);
-  freq2 = USAT16(freq2);
-
-  const int32_t rho_lower_limit = 24 << 8 ;
-  const int32_t rho_upper_limit = 39 << 8 ;
-
-  int32_t rho1 = SCALE8_16(harmono_graph.get_rho1()) + harmono_graph.cv_rho1.value() ;
-  if (rho1 < rho_lower_limit) rho1 = rho_lower_limit;
-  else if (rho1 > rho_upper_limit) rho1 = rho_upper_limit ;
-  // harmono_graph.harmonograph.set_rho1(USAT16(rho1));
-
-  int32_t rho2 = SCALE8_16(harmono_graph.get_rho2()) + harmono_graph.cv_rho2.value() ;
-  if (rho2 < rho_lower_limit) rho2 = rho_lower_limit;
-  else if (rho2 > rho_upper_limit) rho2 = rho_upper_limit ;
-  // harmono_graph.harmonograph.set_rho2(USAT16(rho2));
-
-  // uint8_t out_c = harmono_graph.get_out_c() ;
-  // harmono_graph.harmonograph.set_out_c(out_c);
-
-  // uint8_t out_d = harmono_graph.get_out_d() ;
-  // harmono_graph.harmonograph.set_out_d(out_d);
 
   if (!freeze && !harmono_graph.frozen())
     harmono_graph.harmonograph.Process(freq, reset_phase);
@@ -138,7 +89,7 @@ void FASTRUN HARMONOGRAPH_isr() {
 }
 
 void HARMONOGRAPH_init() {
-  harmono_graph_state.selected_param = HARMONOGRAPH_SETTING_RHO1;
+  harmono_graph_state.selected_param = HARMONOGRAPH_SETTING_FREQ;
   harmono_graph.Init();
 }
 
@@ -177,13 +128,13 @@ void HARMONOGRAPH_menu() {
   freq = USAT16(freq);
   graphics.print(freq >> 8);
 
-  int first_visible_param = HARMONOGRAPH_SETTING_RHO1; 
-
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, HARMONOGRAPH_SETTING_LAST, harmono_graph_state.selected_param, 0)
-    const settings::value_attr &attr = HarmonoGraph::value_attr(current_item);
-    UI_DRAW_SETTING(attr, harmono_graph.get_value(current_item), kUiWideMenuCol1X);
-  UI_END_ITEMS_LOOP();
+//  int first_visible_param = HARMONOGRAPH_SETTING_RHO1; 
+//
+//  UI_START_MENU(kStartX);
+//  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, HARMONOGRAPH_SETTING_LAST, harmono_graph_state.selected_param, 0)
+//    const settings::value_attr &attr = HarmonoGraph::value_attr(current_item);
+//    UI_DRAW_SETTING(attr, harmono_graph.get_value(current_item), kUiWideMenuCol1X);
+//  UI_END_ITEMS_LOOP();
 
   GRAPHICS_END_FRAME();
 }
@@ -200,11 +151,7 @@ scope_render();
 void HARMONOGRAPH_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      if (harmono_graph_state.selected_generator) {
-        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2));    
-      } else {
-        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
-      }
+      encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
       encoder[RIGHT].setPos(harmono_graph.get_value(harmono_graph_state.selected_param));
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -225,20 +172,14 @@ void HARMONOGRAPH_lowerButton() {
 }
 
 void HARMONOGRAPH_rightButton() {
-  ++harmono_graph_state.selected_param;
-  if (harmono_graph_state.selected_param >= HARMONOGRAPH_SETTING_LAST)
-    harmono_graph_state.selected_param = HARMONOGRAPH_SETTING_RHO1;
-  encoder[RIGHT].setPos(harmono_graph.get_value(harmono_graph_state.selected_param));
+//  ++harmono_graph_state.selected_param;
+//  if (harmono_graph_state.selected_param >= HARMONOGRAPH_SETTING_LAST)
+//    harmono_graph_state.selected_param = HARMONOGRAPH_SETTING_RHO1;
+//  encoder[RIGHT].setPos(harmono_graph.get_value(harmono_graph_state.selected_param));
 }
 
 void HARMONOGRAPH_leftButton() {
-  harmono_graph_state.selected_generator = !harmono_graph_state.selected_generator;
-  if (harmono_graph_state.selected_generator) {
-        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2));
-  } else {
-        encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
-  }
-
+  encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
 }
 
 void HARMONOGRAPH_leftButtonLong() {
@@ -247,18 +188,10 @@ void HARMONOGRAPH_leftButtonLong() {
 bool HARMONOGRAPH_encoders() {
   bool changed = false;
   int value = encoder[LEFT].pos();
-  if (harmono_graph_state.selected_generator) {
-    if (value != harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2)) {
-      harmono_graph.apply_value(HARMONOGRAPH_SETTING_FREQ2, value);
-      encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ2));
-      changed = true;
-    }
-  } else {
-    if (value != harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ)) {
+  if (value != harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ)) {
       harmono_graph.apply_value(HARMONOGRAPH_SETTING_FREQ, value);
       encoder[LEFT].setPos(harmono_graph.get_value(HARMONOGRAPH_SETTING_FREQ));
       changed = true;
-    }
   }
 
   value = encoder[RIGHT].pos();

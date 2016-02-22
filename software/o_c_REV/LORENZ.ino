@@ -352,6 +352,11 @@ void LORENZ_debug() {
   graphics.print(" ");
   int32_t value = SCALE8_16(lorenz_generator.get_freq1());
   graphics.print(value);
+  graphics.setPrintPos(12, 12);
+  graphics.print(lorenz_generator.cv_freq2.value());
+  graphics.print(" ");
+  value = SCALE8_16(lorenz_generator.get_freq2());
+  graphics.print(value);
 //  graphics.print(" ");
 //  graphics.print(lorenz_generator.cv_shape.value() * 16);
 //  value += lorenz_generator.cv_shape.value() * 16;

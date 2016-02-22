@@ -24,7 +24,7 @@ OC::App available_apps[] = {
   DECLARE_APP('Q','Q', "VierfStSpQuaMo", QQ, QQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
-  DECLARE_APP('E','G', "Twice Piqued", ENVGEN, ENVGEN_isr),
+  DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
   DECLARE_APP('H','G', "a monograph", HARMONOGRAPH, HARMONOGRAPH_isr),
 };
 
@@ -68,7 +68,7 @@ OC::AppDataStorage app_data_storage;
 
 OC::App *OC::current_app = &available_apps[0];
 bool SELECT_APP = false;
-static const uint32_t SELECT_APP_TIMEOUT = 15000;
+static const uint32_t SELECT_APP_TIMEOUT = 25000;
 static const int DEFAULT_APP_INDEX = 1;
 
 

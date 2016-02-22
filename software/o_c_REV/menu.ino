@@ -9,7 +9,7 @@
 void hello() {
   GRAPHICS_BEGIN_FRAME(true);
   //graphics.setFont(u8g_font_6x12);
-  graphics.setPrintPos(4, 2); graphics.print("ornaments&crimes");
+  graphics.setPrintPos(4, 2); graphics.print("Ornaments & Crimes");
   graphics.invertRect(0, 0, 128, 14);
 
   graphics.setDefaultForegroundColor();
