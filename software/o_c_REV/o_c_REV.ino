@@ -39,6 +39,7 @@
 #include "util/util_button.h"
 #include "util/util_pagestorage.h"
 #include "util_framebuffer.h"
+#include "util_ui.h"
 #include "page_display_driver.h"
 #include "weegfx.h"
 #include "SH1106_128x64_driver.h"
@@ -166,7 +167,8 @@ void setup() {
   attachInterrupt(encR1, right_encoder_ISR, CHANGE);
   attachInterrupt(encR2, right_encoder_ISR, CHANGE);
 
-  Serial.begin(9600); 
+  Serial.begin(9600);
+  delay(500);
 
   // Ok, technically we're using the calibration_data before it's loaded...
   OC::ADC::Init(&OC::calibration_data.adc);
@@ -176,17 +178,18 @@ void setup() {
   display_driver.Init();
   graphics.Init();
  
-  // TODO This automatically invokes current_app->isr so it might be necessary
-  // to have an "enabled" flag, or at least set current_app to nullptr during
-  // load/save/app selection
+  GRAPHICS_BEGIN_FRAME(true);
+  GRAPHICS_END_FRAME();
 
   CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
+
+  calibration_load();
+  SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
 
   // splash screen, sort of ... 
   hello();
   delay(2000);
 
-  calibration_load();
   if (!digitalRead(butL))
     calibration_menu();
 

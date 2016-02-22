@@ -15,6 +15,6 @@ struct TWOCC
 	static constexpr uint16_t value = (((a & 0xff) << 8) | (b & 0xff));
 };
 
-void serial_printf(const char *fmt, ...);
+void serial_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 #endif // UTIL_MISC_H

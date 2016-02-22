@@ -14,11 +14,9 @@ static constexpr uint16_t _ZERO = 0x3;                                     // "z
 
 //#define VERBOSE_LUT
 #ifdef VERBOSE_LUT
-#define VERBOSE_PRINT(x) Serial.print(x)
-#define VERBOSE_PRINTLN(x) Serial.println(x)
+#define LUT_PRINTF(fmt, ...) serial_printf(fmt, ##__VA_ARGS__)
 #else
-#define VERBOSE_PRINT(x) do {} while (0)
-#define VERBOSE_PRINTLN(x) do {} while (0)
+#define LUT_PRINTF(x, ...) do {} while (0)
 #endif
 
 namespace OC {
@@ -30,6 +28,9 @@ struct CalibrationData {
 
   DAC::CalibrationData dac;
   ADC::CalibrationData adc;
+
+  uint32_t flags;
+  uint8_t display_offset;
 };
 
 typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_END, CalibrationData> CalibrationStorage;

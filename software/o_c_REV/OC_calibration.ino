@@ -24,7 +24,11 @@ const OC::CalibrationData kCalibrationDefaults = {
   // DAC
   { 0, 0, 0, 0 },
   // ADC
-  { { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET }, 0, 0 }
+  { { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET }, 0, 0 },
+  // flags
+  0,
+  // display_offset
+  SH1106_128x64_Driver::kDefaultOffset
 };
 //const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
@@ -35,8 +39,8 @@ void calibration_reset() {
 }
 
 void calibration_load() {
-  Serial.print("CalibrationStorage::PAGESIZE: "); Serial.println(OC::CalibrationStorage::PAGESIZE);
-  Serial.print("CalibrationStorage::PAGES   : "); Serial.println(OC::CalibrationStorage::PAGES);
+  serial_printf("CalibrationStorage: PAGESIZE=%u, PAGES=%u\n",
+                OC::CalibrationStorage::PAGESIZE, OC::CalibrationStorage::PAGES);
 
   calibration_reset();
   if (!OC::calibration_storage.Load(OC::calibration_data)) {
@@ -51,12 +55,13 @@ void calibration_load() {
 }
 
 void calibration_save() {
-  Serial.println("Saving calibration data...");
+  Serial.println("Saving calibration data... DISABLED!");
 //  OC::calibration_storage.Save(OC::calibration_data);
 }
 
 enum CALIBRATION_STEP {  
   HELLO,
+  CENTER_DISPLAY,
   VOLT_0,
   VOLT_3m, VOLT_2m, VOLT_1m, VOLT_0m,
   VOLT_1, VOLT_2, VOLT_3, VOLT_4, VOLT_5, VOLT_6,
@@ -74,6 +79,7 @@ enum CALIBRATION_TYPE {
   CALIBRATE_DAC_FINE,
   CALIBRATE_ADC_TRIMMER,
   CALIBRATE_ADC_OFFSET,
+  CALIBRATE_DISPLAY
 };
 
 struct CalibrationStep {
@@ -101,6 +107,7 @@ const char * default_footer = "[prev]         [next]";
 
 const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { HELLO, "Calibrate", "Use defaults? ", "              [start]", CALIBRATE_NONE, 0, yes_no_str, 0, 1 },
+  { CENTER_DISPLAY, "Center Display", "offset ", default_footer, CALIBRATE_DISPLAY, 0, nullptr, 0, 2 },
   { VOLT_0, "trim to 0 volts", "->  0.000V ", default_footer, CALIBRATE_OCTAVE, _ZERO, nullptr, 0, DAC::MAX_VALUE },
   { VOLT_3m, "trim to -3 volts", "-> -3.000V ", default_footer, CALIBRATE_OCTAVE, 0, nullptr, 0, DAC::MAX_VALUE },
   { VOLT_2m, "trim to -2 volts", "-> -2.000V ", default_footer, CALIBRATE_OCTAVE, 1, nullptr, 0, DAC::MAX_VALUE },
@@ -143,21 +150,15 @@ void init_DACtable() {
   for (int i = OCTAVES-1; i > 0; i--) {
     
       _diff = (float)(OC::calibration_data.octaves[i] - _offset)/12.0f;
-      VERBOSE_PRINT(i);
-      VERBOSE_PRINT(" --> ");
-      VERBOSE_PRINT(_diff);
-      VERBOSE_PRINTLN("");
+      LUT_PRINTF("%d --> %.4f\n", i, _diff);
   
       for (int j = 0; j <= 11; j++) {
         
            _semitone = j*_diff + _offset; 
            semitones[j+i*12-1] = (uint16_t)(0.5f + _semitone);
            if (j == 11 && i > 1) _offset = OC::calibration_data.octaves[i-2];
-           VERBOSE_PRINT(_offset);
-           VERBOSE_PRINT(" -> ");
-           VERBOSE_PRINT(j+i*12-1);
-           VERBOSE_PRINT(" -> ");
-           VERBOSE_PRINTLN(semitones[j+i*12-1]);
+
+           LUT_PRINTF("%2d: %.4f -> %d -> %u\n", j, _offset, j+i*12-1, semitones[j+i*12-1]);
       } 
    }
    // fill up remaining semitones (from -3.000v )
@@ -169,13 +170,9 @@ void init_DACtable() {
               _offset -= _diff;   
           }
           else semitones[_fill] = _diff;
-       
-          VERBOSE_PRINT(_offset);
-          VERBOSE_PRINT(" -> ");
-          VERBOSE_PRINT(_fill);
-          VERBOSE_PRINT(" -> ");
-          VERBOSE_PRINTLN(semitones[_fill]);
-          _fill--;    
+
+         LUT_PRINTF("%.4f -> %d -> %u\n", _offset, _fill, semitones[_fill]);
+         _fill--;    
    }
 }
 
@@ -206,7 +203,7 @@ void calibration_menu() {
     }
     button_left.read();
     if (button_left.event()) {
-      if (calibration_state.step > VOLT_0)
+      if (calibration_state.step > CENTER_DISPLAY)
         calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step - 1);
     }
 
@@ -237,6 +234,9 @@ void calibration_menu() {
       case CALIBRATE_ADC_OFFSET:
         encoder[RIGHT].setPos(OC::calibration_data.adc.offset[next_step->type_index]);
         break;
+      case CALIBRATE_DISPLAY:
+        encoder[RIGHT].setPos(OC::calibration_data.display_offset);
+        break;
       }
       calibration_state.current_step = next_step;
     }
@@ -250,8 +250,9 @@ void calibration_draw(const CalibrationState &state) {
   GRAPHICS_BEGIN_FRAME(true);
   const CalibrationStep *step = state.current_step;
 
-  UI_DRAW_TITLE(0);
+  graphics.setPrintPos(2, kUiTitleTextY + 2);
   graphics.print(step->title);
+  graphics.drawHLine(0, kUiDefaultFontH, kUiDisplayWidth);
 
   graphics.setPrintPos(2, 28);
   switch (step->calibration_type) {
@@ -280,6 +281,12 @@ void calibration_draw(const CalibrationState &state) {
       graphics.print(step->message);
       break;
 
+    case CALIBRATE_DISPLAY:
+      graphics.print(step->message);
+      graphics.pretty_print(state.encoder_data, 4);
+      graphics.drawFrame(0, 0, 128, 64);
+      break;
+
     case CALIBRATE_NONE:
     default:
       graphics.print(step->message);
@@ -288,7 +295,7 @@ void calibration_draw(const CalibrationState &state) {
       break;
   }
 
-  graphics.drawStr(2, 32 + kUiLineH * 2, step->footer);
+  graphics.drawStr(0, 31 + kUiLineH * 2, step->footer);
   GRAPHICS_END_FRAME();
 }
 
@@ -325,6 +332,10 @@ void calibration_update(CalibrationState &state) {
       state.CV = (state.CV * (kCalibrationAdcSmoothing - 1) + OC::ADC::raw_value(static_cast<ADC_CHANNEL>(step->type_index))) / kCalibrationAdcSmoothing;
       OC::calibration_data.adc.offset[step->type_index] = state.encoder_data;
       DAC::set_all(OC::calibration_data.octaves[_ZERO]);
+      break;
+    case CALIBRATE_DISPLAY:
+      OC::calibration_data.display_offset = state.encoder_data;
+      SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
       break;
   }
 }
@@ -378,9 +389,7 @@ void calibration_read_old() {
        byte1 = EEPROM.read(adr);
        adr++;
        OC::calibration_data.octaves[i] = (uint16_t)(byte0 << 8) + byte1;
-       Serial.print(i);
-       Serial.print(" --> ");
-       Serial.println(OC::calibration_data.octaves[i]);
+       serial_printf(" OCTAVE %2d: %u\n", i, OC::calibration_data.octaves[i]);
    }
    
    uint16_t _offset[ADC_CHANNEL_LAST];
@@ -392,9 +401,7 @@ void calibration_read_old() {
        byte1 = EEPROM.read(adr);
        adr++;
        _offset[i] = (uint16_t)(byte0 << 8) + byte1;
-       Serial.print(i);
-       Serial.print(" --> ");
-       Serial.println(_offset[i]);
+       serial_printf(" ADC %d: %u\n", i, _offset[i]);
    }
    
    OC::calibration_data.adc.offset[ADC_CHANNEL_1] = _offset[0];
@@ -402,5 +409,4 @@ void calibration_read_old() {
    OC::calibration_data.adc.offset[ADC_CHANNEL_3] = _offset[2];
    OC::calibration_data.adc.offset[ADC_CHANNEL_4] = _offset[3];
    Serial.println("......");
-   Serial.println("");
 }  
