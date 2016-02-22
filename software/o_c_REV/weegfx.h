@@ -82,6 +82,9 @@ public:
   void print(const char *);
   void drawStr(coord_t x, coord_t y, const char *str);
 
+  // Might be time-consuming
+  void printf(const char *fmt, ...);
+
 private:
   uint8_t *frame_;
 

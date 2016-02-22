@@ -1,20 +1,44 @@
 #include <Arduino.h>
 #include "OC_ADC.h"
+#include "OC_config.h"
+#include "OC_debug.h"
 #include "util_ui.h"
+#include "extern/dspinst.h"
 
 extern void POLYLFO_debug();
 
 namespace OC {
 
 enum DebugMenu {
+  DEBUG_MENU_CORE,
+  DEBUG_MENU_GFX,
   DEBUG_MENU_ADC,
   DEBUG_MENU_POLYLFO,
   DEBUG_MENU_LAST
 };
 
-static void debug_display_adc() {
+static void debug_menu_core() {
 
-    graphics.setPrintPos(2, 12); 
+  uint32_t cycles = OC::CORE_ISR_cycles.value();
+  uint32_t isr_us = multiply_u32xu32_rshift32(cycles, (1ULL << 32) / (F_CPU / 1000000));
+
+  graphics.setPrintPos(2, 22);
+  graphics.printf("%uMHz, ISR %uus", F_CPU / 1000 / 1000, OC_CORE_TIMER_RATE);
+  graphics.setPrintPos(2, 32);
+  graphics.printf("ISR us: %u", isr_us);
+  graphics.setPrintPos(2, 42);
+  graphics.printf("ISR %% : %u", (isr_us * 100) /  OC_CORE_TIMER_RATE);
+}
+
+static void debug_menu_gfx() {
+  graphics.drawFrame(0, 0, 128, 64);
+
+  graphics.setPrintPos(0, 12);
+  graphics.print("W");
+}
+
+static void debug_menu_adc() {
+    graphics.setPrintPos(2, 12);
     graphics.print("CV1: "); graphics.pretty_print(OC::ADC::value<ADC_CHANNEL_1>(), 6);
 
     graphics.setPrintPos(2, 22);
@@ -38,14 +62,16 @@ struct {
   void (*display_fn)();
 }
 const debug_menus[DEBUG_MENU_LAST] = {
-  { DEBUG_MENU_ADC, " ADC", debug_display_adc },
+  { DEBUG_MENU_CORE, " CORE", debug_menu_core },
+  { DEBUG_MENU_GFX, " GFX", debug_menu_gfx },
+  { DEBUG_MENU_ADC, " ADC", debug_menu_adc },
   { DEBUG_MENU_POLYLFO, " POLYLFO", POLYLFO_debug }
 };
 
 
 void debug_menu() {
 
-  DebugMenu current_menu = DEBUG_MENU_ADC;
+  DebugMenu current_menu = DEBUG_MENU_CORE;
   while (true) {
 
     GRAPHICS_BEGIN_FRAME(false);
@@ -64,7 +90,7 @@ void debug_menu() {
       if (current_menu < DEBUG_MENU_LAST - 1)
         current_menu = static_cast<DebugMenu>(current_menu + 1);
       else
-        current_menu = DEBUG_MENU_ADC;
+        current_menu = DEBUG_MENU_CORE;
     }
   }
 }

@@ -21,6 +21,7 @@
 #include "weegfx.h"
 #include <string.h>
 #include <Arduino.h>
+#include <stdarg.h>
 #include "util/util_macros.h"
 
 namespace weegfx {
@@ -440,6 +441,15 @@ void Graphics::print(const char *s) {
   while (*s) {
     print(*s++);
   }
+}
+
+void Graphics::printf(const char *fmt, ...) {
+  char buf[128];
+  va_list args;
+  va_start(args, fmt );
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+  print(buf);
 }
 
 void Graphics::drawStr(coord_t x, coord_t y, const char *str) {
