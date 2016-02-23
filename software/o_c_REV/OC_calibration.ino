@@ -102,6 +102,8 @@ struct CalibrationState {
   uint32_t CV;
 };
 
+OC::DigitalInputDisplay digital_input_displays[4];
+
 const char * yes_no_str[] = { "no", "yes" };
 const char * default_footer = "[prev]         [next]";
 
@@ -188,9 +190,20 @@ void calibration_menu() {
     1,
     0
   };
-  encoder[RIGHT].setPos(calibration_state.encoder_data);
+  for (auto &did : digital_input_displays)
+    did.Init();
+  OC::TickCount tick_count;
+    tick_count.Init();
 
+  encoder[RIGHT].setPos(calibration_state.encoder_data);
   while (true) {
+
+    uint32_t ticks = tick_count.Update();
+    digital_input_displays[0].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>());
+    digital_input_displays[1].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>());
+    digital_input_displays[2].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>());
+    digital_input_displays[3].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>());
+
     calibration_update(calibration_state);
     calibration_draw(calibration_state);
 
@@ -293,6 +306,14 @@ void calibration_draw(const CalibrationState &state) {
       if (step->value_str)
         graphics.print(step->value_str[state.encoder_data]);
       break;
+  }
+
+  weegfx::coord_t x = 64 - 10;
+  for (int input = OC::DIGITAL_INPUT_1; input < OC::DIGITAL_INPUT_LAST; ++input) {
+    uint8_t state = (digital_input_displays[input].getState() + 3) >> 2;
+    if (state)
+      graphics.drawBitmap8(x, 31 + kUiLineH * 2, 4, OC::bitmap_gate_indicators_8 + (state << 2));
+    x += 5;
   }
 
   graphics.drawStr(0, 31 + kUiLineH * 2, step->footer);
