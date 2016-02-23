@@ -35,8 +35,8 @@ public:
     uint32_t mask = 0;
     if (clocked_[DIGITAL_INPUT_1]) mask |= DIGITAL_INPUT_1_MASK;
     if (clocked_[DIGITAL_INPUT_2]) mask |= DIGITAL_INPUT_2_MASK;
-    if (clocked_[DIGITAL_INPUT_2]) mask |= DIGITAL_INPUT_2_MASK;
     if (clocked_[DIGITAL_INPUT_3]) mask |= DIGITAL_INPUT_3_MASK;
+    if (clocked_[DIGITAL_INPUT_4]) mask |= DIGITAL_INPUT_4_MASK;
     return mask;
   }
 
