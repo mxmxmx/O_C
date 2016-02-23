@@ -285,7 +285,7 @@ void OC::APPS::Select() {
     }
   }
 
-  CORE_app_isr_enabled = false;
+  OC::CORE::app_isr_enabled = false;
   delay(1);
 
   set_current_app(selected);
@@ -307,5 +307,5 @@ void OC::APPS::Select() {
   MENU_REDRAW = 1;
   _UI_TIMESTAMP = millis();
 
-  CORE_app_isr_enabled = true;
+  OC::CORE::app_isr_enabled = true;
 }

@@ -19,7 +19,7 @@ enum DebugMenu {
 
 static void debug_menu_core() {
 
-  uint32_t cycles = OC::CORE_ISR_cycles.value();
+  uint32_t cycles = OC::CORE::ISR_cycles.value();
   uint32_t isr_us = multiply_u32xu32_rshift32(cycles, (1ULL << 32) / (F_CPU / 1000000));
 
   graphics.setPrintPos(2, 22);
