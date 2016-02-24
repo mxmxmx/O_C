@@ -106,6 +106,8 @@ public:
     for (int i = 0; i < ASR_MAX_ITEMS; i++) {
         pushASR(_ASR, 0);    
     }
+
+    clock_display_.Init();
   }
 
   bool update_scale(bool force) {
@@ -220,10 +222,11 @@ public:
      bool forced_update = force_update_;
      force_update_ = false;
 
-     bool update = forced_update;
-     if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>())
-      update = true;
-      update |= update_scale(forced_update);
+     bool clocked = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
+     clock_display_.Update(1, clocked);
+
+     bool update = forced_update || clocked;
+     update |= update_scale(forced_update);
 
       if (update) {        
    
@@ -289,6 +292,10 @@ public:
       }
   }
 
+  uint8_t clockState() const {
+    return clock_display_.getState();
+  }
+
 private:
   bool force_update_;
   int last_scale_;
@@ -298,6 +305,7 @@ private:
   braids::Quantizer quantizer_;
   int32_t asr_outputs[4];  
   ASRbuf *_ASR;
+  OC::DigitalInputDisplay clock_display_;
 };
 
 const char* const mult[20] = {
@@ -485,7 +493,11 @@ void ASR_menu() {
   if (oct >= 0) 
     graphics.print("+");
   graphics.print(oct);
-  
+
+  uint8_t clock_state = (asr.clockState() + 3) >> 2;
+  if (clock_state)
+    graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
+
   UI_START_MENU(kStartX);
   
   int first_visible_param = ASR_SETTING_ROOT;
