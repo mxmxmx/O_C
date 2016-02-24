@@ -91,13 +91,13 @@ public:
   }
 
   template <size_t index, DAC_CHANNEL dac_channel>
-  inline void update() {
+  inline bool Update() {
     bool forced_update = force_update_;
     force_update_ = false;
+    bool triggered = OC::DigitalInputs::clocked<static_cast<OC::DigitalInput>(index)>();
+    bool continous = CHANNEL_UPDATE_CONTINUOUS == get_update_mode();
 
-    bool update = forced_update || get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
-    if (OC::DigitalInputs::clocked<static_cast<OC::DigitalInput>(index)>())
-      update = true;
+    bool update = forced_update || continous || triggered;
     if (update_scale(forced_update))
       update = true;
 
@@ -132,10 +132,13 @@ public:
       if (last_output_ != sample) {
         MENU_REDRAW = 1;
         last_output_ = sample;
+
+        DAC::set<dac_channel>(last_output_ + get_fine());
+        if (continous)
+          return true;
       }
     }
-
-    DAC::set<dac_channel>(last_output_ + get_fine());
+    return !continous && triggered;
   }
 
   // Wrappers for ScaleEdit
@@ -206,6 +209,7 @@ struct QuadQuantizerState {
   int selected_param;
 
   OC::ScaleEditor<QuantizerChannel> scale_editor;
+  OC::DigitalInputDisplay trigger_displays[4];
 };
 
 QuadQuantizerState qq_state;
@@ -223,6 +227,9 @@ void QQ_init() {
   qq_state.left_encoder_value = 0;
   qq_state.selected_param = CHANNEL_SETTING_ROOT;
   qq_state.scale_editor.Init();
+
+  for (auto &did : qq_state.trigger_displays)  
+    did.Init();
 }
 
 size_t QQ_storageSize() {
@@ -267,16 +274,20 @@ void QQ_handleEvent(OC::AppEvent event) {
   }
 }
 
-#define CLOCK_CHANNEL(i, adc_channel, dac_channel) \
-do { \
-  quantizer_channels[i].update<i, dac_channel>(); \
-} while (0)
-
 void QQ_isr() {
-  quantizer_channels[0].update<0, DAC_CHANNEL_A>();
-  quantizer_channels[1].update<1, DAC_CHANNEL_B>();
-  quantizer_channels[2].update<2, DAC_CHANNEL_C>();
-  quantizer_channels[3].update<3, DAC_CHANNEL_D>();
+  bool clocked;
+
+  clocked = quantizer_channels[0].Update<0, DAC_CHANNEL_A>();
+  qq_state.trigger_displays[0].Update(1, clocked);
+
+  clocked = quantizer_channels[1].Update<1, DAC_CHANNEL_B>();
+  qq_state.trigger_displays[1].Update(1, clocked);
+
+  clocked = quantizer_channels[2].Update<2, DAC_CHANNEL_C>();
+  qq_state.trigger_displays[2].Update(1, clocked);
+
+  clocked = quantizer_channels[3].Update<3, DAC_CHANNEL_D>();
+  qq_state.trigger_displays[3].Update(1, clocked);
 }
 
 void QQ_loop() {
@@ -297,7 +308,12 @@ void QQ_menu() {
   UI_DRAW_TITLE(kStartX);
 
   for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    graphics.setPrintPos(x + 4, 2);
+    uint8_t input_state = (qq_state.trigger_displays[i].getState() + 3) >> 2;
+    if (input_state) {
+      graphics.drawBitmap8(x + 1, 2, 4, OC::bitmap_gate_indicators_8 + (input_state << 2));
+    }
+
+    graphics.setPrintPos(x + 6, 2);
     graphics.print((char)('A' + i));
     graphics.setPrintPos(x + 14, 2);
     int octave = quantizer_channels[i].get_octave();
