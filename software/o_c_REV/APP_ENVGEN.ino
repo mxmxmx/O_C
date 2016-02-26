@@ -1,5 +1,7 @@
 #include "OC_apps.h"
+#include "OC_bitmaps.h"
 #include "OC_digital_inputs.h"
+#include "OC_strings.h"
 #include "util/util_math.h"
 #include "util/util_settings.h"
 #include "util_ui.h"
@@ -18,7 +20,21 @@ enum EEnvelopeSettings {
   ENV_SETTING_SEG2_VALUE,
   ENV_SETTING_SEG3_VALUE,
   ENV_SETTING_SEG4_VALUE,
+  ENV_SETTING_TRIGGER_INPUT,
+  ENV_SETTING_CV1,
+  ENV_SETTING_CV2,
+  ENV_SETTING_CV3,
+  ENV_SETTING_CV4,
   ENV_SETTING_LAST
+};
+
+enum CVMapping {
+  CV_MAPPING_NONE,
+  CV_MAPPING_SEG1,
+  CV_MAPPING_SEG2,
+  CV_MAPPING_SEG3,
+  CV_MAPPING_SEG4,
+  CV_MAPPING_LAST
 };
 
 enum EEnvelopeType {
@@ -39,10 +55,30 @@ public:
 
   static constexpr int kMaxSegments = 4;
 
-  void Init();
+  void Init(OC::DigitalInput default_trigger);
 
   EEnvelopeType get_type() const {
     return static_cast<EEnvelopeType>(values_[ENV_SETTING_TYPE]);
+  }
+
+  OC::DigitalInput get_trigger_input() const {
+    return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
+  }
+
+  CVMapping get_cv1_mapping() const {
+    return static_cast<CVMapping>(values_[ENV_SETTING_CV1]);
+  }
+
+  CVMapping get_cv2_mapping() const {
+    return static_cast<CVMapping>(values_[ENV_SETTING_CV2]);
+  }
+
+  CVMapping get_cv3_mapping() const {
+    return static_cast<CVMapping>(values_[ENV_SETTING_CV3]);
+  }
+
+  CVMapping get_cv4_mapping() const {
+    return static_cast<CVMapping>(values_[ENV_SETTING_CV4]);
   }
 
   // Utils
@@ -68,12 +104,17 @@ public:
     return 0;
   }
 
-  template <OC::DigitalInput gate_input, DAC_CHANNEL dac_channel>
-  void Update() {
-    uint16_t s1 = USAT16(SCALE8_16(static_cast<uint32_t>(get_segment_value(0))));
-    uint16_t s2 = USAT16(SCALE8_16(static_cast<uint32_t>(get_segment_value(1))));
-    uint16_t s3 = USAT16(SCALE8_16(static_cast<uint32_t>(get_segment_value(2))));
-    uint16_t s4 = USAT16(SCALE8_16(static_cast<uint32_t>(get_segment_value(3))));
+  template <DAC_CHANNEL dac_channel>
+  void Update(uint32_t triggers) {
+    int32_t s1 = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
+    int32_t s2 = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
+    int32_t s3 = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
+    int32_t s4 = SCALE8_16(static_cast<int32_t>(get_segment_value(3)));
+
+    s1 = USAT16(s1);
+    s2 = USAT16(s2);
+    s3 = USAT16(s3);
+    s4 = USAT16(s4);
 
     EEnvelopeType type = get_type();
     switch (type) {
@@ -96,11 +137,12 @@ public:
       env_.set_hard_reset(true);
     }
 
+    OC::DigitalInput trigger_input = get_trigger_input();
     uint8_t gate_state = 0;
-    if (OC::DigitalInputs::clocked<gate_input>())
+    if (triggers & DIGITAL_INPUT_MASK(trigger_input))
       gate_state |= peaks::CONTROL_GATE_RISING;
 
-    bool gate_raised = OC::DigitalInputs::read_immediate<gate_input>();
+    bool gate_raised = OC::DigitalInputs::read_immediate(trigger_input);
     if (gate_raised)
       gate_state |= peaks::CONTROL_GATE;
     else if (gate_raised_)
@@ -122,8 +164,9 @@ private:
   bool gate_raised_;
 };
 
-void EnvelopeGenerator::Init() {
+void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   InitDefaults();
+  apply_value(ENV_SETTING_TRIGGER_INPUT, default_trigger);
   env_.Init();
   last_type_ = ENV_TYPE_LAST;
   gate_raised_ = false;
@@ -133,12 +176,21 @@ const char* const envelope_types[ENV_TYPE_LAST] = {
   "AD", "ADSR", "ADR", "AR", "ADSAR", "ADAR", "AD_LOOP", "ADR_LOOP", "ADAR_LOOP"
 };
 
+const char* const cv_mapping_names[CV_MAPPING_LAST] = {
+  "off", "S1", "S2", "S3", "S4"
+};
+
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
   { 128, 0, 255, "S2", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 }
+  { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
+  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
 };
 
 class QuadEnvelopeGenerator {
@@ -146,13 +198,17 @@ public:
   static constexpr int32_t kCvSmoothing = 16;
 
   void Init() {
-    for (auto &env : envelopes_)
-      env.Init();
+    int input = OC::DIGITAL_INPUT_1;
+    for (auto &env : envelopes_) {
+      env.Init(static_cast<OC::DigitalInput>(input));
+      ++input;
+    }
 
     ui.left_encoder_value = 0;
-    ui.left_encoder_mode = MODE_SELECT_CHANNEL;
+    ui.edit_mode = MODE_SELECT_CHANNEL;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
+    ui.selected_setting = ENV_SETTING_TRIGGER_INPUT;
   }
 
   void ISR() {
@@ -161,24 +217,29 @@ public:
     cv3.push(OC::ADC::value<ADC_CHANNEL_3>());
     cv4.push(OC::ADC::value<ADC_CHANNEL_4>());
 
-    // Read digital
+    uint32_t triggers =
+      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() |
+      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>() |
+      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>() |
+      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>();
 
-    envelopes_[0].Update<OC::DIGITAL_INPUT_1, DAC_CHANNEL_A>();
-    envelopes_[1].Update<OC::DIGITAL_INPUT_2, DAC_CHANNEL_B>();
-    envelopes_[2].Update<OC::DIGITAL_INPUT_3, DAC_CHANNEL_C>();
-    envelopes_[3].Update<OC::DIGITAL_INPUT_4, DAC_CHANNEL_D>();
+    envelopes_[0].Update<DAC_CHANNEL_A>(triggers);
+    envelopes_[1].Update<DAC_CHANNEL_B>(triggers);
+    envelopes_[2].Update<DAC_CHANNEL_C>(triggers);
+    envelopes_[3].Update<DAC_CHANNEL_D>(triggers);
   }
 
-  enum LeftEncoderMode {
+  enum EditMode {
     MODE_SELECT_CHANNEL,
-    MODE_EDIT_TYPE
+    MODE_EDIT_SETTINGS
   };
 
   struct {
-    LeftEncoderMode left_encoder_mode;
+    EditMode edit_mode;
     int left_encoder_value;
     int selected_channel;
     int selected_segment;
+    int selected_setting;
   } ui;
 
   EnvelopeGenerator &selected() {
@@ -241,33 +302,11 @@ int16_t preview_values[128];
 uint32_t preview_segments[peaks::kMaxNumSegments];
 uint32_t preview_loops[peaks::kMaxNumSegments];
 
-void ENVGEN_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
-
-  for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    graphics.setPrintPos(x + 4, 2);
-    graphics.print((char)('A' + i));
-    graphics.setPrintPos(x + 14, 2);
-    if (i == envgen.ui.selected_channel) {
-      graphics.invertRect(x, 0, 32, 11);
-    }
-  }
-
+void ENVGEN_menu_preview() {
   auto const &env = envgen.selected();
-
   UI_START_MENU(0);
-  if (QuadEnvelopeGenerator::MODE_EDIT_TYPE == envgen.ui.left_encoder_mode) {
-    if (env.get_type() == envgen.ui.left_encoder_value)
-      graphics.print('>');
-    else
-      graphics.print(' ');
-    graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
-    graphics.invertRect(0, y, kUiDisplayWidth, kUiLineH - 1); \
-  } else {
-    graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[env.get_type()]);
-  }
+
+  graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[env.get_type()]);
   y += kUiLineH;
 
   uint32_t current_phase = 0;
@@ -299,7 +338,45 @@ void ENVGEN_menu() {
   graphics.print(env.get_segment_value(selected_segment));
 
   graphics.drawHLine(0, 63, current_phase);
+}
 
+void ENVGEN_menu_settings() {
+  auto const &env = envgen.selected();
+  UI_START_MENU(0);
+  if (env.get_type() == envgen.ui.left_encoder_value)
+    graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
+  graphics.print(' ');
+  graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
+
+  int first_visible_param = envgen.ui.selected_setting - 2;
+  if (first_visible_param < ENV_SETTING_TRIGGER_INPUT)
+    first_visible_param = ENV_SETTING_TRIGGER_INPUT;
+
+  UI_BEGIN_ITEMS_LOOP(0, first_visible_param, ENV_SETTING_LAST, envgen.ui.selected_setting, 1);
+    UI_DRAW_SETTING(EnvelopeGenerator::value_attr(current_item), env.get_value(current_item), kUiWideMenuCol1X);
+  UI_END_ITEMS_LOOP();
+}
+
+void ENVGEN_menu() {
+  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
+  static const weegfx::coord_t kStartX = 0;
+  UI_DRAW_TITLE(kStartX);
+
+  for (int i = 0, x = 0; i < 4; ++i, x += 32) {
+    graphics.setPrintPos(x + 6, 2);
+    graphics.print((char)('A' + i));
+    graphics.setPrintPos(x + 14, 2);
+    if (i == envgen.ui.selected_channel) {
+      graphics.invertRect(x, 0, 32, 11);
+    }
+  }
+
+  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode)
+    ENVGEN_menu_preview();
+  else
+    ENVGEN_menu_settings();
+
+  // TODO Draw phase anyway?
   GRAPHICS_END_FRAME();
 }
 
@@ -314,25 +391,34 @@ void ENVGEN_lowerButton() {
 }
 
 void ENVGEN_rightButton() {
-  auto const &selected_env = envgen.selected();
-  int segment = envgen.ui.selected_segment + 1;
-  if (segment > selected_env.active_segments() - 1)
-    segment = 0;
-  if (segment != envgen.ui.selected_segment) {
-    envgen.ui.selected_segment = segment;
-    encoder[RIGHT].setPos(0);
+
+  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode) {
+    auto const &selected_env = envgen.selected();
+    int segment = envgen.ui.selected_segment + 1;
+    if (segment > selected_env.active_segments() - 1)
+      segment = 0;
+    if (segment != envgen.ui.selected_segment) {
+      envgen.ui.selected_segment = segment;
+      encoder[RIGHT].setPos(0);
+    }
+  } else {
+    if (envgen.ui.selected_setting < ENV_SETTING_LAST - 1)
+      ++envgen.ui.selected_setting;
+    else
+      envgen.ui.selected_setting = ENV_SETTING_TRIGGER_INPUT;
   }
 }
 
 void ENVGEN_leftButton() {
-  if (QuadEnvelopeGenerator::MODE_EDIT_TYPE == envgen.ui.left_encoder_mode) {
+  if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.edit_mode) {
     envgen.selected().apply_value(ENV_SETTING_TYPE, envgen.ui.left_encoder_value);
-    envgen.ui.left_encoder_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
+    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
   } else {
-    envgen.ui.left_encoder_mode = QuadEnvelopeGenerator::MODE_EDIT_TYPE;
+    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
   }
   encoder[LEFT].setPos(0);
+  encoder[RIGHT].setPos(0);
 }
 
 void ENVGEN_leftButtonLong() { }
@@ -342,7 +428,7 @@ bool ENVGEN_encoders() {
   long right_value = encoder[RIGHT].pos();
 
   if (left_value) {
-    if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_encoder_mode) {
+    if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode) {
       left_value += envgen.ui.selected_channel;
       CONSTRAIN(left_value, 0, 3);
       envgen.ui.selected_channel = left_value;
@@ -357,7 +443,11 @@ bool ENVGEN_encoders() {
 
   if (right_value) {
     auto &selected_env = envgen.selected();
-    selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
+    if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode) {
+      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
+    } else {
+      selected_env.change_value(envgen.ui.selected_setting, right_value);
+    }
     changed = true;
   }
 

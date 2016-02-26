@@ -15,10 +15,12 @@ enum DigitalInput {
   DIGITAL_INPUT_LAST
 };
 
-static constexpr uint32_t DIGITAL_INPUT_1_MASK = (0x1 << DIGITAL_INPUT_1);
-static constexpr uint32_t DIGITAL_INPUT_2_MASK = (0x1 << DIGITAL_INPUT_2);
-static constexpr uint32_t DIGITAL_INPUT_3_MASK = (0x1 << DIGITAL_INPUT_3);
-static constexpr uint32_t DIGITAL_INPUT_4_MASK = (0x1 << DIGITAL_INPUT_4);
+#define DIGITAL_INPUT_MASK(x) (0x1 << x)
+
+static constexpr uint32_t DIGITAL_INPUT_1_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_1);
+static constexpr uint32_t DIGITAL_INPUT_2_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_2);
+static constexpr uint32_t DIGITAL_INPUT_3_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_3);
+static constexpr uint32_t DIGITAL_INPUT_4_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_4);
 
 class DigitalInputs {
 public:
@@ -35,6 +37,13 @@ public:
     return clk << input;
   }
 
+  // @return mask if pin clocked since last call, reset state
+  static inline uint32_t clocked(DigitalInput input) {
+    uint32_t clk = clocked_[input];
+    clocked_[input] = 0;
+    return clk << input;
+  }
+
   static inline uint32_t peek() {
     uint32_t mask = 0;
     if (clocked_[DIGITAL_INPUT_1]) mask |= DIGITAL_INPUT_1_MASK;
@@ -45,6 +54,10 @@ public:
   }
 
   template <DigitalInput input> static inline bool read_immediate() {
+    return !digitalReadFast(input);
+  }
+
+  static inline bool read_immediate(DigitalInput input) {
     return !digitalReadFast(input);
   }
 

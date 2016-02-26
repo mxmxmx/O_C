@@ -12,7 +12,7 @@ const uint8_t bitmap_end_marker4x8[] = {
 };
 
 const uint8_t bitmap_indicator_4x8[] = {
-  0x3c, 0x3c, 0x3c, 0x3c
+  0x00, 0x18, 0x18, 0x00
 };
 
 const uint8_t bitmap_gate_indicators_8[] = {

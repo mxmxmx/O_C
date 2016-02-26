@@ -44,6 +44,8 @@ struct value_attr {
 // the owning class can pack things differently if required.
 //
 // TODO: Save/Restore is still kind of sucky
+// TODO: There are many values < u8 in size, add packed storage type,
+//       e.g. STORAGE_TYPE_L4, STORAGE_TYPE_H4
 //
 template <typename clazz, size_t num_settings>
 class SettingsBase {
