@@ -9,6 +9,7 @@
 #include "braids_quantizer_scales.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
+#include "OC_strings.h"
 #include "util_ui.h"
 
 // TODO Extend calibration to get exact octave spacing for inputs?
@@ -198,7 +199,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
-  { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", channel_source, settings::STORAGE_TYPE_U8},
+  { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", OC::Strings::cv_input_names, settings::STORAGE_TYPE_U8},
   { 0, -999, 999, "fine", NULL, settings::STORAGE_TYPE_I16 },
 };
 
@@ -324,10 +325,9 @@ void QQ_menu() {
   int scale;
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     scale = qq_state.left_encoder_value;
+    graphics.print(' ');
     if (channel.get_scale() == scale)
-      graphics.print(">");
-    else
-      graphics.print('-');
+      graphics.drawBitmap8(kStartX + 2, y + 1, 4, OC::bitmap_indicator_4x8);
   } else {
     scale = channel.get_scale();
   }
