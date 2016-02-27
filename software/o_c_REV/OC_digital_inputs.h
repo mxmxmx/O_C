@@ -15,7 +15,7 @@ enum DigitalInput {
   DIGITAL_INPUT_LAST
 };
 
-#define DIGITAL_INPUT_MASK(x) (0x1 << x)
+#define DIGITAL_INPUT_MASK(x) (0x1 << (x))
 
 static constexpr uint32_t DIGITAL_INPUT_1_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_1);
 static constexpr uint32_t DIGITAL_INPUT_2_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_2);
