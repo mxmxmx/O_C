@@ -217,11 +217,7 @@ public:
     cv3.push(OC::ADC::value<ADC_CHANNEL_3>());
     cv4.push(OC::ADC::value<ADC_CHANNEL_4>());
 
-    uint32_t triggers =
-      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() |
-      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>() |
-      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>() |
-      OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>();
+    uint32_t triggers = OC::DigitalInputs::clocked();
 
     envelopes_[0].Update<DAC_CHANNEL_A>(triggers);
     envelopes_[1].Update<DAC_CHANNEL_B>(triggers);
