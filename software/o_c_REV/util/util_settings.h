@@ -1,9 +1,34 @@
+// Copyright (c) 2016 Patrick Dowling
+//
+// Author: Patrick Dowling (pld@gurkenkiste.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 #ifndef SETTINGS_H_
 #define SETTINGS_H_
+
+#include <stdint.h>
 
 namespace settings {
 
 enum StorageType {
+  STORAGE_TYPE_U4, // nibbles are packed where possible, else aligned to next byte
   STORAGE_TYPE_I8, STORAGE_TYPE_U8,
   STORAGE_TYPE_I16, STORAGE_TYPE_U16,
   STORAGE_TYPE_I32, STORAGE_TYPE_U32,
@@ -44,8 +69,7 @@ struct value_attr {
 // the owning class can pack things differently if required.
 //
 // TODO: Save/Restore is still kind of sucky
-// TODO: There are many values < u8 in size, add packed storage type,
-//       e.g. STORAGE_TYPE_L4, STORAGE_TYPE_H4
+// TODO: If absolutely necessary, add STORAGE_TYPE_BIT and pack nibbles & bits
 //
 template <typename clazz, size_t num_settings>
 class SettingsBase {
@@ -83,36 +107,38 @@ public:
       values_[s] = value_attr_[s].default_value();
   }
 
-  size_t Save(void *dest) const {
-    size_t written = 0;
+  size_t Save(void *storage) const {
+    nibbles_ = 0;
+    uint8_t *write_ptr = static_cast<uint8_t *>(storage);
     for (size_t s = 0; s < num_settings; ++s) {
-      char *storage = static_cast<char *>(dest) + written;
       switch(value_attr_[s].storage_type) {
-        case STORAGE_TYPE_I8: written += write_setting<int8_t>(storage, s); break;
-        case STORAGE_TYPE_U8: written += write_setting<uint8_t>(storage, s); break;
-        case STORAGE_TYPE_I16: written += write_setting<int16_t>(storage, s); break;
-        case STORAGE_TYPE_U16: written += write_setting<uint16_t>(storage, s); break;
-        case STORAGE_TYPE_I32: written += write_setting<int32_t>(storage, s); break;
-        case STORAGE_TYPE_U32: written += write_setting<uint32_t>(storage, s); break;
+        case STORAGE_TYPE_U4: write_ptr = write_nibble(write_ptr, s); break;
+        case STORAGE_TYPE_I8: write_ptr = write_setting<int8_t>(write_ptr, s); break;
+        case STORAGE_TYPE_U8: write_ptr = write_setting<uint8_t>(write_ptr, s); break;
+        case STORAGE_TYPE_I16: write_ptr = write_setting<int16_t>(write_ptr, s); break;
+        case STORAGE_TYPE_U16: write_ptr = write_setting<uint16_t>(write_ptr, s); break;
+        case STORAGE_TYPE_I32: write_ptr = write_setting<int32_t>(write_ptr, s); break;
+        case STORAGE_TYPE_U32: write_ptr = write_setting<uint32_t>(write_ptr, s); break;
       }
     }
-    return written;
+    return (size_t)(write_ptr - static_cast<uint8_t *>(storage));
   }
 
-  size_t Restore(const void *src) {
-    size_t read = 0;
+  size_t Restore(const void *storage) {
+    nibbles_ = 0;
+    const uint8_t *read_ptr = static_cast<const uint8_t *>(storage);
     for (size_t s = 0; s < num_settings; ++s) {
-      const char *storage = static_cast<const char *>(src) + read;
       switch(value_attr_[s].storage_type) {
-        case STORAGE_TYPE_I8: read += read_setting<int8_t>(storage, s); break;
-        case STORAGE_TYPE_U8: read += read_setting<uint8_t>(storage, s); break;
-        case STORAGE_TYPE_I16: read += read_setting<int16_t>(storage, s); break;
-        case STORAGE_TYPE_U16: read += read_setting<uint16_t>(storage, s); break;
-        case STORAGE_TYPE_I32: read += read_setting<int32_t>(storage, s); break;
-        case STORAGE_TYPE_U32: read += read_setting<uint32_t>(storage, s); break;
+        case STORAGE_TYPE_U4: read_ptr = read_nibble(read_ptr, s); break;
+        case STORAGE_TYPE_I8: read_ptr = read_setting<int8_t>(read_ptr, s); break;
+        case STORAGE_TYPE_U8: read_ptr = read_setting<uint8_t>(read_ptr, s); break;
+        case STORAGE_TYPE_I16: read_ptr = read_setting<int16_t>(read_ptr, s); break;
+        case STORAGE_TYPE_U16: read_ptr = read_setting<uint16_t>(read_ptr, s); break;
+        case STORAGE_TYPE_I32: read_ptr = read_setting<int32_t>(read_ptr, s); break;
+        case STORAGE_TYPE_U32: read_ptr = read_setting<uint32_t>(read_ptr, s); break;
       }
     }
-    return read;
+    return (size_t)(read_ptr - static_cast<const uint8_t *>(storage));
   }
 
   static size_t storageSize() {
@@ -125,31 +151,76 @@ protected:
   static const settings::value_attr value_attr_[];
   static const size_t storage_size_;
 
-  template <typename storage_type>
-  size_t write_setting(void *dest, size_t index) const {
-    storage_type *storage = reinterpret_cast<storage_type *>(dest);
-    *storage = values_[index];
-    return sizeof(storage_type);
+  mutable uint32_t nibbles_;
+
+  uint8_t *flush_nibbles(uint8_t *dest) const {
+    *dest++ = (nibbles_ & 0xff);
+    nibbles_ = 0;
+    return dest;
+  }
+
+  uint8_t *write_nibble(uint8_t *dest, size_t index) const {
+    nibbles_ = (nibbles_ << 4) & (values_[index] & 0x0f);
+    if (nibbles_ & 0xf0000000) {
+      dest = flush_nibbles(dest);
+    } else {
+      nibbles_ |= 0x0f0000000;
+    }
+    return dest;
   }
 
   template <typename storage_type>
-  size_t read_setting(const void *src, size_t index) {
+  uint8_t *write_setting(uint8_t *dest, size_t index) const {
+    if (nibbles_)
+      dest = flush_nibbles(dest);
+    storage_type *storage = reinterpret_cast<storage_type *>(dest);
+    *storage++ = values_[index];
+    return reinterpret_cast<uint8_t *>(storage);
+  }
+
+  const uint8_t *read_nibble(const uint8_t *src, size_t index) {
+    uint8_t value;
+    if (nibbles_) {
+      value = nibbles_ & 0x0f;
+      nibbles_ = 0;
+    } else {
+      nibbles_ = *src++;
+      value = (nibbles_ & 0xf0) >> 4;
+      nibbles_ = nibbles_ | 0xf0000000;
+    }
+    apply_value(index, value);
+
+    return src;
+  }
+
+  template <typename storage_type>
+  const uint8_t *read_setting(const uint8_t *src, size_t index) {
     const storage_type *storage = reinterpret_cast<const storage_type*>(src);
-    apply_value(index, *storage);
-    return sizeof(storage_type);
+    apply_value(index, *storage++);
+    return reinterpret_cast<const uint8_t *>(storage);
   }
 
   static size_t calc_storage_size() {
     size_t s = 0;
-    for (auto attr : value_attr_)
-      switch(attr.storage_type) {
-        case STORAGE_TYPE_I8: s += sizeof(int8_t); break;
-        case STORAGE_TYPE_U8: s += sizeof(uint8_t); break;
-        case STORAGE_TYPE_I16: s += sizeof(int16_t); break;
-        case STORAGE_TYPE_U16: s += sizeof(uint16_t); break;
-        case STORAGE_TYPE_I32: s += sizeof(int32_t); break;
-        case STORAGE_TYPE_U32: s += sizeof(uint32_t); break;
+    unsigned nibbles = 0;
+    for (auto attr : value_attr_) {
+      if (STORAGE_TYPE_U4 == attr.storage_type) {
+        ++nibbles;
+      } else {
+        if (nibbles & 1) ++nibbles;
+        switch(attr.storage_type) {
+          case STORAGE_TYPE_I8: s += sizeof(int8_t); break;
+          case STORAGE_TYPE_U8: s += sizeof(uint8_t); break;
+          case STORAGE_TYPE_I16: s += sizeof(int16_t); break;
+          case STORAGE_TYPE_U16: s += sizeof(uint16_t); break;
+          case STORAGE_TYPE_I32: s += sizeof(int32_t); break;
+          case STORAGE_TYPE_U32: s += sizeof(uint32_t); break;
+          default: break;
+        }
       }
+    }
+    if (nibbles & 1) ++nibbles;
+    s += nibbles >> 1;
     if (s & 1) ++s;
     return s;
   }
@@ -162,4 +233,3 @@ template <> const settings::value_attr settings::SettingsBase<clazz, last>::valu
 }; // namespace settings
 
 #endif // SETTINGS_H_
-

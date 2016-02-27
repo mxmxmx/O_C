@@ -86,7 +86,10 @@ void save_app_data() {
   app_settings.used = 0;
   char *data = app_settings.data;
   char *data_end = data + OC::AppData::kAppDataSize;
-  for (const auto &app : available_apps) {
+
+  size_t start_app = random(APP_COUNT);
+  for (size_t i = 0; i < APP_COUNT; ++i) {
+    const auto &app = available_apps[(start_app + i) % APP_COUNT];
     size_t storage_size = app.storageSize() + sizeof(OC::AppChunkHeader);
     if (app.Save) {
       if (data + storage_size > data_end) {
