@@ -27,6 +27,15 @@ public:
 
   static void Init();
 
+  // @return mask of all pins cloked since last call, reset state
+  static inline uint32_t clocked() {
+    return
+      clocked<DIGITAL_INPUT_1>() |
+      clocked<DIGITAL_INPUT_2>() |
+      clocked<DIGITAL_INPUT_3>() |
+      clocked<DIGITAL_INPUT_4>();
+  }
+
   // @return mask if pin clocked since last call and reset state
   template <DigitalInput input> static inline uint32_t clocked() {
     // This leaves a very small window where a ::clock() might interrupt.

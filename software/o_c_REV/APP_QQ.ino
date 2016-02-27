@@ -14,11 +14,11 @@
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 
-enum EChannelSettings {
+enum ChannelSettings {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
   CHANNEL_SETTING_MASK,
-  CHANNEL_SETTING_UPDATEMODE,
+  CHANNEL_SETTING_TRIGGER,
   CHANNEL_SETTING_TRANSPOSE,
   CHANNEL_SETTING_OCTAVE,
   CHANNEL_SETTING_SOURCE,
@@ -26,10 +26,13 @@ enum EChannelSettings {
   CHANNEL_SETTING_LAST
 };
 
-enum EChannelUpdateMode {
-  CHANNEL_UPDATE_TRIGGERED,
-  CHANNEL_UPDATE_CONTINUOUS,
-  CHANNEL_UPDATE_LAST
+enum ChannelTriggerSource {
+  CHANNEL_TRIGGER_TR1,
+  CHANNEL_TRIGGER_TR2,
+  CHANNEL_TRIGGER_TR3,
+  CHANNEL_TRIGGER_TR4,
+  CHANNEL_TRIGGER_CONTINUOUS,
+  CHANNEL_TRIGGER_LAST
 };
 
 class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
@@ -58,8 +61,8 @@ public:
     return values_[CHANNEL_SETTING_MASK];
   }
 
-  EChannelUpdateMode get_update_mode() const {
-    return static_cast<EChannelUpdateMode>(values_[CHANNEL_SETTING_UPDATEMODE]);
+  ChannelTriggerSource get_trigger_source() const {
+    return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_TRIGGER]);
   }
 
   int get_transpose() const {
@@ -93,11 +96,13 @@ public:
   }
 
   template <size_t index, DAC_CHANNEL dac_channel>
-  inline void Update() {
+  inline void Update(uint32_t triggers) {
     bool forced_update = force_update_;
     force_update_ = false;
-    bool triggered = OC::DigitalInputs::clocked<static_cast<OC::DigitalInput>(index)>();
-    bool continous = CHANNEL_UPDATE_CONTINUOUS == get_update_mode();
+    ChannelTriggerSource trigger_source = get_trigger_source();
+    bool continous = CHANNEL_TRIGGER_CONTINUOUS == trigger_source;
+    bool triggered = !continous &&
+      (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
 
     bool update = forced_update || continous || triggered;
     if (update_scale(forced_update))
@@ -111,19 +116,14 @@ public:
       if (index != source) {
         transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
       }
-      if (transpose > 12) transpose = 12;
-      else if (transpose < -12) transpose = -12;
+      CONSTRAIN(transpose, -12, 12);
 
       pitch = (pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
       pitch += 3 * 12 << 7; // offset for LUT range
 
       int32_t quantized = quantizer_.Process(pitch, (get_root() + 60) << 7, transpose);
       quantized += get_octave() * 12 << 7;
-
-      if (quantized > (120 << 7))
-        quantized = 120 << 7;
-      else if (quantized < 0)
-        quantized = 0;
+      CONSTRAIN(quantized, 0, (120 << 7));
 
       const int32_t octave = quantized / (12 << 7);
       const int32_t fractional = quantized - octave * (12 << 7);
@@ -183,20 +183,19 @@ private:
 
 };
 
-const char* const update_modes[CHANNEL_UPDATE_LAST] = {
-  "trig",
+const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
+  "TR1",
+  "TR2",
+  "TR3",
+  "TR4",
   "cont"
-};
-
-const char* const channel_source[ADC_CHANNEL_LAST] = {
-  "CV1", "CV2", "CV3", "CV4"
 };
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 },
-  { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes, settings::STORAGE_TYPE_U8 },
+  { CHANNEL_TRIGGER_CONTINUOUS, 0, CHANNEL_TRIGGER_LAST - 1, "trigger", channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", OC::Strings::cv_input_names, settings::STORAGE_TYPE_U8},
@@ -277,10 +276,11 @@ void QQ_handleEvent(OC::AppEvent event) {
 }
 
 void QQ_isr() {
-  quantizer_channels[0].Update<0, DAC_CHANNEL_A>();
-  quantizer_channels[1].Update<1, DAC_CHANNEL_B>();
-  quantizer_channels[2].Update<2, DAC_CHANNEL_C>();
-  quantizer_channels[3].Update<3, DAC_CHANNEL_D>();
+  uint32_t triggers = OC::DigitalInputs::clocked();
+  quantizer_channels[0].Update<0, DAC_CHANNEL_A>(triggers);
+  quantizer_channels[1].Update<1, DAC_CHANNEL_B>(triggers);
+  quantizer_channels[2].Update<2, DAC_CHANNEL_C>(triggers);
+  quantizer_channels[3].Update<3, DAC_CHANNEL_D>(triggers);
 }
 
 void QQ_loop() {
