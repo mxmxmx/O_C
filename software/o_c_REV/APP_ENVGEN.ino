@@ -14,7 +14,7 @@
 // MultistageEnvelope maps times to lut_env_increments directly, so only 256 discrete values (no interpolation)
 // Levels are 0-32767 to be positive on Peaks' bipolar output
 
-enum EEnvelopeSettings {
+enum EnvelopeSettings {
   ENV_SETTING_TYPE,
   ENV_SETTING_SEG1_VALUE,
   ENV_SETTING_SEG2_VALUE,
@@ -37,7 +37,7 @@ enum CVMapping {
   CV_MAPPING_LAST
 };
 
-enum EEnvelopeType {
+enum EnvelopeType {
   ENV_TYPE_AD,
   ENV_TYPE_ADSR,
   ENV_TYPE_ADR,
@@ -57,8 +57,8 @@ public:
 
   void Init(OC::DigitalInput default_trigger);
 
-  EEnvelopeType get_type() const {
-    return static_cast<EEnvelopeType>(values_[ENV_SETTING_TYPE]);
+  EnvelopeType get_type() const {
+    return static_cast<EnvelopeType>(values_[ENV_SETTING_TYPE]);
   }
 
   OC::DigitalInput get_trigger_input() const {
@@ -104,29 +104,50 @@ public:
     return 0;
   }
 
+  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments]) {
+    int mapping = values_[cv_setting];
+    switch (mapping) {
+      case CV_MAPPING_SEG1:
+      case CV_MAPPING_SEG2:
+      case CV_MAPPING_SEG3:
+      case CV_MAPPING_SEG4:
+        segments[mapping - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        break;
+      default:
+        break;
+    }
+  }
+
   template <DAC_CHANNEL dac_channel>
-  void Update(uint32_t triggers) {
-    int32_t s1 = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
-    int32_t s2 = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
-    int32_t s3 = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
-    int32_t s4 = SCALE8_16(static_cast<int32_t>(get_segment_value(3)));
+  void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
-    s1 = USAT16(s1);
-    s2 = USAT16(s2);
-    s3 = USAT16(s3);
-    s4 = USAT16(s4);
+    int32_t s[kMaxSegments];
+    s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
+    s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
+    s[2] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
+    s[3] = SCALE8_16(static_cast<int32_t>(get_segment_value(3)));
 
-    EEnvelopeType type = get_type();
+    apply_cv_mapping(ENV_SETTING_CV1, cvs, s);
+    apply_cv_mapping(ENV_SETTING_CV2, cvs, s);
+    apply_cv_mapping(ENV_SETTING_CV3, cvs, s);
+    apply_cv_mapping(ENV_SETTING_CV4, cvs, s);
+
+    s[0] = USAT16(s[0]);
+    s[1] = USAT16(s[1]);
+    s[2] = USAT16(s[2]);
+    s[3] = USAT16(s[3]);
+
+    EnvelopeType type = get_type();
     switch (type) {
-      case ENV_TYPE_AD: env_.set_ad(s1, s2); break;
-      case ENV_TYPE_ADSR: env_.set_adsr(s1, s2, s3>>1, s4); break;
-      case ENV_TYPE_ADR: env_.set_adr(s1, s2, s3>>1, s4); break;
-      case ENV_TYPE_AR: env_.set_ar(s1, s2); break;
-      case ENV_TYPE_ADSAR: env_.set_adsar(s1, s2, s3>>1, s4); break;
-      case ENV_TYPE_ADAR: env_.set_adar(s1, s2, s3>>1, s4); break;
-      case ENV_TYPE_AD_LOOP: env_.set_ad_loop(s1, s2); break;
-      case ENV_TYPE_ADR_LOOP: env_.set_adr_loop(s1, s2, s3>>1, s4); break;
-      case ENV_TYPE_ADAR_LOOP: env_.set_adar_loop(s1, s2, s3>>1, s4); break;
+      case ENV_TYPE_AD: env_.set_ad(s[0], s[1]); break;
+      case ENV_TYPE_ADSR: env_.set_adsr(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADR: env_.set_adr(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_AR: env_.set_ar(s[0], s[1]); break;
+      case ENV_TYPE_ADSAR: env_.set_adsar(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADAR: env_.set_adar(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_AD_LOOP: env_.set_ad_loop(s[0], s[1]); break;
+      case ENV_TYPE_ADR_LOOP: env_.set_adr_loop(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADAR_LOOP: env_.set_adar_loop(s[0], s[1], s[2]>>1, s[3]); break;
       default:
       break;
     }
@@ -160,7 +181,7 @@ public:
 
 private:
   peaks::MultistageEnvelope env_;
-  EEnvelopeType last_type_;
+  EnvelopeType last_type_;
   bool gate_raised_;
 };
 
@@ -217,12 +238,13 @@ public:
     cv3.push(OC::ADC::value<ADC_CHANNEL_3>());
     cv4.push(OC::ADC::value<ADC_CHANNEL_4>());
 
+    const int32_t cvs[ADC_CHANNEL_LAST] = { cv1.value(), cv2.value(), cv3.value(), cv4.value() };
     uint32_t triggers = OC::DigitalInputs::clocked();
 
-    envelopes_[0].Update<DAC_CHANNEL_A>(triggers);
-    envelopes_[1].Update<DAC_CHANNEL_B>(triggers);
-    envelopes_[2].Update<DAC_CHANNEL_C>(triggers);
-    envelopes_[3].Update<DAC_CHANNEL_D>(triggers);
+    envelopes_[0].Update<DAC_CHANNEL_A>(triggers, cvs);
+    envelopes_[1].Update<DAC_CHANNEL_B>(triggers, cvs);
+    envelopes_[2].Update<DAC_CHANNEL_C>(triggers, cvs);
+    envelopes_[3].Update<DAC_CHANNEL_D>(triggers, cvs);
   }
 
   enum EditMode {
