@@ -126,4 +126,13 @@ int32_t Quantizer::Process(int32_t pitch, int32_t root, int32_t transpose) {
   return pitch;
 }
 
+int32_t Quantizer::Lookup(int32_t index) const {
+  if (index < 0)
+    return codebook_[0];
+  else if (index > 127)
+    return codebook_[127];
+  else
+    return codebook_[index];
+}
+
 }  // namespace braids
