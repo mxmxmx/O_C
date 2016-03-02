@@ -85,7 +85,7 @@ void LorenzGenerator::Process(
 
   if (reset) Init() ; 
 
-  int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
+  int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 3); // was >> 5
   int32_t x1 = x1_ + (dt1 * ((sigma * (y1_ - x1_)) >> 24) >> 24);
   int32_t y1 = y1_ + (dt1 * ((x1_ * (rho1_ - z1_) >> 24) - y1_) >> 24);
   int32_t z1 = z1_ + (dt1 * ((x1_ * int64_t(y1_) >> 24) - (beta * z1_ >> 24)) >> 24); 
@@ -96,7 +96,7 @@ void LorenzGenerator::Process(
   int32_t x1_scaled = (x1 >> 14) + 32769;
   int32_t y1_scaled = (y1 >> 14) + 32769;
 
-  int64_t dt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 5);
+  int64_t dt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 3); // was 5
   int32_t x2 = x2_ + (dt2 * ((sigma * (y2_ - x2_)) >> 24) >> 24);
   int32_t y2 = y2_ + (dt2 * ((x2_ * (rho2_ - z2_) >> 24) - y2_) >> 24);
   int32_t z2 = z2_ + (dt2 * ((x2_ * int64_t(y2_) >> 24) - (beta * z2_ >> 24)) >> 24); 

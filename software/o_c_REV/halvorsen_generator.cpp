@@ -61,12 +61,13 @@ enum EHalvorsenOutputMap {
 
 // const int64_t sigma = 10.0 * (1 << 24);
 const int64_t alpha = 1.4 * (1 << 24);
+// const double alpha = 1.4;
 // const int64_t beta = 8.0 / 3.0 * (1 << 24);
 
 void HalvorsenGenerator::Init() {
-  x1_ = 1;
-  y1_ = 0;
-  z1_ = 0;
+  x1_ = 1.0;
+  y1_ = 0.0;
+  z1_ = 0.0;
   x2_ = x1_;
   y2_ = y1_;
   z2_ = z1_;
@@ -85,15 +86,15 @@ void HalvorsenGenerator::Process(
 
   if (reset) Init() ; 
 
-  // int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
+  int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
   // int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1]);
-  int64_t dt1 = 1 << 21 ;
-  // int32_t x1 = x1_ + (dt1 * ((-alpha * x1_ - 4 * y1_ - 4 * z1_ - y1_ * y1_) >> 24) >> 24);
-  // int32_t y1 = y1_ + (dt1 * ((-alpha * y1_ - 4 * z1_ - 4 * x1_ - z1_ * z1_) >> 24) >> 24);
-  // int32_t z1 = z1_ + (dt1 * ((-alpha * z1_ - 4 * x1_ - 4 * y1_ - x1_ * x1_) >> 24) >> 24);
-  int32_t x1 = x1_ + (dt1 * ((-alpha * x1_ - 4 * y1_ - 4 * z1_ - y1_ * y1_) >> 24));
-  int32_t y1 = y1_ + (dt1 * ((-alpha * y1_ - 4 * z1_ - 4 * x1_ - z1_ * z1_) >> 24));
-  int32_t z1 = z1_ + (dt1 * ((-alpha * z1_ - 4 * x1_ - 4 * y1_ - x1_ * x1_) >> 24));
+  // float dt1 = 0.001 ;
+  int32_t x1 = x1_ + (dt1 * ((-alpha * x1_ - 4 * y1_ - 4 * z1_ - y1_ * y1_) >> 24) >> 24);
+  int32_t y1 = y1_ + (dt1 * ((-alpha * y1_ - 4 * z1_ - 4 * x1_ - z1_ * z1_) >> 24) >> 24);
+  int32_t z1 = z1_ + (dt1 * ((-alpha * z1_ - 4 * x1_ - 4 * y1_ - x1_ * x1_) >> 24) >> 24);
+  // double x1 = x1_ + (dt1 * ((-alpha * x1_ - 4.0 * y1_ - 4.0 * z1_ - y1_ * y1_));
+  // double y1 = y1_ + (dt1 * ((-alpha * y1_ - 4.0 * z1_ - 4.0 * x1_ - z1_ * z1_));
+  // double z1 = z1_ + (dt1 * ((-alpha * z1_ - 4.0 * x1_ - 4.0 * y1_ - x1_ * x1_));
   x1_ = x1;
   y1_ = y1;
   z1_ = z1; 

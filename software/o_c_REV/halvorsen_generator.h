@@ -78,8 +78,10 @@ class HalvorsenGenerator {
 
  private:
   int32_t x1_, y1_, z1_;
+  // double x1_, y1_, z1_;
   int32_t rate1_;
   int32_t x2_, y2_, z2_;
+  // double x2_, y2_, z2_;
   int32_t rate2_;
 
   uint8_t out_c_, out_d_ ;
