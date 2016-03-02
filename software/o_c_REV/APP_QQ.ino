@@ -5,30 +5,48 @@
 #include "OC_apps.h"
 #include "OC_strings.h"
 #include "util/util_settings.h"
+#include "util/util_turing.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
+#include "OC_strings.h"
 #include "util_ui.h"
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 
-enum EChannelSettings {
+enum ChannelSettings {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
   CHANNEL_SETTING_MASK,
-  CHANNEL_SETTING_UPDATEMODE,
+  CHANNEL_SETTING_SOURCE,
+  CHANNEL_SETTING_TRIGGER,
+  CHANNEL_SETTING_CLKDIV,
   CHANNEL_SETTING_TRANSPOSE,
   CHANNEL_SETTING_OCTAVE,
-  CHANNEL_SETTING_SOURCE,
   CHANNEL_SETTING_FINE,
+  CHANNEL_SETTING_TURING_LENGTH,
+  CHANNEL_SETTING_TURING_PROB,
+  CHANNEL_SETTING_TURING_RANGE,
   CHANNEL_SETTING_LAST
 };
 
-enum EChannelUpdateMode {
-  CHANNEL_UPDATE_TRIGGERED,
-  CHANNEL_UPDATE_CONTINUOUS,
-  CHANNEL_UPDATE_LAST
+enum ChannelTriggerSource {
+  CHANNEL_TRIGGER_TR1,
+  CHANNEL_TRIGGER_TR2,
+  CHANNEL_TRIGGER_TR3,
+  CHANNEL_TRIGGER_TR4,
+  CHANNEL_TRIGGER_CONTINUOUS,
+  CHANNEL_TRIGGER_LAST
+};
+
+enum ChannelSource {
+  CHANNEL_SOURCE_CV1,
+  CHANNEL_SOURCE_CV2,
+  CHANNEL_SOURCE_CV3,
+  CHANNEL_SOURCE_CV4,
+  CHANNEL_SOURCE_TURING,
+  CHANNEL_SOURCE_LAST
 };
 
 class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
@@ -57,8 +75,16 @@ public:
     return values_[CHANNEL_SETTING_MASK];
   }
 
-  EChannelUpdateMode get_update_mode() const {
-    return static_cast<EChannelUpdateMode>(values_[CHANNEL_SETTING_UPDATEMODE]);
+  ChannelSource get_source() const {
+    return static_cast<ChannelSource>(values_[CHANNEL_SETTING_SOURCE]);
+  }
+
+  ChannelTriggerSource get_trigger_source() const {
+    return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_TRIGGER]);
+  }
+
+  uint8_t get_clkdiv() const {
+    return values_[CHANNEL_SETTING_CLKDIV];
   }
 
   int get_transpose() const {
@@ -69,73 +95,131 @@ public:
     return values_[CHANNEL_SETTING_OCTAVE];
   }
 
-  ADC_CHANNEL get_source() const {
-    return static_cast<ADC_CHANNEL>(values_[CHANNEL_SETTING_SOURCE]);
-  }
-
   int get_fine() const {
     return values_[CHANNEL_SETTING_FINE];
   }
 
+  uint8_t get_turing_length() const {
+    return values_[CHANNEL_SETTING_TURING_LENGTH];
+  }
+
+  uint8_t get_turing_prob() const {
+    return values_[CHANNEL_SETTING_TURING_PROB];
+  }
+
+  uint8_t get_turing_range() const {
+    return values_[CHANNEL_SETTING_TURING_RANGE];
+  }
+
   void Init() {
+    InitDefaults();
+
     force_update_ = false;
     last_scale_ = -1;
     last_mask_ = 0;
     last_output_ = 0;
+    clock_ = 0;
+
+    turing_machine_.Init();
     quantizer_.Init();
     update_scale(true);
+    trigger_display_.Init();
   }
 
   void force_update() {
     force_update_ = true;
   }
 
-  template <size_t index, DAC_CHANNEL dac_channel>
-  inline void update() {
+  inline void Update(uint32_t triggers, size_t index, DAC_CHANNEL dac_channel) {
     bool forced_update = force_update_;
     force_update_ = false;
 
-    bool update = forced_update || get_update_mode() == CHANNEL_UPDATE_CONTINUOUS;
-    if (OC::DigitalInputs::clocked<static_cast<OC::DigitalInput>(index)>())
-      update = true;
-    if (update_scale(forced_update))
-      update = true;
-
-    if (update) {
-      int32_t transpose = get_transpose();
-      ADC_CHANNEL source = get_source();
-      int32_t pitch = OC::ADC::value(source);
-      if (index != source) {
-        transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
-      }
-      if (transpose > 12) transpose = 12;
-      else if (transpose < -12) transpose = -12;
-
-      pitch = (pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
-      pitch += 3 * 12 << 7; // offset for LUT range
-
-      int32_t quantized = quantizer_.Process(pitch, (get_root() + 60) << 7, transpose);
-      quantized += get_octave() * 12 << 7;
-
-      if (quantized > (120 << 7))
-        quantized = 120 << 7;
-      else if (quantized < 0)
-        quantized = 0;
-
-      const int32_t octave = quantized / (12 << 7);
-      const int32_t fractional = quantized - octave * (12 << 7);
-
-      int32_t sample = OC::calibration_data.octaves[octave];
-      if (fractional)
-        sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);
-
-      if (last_output_ != sample) {
-        MENU_REDRAW = 1;
-        last_output_ = sample;
+    ChannelSource source = get_source();
+    ChannelTriggerSource trigger_source = get_trigger_source();
+    bool continous = CHANNEL_TRIGGER_CONTINUOUS == trigger_source;
+    bool triggered = !continous &&
+      (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
+    if (triggered) {
+      ++clock_;
+      if (clock_ >= get_clkdiv()) {
+        clock_ = 0;
+      } else {
+        triggered = false;
       }
     }
 
-    DAC::set<dac_channel>(last_output_ + get_fine());
+    bool update = forced_update || continous || triggered;
+    if (update_scale(forced_update))
+      update = true;
+
+    int32_t sample = last_output_;
+
+    if (CHANNEL_SOURCE_TURING != source) {
+      if (update) {
+        int32_t transpose = get_transpose();
+        int32_t pitch = OC::ADC::value(static_cast<ADC_CHANNEL>(source));
+        if (index != source) {
+          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
+        }
+        CONSTRAIN(transpose, -12, 12);
+
+        pitch = (pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
+        pitch += 3 * 12 << 7; // offset for LUT range
+
+        int32_t quantized = quantizer_.Process(pitch, (get_root() + 60) << 7, transpose);
+        quantized += get_octave() * 12 << 7;
+        CONSTRAIN(quantized, 0, (120 << 7));
+        const int32_t octave = quantized / (12 << 7);
+        const int32_t fractional = quantized - octave * (12 << 7);
+        sample = OC::calibration_data.octaves[octave];
+        if (fractional)
+          sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);
+      }
+    } else {
+      uint8_t turing_length = get_turing_length();
+      turing_machine_.set_length(turing_length);
+      int32_t probability = get_turing_prob() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
+      CONSTRAIN(probability, 0, 255);
+      turing_machine_.set_probability(probability);
+ 
+      if (triggered) {
+        uint32_t shift_register = turing_machine_.Clock();
+        int32_t pitch;
+        if (quantizer_.enabled()) {
+          uint8_t range = get_turing_range();
+
+          // To use full range of bits is something like:
+          // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
+          // Since our range is limited anyway, just grab the last byte
+          uint32_t scaled = ((shift_register & 0xff) * range) >> 8;
+
+          // TODO This is just a bodge to get things working;
+          // I think we can convert the quantizer codebook to work in a better range
+          // The same things happen in all apps that use it, so can be simplified/unified.
+          pitch = quantizer_.Lookup(64 + range / 2 - scaled);
+          pitch += (get_root() + 60) << 7;
+        } else {
+          pitch = shift_register;
+        }
+
+        //pitch += 3 * 12 << 7; // offset for LUT range
+        pitch += get_octave() * 12 << 7;
+        CONSTRAIN(pitch, 0, (120 << 7));
+        const int32_t octave = pitch / (12 << 7);
+        const int32_t fractional = pitch - octave * (12 << 7);
+        sample = OC::calibration_data.octaves[octave];
+        if (fractional)
+          sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);
+      }
+    }
+
+    bool changed = last_output_ != sample;
+    if (changed) {
+      MENU_REDRAW = 1;
+      last_output_ = sample;
+      DAC::set(dac_channel, last_output_ + get_fine());
+    }
+    trigger_display_.Update(1, continous ? changed : triggered);
   }
 
   // Wrappers for ScaleEdit
@@ -152,12 +236,30 @@ public:
   }
   //
 
+  uint8_t getTriggerState() const {
+    return trigger_display_.getState();
+  }
+
+  uint32_t get_shift_register() const {
+    return turing_machine_.get_shift_register();
+  }
+
+  ChannelSettings visible_params() const {
+    return CHANNEL_SOURCE_TURING == get_source()
+      ? CHANNEL_SETTING_LAST
+      : CHANNEL_SETTING_TURING_LENGTH;
+  }
+
 private:
   bool force_update_;
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_output_;
+  uint8_t clock_;
+
+  util::TuringShiftRegister turing_machine_;
   braids::Quantizer quantizer_;
+  OC::DigitalInputDisplay trigger_display_;
 
   bool update_scale(bool force) {
     const int scale = get_scale();
@@ -171,27 +273,29 @@ private:
       return false;
     }
   }
-
 };
 
-const char* const update_modes[CHANNEL_UPDATE_LAST] = {
-  "trig",
-  "cont"
+const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
+  "TR1", "TR2", "TR3", "TR4", "cont"
 };
 
-const char* const channel_source[ADC_CHANNEL_LAST] = {
-  "CV1", "CV2", "CV3", "CV4"
+const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
+  "CV1", "CV2", "CV3", "CV4", "TURING"
 };
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 },
-  { CHANNEL_UPDATE_CONTINUOUS, 0, CHANNEL_UPDATE_LAST - 1, "update", update_modes, settings::STORAGE_TYPE_U8 },
+  { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "source", channel_input_sources, settings::STORAGE_TYPE_U8},
+  { CHANNEL_TRIGGER_CONTINUOUS, 0, CHANNEL_TRIGGER_LAST - 1, "trigger", channel_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { 1, 1, 16, "clock div", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
-  { ADC_CHANNEL_1, ADC_CHANNEL_1, ADC_CHANNEL_LAST - 1, "source", channel_source, settings::STORAGE_TYPE_U8},
   { 0, -999, 999, "fine", NULL, settings::STORAGE_TYPE_I16 },
+  { 16, 0, 32, "SR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "SR probability", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 0, 120, "SR range", NULL, settings::STORAGE_TYPE_U8 }
 };
 
 enum EMenuMode {
@@ -213,7 +317,6 @@ QuantizerChannel quantizer_channels[4];
 
 void QQ_init() {
   for (size_t i = 0; i < 4; ++i) {
-    quantizer_channels[i].InitDefaults();
     quantizer_channels[i].Init();
     quantizer_channels[i].apply_value(CHANNEL_SETTING_SOURCE, (int)i); // override
   }
@@ -267,16 +370,12 @@ void QQ_handleEvent(OC::AppEvent event) {
   }
 }
 
-#define CLOCK_CHANNEL(i, adc_channel, dac_channel) \
-do { \
-  quantizer_channels[i].update<i, dac_channel>(); \
-} while (0)
-
 void QQ_isr() {
-  quantizer_channels[0].update<0, DAC_CHANNEL_A>();
-  quantizer_channels[1].update<1, DAC_CHANNEL_B>();
-  quantizer_channels[2].update<2, DAC_CHANNEL_C>();
-  quantizer_channels[3].update<3, DAC_CHANNEL_D>();
+  uint32_t triggers = OC::DigitalInputs::clocked();
+  quantizer_channels[0].Update(triggers, 0, DAC_CHANNEL_A);
+  quantizer_channels[1].Update(triggers, 1, DAC_CHANNEL_B);
+  quantizer_channels[2].Update(triggers, 2, DAC_CHANNEL_C);
+  quantizer_channels[3].Update(triggers, 3, DAC_CHANNEL_D);
 }
 
 void QQ_loop() {
@@ -285,6 +384,26 @@ void QQ_loop() {
   buttons(BUTTON_BOTTOM);
   buttons(BUTTON_LEFT);
   buttons(BUTTON_RIGHT);
+}
+
+template <bool rtl>
+void draw_mask(weegfx::coord_t y, uint32_t mask, size_t count) {
+  weegfx::coord_t x, dx;
+  if (count > 16) count = 16;
+  if (rtl) {
+    x = kUiDisplayWidth - 3;
+    dx = -3;
+  } else {
+    x = kUiDisplayWidth - count * 3;
+    dx = 3;
+  }
+
+  for (size_t i = 0; i < count; ++i, mask >>= 1, x += dx) {
+    if (mask & 0x1)
+      graphics.drawRect(x, y + 1, 2, 8);
+    else
+      graphics.drawRect(x, y + 8, 2, 1);
+  }
 }
 
 void QQ_menu() {
@@ -297,10 +416,15 @@ void QQ_menu() {
   UI_DRAW_TITLE(kStartX);
 
   for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    graphics.setPrintPos(x + 4, 2);
+    const QuantizerChannel &channel = quantizer_channels[i];
+    const uint8_t trigger_state = (channel.getTriggerState() + 3) >> 2;
+    if (trigger_state)
+      graphics.drawBitmap8(x + 1, 2, 4, OC::bitmap_gate_indicators_8 + (trigger_state << 2));
+
+    graphics.setPrintPos(x + 6, 2);
     graphics.print((char)('A' + i));
     graphics.setPrintPos(x + 14, 2);
-    int octave = quantizer_channels[i].get_octave();
+    int octave = channel.get_octave();
     if (octave)
       graphics.pretty_print(octave);
 
@@ -316,10 +440,9 @@ void QQ_menu() {
   int scale;
   if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
     scale = qq_state.left_encoder_value;
+    graphics.print(' ');
     if (channel.get_scale() == scale)
-      graphics.print(">");
-    else
-      graphics.print('-');
+      graphics.drawBitmap8(kStartX + 2, y + 1, 4, OC::bitmap_indicator_4x8);
   } else {
     scale = channel.get_scale();
   }
@@ -328,21 +451,28 @@ void QQ_menu() {
   int first_visible_param = qq_state.selected_param - 2;
   if (first_visible_param < CHANNEL_SETTING_ROOT)
     first_visible_param = CHANNEL_SETTING_ROOT;
+  int last_visible_param = channel.visible_params();
 
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, CHANNEL_SETTING_LAST, qq_state.selected_param, 1)
+  // TODO "Smarter" listing, e.g. hide clkdiv if continuous mode
+
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, last_visible_param, qq_state.selected_param, 1)
     const settings::value_attr &attr = QuantizerChannel::value_attr(current_item);
-    if (CHANNEL_SETTING_MASK != current_item) {
-      UI_DRAW_SETTING(attr, channel.get_value(current_item), kUiWideMenuCol1X);
-    } else {
-      graphics.print(attr.name);
-      uint16_t mask = channel.get_mask();
-      size_t num_notes = OC::Scales::GetScale(channel.get_scale()).num_notes;
-      weegfx::coord_t x = kUiDisplayWidth - num_notes * 3;
-      for (size_t i = 0; i < num_notes; ++i, mask >>= 1, x+=3) {
-        if (mask & 0x1)
-          graphics.drawRect(x, y + 1, 2, 8);
-      }
-      UI_END_ITEM();
+    switch (current_item) {
+      case CHANNEL_SETTING_MASK:
+        graphics.print(attr.name);
+        draw_mask<false>(y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+        UI_END_ITEM();
+        break;
+      case CHANNEL_SETTING_SOURCE:
+        if (CHANNEL_SOURCE_TURING == channel.get_source()) {
+          graphics.print(attr.name);
+          draw_mask<true>(y, channel.get_shift_register(), channel.get_turing_length());
+          UI_END_ITEM();
+          break;
+        }
+      default:
+        UI_DRAW_SETTING(attr, channel.get_value(current_item), kUiWideMenuCol1X);
+        break;
     }
   UI_END_ITEMS_LOOP();
 
@@ -372,9 +502,12 @@ bool QQ_encoders() {
       if (value != qq_state.selected_channel) {
         CONSTRAIN(value, 0, 3);
         qq_state.selected_channel = value;
+        const QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
         encoder[LEFT].setPos(value);
+        if (qq_state.selected_param > selected.visible_params())
+          qq_state.selected_param = selected.visible_params();
         if (CHANNEL_SETTING_MASK != qq_state.selected_param)
-          value = quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param);
+          value = selected.get_value(qq_state.selected_param);
         else
           value = 0;
         encoder[RIGHT].setPos(value);
@@ -440,7 +573,7 @@ void QQ_rightButton() {
 
   QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
   ++qq_state.selected_param;
-  if (qq_state.selected_param >= CHANNEL_SETTING_LAST)
+  if (qq_state.selected_param >= selected_channel.visible_params())
     qq_state.selected_param = CHANNEL_SETTING_ROOT;
   if (CHANNEL_SETTING_MASK != qq_state.selected_param) {
     encoder[RIGHT].setPos(selected_channel.get_value(qq_state.selected_param));

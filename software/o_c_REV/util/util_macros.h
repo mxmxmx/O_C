@@ -14,6 +14,6 @@
 
 
 #define CLIP(x) if (x < -32767) x = -32767; if (x > 32767) x = 32767;
-#define CONSTRAIN(x, lb, ub) do { if (x < lb) x = lb; else if (x > ub) x = ub; } while (0)
+#define CONSTRAIN(x, lb, ub) do { if (x < (lb)) x = lb; else if (x > (ub)) x = ub; } while (0)
 
 #endif // UTIL_MACROS_H_

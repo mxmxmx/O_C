@@ -58,6 +58,14 @@ class Quantizer {
   void Configure(const Scale& scale, uint16_t mask = 0xffff) {
     Configure(scale.notes, scale.span, scale.num_notes, mask);
   }
+
+  bool enabled() const {
+    return enabled_;
+  }
+
+  // HACK for TM
+  int32_t Lookup(int32_t index) const;
+
  private:
   void Configure(const int16_t* notes, int16_t span, size_t num_notes, uint16_t mask);
   bool enabled_;

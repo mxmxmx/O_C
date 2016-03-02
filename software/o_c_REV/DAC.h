@@ -33,6 +33,10 @@ public:
     values_[channel] = value;
   }
 
+  static void set(DAC_CHANNEL channel, uint32_t value) {
+    values_[channel] = value;
+  }
+
   template <DAC_CHANNEL channel>
   static uint32_t get() {
     return values_[channel];

@@ -21,7 +21,7 @@ OC::App available_apps[] = {
   DECLARE_APP('A','S', "CopierMaschine", ASR, ASR_isr),
   DECLARE_APP('H','A', "Harrington 1200", H1200, nullptr),
   DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, nullptr),
-  DECLARE_APP('Q','Q', "VierfStSpQuaMo", QQ, QQ_isr),
+  DECLARE_APP('Q','Q', "Quantermain", QQ, QQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
@@ -92,7 +92,7 @@ void save_app_data() {
     if (app.Save) {
       if (data + storage_size > data_end) {
         serial_printf("*********************\n");
-        serial_printf("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES IN %u\n", app.name, storage_size, OC::AppData::kAppDataSize);
+        serial_printf("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u AVAILABLE\n", app.name, data_end - data, OC::AppData::kAppDataSize);
         serial_printf("*********************\n");
         continue;
       }
@@ -286,7 +286,7 @@ void OC::APPS::Select() {
     }
   }
 
-  CORE_app_isr_enabled = false;
+  OC::CORE::app_isr_enabled = false;
   delay(1);
 
   set_current_app(selected);
@@ -308,5 +308,5 @@ void OC::APPS::Select() {
   MENU_REDRAW = 1;
   _UI_TIMESTAMP = millis();
 
-  CORE_app_isr_enabled = true;
+  OC::CORE::app_isr_enabled = true;
 }

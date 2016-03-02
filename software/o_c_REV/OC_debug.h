@@ -27,7 +27,9 @@ namespace debug {
 };
 
 namespace OC {
-extern SmoothedValue<uint32_t, 16> CORE_ISR_cycles;
+  namespace CORE {
+  extern SmoothedValue<uint32_t, 16> ISR_cycles;
+  };
 };
 
 #endif // OC_DEBUG_H

@@ -12,6 +12,6 @@
 #define EEPROM_APPDATA_END EEPROMStorage::LENGTH
 
 // This is the available space for all apps' settings (\sa OC_apps.ino)
-#define EEPROM_APPDATA_BINARY_SIZE 256
+#define EEPROM_APPDATA_BINARY_SIZE 384
 
 #endif // OC_STORAGE_H_

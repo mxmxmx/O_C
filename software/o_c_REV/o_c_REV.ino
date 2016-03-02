@@ -27,7 +27,7 @@
 #include <EEPROM.h>
 
 #include "OC_apps.h"
-#include "OC_config.h"
+#include "OC_core.h"
 #include "OC_debug.h"
 #include "OC_gpio.h"
 #include "OC_ADC.h"
@@ -102,9 +102,10 @@ void FASTRUN right_encoder_ISR()
 /*  ------------------------ core timer ISR ---------------------------   */
 IntervalTimer CORE_timer;
 uint32_t ENC_timer_counter = 0;
-volatile bool CORE_app_isr_enabled = false;
 
-SmoothedValue<uint32_t, 16> OC::CORE_ISR_cycles;
+volatile bool OC::CORE::app_isr_enabled = false;
+volatile uint32_t OC::CORE::ticks = 0;
+SmoothedValue<uint32_t, 16> OC::CORE::ISR_cycles;
 
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
@@ -136,11 +137,12 @@ void FASTRUN CORE_timer_ISR() {
     ENC_timer_counter = 0;
     _ENC = true;
   }
+  ++OC::CORE::ticks;
 
-  if (CORE_app_isr_enabled)
+  if (OC::CORE::app_isr_enabled)
     OC::APPS::ISR();
 
-  OC::CORE_ISR_cycles.push(cycles.read());
+  OC::CORE::ISR_cycles.push(cycles.read());
 }
 
 /*       ---------------------------------------------------------         */
@@ -196,7 +198,7 @@ void setup() {
   // initialize 
   init_DACtable();
   OC::APPS::Init();
-  CORE_app_isr_enabled = true;
+  OC::CORE::app_isr_enabled = true;
 }
 
 /*  ---------    main loop  --------  */
