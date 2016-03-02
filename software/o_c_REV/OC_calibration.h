@@ -2,15 +2,11 @@
 #define OC_CALIBRATION_H_
 
 #include "OC_ADC.h"
+#include "OC_config.h"
 #include "OC_storage.h"
 #include "DAC.h"
 #include "util/util_pagestorage.h"
 #include "util/EEPROMStorage.h"
-
-#define OCTAVES 10      // # octaves
-static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
-#define RANGE 119                     // [0-119] = 120 semitones < > 10 octaves 
-#define S_RANGE 119<<5                // same thing, spread over 12 bit (ish)
 
 //#define VERBOSE_LUT
 #ifdef VERBOSE_LUT
@@ -23,8 +19,6 @@ namespace OC {
 
 struct CalibrationData {
   static constexpr uint32_t FOURCC = FOURCC<'C', 'A', 'L', 1>::value;
-
-  uint16_t octaves[OCTAVES + 1];
 
   DAC::CalibrationData dac;
   ADC::CalibrationData adc;

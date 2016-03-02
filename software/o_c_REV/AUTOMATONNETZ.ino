@@ -341,7 +341,7 @@ void AutomatonnetzState::render(bool triggered) {
     case OUTPUTA_MODE_TRIG:
       if (triggered) {
         trigger_out_millis_ = millis();
-        DAC::set<DAC_CHANNEL_A>(OC::calibration_data.octaves[_ZERO + 5]);
+        DAC::set<DAC_CHANNEL_A>(OC::calibration_data.dac.octaves[_ZERO + 5]);
       }
       break;
     case OUTPUTA_MODE_ARP:
@@ -361,7 +361,7 @@ void AutomatonnetzState::render(bool triggered) {
 void AutomatonnetzState::update_trigger_out() {
   // TODO Allow re-triggering?
   if (trigger_out_millis_ && millis() - trigger_out_millis_ > kTriggerOutMs) {
-    DAC::set<DAC_CHANNEL_A>(OC::calibration_data.octaves[_ZERO]);
+    DAC::set<DAC_CHANNEL_A>(OC::calibration_data.dac.octaves[_ZERO]);
     trigger_out_millis_ = 0;
   }
 }

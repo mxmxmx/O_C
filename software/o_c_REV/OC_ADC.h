@@ -78,6 +78,10 @@ public:
     return raw_values_[channel] >> kAdcValueShift;
   }
 
+  static int32_t pitch_value(ADC_CHANNEL channel) {
+    return (values_[channel] * 120 << 7) >> 12;
+  }
+
 #ifdef ENABLE_ADC_DEBUG
   // DEBUG
   static uint16_t fail_flag0() {

@@ -189,10 +189,7 @@ bool ScaleEditor<Owner>::handle_encoders() {
       if (cursor_pos_ == num_notes_) {
         long num_notes = num_notes_;
         num_notes += right_value;
-        if (num_notes < kMinScaleLength)
-          num_notes = kMinScaleLength;
-        else if (num_notes > kMaxScaleLength)
-          num_notes = kMaxScaleLength;
+        CONSTRAIN(num_notes, kMinScaleLength, kMaxScaleLength);
 
         num_notes_ = num_notes;
         if (right_value > 0) {

@@ -18,6 +18,7 @@ public:
   static constexpr uint16_t MAX_VALUE = 65535; // DAC fullscale 
 
   struct CalibrationData {
+    uint16_t octaves[OCTAVES + 1];
     int8_t fine[DAC_CHANNEL_LAST];
   };
 
@@ -44,6 +45,19 @@ public:
 
   static uint32_t value(size_t index) {
     return values_[index];
+  }
+
+  static int32_t pitch_to_dac(int32_t pitch, int32_t octave_offset) {
+    pitch += octave_offset * 12 << 7;
+    CONSTRAIN(pitch, 0, (120 << 7));
+
+    const int32_t octave = pitch / (12 << 7);
+    const int32_t fractional = pitch - octave * (12 << 7);
+    int32_t sample = calibration_data_->octaves[octave];
+    if (fractional)
+      sample += (fractional * (calibration_data_->octaves[octave + 1] - calibration_data_->octaves[octave])) / (12 << 7);
+
+    return sample;
   }
 
   static void Update() {

@@ -171,7 +171,7 @@ public:
     gate_raised_ = gate_raised;
 
     // TODO Scale range or offset?
-    uint32_t value = OC::calibration_data.octaves[_ZERO] + env_.ProcessSingleSample(gate_state);
+    uint32_t value = OC::calibration_data.dac.octaves[_ZERO] + env_.ProcessSingleSample(gate_state);
     DAC::set<dac_channel>(value);
   }
 

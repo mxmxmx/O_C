@@ -157,23 +157,14 @@ public:
     if (CHANNEL_SOURCE_TURING != source) {
       if (update) {
         int32_t transpose = get_transpose();
-        int32_t pitch = OC::ADC::value(static_cast<ADC_CHANNEL>(source));
+        int32_t pitch = OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
         if (index != source) {
           transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
         }
         CONSTRAIN(transpose, -12, 12);
 
-        pitch = (pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
         pitch += 3 * 12 << 7; // offset for LUT range
-
-        int32_t quantized = quantizer_.Process(pitch, (get_root() + 60) << 7, transpose);
-        quantized += get_octave() * 12 << 7;
-        CONSTRAIN(quantized, 0, (120 << 7));
-        const int32_t octave = quantized / (12 << 7);
-        const int32_t fractional = quantized - octave * (12 << 7);
-        sample = OC::calibration_data.octaves[octave];
-        if (fractional)
-          sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);
+        sample = DAC::pitch_to_dac(quantizer_.Process(pitch, (get_root() + 60) << 7, transpose), get_octave());
       }
     } else {
       uint8_t turing_length = get_turing_length();
@@ -203,13 +194,7 @@ public:
         }
 
         //pitch += 3 * 12 << 7; // offset for LUT range
-        pitch += get_octave() * 12 << 7;
-        CONSTRAIN(pitch, 0, (120 << 7));
-        const int32_t octave = pitch / (12 << 7);
-        const int32_t fractional = pitch - octave * (12 << 7);
-        sample = OC::calibration_data.octaves[octave];
-        if (fractional)
-          sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);
+        sample = DAC::pitch_to_dac(pitch, get_octave());
       }
     }
 

@@ -11,4 +11,9 @@ static constexpr uint32_t OC_CORE_TIMER_RATE = (1000000UL / OC_CORE_ISR_FREQ);
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
 
+#define OCTAVES 10      // # octaves
+static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
+#define RANGE 119                     // [0-119] = 120 semitones < > 10 octaves 
+#define S_RANGE 119<<5                // same thing, spread over 12 bit (ish)
+
 #endif // OC_CONFIG_H_
