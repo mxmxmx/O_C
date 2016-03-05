@@ -3,6 +3,12 @@
 
 #include "weegfx.h"
 
+namespace OC {
+
+void hello();
+
+}; // namespace OC
+
 namespace UI {
 
 enum DisplayMode {  

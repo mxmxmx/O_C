@@ -4,21 +4,6 @@
 *
 */
 
-/* -----------  splash  ------------------- */  
-
-void hello() {
-  GRAPHICS_BEGIN_FRAME(true);
-  //graphics.setFont(u8g_font_6x12);
-  graphics.setPrintPos(4, 2); graphics.print("ornaments&crimes");
-  graphics.invertRect(0, 0, 128, 14);
-
-  graphics.setDefaultForegroundColor();
-  graphics.setPrintPos(4, 20); graphics.print("L : calibrate");
-  graphics.setPrintPos(4, 33); graphics.print("R : choose app");
-  graphics.setPrintPos(4, 52); graphics.print(__DATE__);
-  GRAPHICS_END_FRAME();
-}  
-
 /* ----------- screensaver ----------------- */
 void screensaver() {
   GRAPHICS_BEGIN_FRAME(false);

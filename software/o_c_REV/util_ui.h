@@ -20,7 +20,7 @@ extern unsigned long LAST_REDRAW_TIME;
 #define UI_DEFAULT_FONT nullptr
 
 static const uint8_t kUiDefaultFontH = 12;
-static const uint8_t kUiTitleTextY = 0;
+static const uint8_t kUiTitleTextY = 2;
 static const uint8_t kUiItemsStartY = kUiDefaultFontH + 2 + 1;
 static const uint8_t kUiLineH = 12;
 

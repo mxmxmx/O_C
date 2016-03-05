@@ -188,11 +188,10 @@ void setup() {
   calibration_load();
   SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
 
-  // splash screen, sort of ... 
-  hello();
-  delay(2000);
-
-  if (!digitalRead(butL))
+  // Display splash screen
+  OC::hello();
+  
+  if (button_left.read_immediate())
     calibration_menu();
 
   // initialize 

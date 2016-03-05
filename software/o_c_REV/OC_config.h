@@ -15,4 +15,6 @@ static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu 
 static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
 #define SEMITONES (OCTAVES * 12)
 
+static constexpr unsigned long SPLASHSCREEN_TIMEOUT_MS = 3000;
+
 #endif // OC_CONFIG_H_

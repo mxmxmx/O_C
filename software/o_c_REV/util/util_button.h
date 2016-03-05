@@ -40,6 +40,10 @@ public:
     return long_event_;
   }
 
+  bool read_immediate() const {
+    return !digitalReadFast(PIN);
+  }
+
 protected:
   bool pressed_;
   bool event_;
