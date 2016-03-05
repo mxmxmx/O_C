@@ -75,18 +75,15 @@ struct H1200State {
 
   void init() {
     cursor_pos = 0;
-    value_changed = false;
+    force_update = false;
     display_notes = true;
-    last_draw_millis = 0;
   
     tonnetz_state.init();
   }
 
   int cursor_pos;
-  bool value_changed;
+  bool force_update;
   bool display_notes;
-
-  uint32_t last_draw_millis;
 
   TonnetzState tonnetz_state;
 };
@@ -159,10 +156,8 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  if (triggers || millis() - h1200_state.last_draw_millis > 1000) {
+  if (triggers)
     MENU_REDRAW = 1;
-    h1200_state.last_draw_millis = millis();
-  }
 }
 
 void H1200_init() {
@@ -186,8 +181,8 @@ size_t H1200_restore(const void *storage) {
 void H1200_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(h1200_state.cursor_pos);
-      encoder[RIGHT].setPos(h1200_settings.get_value(h1200_state.cursor_pos));
+      encoder[LEFT].setPos(0);
+      encoder[RIGHT].setPos(0);
       h1200_state.tonnetz_state.reset(h1200_settings.mode());
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -198,12 +193,8 @@ void H1200_handleEvent(OC::AppEvent event) {
 
 #define CLOCKIT() \
 do { \
-  uint32_t triggers = \
-    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() | \
-    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>() | \
-    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>() | \
-    OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>(); \
-  if (h1200_state.value_changed) { triggers |= TRIGGER_MASK_DIRTY; h1200_state.value_changed = false; } \
+  uint32_t triggers = OC::DigitalInputs::clocked(); \
+  if (h1200_state.force_update) { triggers |= TRIGGER_MASK_DIRTY; h1200_state.force_update = false; } \
   H1200_clock(triggers); \
 } while (0)
 

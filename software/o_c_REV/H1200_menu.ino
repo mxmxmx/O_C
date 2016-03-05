@@ -78,7 +78,7 @@ void H1200_screensaver() {
   size_t len = 4;
   while (len--) {
     graphics.setPrintPos(x_col_0, y);
-    graphics.print(mode_names[history & 0x80 ? MODE_MAJOR : MODE_MINOR]);
+    graphics.print(history & 0x80 ? '+' : '-');
     graphics.print(tonnetz::transform_names[static_cast<tonnetz::ETransformType>(history & 0x7f)]);
     y += line_h;
     history >>= 8;
