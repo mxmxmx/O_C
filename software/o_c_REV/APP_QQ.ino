@@ -283,16 +283,10 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 24, 0, 120, "SR range", NULL, settings::STORAGE_TYPE_U8 }
 };
 
-enum EMenuMode {
-  MODE_SELECT_CHANNEL,
-  MODE_EDIT_CHANNEL
-};
-
 struct QuadQuantizerState {
   int selected_channel;
-  EMenuMode left_encoder_mode;
-  int left_encoder_value;
   int selected_param;
+  bool editing;
 
   OC::ScaleEditor<QuantizerChannel> scale_editor;
 };
@@ -307,9 +301,8 @@ void QQ_init() {
   }
 
   qq_state.selected_channel = 0;
-  qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
-  qq_state.left_encoder_value = 0;
-  qq_state.selected_param = CHANNEL_SETTING_ROOT;
+  qq_state.selected_param = CHANNEL_SETTING_SCALE;
+  qq_state.editing = false;
   qq_state.scale_editor.Init();
 }
 
@@ -336,18 +329,8 @@ size_t QQ_restore(const void *storage) {
 void QQ_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      switch (qq_state.left_encoder_mode) {
-        case MODE_EDIT_CHANNEL:
-          encoder[LEFT].setPos(qq_state.left_encoder_value);
-          break;
-        case MODE_SELECT_CHANNEL:
-          encoder[LEFT].setPos(qq_state.selected_channel);
-          break;
-      }
-      if (CHANNEL_SETTING_MASK != qq_state.selected_param)
-        encoder[RIGHT].setPos(quantizer_channels[qq_state.selected_channel].get_value(qq_state.selected_param));
-      else
-        encoder[RIGHT].setPos(0);
+      encoder[LEFT].setPos(0);
+      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -422,27 +405,24 @@ void QQ_menu() {
 
   UI_START_MENU(kStartX);
 
-  int scale;
-  if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
-    scale = qq_state.left_encoder_value;
-    graphics.print(' ');
-    if (channel.get_scale() == scale)
-      graphics.drawBitmap8(kStartX + 2, y + 1, 4, OC::bitmap_indicator_4x8);
-  } else {
-    scale = channel.get_scale();
-  }
-  graphics.print(OC::scale_names[scale]);
-
   int first_visible_param = qq_state.selected_param - 2;
-  if (first_visible_param < CHANNEL_SETTING_ROOT)
-    first_visible_param = CHANNEL_SETTING_ROOT;
-  int last_visible_param = channel.visible_params();
+  int last_visible_param = channel.visible_params() - 1;
+  if (first_visible_param < CHANNEL_SETTING_SCALE)
+    first_visible_param = CHANNEL_SETTING_SCALE;
+  else if (first_visible_param + kUiVisibleItems > last_visible_param)
+    first_visible_param = last_visible_param - kUiVisibleItems;
 
   // TODO "Smarter" listing, e.g. hide clkdiv if continuous mode
 
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, last_visible_param, qq_state.selected_param, 1)
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, last_visible_param, qq_state.selected_param, 0)
+    if (__selected && qq_state.editing)
+      graphics.print(">");
     const settings::value_attr &attr = QuantizerChannel::value_attr(current_item);
     switch (current_item) {
+      case CHANNEL_SETTING_SCALE:
+        graphics.print(OC::scale_names[channel.get_scale()]);
+        UI_END_ITEM();
+        break;
       case CHANNEL_SETTING_MASK:
         graphics.print(attr.name);
         draw_mask<false>(y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
@@ -472,50 +452,31 @@ bool QQ_encoders() {
     return qq_state.scale_editor.handle_encoders();
 
   bool changed = false;
-  int value = encoder[LEFT].pos();
 
-  switch (qq_state.left_encoder_mode) {
-    case MODE_EDIT_CHANNEL:
-      if (value != qq_state.left_encoder_value) {
-        CONSTRAIN(value, 0, (int)OC::Scales::NUM_SCALES - 1);
-        qq_state.left_encoder_value = value;
-        encoder[LEFT].setPos(value);
-        changed = true;
-      }
-      break;
-    case MODE_SELECT_CHANNEL:
-      if (value != qq_state.selected_channel) {
-        CONSTRAIN(value, 0, 3);
-        qq_state.selected_channel = value;
-        const QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
-        encoder[LEFT].setPos(value);
-        if (qq_state.selected_param > selected.visible_params())
-          qq_state.selected_param = selected.visible_params();
-        if (CHANNEL_SETTING_MASK != qq_state.selected_param)
-          value = selected.get_value(qq_state.selected_param);
-        else
-          value = 0;
-        encoder[RIGHT].setPos(value);
-        changed = true;
-      }
-      break;
+  int value = encoder[LEFT].pos();
+  encoder[LEFT].setPos(0);
+  if (value) {
+    int selected_channel = qq_state.selected_channel + value;
+    CONSTRAIN(selected_channel, 0, 3);
+    qq_state.selected_channel = selected_channel;
+    changed = true;
   }
 
-  QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   value = encoder[RIGHT].pos();
-  if (CHANNEL_SETTING_MASK != qq_state.selected_param) {
-    if (value != selected.get_value(qq_state.selected_param)) {
-      if (selected.apply_value(qq_state.selected_param, value))
-        selected.force_update();
-      changed = true;
-    }
-    encoder[RIGHT].setPos(selected.get_value(qq_state.selected_param));
-  } else {
-    encoder[RIGHT].setPos(0);
-    int scale = selected.get_scale();
-    if (value && OC::Scales::SCALE_NONE != scale) {
-      qq_state.scale_editor.Edit(&selected, scale);
-      changed = true;
+  encoder[RIGHT].setPos(0);
+  QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
+  if (value) {
+    if (qq_state.editing) {
+      if (CHANNEL_SETTING_MASK != qq_state.selected_param) {
+        if (selected.change_value(qq_state.selected_param, value)) {
+          selected.force_update();
+          changed = true;
+        }
+      }
+    } else {
+      int selected_param = qq_state.selected_param + value;
+      CONSTRAIN(selected_param, 0, selected.visible_params() - 2);
+      qq_state.selected_param = selected_param;
     }
   }
 
@@ -556,14 +517,21 @@ void QQ_rightButton() {
     return;
   }
 
-  QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
-  ++qq_state.selected_param;
-  if (qq_state.selected_param >= selected_channel.visible_params())
-    qq_state.selected_param = CHANNEL_SETTING_ROOT;
-  if (CHANNEL_SETTING_MASK != qq_state.selected_param) {
-    encoder[RIGHT].setPos(selected_channel.get_value(qq_state.selected_param));
+  if (qq_state.editing) {
+    qq_state.editing = false;
   } else {
-    encoder[RIGHT].setPos(0);
+    switch (qq_state.selected_param) {
+      case CHANNEL_SETTING_MASK: {
+        QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
+        int scale = selected.get_scale();
+        if (OC::Scales::SCALE_NONE != scale) {
+          qq_state.scale_editor.Edit(&selected, scale);
+        }
+      }
+      break;
+      default:
+      qq_state.editing = true;
+    }
   }
 }
 
@@ -573,16 +541,7 @@ void QQ_leftButton() {
     return;
   }
 
-  QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
-  if (MODE_EDIT_CHANNEL == qq_state.left_encoder_mode) {
-    selected_channel.set_scale(qq_state.left_encoder_value);
-    qq_state.left_encoder_mode = MODE_SELECT_CHANNEL;
-    encoder[LEFT].setPos(qq_state.selected_channel);
-  } else {
-    qq_state.left_encoder_mode = MODE_EDIT_CHANNEL;
-    qq_state.left_encoder_value = selected_channel.get_scale();
-    encoder[LEFT].setPos(qq_state.left_encoder_value);
-  }
+  qq_state.selected_channel = (qq_state.selected_channel + 1) & 3;
 }
 
 void QQ_leftButtonLong() {
@@ -592,19 +551,13 @@ void QQ_leftButtonLong() {
   }
 
   QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
-
-  if (MODE_SELECT_CHANNEL == qq_state.left_encoder_mode) {
-    int scale = selected_channel.get_scale();
-    int root = selected_channel.get_root();
-    for (int i = 0; i < 4; ++i) {
+  int scale = selected_channel.get_scale();
+  int root = selected_channel.get_root();
+  for (int i = 0; i < 4; ++i) {
+    if (i != qq_state.selected_channel) {
       quantizer_channels[i].apply_value(CHANNEL_SETTING_ROOT, root);
       quantizer_channels[i].set_scale(scale);
     }
-  } else {
-    int scale = qq_state.left_encoder_value;
-    selected_channel.apply_value(CHANNEL_SETTING_SCALE, scale);
-    if (scale != OC::Scales::SCALE_NONE)
-      qq_state.scale_editor.Edit(&selected_channel, scale);
   }
 }
 
