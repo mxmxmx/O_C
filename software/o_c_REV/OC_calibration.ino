@@ -28,7 +28,7 @@ const OC::CalibrationData kCalibrationDefaults = {
   // flags
   0,
   // display_offset
-  0//SH1106_128x64_Driver::kDefaultOffset
+  SH1106_128x64_Driver::kDefaultOffset
 };
 //const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 

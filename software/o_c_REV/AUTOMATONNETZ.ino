@@ -1,7 +1,7 @@
 #include "util/util_grid.h"
 #include "util/util_settings.h"
 #include "util_ui.h"
-#include "tonnetz_state.h"
+#include "tonnetz/tonnetz_state.h"
 #include "OC_bitmaps.h"
 
 // Drive the tonnetz transformations from a grid of cells that contain the type

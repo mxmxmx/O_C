@@ -1,5 +1,5 @@
 
-#include "tonnetz_state.h"
+#include "tonnetz/tonnetz_state.h"
 #include "util/util_settings.h"
 
 enum EOutputMode {
