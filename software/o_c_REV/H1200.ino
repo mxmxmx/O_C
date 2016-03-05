@@ -2,8 +2,6 @@
 #include "tonnetz_state.h"
 #include "util/util_settings.h"
 
-extern uint16_t semitones[RANGE+1];
-
 enum EOutputMode {
   OUTPUT_CHORD_VOICING,
   OUTPUT_TUNE,
@@ -24,8 +22,6 @@ enum EH1200Settings {
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_LAST
 };
-
-static const int MAX_INVERSION = 7;
 
 class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
@@ -75,6 +71,8 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
 
 struct H1200State {
 
+  static constexpr int kMaxInversion = 7;
+
   void init() {
     cursor_pos = 0;
     value_changed = false;
@@ -98,11 +96,9 @@ H1200State h1200_state;
 
 #define H1200_OUTPUT_NOTE(i,dac) \
 do { \
-  int note = h1200_state.tonnetz_state.outputs(i); \
-  while (note > RANGE) note -= 12; \
-  while (note < 0) note += 12; \
-  const uint16_t dac_code = semitones[note]; \
-  DAC::set<dac>(dac_code); \
+  int32_t note = h1200_state.tonnetz_state.outputs(i) << 7; \
+  note += 3 * 12 << 7; \
+  DAC::set<dac>(DAC::pitch_to_dac(note, 0)); \
 } while (0)
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
@@ -137,19 +133,12 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     default: break;
   }
 
-  int32_t sample = OC::ADC::value<ADC_CHANNEL_1>();
-  int root;
-  if (sample < 0)
-    root = 0;
-  else if (sample < S_RANGE)
-    root = sample >> 5;
-  else
-    root = RANGE;
-  root += h1200_settings.root_offset();
+  // Skip the quantizer since we just want semitones
+  int32_t root = (OC::ADC::pitch_value(ADC_CHANNEL_1) >> 7) + h1200_settings.root_offset();
   
   int inversion = h1200_settings.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9); //cvval[3]; // => octave in original
-  if (inversion > MAX_INVERSION) inversion = MAX_INVERSION;
-  else if (inversion < -MAX_INVERSION) inversion = -MAX_INVERSION;
+  CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
+
   h1200_state.tonnetz_state.render(root, inversion);
 
   switch (h1200_settings.output_mode()) {

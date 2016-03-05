@@ -196,7 +196,6 @@ void setup() {
     calibration_menu();
 
   // initialize 
-  init_DACtable();
   OC::APPS::Init();
   OC::CORE::app_isr_enabled = true;
 }

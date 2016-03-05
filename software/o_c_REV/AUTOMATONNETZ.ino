@@ -305,33 +305,20 @@ void AutomatonnetzState::reset() {
 
 #define AT_OUTPUT_NOTE(i,dac) \
 do { \
-  int note = tonnetz_state.outputs(i); \
-  while (note > RANGE) note -= 12; \
-  while (note < 0) note += 12; \
-  const uint16_t dac_code = semitones[note]; \
-  DAC::set<dac>(dac_code); \
+  int32_t note = tonnetz_state.outputs(i) << 7; \
+  note += 3 * 12 << 7; \
+  DAC::set<dac>(DAC::pitch_to_dac(note, octave())); \
 } while (0)
 
-
 void AutomatonnetzState::render(bool triggered) {
-  int32_t sample = OC::ADC::value<ADC_CHANNEL_1>();
-  int root;
-  if (sample < 0)
-    root = 0;
-  else if (sample < S_RANGE)
-    root = sample >> 5;
-  else
-    root = RANGE;
 
   const TransformCell &current_cell = grid.current_cell();
-  root += current_cell.transpose();
-  root += octave() * 12;
+
+  int32_t root = (OC::ADC::pitch_value(ADC_CHANNEL_1) >> 7) + current_cell.transpose();
 
   int inversion = current_cell.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9); // cvval[3];
-  if (inversion > CELL_MAX_INVERSION * 2)
-    inversion = CELL_MAX_INVERSION * 2;
-  else if (inversion < CELL_MIN_INVERSION * 2)
-    inversion = CELL_MIN_INVERSION * 2;
+  CONSTRAIN(inversion, CELL_MIN_INVERSION * 2, CELL_MAX_INVERSION * 2);
+
   tonnetz_state.render(root, inversion);
 
   switch (output_mode()) {
