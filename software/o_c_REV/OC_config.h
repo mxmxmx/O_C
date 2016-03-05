@@ -13,7 +13,6 @@ static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu 
 
 #define OCTAVES 10      // # octaves
 static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
-#define RANGE 119                     // [0-119] = 120 semitones < > 10 octaves 
-#define S_RANGE 119<<5                // same thing, spread over 12 bit (ish)
+#define SEMITONES (OCTAVES * 12)
 
 #endif // OC_CONFIG_H_

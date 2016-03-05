@@ -32,9 +32,6 @@ typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRAT
 extern CalibrationData calibration_data;
 };
 
-extern uint16_t semitones[RANGE+1];          // DAC output LUT
-
-
 // Forward declarations for screwy build system
 struct CalibrationStep;
 struct CalibrationState;

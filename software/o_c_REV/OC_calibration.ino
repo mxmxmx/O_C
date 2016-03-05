@@ -16,7 +16,7 @@ CalibrationStorage calibration_storage;
 CalibrationData calibration_data;
 };
 
-uint16_t semitones[RANGE+1];          // DAC output LUT
+uint16_t semitones[SEMITONES];          // DAC output LUT
 
 static constexpr unsigned kCalibrationAdcSmoothing = 4;
 const OC::CalibrationData kCalibrationDefaults = {
@@ -28,7 +28,7 @@ const OC::CalibrationData kCalibrationDefaults = {
   // flags
   0,
   // display_offset
-  SH1106_128x64_Driver::kDefaultOffset
+  0//SH1106_128x64_Driver::kDefaultOffset
 };
 //const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
@@ -146,7 +146,7 @@ void init_DACtable() {
 
   float _diff, _offset, _semitone;
   _offset = OC::calibration_data.dac.octaves[OCTAVES-2];          // = 5v
-  semitones[RANGE] = OC::calibration_data.dac.octaves[OCTAVES-1]; // = 6v
+  semitones[SEMITONES-1] = OC::calibration_data.dac.octaves[OCTAVES-1]; // = 6v
   
   // 6v to -3v:
   for (int i = OCTAVES-1; i > 0; i--) {
