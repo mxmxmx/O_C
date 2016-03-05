@@ -6,16 +6,9 @@
 class TonnetzState {
 public:
 
-  static const size_t HISTORY_LENGTH = 4;
-
-  struct HistoryEntry {
-    char str[4];
-  };
-
   void init() {
     reset(MODE_MAJOR);
-    memset(history_, 0, sizeof(history_));
-    history_tail_ = 0;
+    history_ = 0;
   }
 
   int outputs(size_t index) const {
@@ -46,23 +39,25 @@ public:
   	return current_chord_;
   }
 
-  const HistoryEntry &history(size_t index) const {
-    return history_[(history_tail_ + HISTORY_LENGTH - index) % HISTORY_LENGTH];
+  // Keep a "history" of transforms/chord mode using 4 x uint8_t; this makes it
+  // atomic to get/set for ISR use
+  uint32_t history() const {
+    return history_;
   }
 
 private:
 
   void push_history(tonnetz::ETransformType transform, EMode mode) {
-    size_t tail = (history_tail_ + 1) % HISTORY_LENGTH;
-    history_[tail].str[0] = MODE_MAJOR == mode ? '+' : '-';
-    history_[tail].str[1] = tonnetz::transform_names[transform];
-    history_tail_ = tail;
+    uint8_t entry = static_cast<uint8_t>(transform);
+    if (MODE_MAJOR == mode)
+      entry |= 0x80;
+    history_ = (history_ << 8) | entry;
   }
 
   abstract_triad current_chord_;
   int outputs_[1 + abstract_triad::NOTES];
-  HistoryEntry history_[HISTORY_LENGTH];
-  size_t history_tail_;
+
+  uint32_t history_;
 };
 
 #endif // TONNETZ_STATE_H_

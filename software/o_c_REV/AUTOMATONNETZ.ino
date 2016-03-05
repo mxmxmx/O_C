@@ -504,10 +504,14 @@ void Automatonnetz_screensaver() {
     last_pos = current;
   }
 
+  uint32_t history = automatonnetz_state.tonnetz_state.history();
   weegfx::coord_t y = 0;
-  for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += 12) {
+  size_t len = 4;
+  while (len--) {
     graphics.setPrintPos(128-7, y);
-    graphics.print(automatonnetz_state.tonnetz_state.history(i).str[1]);
+    graphics.print(tonnetz::transform_names[static_cast<tonnetz::ETransformType>(history & 0x7f)]);
+    y += 12;
+    history >>= 8;
   }
 
   GRAPHICS_END_FRAME();
