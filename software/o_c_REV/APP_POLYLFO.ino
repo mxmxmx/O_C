@@ -216,8 +216,8 @@ void POLYLFO_screensaver() {
 void POLYLFO_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
-      encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
+      encoder[LEFT].setPos(0);
+      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -227,19 +227,16 @@ void POLYLFO_handleEvent(OC::AppEvent event) {
 
 void POLYLFO_topButton() {
   poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
-  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_COARSE));
 }
 
 void POLYLFO_lowerButton() {
   poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
-  encoder[LEFT].setPos(poly_lfo.get_value(POLYLFO_SETTING_COARSE));
 }
 
 void POLYLFO_rightButton() {
   ++poly_lfo_state.selected_param;
   if (poly_lfo_state.selected_param >= POLYLFO_SETTING_LAST)
     poly_lfo_state.selected_param = POLYLFO_SETTING_SHAPE;
-  encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
 }
 
 void POLYLFO_leftButton() {
@@ -248,7 +245,6 @@ void POLYLFO_leftButton() {
   } else {
     poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
   }
-  encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
 }
 
 void POLYLFO_leftButtonLong() {
@@ -257,17 +253,17 @@ void POLYLFO_leftButtonLong() {
 bool POLYLFO_encoders() {
   bool changed = false;
   int value = encoder[LEFT].pos();
-  if (value != poly_lfo.get_value(poly_lfo_state.left_edit_mode)) {
-    poly_lfo.apply_value(poly_lfo_state.left_edit_mode, value);
-    encoder[LEFT].setPos(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
-    changed = true;
+  encoder[LEFT].setPos(0);
+  if (value) {
+    if (poly_lfo.change_value(poly_lfo_state.left_edit_mode, value))
+      changed = true;
   }
 
   value = encoder[RIGHT].pos();
-  if (value != poly_lfo.get_value(poly_lfo_state.selected_param)) {
-    poly_lfo.apply_value(poly_lfo_state.selected_param, value);
-    encoder[RIGHT].setPos(poly_lfo.get_value(poly_lfo_state.selected_param));
-    changed = true;
+  encoder[RIGHT].setPos(0);
+  if (value){
+    if (poly_lfo.change_value(poly_lfo_state.selected_param, value))
+      changed = true;
   }
 
   return changed;
