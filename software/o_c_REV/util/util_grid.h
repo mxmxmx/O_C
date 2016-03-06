@@ -28,7 +28,7 @@ public:
   static const size_t CELLS = dimensions * dimensions;
   static const size_t DIMENSIONS_FP = dimensions << fractional_bits;
 
-  void init(cell_type *cells) {
+  void Init(cell_type *cells) {
     current_pos_.x = current_pos_.y = 0;
     cells_ = cells;
   }
@@ -69,8 +69,16 @@ public:
     return cells_[y * dimensions + x];
   }
 
+  const cell_type &at(size_t index) const {
+    return cells_[index];
+  }
+
   cell_type &mutable_cell(size_t x, size_t y) {
     return cells_[y * dimensions + x];
+  }
+
+  cell_type &mutable_cell(size_t index) {
+    return cells_[index];
   }
 
   cell_type &mutable_current_cell() const {
@@ -83,6 +91,10 @@ public:
 
   vec2<size_t> current_pos() const {
     return vec2<size_t>(current_pos_.x >> fractional_bits, current_pos_.y >> fractional_bits);
+  }
+
+  size_t current_pos_index() const {
+    return (current_pos_.x >> fractional_bits) * dimensions + (current_pos_.y >> fractional_bits);
   }
 
 private:
