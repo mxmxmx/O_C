@@ -1,6 +1,8 @@
 // Copyright 2014 Olivier Gillet.
+// Copyright 2016 Tim Churches.
 //
-// Author: Olivier Gillet (ol.gillet@gmail.com)
+// Original Author: Olivier Gillet (ol.gillet@gmail.com)
+// Modifications for use in Ornament + Crime: Tim Churches (tim.churches@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +26,7 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Lorenz system.
+// Lorenz and Rössler systems.
 
 #include "streams_lorenz_generator.h"
 
@@ -65,26 +67,29 @@ const int64_t a = 0.1 * (1 << 24);
 const int64_t b = 0.1 * (1 << 24);
 // const int64_t c = 13.0 * (1 << 24);
 
-void LorenzGenerator::Init() {
-  Lx1_ = 0.1 * (1 << 24);
-  Ly1_ = 0;
-  Lz1_ = 0;
-  Lx2_ = Lx1_;
-  Ly2_ = Ly1_;
-  Lz2_ = Lz1_;
-  Rx1_ = 0.1 * (1 << 24);
-  Ry1_ = 0;
-  Rz1_ = 0;
-  Rx2_ = Rx1_;
-  Ry2_ = Ry1_;
-  Rz2_ = Rz1_;
-  
+void LorenzGenerator::Init(uint8_t index) {
+  if (index) {
+    Lx2_ = 0.1 * (1 << 24);
+    Ly2_ = 0;
+    Lz2_ = 0;
+    Rx2_ = 0.1 * (1 << 24);
+    Ry2_ = 0;
+    Rz2_ = 0;
+  } else {
+    Lx1_ = 0.1 * (1 << 24);
+    Ly1_ = 0;
+    Lz1_ = 0;
+    Rx1_ = 0.1 * (1 << 24);
+    Ry1_ = 0;
+    Rz1_ = 0;
+  }
 }
 
 void LorenzGenerator::Process(
     int32_t freq1,
     int32_t freq2,
-    bool reset) {
+    bool reset1,
+    bool reset2) {
   int32_t rate1 = rate1_ + (freq1 >> 8);
   if (rate1 < 0) rate1 = 0;
   if (rate1 > 255) rate1 = 255;
@@ -92,20 +97,10 @@ void LorenzGenerator::Process(
   if (rate2 < 0) rate2 = 0;
   if (rate2 > 255) rate2 = 255;
 
-  if (reset) Init() ; 
+  if (reset1) Init(0) ;
+  if (reset2) Init(1) ; 
 
-//  int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5); // was >> 5
-//  int32_t x1 = x1_ + (dt1 * ((sigma * (y1_ - x1_)) >> 24) >> 24);
-//  int32_t y1 = y1_ + (dt1 * ((x1_ * (rho1_ - z1_) >> 24) - y1_) >> 24);
-//  int32_t z1 = z1_ + (dt1 * ((x1_ * int64_t(y1_) >> 24) - (beta * z1_ >> 24)) >> 24); 
-//  x1_ = x1;
-//  y1_ = y1;
-//  z1_ = z1; 
-//  int32_t z1_scaled = (z1 >> 14);
-//  int32_t x1_scaled = (x1 >> 14) + 32769;
-//  int32_t y1_scaled = (y1 >> 14) + 32769;
-
-  // Lorenz
+  // Lorenz 1
   int64_t Ldt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
   int32_t Lx1 = Lx1_ + (Ldt1 * ((sigma * (Ly1_ - Lx1_)) >> 24) >> 24);
   int32_t Ly1 = Ly1_ + (Ldt1 * ((Lx1_ * (rho1_ - Lz1_) >> 24) - Ly1_) >> 24);
@@ -116,7 +111,7 @@ void LorenzGenerator::Process(
   int32_t Lz1_scaled = (Lz1 >> 14);
   int32_t Lx1_scaled = (Lx1 >> 14) + 32769;
   int32_t Ly1_scaled = (Ly1 >> 14) + 32769;
-  // Rossler 
+  // Rossler 1
   int64_t Rdt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 0);
   int32_t Rx1 = Rx1_ + ((Rdt1 * (-Ry1_ - Rz1_ )) >> 24);
   int32_t Ry1 = Ry1_ + ((Rdt1 * (Rx1_ + ((a * Ry1_) >> 24))) >> 24);
@@ -128,8 +123,7 @@ void LorenzGenerator::Process(
   int32_t Rx1_scaled = (Rx1 >> 14) + 32769;
   int32_t Ry1_scaled = (Ry1 >> 14) + 32769;
 
-
-  // Lorenz
+  // Lorenz 2
   int64_t Ldt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 5);
   int32_t Lx2 = Lx2_ + (Ldt2 * ((sigma * (Ly2_ - Lx2_)) >> 24) >> 24);
   int32_t Ly2 = Ly2_ + (Ldt2 * ((Lx2_ * (rho2_ - Lz2_) >> 24) - Ly2_) >> 24);
@@ -140,7 +134,7 @@ void LorenzGenerator::Process(
   int32_t Lz2_scaled = (Lz2 >> 14);
   int32_t Lx2_scaled = (Lx2 >> 14) + 32769;
   int32_t Ly2_scaled = (Ly2 >> 14) + 32769;
-  // Rossler 
+  // Rossler 2
   int64_t Rdt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 0);
   int32_t Rx2 = Rx2_ + ((Rdt2 * (-Ry2_ - Rz2_ )) >> 24);
   int32_t Ry2 = Ry2_ + ((Rdt2 * (Rx2_ + ((a * Ry2_) >> 24))) >> 24);
@@ -151,10 +145,6 @@ void LorenzGenerator::Process(
   int32_t Rz2_scaled = (Rz2 >> 14);
   int32_t Rx2_scaled = (Rx2 >> 14) + 32769;
   int32_t Ry2_scaled = (Ry2 >> 14) + 32769;
-
- 
-  dac_code_[0] = Lx1_scaled;
-  dac_code_[1] = Ly1_scaled;
 
   uint8_t out_channel ;
   
@@ -235,11 +225,6 @@ void LorenzGenerator::Process(
         break;
     }
   }
-
-//  dac_code_[0] = x1_scaled;
-//  dac_code_[1] = y1_scaled;
-//  dac_code_[2] = x2_scaled;
-//  dac_code_[3] = y2_scaled;
 
 }
 

@@ -2,7 +2,7 @@
 // Copyright 2016 Tim Churches
 //
 // Original Author: Olivier Gillet (ol.gillet@gmail.com)
-// Modifications for use of this code in firmare for the Ornaments and Crime modue:
+// Modifications for use of this code in firmare for the Ornament and Crime module:
 // Tim Churches (tim.churches@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -45,9 +45,9 @@ class LorenzGenerator {
   LorenzGenerator() { }
   ~LorenzGenerator() { }
   
-  void Init();
+  void Init(uint8_t index);
   
-  void Process(int32_t freq1, int32_t freq2, bool reset);
+  void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2);
  
   void set_index(uint8_t index) {
     index_ = index;
@@ -55,14 +55,11 @@ class LorenzGenerator {
 
  
   inline void set_rho1(int16_t rho) {
-    // rho1_ = (double)rho * (1 << 24);
-    // rho1_ = (double)rho * (1 << 16);
     rho1_ = ((double)(rho) * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
     c1_ = (double)(rho + (6 << 3)) * (1 << 13) ; // was 13
   }
 
   inline void set_rho2(int16_t rho) {
-    // rho2_ = (double)rho * (1 << 24);
     rho2_ = ((double)(rho) * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
     c2_ = (double)(rho + (6 << 3)) * (1 << 13) ; // was 13
   }

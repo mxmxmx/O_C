@@ -121,7 +121,8 @@ public:
 
 void LorenzGenerator::Init() {
   InitDefaults();
-  lorenz.Init();
+  lorenz.Init(0);
+  lorenz.Init(1);
   frozen_= false;
 }
 
@@ -144,10 +145,10 @@ struct {
 
 void FASTRUN LORENZ_isr() {
 
-  bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
-  bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
-  // bool reset_phase2 = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>();
-  //bool freeze2 = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>();
+  bool reset1_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
+  bool reset2_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>();
+  bool reset_both_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>();
+  bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>();
 
   lorenz_generator.cv_freq1.push(OC::ADC::value<ADC_CHANNEL_1>());
   lorenz_generator.cv_rho1.push(OC::ADC::value<ADC_CHANNEL_2>());
@@ -188,8 +189,12 @@ void FASTRUN LORENZ_isr() {
   uint8_t out_d = lorenz_generator.get_out_d() ;
   lorenz_generator.lorenz.set_out_d(out_d);
 
+  if (reset_both_phase) {
+    reset1_phase = true ;
+    reset2_phase = true ;
+  }
   if (!freeze && !lorenz_generator.frozen())
-    lorenz_generator.lorenz.Process(freq1, freq2, reset_phase);
+    lorenz_generator.lorenz.Process(freq1, freq2, reset1_phase, reset2_phase);
 
   DAC::set<DAC_CHANNEL_A>(lorenz_generator.lorenz.dac_code(0));
   DAC::set<DAC_CHANNEL_B>(lorenz_generator.lorenz.dac_code(1));
@@ -233,15 +238,13 @@ void LORENZ_menu() {
   graphics.print("FREQ1 ");
   int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
   freq1 = USAT16(freq1);
-  // graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ1) + (lorenz_generator.cv_freq1.value() >> 4));
-  graphics.print(freq1 >> 8);
+   graphics.print(freq1 >> 8);
   graphics.setPrintPos(66, 2);
   graphics.print("FREQ2 ");
   int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
-  // graphics.print(lorenz_generator.get_value(LORENZ_SETTING_FREQ2) + (lorenz_generator.cv_freq2.value() >> 4));
   graphics.print(freq2 >> 8);
- if (lorenz_generator_state.selected_generator) {
+  if (lorenz_generator_state.selected_generator) {
       graphics.invertRect(66, 0, 127, 10);
   } else {
       graphics.invertRect(2, 0, 64, 10);    
@@ -304,14 +307,24 @@ void LORENZ_handleEvent(OC::AppEvent event) {
 }
 
 void LORENZ_topButton() {
-//  lorenz_generator.change_value(LORENZ_SETTING_FREQ, 32);
-//  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
-  lorenz_generator.lorenz.Init();
+  if (lorenz_generator_state.selected_generator) {
+    lorenz_generator.change_value(LORENZ_SETTING_FREQ2, 32);
+    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+  } else {
+    lorenz_generator.change_value(LORENZ_SETTING_FREQ1, 32);
+    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+  }
 }
 
 void LORENZ_lowerButton() {
-//  lorenz_generator.change_value(LORENZ_SETTING_FREQ, -32);
-//  encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ));
+  if (lorenz_generator_state.selected_generator) {
+    lorenz_generator.change_value(LORENZ_SETTING_FREQ2, -32);
+    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
+  } else {
+    lorenz_generator.change_value(LORENZ_SETTING_FREQ1, -32);
+    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
+    
+  }
 }
 
 void LORENZ_rightButton() {
