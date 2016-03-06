@@ -57,14 +57,14 @@ class LorenzGenerator {
   inline void set_rho1(int16_t rho) {
     // rho1_ = (double)rho * (1 << 24);
     // rho1_ = (double)rho * (1 << 16);
-    rho1_ = (double)(rho + (24 << 4)) * (1 << 12);
-    c1_ = (double)(rho + (6 << 3)) * (1 << 13) ;
+    rho1_ = ((double)(rho) * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
+    c1_ = (double)(rho + (6 << 3)) * (1 << 13) ; // was 13
   }
 
   inline void set_rho2(int16_t rho) {
     // rho2_ = (double)rho * (1 << 24);
-    rho2_ = (double)(rho + (24 << 4)) * (1 << 12);
-    c2_ = (double)(rho + (6 << 3)) * (1 << 13) ;
+    rho2_ = ((double)(rho) * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
+    c2_ = (double)(rho + (6 << 3)) * (1 << 13) ; // was 13
   }
 
   inline void set_out_a(uint8_t out_a) {

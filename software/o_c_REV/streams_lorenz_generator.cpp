@@ -45,21 +45,12 @@ enum ELorenzOutputMap {
   ROSSLER_OUTPUT_X2,
   ROSSLER_OUTPUT_Y2,
   ROSSLER_OUTPUT_Z2,
-  LORENZ_OUTPUT_X1_PLUS_Y1,
-  LORENZ_OUTPUT_X1_PLUS_Z1,
-  LORENZ_OUTPUT_Y1_PLUS_Z1,
-  LORENZ_OUTPUT_X2_PLUS_Y2,
-  LORENZ_OUTPUT_X2_PLUS_Z2,
-  LORENZ_OUTPUT_Y2_PLUS_Z2,
-  LORENZ_OUTPUT_X1_PLUS_X2,
-  LORENZ_OUTPUT_X1_PLUS_Y2,
-  LORENZ_OUTPUT_X1_PLUS_Z2,
-  LORENZ_OUTPUT_Y1_PLUS_X2,
-  LORENZ_OUTPUT_Y1_PLUS_Y2,
-  LORENZ_OUTPUT_Y1_PLUS_Z2,
-  LORENZ_OUTPUT_Z1_PLUS_X2,
-  LORENZ_OUTPUT_Z1_PLUS_Y2,
-  LORENZ_OUTPUT_Z1_PLUS_Z2,
+  LORENZ_OUTPUT_LX1_PLUS_RX1,
+  LORENZ_OUTPUT_LX1_PLUS_RZ1,
+  LORENZ_OUTPUT_LX1_PLUS_LY2,
+  LORENZ_OUTPUT_LX1_PLUS_LZ2,
+  LORENZ_OUTPUT_LX1_PLUS_RX2,
+  LORENZ_OUTPUT_LX1_PLUS_RZ2,
   LORENZ_OUTPUT_LAST,
 };
 
@@ -222,50 +213,23 @@ void LorenzGenerator::Process(
       case ROSSLER_OUTPUT_Z2:
         dac_code_[i] = Rz2_scaled;
         break;
-      case LORENZ_OUTPUT_X1_PLUS_Y1:
-        dac_code_[i] = (Lx1_scaled + Ly1_scaled) >> 1;
+      case LORENZ_OUTPUT_LX1_PLUS_RX1:
+        dac_code_[i] = (Lx1_scaled + Rx1_scaled) >> 1;
         break;
-      case LORENZ_OUTPUT_X1_PLUS_Z1:
-        dac_code_[i] = (Lx1_scaled + Lz1_scaled) >> 1;
+      case LORENZ_OUTPUT_LX1_PLUS_RZ1:
+        dac_code_[i] = (Lx1_scaled + Rz1_scaled) >> 1;
         break;
-      case LORENZ_OUTPUT_Y1_PLUS_Z1:
-        dac_code_[i] = (Ly1_scaled + Lz1_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_X2_PLUS_Y2:
-        dac_code_[i] = (Lx2_scaled + Ly2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_X2_PLUS_Z2:
-        dac_code_[i] = (Lx2_scaled + Lz2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_Y2_PLUS_Z2:
-        dac_code_[i] = (Ly2_scaled + Lz2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_X1_PLUS_X2:
-        dac_code_[i] = (Lx1_scaled + Lx2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_X1_PLUS_Y2:
+      case LORENZ_OUTPUT_LX1_PLUS_LY2:
         dac_code_[i] = (Lx1_scaled + Ly2_scaled) >> 1;
         break;
-      case LORENZ_OUTPUT_X1_PLUS_Z2:
+      case LORENZ_OUTPUT_LX1_PLUS_LZ2:
         dac_code_[i] = (Lx1_scaled + Lz2_scaled) >> 1;
         break;
-      case LORENZ_OUTPUT_Y1_PLUS_X2:
-        dac_code_[i] = (Ly1_scaled + Lx2_scaled) >> 1;
+      case LORENZ_OUTPUT_LX1_PLUS_RX2:
+        dac_code_[i] = (Lx1_scaled + Rx2_scaled) >> 1;
         break;
-      case LORENZ_OUTPUT_Y1_PLUS_Y2:
-        dac_code_[i] = (Ly1_scaled + Ly2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_Y1_PLUS_Z2:
-        dac_code_[i] = (Ly1_scaled + Lz2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_Z1_PLUS_X2:
-        dac_code_[i] = (Lz1_scaled + Lx2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_Z1_PLUS_Y2:
-        dac_code_[i] = (Lz1_scaled + Ly2_scaled) >> 1;
-        break;
-      case LORENZ_OUTPUT_Z1_PLUS_Z2:
-        dac_code_[i] = (Lz1_scaled + Lz2_scaled) >> 1;
+      case LORENZ_OUTPUT_LX1_PLUS_RZ2:
+        dac_code_[i] = (Lx1_scaled + Rz2_scaled) >> 1;
         break;
        default:
         break;

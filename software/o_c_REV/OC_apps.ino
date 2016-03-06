@@ -25,7 +25,6 @@ OC::App available_apps[] = {
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
-  DECLARE_APP('O','R', "Orson/2", HALVORSEN, HALVORSEN_isr),
 };
 
 static constexpr int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
