@@ -20,7 +20,7 @@ extern int LAST_ENCODER_VALUE[2];
 OC::App available_apps[] = {
   DECLARE_APP('A','S', "CopierMaschine", ASR, ASR_isr),
   DECLARE_APP('H','A', "Harrington 1200", H1200, H1200_isr),
-  DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, nullptr),
+  DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, Automatonnetz_isr),
   DECLARE_APP('Q','Q', "Quantermain", QQ, QQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
