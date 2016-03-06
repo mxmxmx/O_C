@@ -56,12 +56,23 @@ class LorenzGenerator {
  
   inline void set_rho1(int16_t rho) {
     // rho1_ = (double)rho * (1 << 24);
-    rho1_ = (double)rho * (1 << 16);
+    // rho1_ = (double)rho * (1 << 16);
+    rho1_ = (double)(rho + (24 << 4)) * (1 << 12);
+    c1_ = (double)(rho + (6 << 3)) * (1 << 13) ;
   }
 
   inline void set_rho2(int16_t rho) {
     // rho2_ = (double)rho * (1 << 24);
-    rho2_ = (double)rho * (1 << 16);
+    rho2_ = (double)(rho + (24 << 4)) * (1 << 12);
+    c2_ = (double)(rho + (6 << 3)) * (1 << 13) ;
+  }
+
+  inline void set_out_a(uint8_t out_a) {
+    out_a_ = out_a;
+  }
+
+  inline void set_out_b(uint8_t out_b) {
+    out_b_ = out_b;
   }
 
   inline void set_out_c(uint8_t out_c) {
@@ -77,14 +88,16 @@ class LorenzGenerator {
   }
 
  private:
-  int32_t x1_, y1_, z1_;
+  int32_t Lx1_, Ly1_, Lz1_;
+  int32_t Rx1_, Ry1_, Rz1_;
   int32_t rate1_;
-  int32_t x2_, y2_, z2_;
+  int32_t Lx2_, Ly2_, Lz2_;
+  int32_t Rx2_, Ry2_, Rz2_;
   int32_t rate2_;
 
-  uint8_t out_c_, out_d_ ;
+  uint8_t out_a_, out_b_, out_c_, out_d_ ;
 
-  int64_t sigma_, rho1_, rho2_, beta_ ;
+  int64_t sigma_, rho1_, rho2_, beta_, c1_,  c2_ ;
   
   // O+C
   uint16_t dac_code_[kNumChannels];

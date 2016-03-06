@@ -7,6 +7,8 @@ enum LORENZ_SETTINGS {
   LORENZ_SETTING_FREQ2,
   LORENZ_SETTING_RHO1,
   LORENZ_SETTING_RHO2,
+  LORENZ_SETTING_OUT_A,
+  LORENZ_SETTING_OUT_B,
   LORENZ_SETTING_OUT_C,
   LORENZ_SETTING_OUT_D,
   LORENZ_SETTING_LAST
@@ -19,6 +21,12 @@ enum ELorenzOutputMap {
   LORENZ_OUTPUT_X2,
   LORENZ_OUTPUT_Y2,
   LORENZ_OUTPUT_Z2,
+  ROSSLER_OUTPUT_X1,
+  ROSSLER_OUTPUT_Y1,
+  ROSSLER_OUTPUT_Z1,
+  ROSSLER_OUTPUT_X2,
+  ROSSLER_OUTPUT_Y2,
+  ROSSLER_OUTPUT_Z2,
   LORENZ_OUTPUT_X1_PLUS_Y1,
   LORENZ_OUTPUT_X1_PLUS_Z1,
   LORENZ_OUTPUT_Y1_PLUS_Z1,
@@ -38,27 +46,18 @@ enum ELorenzOutputMap {
 };
 
 const char * const lorenz_output_names[] = {
-  "x1",
-  "y1",
-  "z1",
-  "x2",
-  "y2",
-  "z2",
-  "x1+y1",
-  "x1+z1",
-  "y1+z1",
-  "x2+y2",
-  "x2+z2",
-  "y2+z2",
-  "x1+x2",
-  "x1+y2",
-  "x1+z2",
-  "y1+x2",
-  "y1+y2",
-  "y1+z2",
-  "z1+x2",
-  "z1+y2",
-  "z1+z2",
+  "Lx1",
+  "Ly1",
+  "Lz1",
+  "Lx2",
+  "Ly2",
+  "Lz2",
+  "Rx1",
+  "Ry1",
+  "Rz1",
+  "Rx2",
+  "Ry2",
+  "Rz2",
 };
 
 class LorenzGenerator : public settings::SettingsBase<LorenzGenerator, LORENZ_SETTING_LAST> {
@@ -78,6 +77,14 @@ public:
 
   uint16_t get_rho2() const {
     return values_[LORENZ_SETTING_RHO2];
+  }
+
+  uint8_t get_out_a() const {
+    return values_[LORENZ_SETTING_OUT_A];
+  }
+
+  uint8_t get_out_b() const {
+    return values_[LORENZ_SETTING_OUT_B];
   }
 
   uint8_t get_out_c() const {
@@ -121,10 +128,12 @@ void LorenzGenerator::Init() {
 }
 
 SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
-  { 0, 0, 255, "FREQ 1", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 255, "FREQ 2", NULL, settings::STORAGE_TYPE_U8 },
-  { 28, 24, 39, "RHO 1", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
-  { 28, 24, 39, "RHO 2", NULL, settings::STORAGE_TYPE_U8 }, // 28 is sweet spot
+  { 0, 128, 255, "FREQ 1", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 128, 255, "FREQ 2", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 32, 255, "RHO/C 1", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 0, 32, 255, "RHO/C 2", NULL, settings::STORAGE_TYPE_U8 }, 
+  {LORENZ_OUTPUT_X1, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outA ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {LORENZ_OUTPUT_Y1, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outB ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {LORENZ_OUTPUT_X2, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outC ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {LORENZ_OUTPUT_Y2, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outD ", lorenz_output_names, settings::STORAGE_TYPE_U8},
 };
@@ -156,8 +165,8 @@ void FASTRUN LORENZ_isr() {
   int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
 
-  const int32_t rho_lower_limit = 24 << 8 ;
-  const int32_t rho_upper_limit = 39 << 8 ;
+  const int32_t rho_lower_limit = 0 ;
+  const int32_t rho_upper_limit = 255 << 8 ;
 
   int32_t rho1 = SCALE8_16(lorenz_generator.get_rho1()) + lorenz_generator.cv_rho1.value() ;
   if (rho1 < rho_lower_limit) rho1 = rho_lower_limit;
@@ -168,6 +177,12 @@ void FASTRUN LORENZ_isr() {
   if (rho2 < rho_lower_limit) rho2 = rho_lower_limit;
   else if (rho2 > rho_upper_limit) rho2 = rho_upper_limit ;
   lorenz_generator.lorenz.set_rho2(USAT16(rho2));
+
+  uint8_t out_a = lorenz_generator.get_out_a() ;
+  lorenz_generator.lorenz.set_out_a(out_a);
+
+  uint8_t out_b = lorenz_generator.get_out_b() ;
+  lorenz_generator.lorenz.set_out_b(out_b);
 
   uint8_t out_c = lorenz_generator.get_out_c() ;
   lorenz_generator.lorenz.set_out_c(out_c);

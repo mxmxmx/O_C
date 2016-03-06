@@ -59,15 +59,17 @@ enum EHalvorsenOutputMap {
 
 // using namespace stmlib;
 
-// const int64_t sigma = 10.0 * (1 << 24);
-const int64_t alpha = 1.4 * (1 << 24);
+const int32_t a = 0.1 * (1 << 24);
+const int32_t b = 0.1 * (1 << 24);
+const int32_t c = 13.0 * (1 << 24);
 // const double alpha = 1.4;
 // const int64_t beta = 8.0 / 3.0 * (1 << 24);
 
+
 void HalvorsenGenerator::Init() {
-  x1_ = 1.0;
-  y1_ = 0.0;
-  z1_ = 0.0;
+  x1_ = 1.0 * (1 << 24);
+  y1_ = 0;
+  z1_ = 0;
   x2_ = x1_;
   y2_ = y1_;
   z2_ = z1_;
@@ -89,15 +91,16 @@ void HalvorsenGenerator::Process(
   int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
   // int64_t dt1 = static_cast<int64_t>(lut_lorenz_rate[rate1]);
   // float dt1 = 0.001 ;
-  int32_t x1 = x1_ + (dt1 * ((-alpha * x1_ - 4 * y1_ - 4 * z1_ - y1_ * y1_) >> 24) >> 24);
-  int32_t y1 = y1_ + (dt1 * ((-alpha * y1_ - 4 * z1_ - 4 * x1_ - z1_ * z1_) >> 24) >> 24);
-  int32_t z1 = z1_ + (dt1 * ((-alpha * z1_ - 4 * x1_ - 4 * y1_ - x1_ * x1_) >> 24) >> 24);
-  // double x1 = x1_ + (dt1 * ((-alpha * x1_ - 4.0 * y1_ - 4.0 * z1_ - y1_ * y1_));
-  // double y1 = y1_ + (dt1 * ((-alpha * y1_ - 4.0 * z1_ - 4.0 * x1_ - z1_ * z1_));
-  // double z1 = z1_ + (dt1 * ((-alpha * z1_ - 4.0 * x1_ - 4.0 * y1_ - x1_ * x1_));
+  // int64_t x1 = x1_ + ( (dt1 * ( ((-alpha * x1_) >> 24) - 4*y1_ - 4*z1_ - ((y1_ * y1_) >> 24) ) ) >> 24);
+  // int64_t y1 = y1_ + ( (dt1 * ( ((-alpha * y1_) >> 24) - 4*z1_ - 4*x1_ - ((z1_ * z1_) >> 24) ) ) >> 24);
+  // int64_t z1 = z1_ + ( (dt1 * ( ((-alpha * z1_) >> 24) - 4*x1_ - 4*y1_ - ((x1_ * x1_) >> 24) ) ) >> 24);
+  int32_t x1 = x1_ + ((dt1 * (-y1_ - z1_ )) >> 24);
+  int32_t y1 = y1_ + ((dt1 * (x1_ + ((a * y1_) >> 24))) >> 24);
+  int32_t z1 = z1_ + ((dt1 * (b + ((z1_ * (x1_ - c)) >> 24)))  >> 24);
   x1_ = x1;
   y1_ = y1;
   z1_ = z1; 
+  
   int32_t z1_scaled = (z1 >> 14);
   int32_t x1_scaled = (x1 >> 14) + 32769;
   int32_t y1_scaled = (y1 >> 14) + 32769;
@@ -106,9 +109,12 @@ void HalvorsenGenerator::Process(
   // int32_t y1_scaled = (y1 >> 4) + 32769;
 
   int64_t dt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 5);
-  int32_t x2 = x2_ + (dt2 * ((-alpha * x2_ - 4 * y2_ - 4 * z2_ - y2_ * y2_) >> 24) >> 24);
-  int32_t y2 = y2_ + (dt2 * ((-alpha * y2_ - 4 * z2_ - 4 * x2_ - z2_ * z2_) >> 24) >> 24);
-  int32_t z2 = z2_ + (dt2 * ((-alpha * z2_ - 4 * x2_ - 4 * y2_ - x2_ * x2_) >> 24) >> 24);
+  // int32_t x2 = x2_ + (dt2 * ((-alpha * x2_ - 4 * y2_ - 4 * z2_ - y2_ * y2_) >> 24) >> 24);
+  // int32_t y2 = y2_ + (dt2 * ((-alpha * y2_ - 4 * z2_ - 4 * x2_ - z2_ * z2_) >> 24) >> 24);
+  // int32_t z2 = z2_ + (dt2 * ((-alpha * z2_ - 4 * x2_ - 4 * y2_ - x2_ * x2_) >> 24) >> 24);
+  int32_t x2 = x2_ + ((dt2 * (-y2_ - z2_ )) >> 24);
+  int32_t y2 = y2_ + ((dt2 * (x2_ + ((a * y2_) >> 24))) >> 24);
+  int32_t z2 = z2_ + ((dt2 * (b + ((z2_ * (x2_ - c)) >> 24)))  >> 24);
   x2_ = x2;
   y2_ = y2;
   z2_ = z2; 
