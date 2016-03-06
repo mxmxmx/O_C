@@ -7,7 +7,6 @@
 
 extern void POLYLFO_debug();
 extern void LORENZ_debug();
-extern void HALVORSEN_debug();
 
 namespace OC {
 
@@ -17,7 +16,6 @@ enum DebugMenu {
   DEBUG_MENU_ADC,
   DEBUG_MENU_POLYLFO,
   DEBUG_MENU_LORENZ,
-  DEBUG_MENU_HALVORSEN,
   DEBUG_MENU_LAST
 };
 
@@ -71,7 +69,6 @@ const debug_menus[DEBUG_MENU_LAST] = {
   { DEBUG_MENU_ADC, " ADC", debug_menu_adc },
   { DEBUG_MENU_POLYLFO, " POLYLFO", POLYLFO_debug },
   { DEBUG_MENU_LORENZ, " LORENZ", LORENZ_debug },
-  { DEBUG_MENU_HALVORSEN, " HALVORSEN", HALVORSEN_debug }
 };
 
 
