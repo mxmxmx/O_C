@@ -45,6 +45,13 @@ public:
     return history_;
   }
 
+  void get_outputs(int *dest) const {
+    size_t len = 4;
+    const int *outputs = outputs_;
+    while (len--)
+      *dest++ = *outputs++;
+  }
+
 private:
 
   void push_history(tonnetz::ETransformType transform, EMode mode) {
