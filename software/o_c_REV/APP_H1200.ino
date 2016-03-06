@@ -131,7 +131,7 @@ H1200State h1200_state;
 #define H1200_OUTPUT_NOTE(i,dac) \
 do { \
   int32_t note = h1200_state.tonnetz_state.outputs(i); \
-  note += 3 * 12; \ // offset in DAC LUT
+  note += 3 * 12; \
   note <<= 7; \
   DAC::set<dac>(DAC::pitch_to_dac(note, 0)); \
 } while (0)
