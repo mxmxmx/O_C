@@ -482,9 +482,13 @@ void Automatonnetz_menu() {
   GRAPHICS_END_FRAME();
 }
 
-static const weegfx::coord_t kScreenSaverX = 64 + 2;
-static const weegfx::coord_t kScreenSaverY = 5;
-static const weegfx::coord_t kScreenSaverGrid = 55 / 5;
+static const weegfx::coord_t kScreenSaverGridX = kGridXStart + kGridW / 2;
+static const weegfx::coord_t kScreenSaverGridY = kGridYStart + kGridH / 2;
+static const weegfx::coord_t kScreenSaverGridW = kGridW;
+static const weegfx::coord_t kScreenSaverGridH = kGridH;
+
+static constexpr weegfx::coord_t kNoteCircleX = 96;
+static constexpr weegfx::coord_t kNoteCircleY = 32;
 
 inline vec2<size_t> extract_pos(uint32_t history) {
   return vec2<size_t>((history & 0xff) / GRID_DIMENSION, (history & 0xff) % GRID_DIMENSION);
@@ -500,26 +504,25 @@ void Automatonnetz_screensaver() {
   uint8_t normalized[3];
   for (size_t i=0; i < 3; ++i)
     normalized[i] = (outputs[i + 1] + 120) % 12;
-
-  visualize_pitch_classes(normalized);
-
+  visualize_pitch_classes(normalized, kNoteCircleX, kNoteCircleY);
 
   vec2<size_t> last_pos = extract_pos(cell_history);
   cell_history >>= 8;
-  graphics.drawBitmap8(kScreenSaverX + last_pos.x * kScreenSaverGrid - 3,
-                       kScreenSaverY + last_pos.y * kScreenSaverGrid - 3,
+  graphics.drawBitmap8(kScreenSaverGridX + last_pos.x * kScreenSaverGridW - 3,
+                       kScreenSaverGridY + last_pos.y * kScreenSaverGridH - 3,
                        8, OC::circle_disk_bitmap_8x8);
   for (size_t i = 1; i < AutomatonnetzState::HISTORY_LENGTH; ++i, cell_history >>= 8) {
     const vec2<size_t> current = extract_pos(cell_history);
-    graphics.drawLine(kScreenSaverX + last_pos.x * kScreenSaverGrid, kScreenSaverY + last_pos.y * kScreenSaverGrid,
-                      kScreenSaverX + current.x * kScreenSaverGrid, kScreenSaverY + current.y * kScreenSaverGrid);
+    graphics.drawLine(kScreenSaverGridX + last_pos.x * kScreenSaverGridW, kScreenSaverGridY + last_pos.y * kScreenSaverGridH,
+                      kScreenSaverGridX + current.x * kScreenSaverGridW, kScreenSaverGridY + current.y * kScreenSaverGridH);
 
-    graphics.drawBitmap8(kScreenSaverX + current.x * kScreenSaverGrid - 3,
-                         kScreenSaverY + current.y * kScreenSaverGrid - 3,
+    graphics.drawBitmap8(kScreenSaverGridX + current.x * kScreenSaverGridW - 3,
+                         kScreenSaverGridY + current.y * kScreenSaverGridH - 3,
                          8, OC::circle_bitmap_8x8);
     last_pos = current;
   }
 
+/*
   uint32_t history = automatonnetz_state.tonnetz_state.history();
   weegfx::coord_t y = 0;
   size_t len = 4;
@@ -529,7 +532,7 @@ void Automatonnetz_screensaver() {
     y += 12;
     history >>= 8;
   }
-
+*/
   GRAPHICS_END_FRAME();
 }
 

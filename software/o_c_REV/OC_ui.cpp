@@ -5,11 +5,9 @@
 #include "OC_ui.h"
 #include "util_ui.h"
 
-static const weegfx::coord_t note_circle_x = 32;
-static const weegfx::coord_t note_circle_y = 32;
-static const weegfx::coord_t note_circle_r = 28;
+static constexpr weegfx::coord_t note_circle_r = 28;
 
-struct coords {
+static struct coords {
   weegfx::coord_t x, y;
 } circle_pos_lut[12];
 
@@ -21,22 +19,26 @@ void init_circle_lut() {
     float rads = ((i + 12 - 3) % 12) * semitone_radians;
     float x = note_circle_r * cos(rads);
     float y = note_circle_r * sin(rads);
-    circle_pos_lut[i].x = note_circle_x + x;
-    circle_pos_lut[i].y = note_circle_y + y;
+    circle_pos_lut[i].x = x;
+    circle_pos_lut[i].y = y;
   }
 }
 
-void visualize_pitch_classes(uint8_t *normalized) {
-  graphics.drawCircle(note_circle_x, note_circle_y, note_circle_r);
+void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegfx::coord_t centery) {
+  graphics.drawCircle(centerx, centery, note_circle_r);
 
   coords last_pos = circle_pos_lut[normalized[0]];
+  last_pos.x += centerx;
+  last_pos.y += centery;
   for (size_t i = 1; i < 3; ++i) {
     graphics.drawBitmap8(last_pos.x - 3, last_pos.y - 3, 8, OC::circle_disk_bitmap_8x8);
-    const coords &current_pos = circle_pos_lut[normalized[i]];
+    coords current_pos = circle_pos_lut[normalized[i]];
+    current_pos.x += centerx;
+    current_pos.y += centery;
     graphics.drawLine(last_pos.x, last_pos.y, current_pos.x, current_pos.y);
     last_pos = current_pos;
   }
-  graphics.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x, circle_pos_lut[normalized[0]].y);
+  graphics.drawLine(last_pos.x, last_pos.y, circle_pos_lut[normalized[0]].x + centerx, circle_pos_lut[normalized[0]].y + centery);
   graphics.drawBitmap8(last_pos.x - 3, last_pos.y - 3, 8, OC::circle_disk_bitmap_8x8);
 }
 

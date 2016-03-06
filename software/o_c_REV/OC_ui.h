@@ -22,7 +22,7 @@ extern uint_fast8_t UI_MODE;
 extern uint_fast8_t MENU_REDRAW;
 
 void init_circle_lut();
-void visualize_pitch_classes(uint8_t *normalized);
+void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegfx::coord_t centery);
 
 extern weegfx::Graphics graphics;
 
