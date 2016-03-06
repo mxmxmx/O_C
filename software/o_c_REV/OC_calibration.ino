@@ -16,13 +16,13 @@ CalibrationStorage calibration_storage;
 CalibrationData calibration_data;
 };
 
-uint16_t semitones[RANGE+1];          // DAC output LUT
+uint16_t semitones[SEMITONES];          // DAC output LUT
 
 static constexpr unsigned kCalibrationAdcSmoothing = 4;
 const OC::CalibrationData kCalibrationDefaults = {
-  {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
   // DAC
-  { 0, 0, 0, 0 },
+  { {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
+    {0, 0, 0, 0 } },
   // ADC
   { { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET }, 0, 0 },
   // flags
@@ -35,7 +35,7 @@ const OC::CalibrationData kCalibrationDefaults = {
 void calibration_reset() {
   memcpy(&OC::calibration_data, &kCalibrationDefaults, sizeof(OC::calibration_data));
   for (int i = 0; i < OCTAVES; ++i)
-    OC::calibration_data.octaves[i] += DAC_OFFSET;
+    OC::calibration_data.dac.octaves[i] += DAC_OFFSET;
 }
 
 void calibration_load() {
@@ -145,20 +145,20 @@ void init_DACtable() {
   Serial.println("Initializing semitones LUT...");
 
   float _diff, _offset, _semitone;
-  _offset = OC::calibration_data.octaves[OCTAVES-2];          // = 5v
-  semitones[RANGE] = OC::calibration_data.octaves[OCTAVES-1]; // = 6v
+  _offset = OC::calibration_data.dac.octaves[OCTAVES-2];          // = 5v
+  semitones[SEMITONES-1] = OC::calibration_data.dac.octaves[OCTAVES-1]; // = 6v
   
   // 6v to -3v:
   for (int i = OCTAVES-1; i > 0; i--) {
     
-      _diff = (float)(OC::calibration_data.octaves[i] - _offset)/12.0f;
+      _diff = (float)(OC::calibration_data.dac.octaves[i] - _offset)/12.0f;
       LUT_PRINTF("%d --> %.4f\n", i, _diff);
   
       for (int j = 0; j <= 11; j++) {
         
            _semitone = j*_diff + _offset; 
            semitones[j+i*12-1] = (uint16_t)(0.5f + _semitone);
-           if (j == 11 && i > 1) _offset = OC::calibration_data.octaves[i-2];
+           if (j == 11 && i > 1) _offset = OC::calibration_data.dac.octaves[i-2];
 
            LUT_PRINTF("%2d: %.4f -> %d -> %u\n", j, _offset, j+i*12-1, semitones[j+i*12-1]);
       } 
@@ -237,7 +237,7 @@ void calibration_menu() {
       switch (next_step->calibration_type) {
       case CALIBRATE_NONE: break;
       case CALIBRATE_OCTAVE:
-        encoder[RIGHT].setPos(OC::calibration_data.octaves[next_step->type_index]);
+        encoder[RIGHT].setPos(OC::calibration_data.dac.octaves[next_step->type_index]);
         break;
       case CALIBRATE_DAC_FINE:
         encoder[RIGHT].setPos(OC::calibration_data.dac.fine[next_step->type_index]);
@@ -335,24 +335,24 @@ void calibration_update(CalibrationState &state) {
 
   switch (step->calibration_type) {
     case CALIBRATE_NONE:
-      DAC::set_all(OC::calibration_data.octaves[_ZERO]);
+      DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_OCTAVE:
-      OC::calibration_data.octaves[step->type_index] = state.encoder_data;
-      DAC::set_all(OC::calibration_data.octaves[step->type_index]);
+      OC::calibration_data.dac.octaves[step->type_index] = state.encoder_data;
+      DAC::set_all(OC::calibration_data.dac.octaves[step->type_index]);
       break;
     case CALIBRATE_DAC_FINE:
       OC::calibration_data.dac.fine[step->type_index] = state.encoder_data;
-      DAC::set_all(OC::calibration_data.octaves[_ZERO + 1]);
+      DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 1]);
       break;
     case CALIBRATE_ADC_TRIMMER:
       state.CV = _average();
-      DAC::set_all(OC::calibration_data.octaves[_ZERO]);
+      DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_ADC_OFFSET:
       state.CV = (state.CV * (kCalibrationAdcSmoothing - 1) + OC::ADC::raw_value(static_cast<ADC_CHANNEL>(step->type_index))) / kCalibrationAdcSmoothing;
       OC::calibration_data.adc.offset[step->type_index] = state.encoder_data;
-      DAC::set_all(OC::calibration_data.octaves[_ZERO]);
+      DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_DISPLAY:
       OC::calibration_data.display_offset = state.encoder_data;
@@ -409,8 +409,8 @@ void calibration_read_old() {
        adr++;
        byte1 = EEPROM.read(adr);
        adr++;
-       OC::calibration_data.octaves[i] = (uint16_t)(byte0 << 8) + byte1;
-       serial_printf(" OCTAVE %2d: %u\n", i, OC::calibration_data.octaves[i]);
+       OC::calibration_data.dac.octaves[i] = (uint16_t)(byte0 << 8) + byte1;
+       serial_printf(" OCTAVE %2d: %u\n", i, OC::calibration_data.dac.octaves[i]);
    }
    
    uint16_t _offset[ADC_CHANNEL_LAST];

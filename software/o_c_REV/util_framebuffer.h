@@ -6,6 +6,11 @@
 // - This could be specialized for frames == 2 (i.e. double-buffer)
 // - Takes some short-cuts so assumes correct order of calls
 
+// Since this is essentially a standard ring buffer implementation, it uses
+// only (frames - 1) element to be able to distinguish between empty/full.
+// To have frames useable items see:
+// https://gist.github.com/patrickdowling/0029f58fb20e63d7db9d
+
 template <size_t frame_size, size_t frames>
 class FrameBuffer {
 public:
@@ -49,7 +54,7 @@ public:
 
 private:
 
-  uint8_t frame_memory_[kFrameSize * frames] __attribute__ ((aligned (4)));;
+  uint8_t frame_memory_[kFrameSize * frames] __attribute__ ((aligned (4)));
   uint8_t *frame_buffers_[frames];
 
   volatile size_t write_ptr_;

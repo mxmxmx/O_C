@@ -211,7 +211,7 @@ public:
                 if (_pitch > CALIBRATION_DEFAULT_OFFSET)  {
                     _octave = (_pitch - CALIBRATION_DEFAULT_OFFSET) / CALIBRATION_DEFAULT_STEP;
                     if (_octave > 0 && _octave < 9) 
-                        asr_outputs[i] += OC::calibration_data.octaves[_octave + _offset] - OC::calibration_data.octaves[_octave];
+                        asr_outputs[i] += OC::calibration_data.dac.octaves[_octave + _offset] - OC::calibration_data.dac.octaves[_octave];
                 }
            } 
         }       
@@ -267,19 +267,7 @@ public:
              if (!digitalReadFast(TR3)) _octave++;
              else if (!digitalReadFast(TR4)) _octave--;
 
-             _quantized += _octave * 12 << 7;
-
-             if (_quantized > (120 << 7))
-                 _quantized = 120 << 7;
-             else if (_quantized < 0)
-                _quantized = 0;
-
-            const int32_t octave = _quantized / (12 << 7);
-            const int32_t fractional = _quantized - octave * (12 << 7);
-
-            int32_t sample = OC::calibration_data.octaves[octave];
-            if (fractional)
-               sample += (fractional * (OC::calibration_data.octaves[octave + 1] - OC::calibration_data.octaves[octave])) / (12 << 7);    
+             int32_t sample = DAC::pitch_to_dac(_quantized, _octave);
 
             updateASR_indexed(_ASR, sample, _index); 
          }

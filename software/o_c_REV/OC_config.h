@@ -11,4 +11,11 @@ static constexpr uint32_t OC_CORE_TIMER_RATE = (1000000UL / OC_CORE_ISR_FREQ);
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
 
+#define OCTAVES 10      // # octaves
+static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
+#define SEMITONES (OCTAVES * 12)
+
+static constexpr unsigned long SPLASHSCREEN_DELAY_MS = 500;
+static constexpr unsigned long SPLASHSCREEN_TIMEOUT_MS = 2048;
+
 #endif // OC_CONFIG_H_

@@ -1,7 +1,7 @@
 #include "util/util_grid.h"
 #include "util/util_settings.h"
 #include "util_ui.h"
-#include "tonnetz_state.h"
+#include "tonnetz/tonnetz_state.h"
 #include "OC_bitmaps.h"
 
 // Drive the tonnetz transformations from a grid of cells that contain the type
@@ -305,33 +305,20 @@ void AutomatonnetzState::reset() {
 
 #define AT_OUTPUT_NOTE(i,dac) \
 do { \
-  int note = tonnetz_state.outputs(i); \
-  while (note > RANGE) note -= 12; \
-  while (note < 0) note += 12; \
-  const uint16_t dac_code = semitones[note]; \
-  DAC::set<dac>(dac_code); \
+  int32_t note = tonnetz_state.outputs(i) << 7; \
+  note += 3 * 12 << 7; \
+  DAC::set<dac>(DAC::pitch_to_dac(note, octave())); \
 } while (0)
 
-
 void AutomatonnetzState::render(bool triggered) {
-  int32_t sample = OC::ADC::value<ADC_CHANNEL_1>();
-  int root;
-  if (sample < 0)
-    root = 0;
-  else if (sample < S_RANGE)
-    root = sample >> 5;
-  else
-    root = RANGE;
 
   const TransformCell &current_cell = grid.current_cell();
-  root += current_cell.transpose();
-  root += octave() * 12;
+
+  int32_t root = (OC::ADC::pitch_value(ADC_CHANNEL_1) >> 7) + current_cell.transpose();
 
   int inversion = current_cell.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9); // cvval[3];
-  if (inversion > CELL_MAX_INVERSION * 2)
-    inversion = CELL_MAX_INVERSION * 2;
-  else if (inversion < CELL_MIN_INVERSION * 2)
-    inversion = CELL_MIN_INVERSION * 2;
+  CONSTRAIN(inversion, CELL_MIN_INVERSION * 2, CELL_MAX_INVERSION * 2);
+
   tonnetz_state.render(root, inversion);
 
   switch (output_mode()) {
@@ -341,7 +328,7 @@ void AutomatonnetzState::render(bool triggered) {
     case OUTPUTA_MODE_TRIG:
       if (triggered) {
         trigger_out_millis_ = millis();
-        DAC::set<DAC_CHANNEL_A>(OC::calibration_data.octaves[_ZERO + 5]);
+        DAC::set<DAC_CHANNEL_A>(OC::calibration_data.dac.octaves[_ZERO + 5]);
       }
       break;
     case OUTPUTA_MODE_ARP:
@@ -361,7 +348,7 @@ void AutomatonnetzState::render(bool triggered) {
 void AutomatonnetzState::update_trigger_out() {
   // TODO Allow re-triggering?
   if (trigger_out_millis_ && millis() - trigger_out_millis_ > kTriggerOutMs) {
-    DAC::set<DAC_CHANNEL_A>(OC::calibration_data.octaves[_ZERO]);
+    DAC::set<DAC_CHANNEL_A>(OC::calibration_data.dac.octaves[_ZERO]);
     trigger_out_millis_ = 0;
   }
 }
@@ -517,10 +504,14 @@ void Automatonnetz_screensaver() {
     last_pos = current;
   }
 
+  uint32_t history = automatonnetz_state.tonnetz_state.history();
   weegfx::coord_t y = 0;
-  for (size_t i = 0; i < TonnetzState::HISTORY_LENGTH; ++i, y += 12) {
+  size_t len = 4;
+  while (len--) {
     graphics.setPrintPos(128-7, y);
-    graphics.print(automatonnetz_state.tonnetz_state.history(i).str[1]);
+    graphics.print(tonnetz::transform_names[static_cast<tonnetz::ETransformType>(history & 0x7f)]);
+    y += 12;
+    history >>= 8;
   }
 
   GRAPHICS_END_FRAME();

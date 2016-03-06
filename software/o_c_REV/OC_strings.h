@@ -10,4 +10,9 @@ namespace OC {
   };
 };
 
+inline
+const char *note_name(int note) {
+  return OC::Strings::note_names[(note + 120) % 12];
+}
+
 #endif // OC_STRINGS_H_
