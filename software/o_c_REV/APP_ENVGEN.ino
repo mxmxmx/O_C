@@ -25,6 +25,7 @@ enum EnvelopeSettings {
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
+  ENV_SETTING_HARD_RESET,
   ENV_SETTING_LAST
 };
 
@@ -79,6 +80,10 @@ public:
 
   CVMapping get_cv4_mapping() const {
     return static_cast<CVMapping>(values_[ENV_SETTING_CV4]);
+  }
+
+  bool get_hard_reset() const {
+    return values_[ENV_SETTING_HARD_RESET];
   }
 
   // Utils
@@ -155,8 +160,10 @@ public:
     if (type != last_type_) {
       last_type_ = type;
       env_.reset();
-      env_.set_hard_reset(true);
     }
+
+    // hard reset forces the envelope to start at level_[0] on rising gate.
+    env_.set_hard_reset(get_hard_reset());
 
     OC::DigitalInput trigger_input = get_trigger_input();
     uint8_t gate_state = 0;
@@ -212,6 +219,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U8 }
 };
 
 class QuadEnvelopeGenerator {
