@@ -1,6 +1,9 @@
 // Copyright 2014 Olivier Gillet.
+// Copyright 2016 Tim Churches
 //
-// Author: Olivier Gillet (ol.gillet@gmail.com)
+// Original Author: Olivier Gillet (ol.gillet@gmail.com)
+// Modifications for use of this code in firmare for the Ornament and Crime module:
+// Tim Churches (tim.churches@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +45,7 @@ class LorenzGenerator {
   LorenzGenerator() { }
   ~LorenzGenerator() { }
   
-  void Init();
+  void Init(uint8_t index);
   
   void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2);
  
@@ -50,29 +53,52 @@ class LorenzGenerator {
     index_ = index;
   }
 
-  inline void set_sigma(uint16_t sigma) {
-    sigma_ = (double)sigma * (1 << 24);
+ 
+  inline void set_rho1(int16_t rho) {
+    // rho1_ = ((double)(rho) * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
+    // c1_ = (double)(rho + (6 << 3)) * (1 << 13) ; // was 13
+    rho1_ = (rho * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
+    c1_ = (rho + (6 << 3)) * (1 << 13) ; // was 13
   }
 
-  inline void set_rho(uint16_t rho) {
-    rho_ = (double)rho * (1 << 24);
+  inline void set_rho2(int16_t rho) {
+    // rho2_ = ((double)(rho) * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
+    // c2_ = (double)(rho + (6 << 3)) * (1 << 13) ; // was 13
+    rho2_ = (rho * (1 << 13)) + 24.0 * (1 << 24) ; // was 12
+    c2_ = (rho + (6 << 3)) * (1 << 13) ; // was 13
   }
 
-  inline void set_beta(uint16_t beta) {
-    beta_ = (double)beta  / 3.0 * (1 << 24);
+  inline void set_out_a(uint8_t out_a) {
+    out_a_ = out_a;
   }
-  
+
+  inline void set_out_b(uint8_t out_b) {
+    out_b_ = out_b;
+  }
+
+  inline void set_out_c(uint8_t out_c) {
+    out_c_ = out_c;
+  }
+
+  inline void set_out_d(uint8_t out_d) {
+    out_d_ = out_d;
+  }
+ 
  inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
 
  private:
-  int32_t x1_, y1_, z1_;
+  int32_t Lx1_, Ly1_, Lz1_;
+  int32_t Rx1_, Ry1_, Rz1_;
   int32_t rate1_;
-  int32_t x2_, y2_, z2_;
+  int32_t Lx2_, Ly2_, Lz2_;
+  int32_t Rx2_, Ry2_, Rz2_;
   int32_t rate2_;
 
-  int64_t sigma_, rho_, beta_ ;
+  uint8_t out_a_, out_b_, out_c_, out_d_ ;
+
+  int64_t sigma_, rho1_, rho2_, beta_, c1_,  c2_ ;
   
   // O+C
   uint16_t dac_code_[kNumChannels];

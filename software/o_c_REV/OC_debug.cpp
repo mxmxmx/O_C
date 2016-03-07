@@ -6,6 +6,7 @@
 #include "extern/dspinst.h"
 
 extern void POLYLFO_debug();
+extern void LORENZ_debug();
 
 namespace OC {
 
@@ -14,6 +15,7 @@ enum DebugMenu {
   DEBUG_MENU_GFX,
   DEBUG_MENU_ADC,
   DEBUG_MENU_POLYLFO,
+  DEBUG_MENU_LORENZ,
   DEBUG_MENU_LAST
 };
 
@@ -65,7 +67,8 @@ const debug_menus[DEBUG_MENU_LAST] = {
   { DEBUG_MENU_CORE, " CORE", debug_menu_core },
   { DEBUG_MENU_GFX, " GFX", debug_menu_gfx },
   { DEBUG_MENU_ADC, " ADC", debug_menu_adc },
-  { DEBUG_MENU_POLYLFO, " POLYLFO", POLYLFO_debug }
+  { DEBUG_MENU_POLYLFO, " POLYLFO", POLYLFO_debug },
+  { DEBUG_MENU_LORENZ, " LORENZ", LORENZ_debug },
 };
 
 
