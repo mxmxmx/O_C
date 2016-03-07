@@ -23,23 +23,10 @@
 #ifndef UTIL_SYNC_H_
 #define UTIL_SYNC_H_
 
-#include <stdint.h>
+#include <arm_math.h>
+#include "util_macros.h"
 
 namespace util {
-
-inline uint32_t ldrexw(volatile uint32_t *addr) __attribute__((always_inline));
-inline uint32_t ldrexw(volatile uint32_t *addr) {
-  uint32_t result;
-  asm volatile ("ldrex %0, [%1]" : "=r" (result) : "r" (addr) );
-  return result;
-}
-
-inline uint32_t strexw(uint32_t value, volatile uint32_t *addr) __attribute__((always_inline));
-inline uint32_t strexw(uint32_t value, volatile uint32_t *addr) {
-   uint32_t result;
-   asm volatile ("strex %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
-   return(result);
-}
 
 // Really basic critical section/mutex/semaphone type thing
 class CriticalSection {
@@ -49,26 +36,74 @@ public:
     id_ = 0;
   }
 
+  // Release lock
+  inline void Unlock() __attribute__((always_inline));
+
+  // Blocking lock
   inline void Lock(uint32_t id) __attribute__((always_inline));
-  inline void Unlock() {
-    id_ = 0;
-  }
+
+  // Non-blocking lock
+  // @return true if locked claimed, false if already taken
+  inline bool TryLock(uint32_t id) __attribute__((always_inline));
 
 private:
   volatile uint32_t id_;
+  DISALLOW_COPY_AND_ASSIGN(CriticalSection);
 };
 
-inline void CriticalSection::Lock(uint32_t id) {
-  uint32_t owner = 0;
-  do {
-    owner = ldrexw(&id_);
-  } while (owner || strexw(id, &id_));
-  // Is DMB required here?
+inline void CriticalSection::Unlock() {
+  __DMB();
+  id_ = 0;
 }
 
+inline void CriticalSection::Lock(uint32_t id) {
+  uint32_t owner;
+  do {
+    owner = __LDREXW(&id_);
+  } while (owner || __STREXW(id, &id_));
+  __DMB();
+}
 
+inline bool CriticalSection::TryLock(uint32_t id) {
+  uint32_t owner;
+  do {
+    owner = __LDREXW(&id_);
+    // If lock hasn't been claimed, try and claim it
+  } while (!owner && __STREXW(id, &id_));
+  if (owner) __CLREX();
+  else __DMB();
+  return !owner;
+}
+
+// Automatic scoped TryLock
 template <uint32_t id>
-struct Lock {
+class TryLock {
+public:
+  TryLock(CriticalSection &critical_section)
+  : critical_section_(critical_section)
+  , locked_(critical_section.TryLock(id)) {
+  }
+
+  ~TryLock() {
+    if (locked_)
+      critical_section_.Unlock();
+  }
+
+  inline bool locked() const {
+    return locked_;
+  }
+
+private:
+  CriticalSection &critical_section_;
+  const bool locked_;
+
+  DISALLOW_COPY_AND_ASSIGN(TryLock);
+};
+
+// Automatic scoped Lock
+template <uint32_t id>
+class Lock {
+public:
   Lock(CriticalSection &critical_section) 
   : critical_section_(critical_section) {
     critical_section.Lock(id);
@@ -78,7 +113,9 @@ struct Lock {
     critical_section_.Unlock();
   }
 
+private:
   CriticalSection &critical_section_;
+  DISALLOW_COPY_AND_ASSIGN(Lock);
 };
 
 };
