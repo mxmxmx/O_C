@@ -349,6 +349,8 @@ void H1200_screensaver() {
   static const uint8_t x_col_1 = 66 + 24;
   static const uint8_t x_col_2 = 66 + 38;
   static const uint8_t line_h = 16;
+  static const weegfx::coord_t note_circle_x = 32;
+  static const weegfx::coord_t note_circle_y = 32;
 
   //u8g.setFont(u8g_font_timB12); BBX 19x27
   //graphics.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
@@ -381,7 +383,7 @@ void H1200_screensaver() {
     history >>= 8;
   }
 
-  visualize_pitch_classes(normalized);
+  visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
 
   GRAPHICS_END_FRAME();
 }

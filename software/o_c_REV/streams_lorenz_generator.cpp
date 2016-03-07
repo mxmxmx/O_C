@@ -163,6 +163,8 @@ void LorenzGenerator::Process(
         out_channel = out_d_ ;
         break ; 
       default:
+        // shut up compiler warning: 'out_channel' may be used uninitialized
+        out_channel = LORENZ_OUTPUT_LAST; 
         break ;       
     }
  
