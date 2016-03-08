@@ -474,6 +474,12 @@ bool ENVGEN_encoders() {
   return changed;
 }
 
+void ENVGEN_screensaver() {
+  GRAPHICS_BEGIN_FRAME(false);
+  scope_render();
+  GRAPHICS_END_FRAME();
+}
+
 void FASTRUN ENVGEN_isr() {
   envgen.ISR();
 }

@@ -607,3 +607,9 @@ void QQ_leftButtonLong() {
       qq_state.scale_editor.Edit(&selected_channel, scale);
   }
 }
+
+void QQ_screensaver() {
+  GRAPHICS_BEGIN_FRAME(false);
+  scope_render();
+  GRAPHICS_END_FRAME();
+}
