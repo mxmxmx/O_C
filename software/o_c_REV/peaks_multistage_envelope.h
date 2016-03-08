@@ -54,7 +54,8 @@ enum ControlMode {
 enum EnvelopeShape {
   ENV_SHAPE_LINEAR,
   ENV_SHAPE_EXPONENTIAL,
-  ENV_SHAPE_QUARTIC
+  ENV_SHAPE_QUARTIC,
+  ENV_SHAPE_LAST
 };
 
 const uint16_t kMaxNumSegments = 8;
@@ -113,9 +114,12 @@ class MultistageEnvelope {
     time_[1] = decay;
     time_[2] = release;
     
-    shape_[0] = ENV_SHAPE_QUARTIC;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
-    shape_[2] = ENV_SHAPE_EXPONENTIAL;
+    // shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
+    // shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
+    // shape_[2] = ENV_SHAPE_EXPONENTIAL;
+    shape_[2] = release_shape_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -132,8 +136,10 @@ class MultistageEnvelope {
     time_[1] = decay;
     
     // shape_[0] = ENV_SHAPE_EXPONENTIAL;
-    shape_[0] = ENV_SHAPE_QUARTIC;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    // shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
+    // shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -156,11 +162,11 @@ class MultistageEnvelope {
     time_[2] = release;
     
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     // shape_[2] = ENV_SHAPE_LINEAR;
-    shape_[2] = ENV_SHAPE_EXPONENTIAL;
+    shape_[2] = release_shape_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -177,9 +183,9 @@ class MultistageEnvelope {
     time_[1] = decay;
     
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = release_shape_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -204,13 +210,13 @@ class MultistageEnvelope {
     time_[3] = release;
     
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     // shape_[2] = ENV_SHAPE_LINEAR;
-    shape_[2] = ENV_SHAPE_QUARTIC;
+    shape_[2] = attack_shape_;
     // shape_[3] = ENV_SHAPE_LINEAR;
-    shape_[3] = ENV_SHAPE_EXPONENTIAL;
+    shape_[3] = release_shape_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -235,13 +241,13 @@ class MultistageEnvelope {
     time_[3] = release;
     
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     // shape_[2] = ENV_SHAPE_LINEAR;
-    shape_[2] = ENV_SHAPE_QUARTIC;
+    shape_[2] = attack_shape_;
     // shape_[3] = ENV_SHAPE_LINEAR;
-    shape_[3] = ENV_SHAPE_EXPONENTIAL;
+    shape_[3] = release_shape_;
    
     loop_start_ = loop_end_ = 0;
   }
@@ -258,9 +264,9 @@ class MultistageEnvelope {
     time_[1] = decay;
     
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     
     loop_start_ = 0;
     loop_end_ = 2;
@@ -284,11 +290,11 @@ class MultistageEnvelope {
     time_[2] = release;
     
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     // shape_[2] = ENV_SHAPE_LINEAR;
-    shape_[2] = ENV_SHAPE_EXPONENTIAL;
+    shape_[2] = release_shape_;
     
     loop_start_ = 0;
     loop_end_ = 3;
@@ -314,13 +320,13 @@ class MultistageEnvelope {
     time_[3] = release;
 
     // shape_[0] = ENV_SHAPE_LINEAR;
-    shape_[0] = ENV_SHAPE_QUARTIC;
+    shape_[0] = attack_shape_;
     // shape_[1] = ENV_SHAPE_LINEAR;
-    shape_[1] = ENV_SHAPE_EXPONENTIAL;
+    shape_[1] = decay_shape_;
     // shape_[2] = ENV_SHAPE_LINEAR;
-    shape_[2] = ENV_SHAPE_QUARTIC;
+    shape_[2] = attack_shape_;
     // shape_[3] = ENV_SHAPE_LINEAR;
-    shape_[3] = ENV_SHAPE_EXPONENTIAL;
+    shape_[3] = release_shape_;
 
     loop_start_ = 0;
     loop_end_ = 4;
@@ -337,7 +343,19 @@ class MultistageEnvelope {
       value_ = 0;
     }
   }
- 
+
+  inline void set_attack_shape(EnvelopeShape shape) {
+    attack_shape_ = shape;
+  }
+
+  inline void set_decay_shape(EnvelopeShape shape) {
+    decay_shape_ = shape;
+  }
+
+  inline void set_release_shape(EnvelopeShape shape) {
+    release_shape_ = shape;
+  }
+
   // Render preview, max 128 px
   size_t render_preview(int16_t *values, uint32_t *segment_starts, uint32_t *loops, uint32_t &current_phase) const;
 
@@ -359,6 +377,9 @@ class MultistageEnvelope {
   uint16_t loop_end_;
   
   bool hard_reset_;
+  EnvelopeShape attack_shape_ ;
+  EnvelopeShape decay_shape_ ;
+  EnvelopeShape release_shape_ ;
   
   DISALLOW_COPY_AND_ASSIGN(MultistageEnvelope);
 };

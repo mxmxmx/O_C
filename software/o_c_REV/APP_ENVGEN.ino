@@ -26,6 +26,9 @@ enum EnvelopeSettings {
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
   ENV_SETTING_HARD_RESET,
+  ENV_SETTING_ATTACK_SHAPE,
+  ENV_SETTING_DECAY_SHAPE,
+  ENV_SETTING_RELEASE_SHAPE,
   ENV_SETTING_LAST
 };
 
@@ -50,6 +53,13 @@ enum EnvelopeType {
   ENV_TYPE_ADAR_LOOP,
   ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
+
+//enum EnvelopeShape {
+//  ENV_SHAPE_LINEAR,
+//  ENV_SHAPE_EXPONENTIAL,
+//  ENV_SHAPE_QUARTIC,
+//  ENV_SHAPE_LAST
+//};
 
 class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
 public:
@@ -84,6 +94,18 @@ public:
 
   bool get_hard_reset() const {
     return values_[ENV_SETTING_HARD_RESET];
+  }
+
+  peaks::EnvelopeShape get_attack_shape() const {
+    return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_ATTACK_SHAPE]);
+  }
+
+  peaks::EnvelopeShape get_decay_shape() const {
+    return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_DECAY_SHAPE]);
+  }
+
+  peaks::EnvelopeShape get_release_shape() const {
+    return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_RELEASE_SHAPE]);
   }
 
   // Utils
@@ -165,6 +187,11 @@ public:
     // hard reset forces the envelope to start at level_[0] on rising gate.
     env_.set_hard_reset(get_hard_reset());
 
+    // set the envelope segment shapes
+    env_.set_attack_shape(get_attack_shape());
+    env_.set_decay_shape(get_decay_shape());
+    env_.set_release_shape(get_release_shape());
+
     OC::DigitalInput trigger_input = get_trigger_input();
     uint8_t gate_state = 0;
     if (triggers & DIGITAL_INPUT_MASK(trigger_input))
@@ -204,6 +231,10 @@ const char* const envelope_types[ENV_TYPE_LAST] = {
   "AD", "ADSR", "ADR", "AR", "ADSAR", "ADAR", "AD_LOOP", "ADR_LOOP", "ADAR_LOOP"
 };
 
+const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
+  "Lin", "Exp", "Quart"
+};
+
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
   "off", "S1", "S2", "S3", "S4"
 };
@@ -219,7 +250,10 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U8 }
+  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U8 },
+  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U8 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U8 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U8 },
 };
 
 class QuadEnvelopeGenerator {
