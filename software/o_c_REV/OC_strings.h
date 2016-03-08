@@ -7,6 +7,7 @@ namespace OC {
     extern const char * const note_names[];
     extern const char * const trigger_input_names[];
     extern const char * const cv_input_names[];
+    extern const char * const no_yes[];
   };
 };
 

@@ -8,5 +8,7 @@ namespace OC {
   const char * const trigger_input_names[4] = { "TR1", "TR2", "TR3", "TR4" };
 
   const char * const cv_input_names[4] = { "CV1", "CV2", "CV3", "CV4" };
+
+  const char * const no_yes[] = { "no", "yes" };
   };
 };

@@ -335,9 +335,15 @@ void FASTRUN AutomatonnetzState::ISR() {
 
   bool chord_changed = false;
   {
-    util::Lock<CRITICAL_SECTION_ID_ISR> lock(critical_section_); // guard against ClearGrid conflict
-    TransformCell &current_cell = grid.mutable_current_cell();
-    if (update) {
+    util::TryLock<CRITICAL_SECTION_ID_ISR> lock(critical_section_);
+    // Minimal safeguard against update while ClearGrid is active.
+    // We can't use a blocking Lock here since the ISR interrupts the main
+    // loop, so the lock would never be relinquished at things implode.
+    // A user-triggered clear will force a reset anyway and update next ISR,
+    // so we can just skip it.
+
+    if (update && lock.locked()) {
+      TransformCell &current_cell = grid.mutable_current_cell();
       push_history(grid.current_pos_index());
       tonnetz::ETransformType transform = current_cell.transform();
       if (reset || transform >= tonnetz::TRANSFORM_LAST) {
@@ -369,6 +375,7 @@ void FASTRUN AutomatonnetzState::ISR() {
 }
 
 void AutomatonnetzState::Reset() {
+  // Assumed to be called w/o ISR active!
   grid.MoveToOrigin();
   push_history(grid.current_pos_index());
   tonnetz_state.reset(mode());

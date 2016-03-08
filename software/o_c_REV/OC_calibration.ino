@@ -91,7 +91,7 @@ struct CalibrationStep {
   CALIBRATION_TYPE calibration_type;
   int type_index;
 
-  const char ** value_str; // if non-null, use these instead of encoder value
+  const char * const *value_str; // if non-null, use these instead of encoder value
   long min, max;
 };
 
@@ -104,11 +104,10 @@ struct CalibrationState {
 
 OC::DigitalInputDisplay digital_input_displays[4];
 
-const char * yes_no_str[] = { "no", "yes" };
 const char * default_footer = "[prev]         [next]";
 
 const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
-  { HELLO, "Calibrate", "Use defaults? ", "              [start]", CALIBRATE_NONE, 0, yes_no_str, 0, 1 },
+  { HELLO, "Calibrate", "Use defaults? ", "              [start]", CALIBRATE_NONE, 0, OC::Strings::no_yes, 0, 1 },
   { CENTER_DISPLAY, "Center Display", "offset ", default_footer, CALIBRATE_DISPLAY, 0, nullptr, 0, 2 },
   { VOLT_0, "trim to 0 volts", "->  0.000V ", default_footer, CALIBRATE_OCTAVE, _ZERO, nullptr, 0, DAC::MAX_VALUE },
   { VOLT_3m, "trim to -3 volts", "-> -3.000V ", default_footer, CALIBRATE_OCTAVE, 0, nullptr, 0, DAC::MAX_VALUE },
