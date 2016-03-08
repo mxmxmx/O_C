@@ -51,7 +51,6 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
         : value_;
     segment_ = 0;
     phase_ = 0;
-    if (hard_reset_) hard_reset_ = false ;
   } else if (control & CONTROL_GATE_FALLING && sustain_point_) {
     start_value_ = value_;
     segment_ = sustain_point_;
