@@ -42,6 +42,10 @@ void MultistageEnvelope::Init() {
   start_value_ = 0;
   value_ = 0;
   hard_reset_ = false;
+  attack_shape_ = ENV_SHAPE_QUARTIC;
+  decay_shape_ = ENV_SHAPE_EXPONENTIAL;
+  release_shape_ = ENV_SHAPE_EXPONENTIAL;
+  
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
