@@ -225,7 +225,7 @@ const char* const envelope_types[ENV_TYPE_LAST] = {
 };
 
 const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
-  "Lin", "Exp", "Quart", "Sine", "Plat", "Squ"
+  "Lin", "Exp", "Quart", "Sine"
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
