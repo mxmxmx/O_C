@@ -54,13 +54,6 @@ enum EnvelopeType {
   ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
 
-//enum EnvelopeShape {
-//  ENV_SHAPE_LINEAR,
-//  ENV_SHAPE_EXPONENTIAL,
-//  ENV_SHAPE_QUARTIC,
-//  ENV_SHAPE_LAST
-//};
-
 class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
 public:
 
@@ -232,7 +225,7 @@ const char* const envelope_types[ENV_TYPE_LAST] = {
 };
 
 const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
-  "Lin", "Exp", "Quart"
+  "Lin", "Exp", "Quart", "Sine", "Plat", "Squ"
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
