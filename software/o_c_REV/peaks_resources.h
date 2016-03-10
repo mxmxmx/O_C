@@ -55,7 +55,8 @@ extern const uint16_t lut_env_expo[];
 extern const uint16_t lut_env_quartic[];
 extern const uint16_t lut_env_sine[];
 extern const uint16_t lut_env_plateau[];
-extern const uint16_t lut_env_plateau2[];
+extern const uint16_t lut_env_cliff[];
+extern const uint16_t lut_env_sinefold[];
 extern const uint16_t lut_raised_cosine[];
 extern const uint16_t lut_svf_cutoff[];
 extern const uint16_t lut_svf_damp[];
@@ -78,15 +79,17 @@ extern const uint32_t lut_oscillator_increments[];
 #define LUT_ENV_SINE_SIZE 257
 #define LUT_ENV_PLATEAU 6
 #define LUT_ENV_PLATEAU_SIZE 257
-#define LUT_ENV_PLATEAU2 7
-#define LUT_ENV_PLATEAU2_SIZE 257
-#define LUT_RAISED_COSINE 8
+#define LUT_ENV_CLIFF 7
+#define LUT_ENV_CLIFF_SIZE 257
+#define LUT_ENV_SINEFOLD 7
+#define LUT_ENV_SINEFOLD_SIZE 257
+#define LUT_RAISED_COSINE 9
 #define LUT_RAISED_COSINE_SIZE 257
-#define LUT_SVF_CUTOFF 9
+#define LUT_SVF_CUTOFF 10
 #define LUT_SVF_CUTOFF_SIZE 257
-#define LUT_SVF_DAMP 10
+#define LUT_SVF_DAMP 11
 #define LUT_SVF_DAMP_SIZE 257
-#define LUT_SVF_SCALE 11
+#define LUT_SVF_SCALE 12
 #define LUT_SVF_SCALE_SIZE 257
 #define LUT_LFO_INCREMENTS 0
 #define LUT_LFO_INCREMENTS_SIZE 257
