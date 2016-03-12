@@ -560,9 +560,3 @@ void QQ_leftButtonLong() {
     }
   }
 }
-
-void QQ_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-  scope_render();
-  GRAPHICS_END_FRAME();
-}

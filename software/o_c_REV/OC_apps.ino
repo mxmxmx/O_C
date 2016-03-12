@@ -14,7 +14,7 @@ extern int LAST_ENCODER_VALUE[2];
 }
 
 #define ASR_screensaver screensaver
-// #define QQ_screensaver screensaver
+#define QQ_screensaver screensaver
 // #define ENVGEN_screensaver screensaver
 
 OC::App available_apps[] = {
