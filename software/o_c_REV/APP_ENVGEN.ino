@@ -239,14 +239,14 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U8 },
-  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U8 },
-  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U8 },
-  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U8 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
+  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
 };
 
 class QuadEnvelopeGenerator {

@@ -287,8 +287,8 @@ SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
   {4, 0, 8*GRID_DIMENSION - 1, "dy   ", NULL, settings::STORAGE_TYPE_I8},
   {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "oct  ", NULL, settings::STORAGE_TYPE_I8},
-  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OUTA ", outputa_mode_names, settings::STORAGE_TYPE_U8},
-  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names, settings::STORAGE_TYPE_U8},
+  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OUTA ", outputa_mode_names, settings::STORAGE_TYPE_U4},
+  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names, settings::STORAGE_TYPE_U4},
 };
 
 AutomatonnetzState automatonnetz_state;

@@ -306,7 +306,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
-  { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U16 },
+  { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
 };
 
 struct ASRState {
