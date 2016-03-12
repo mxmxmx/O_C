@@ -347,11 +347,6 @@ void ENVGEN_handleEvent(OC::AppEvent event) {
 }
 
 void ENVGEN_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 int16_t preview_values[128];

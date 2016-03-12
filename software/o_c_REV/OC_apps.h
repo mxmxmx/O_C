@@ -48,7 +48,6 @@ extern App *current_app;
 namespace APPS {
 
   void Init(bool use_defaults);
-  void Select();
 
   inline void ISR() __attribute__((always_inline));
   inline void ISR() {

@@ -7,6 +7,10 @@
 // 100us = 10Khz
 static constexpr uint32_t OC_CORE_ISR_FREQ = 16666U;
 static constexpr uint32_t OC_CORE_TIMER_RATE = (1000000UL / OC_CORE_ISR_FREQ);
+static constexpr uint32_t OC_UI_TIMER_RATE   = 1000UL;
+
+static constexpr int OC_CORE_TIMER_PRIO = 128; // default?
+static constexpr int OC_UI_TIMER_PRIO   = 132; // lower
 
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 15000; // time out menu (in ms)
@@ -31,5 +35,8 @@ static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
 
 // This is the available space for all apps' settings (\sa OC_apps.ino)
 #define EEPROM_APPDATA_BINARY_SIZE (372 - 4)
+
+#define OC_UI_DEBUG
+#define OC_UI_SEPARATE_ISR
 
 #endif // OC_CONFIG_H_

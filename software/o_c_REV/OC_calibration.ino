@@ -28,7 +28,7 @@ const OC::CalibrationData kCalibrationDefaults = {
   // flags
   0,
   // display_offset
-  SH1106_128x64_Driver::kDefaultOffset
+  0//SH1106_128x64_Driver::kDefaultOffset
 };
 //const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
@@ -98,7 +98,7 @@ struct CalibrationStep {
 struct CalibrationState {
   CALIBRATION_STEP step;
   const CalibrationStep *current_step;
-  long encoder_data;
+  long encoder_value;
   uint32_t CV;
 };
 
@@ -178,8 +178,8 @@ void init_DACtable() {
 }
 
 /*     loop calibration menu until done       */
+void OC::Ui::Calibrate() {
 
-void calibration_menu() {
   // Calibration data should be loaded (or defaults) by now
   SERIAL_PRINTLN("Starting calibration...");
 
@@ -191,11 +191,12 @@ void calibration_menu() {
   };
   for (auto &did : digital_input_displays)
     did.Init();
-  OC::TickCount tick_count;
-    tick_count.Init();
 
-  encoder[RIGHT].setPos(calibration_state.encoder_data);
-  while (true) {
+  OC::TickCount tick_count;
+  tick_count.Init();
+
+  bool calibration_complete = false;
+  while (!calibration_complete) {
 
     uint32_t ticks = tick_count.Update();
     digital_input_displays[0].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>());
@@ -203,28 +204,34 @@ void calibration_menu() {
     digital_input_displays[2].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>());
     digital_input_displays[3].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>());
 
-    calibration_update(calibration_state);
-    calibration_draw(calibration_state);
-
-    button_right.read();
-    if (button_right.event()) {
-      if (calibration_state.step < EXIT)
-        calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + 1);
-      else
-        break;
-    }
-    button_left.read();
-    if (button_left.event()) {
-      if (calibration_state.step > CENTER_DISPLAY)
-        calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step - 1);
+    while (event_queue_.available()) {
+      UI::Event event = event_queue_.PullEvent();
+      switch (event.control) {
+        case OC::CONTROL_BUTTON_L:
+          if (calibration_state.step > CENTER_DISPLAY)
+            calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step - 1);
+          break;
+        case OC::CONTROL_BUTTON_R:
+          if (calibration_state.step < EXIT)
+            calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + 1);
+          else
+            calibration_complete = true;
+          break;
+        case OC::CONTROL_ENCODER_R:
+          calibration_state.encoder_value += event.value;
+          break;
+        default:
+          break;
+      }
     }
 
     const CalibrationStep *next_step = &calibration_steps[calibration_state.step];
     if (next_step != calibration_state.current_step) {
+      SERIAL_PRINTLN("Step: %s", next_step->title);
       // Special cases on exit current step
       switch (calibration_state.current_step->step) {
         case HELLO:
-          if (calibration_state.encoder_data) {
+          if (calibration_state.encoder_value) {
             SERIAL_PRINTLN("Resetting to defaults...");
             calibration_reset();
           }
@@ -234,24 +241,30 @@ void calibration_menu() {
 
       // Setup next step
       switch (next_step->calibration_type) {
-      case CALIBRATE_NONE: break;
       case CALIBRATE_OCTAVE:
-        encoder[RIGHT].setPos(OC::calibration_data.dac.octaves[next_step->type_index]);
+        calibration_state.encoder_value = OC::calibration_data.dac.octaves[next_step->type_index];
         break;
       case CALIBRATE_DAC_FINE:
-        encoder[RIGHT].setPos(OC::calibration_data.dac.fine[next_step->type_index]);
+        calibration_state.encoder_value = OC::calibration_data.dac.fine[next_step->type_index];
         break;
       case CALIBRATE_ADC_TRIMMER:
         break;
       case CALIBRATE_ADC_OFFSET:
-        encoder[RIGHT].setPos(OC::calibration_data.adc.offset[next_step->type_index]);
+        calibration_state.encoder_value = OC::calibration_data.adc.offset[next_step->type_index];
         break;
       case CALIBRATE_DISPLAY:
-        encoder[RIGHT].setPos(OC::calibration_data.display_offset);
+        calibration_state.encoder_value = OC::calibration_data.display_offset;
         break;
+
+      case CALIBRATE_NONE:
+      default:
+        calibration_state.encoder_value = 0;
       }
       calibration_state.current_step = next_step;
     }
+
+    calibration_update(calibration_state);
+    calibration_draw(calibration_state);
   }
 
   SERIAL_PRINTLN("Calibration complete");
@@ -270,12 +283,12 @@ void calibration_draw(const CalibrationState &state) {
   switch (step->calibration_type) {
     case CALIBRATE_OCTAVE:
       graphics.print(step->message);
-      graphics.print(state.encoder_data);
+      graphics.print(state.encoder_value);
       break;
 
     case CALIBRATE_DAC_FINE:
       graphics.print(step->message);
-      graphics.pretty_print(state.encoder_data, 4);
+      graphics.pretty_print(state.encoder_value, 4);
       break;
 
     case CALIBRATE_ADC_TRIMMER:
@@ -287,7 +300,7 @@ void calibration_draw(const CalibrationState &state) {
       break;
 
     case CALIBRATE_ADC_OFFSET:
-      graphics.pretty_print(state.encoder_data - state.CV, 5);
+      graphics.pretty_print(state.encoder_value - state.CV, 5);
       graphics.print(" --> 0");
       graphics.setPrintPos(2, 28 + kUiLineH);
       graphics.print(step->message);
@@ -295,7 +308,7 @@ void calibration_draw(const CalibrationState &state) {
 
     case CALIBRATE_DISPLAY:
       graphics.print(step->message);
-      graphics.pretty_print(state.encoder_data, 4);
+      graphics.pretty_print(state.encoder_value, 4);
       graphics.drawFrame(0, 0, 128, 64);
       break;
 
@@ -303,7 +316,7 @@ void calibration_draw(const CalibrationState &state) {
     default:
       graphics.print(step->message);
       if (step->value_str)
-        graphics.print(step->value_str[state.encoder_data]);
+        graphics.print(step->value_str[state.encoder_value]);
       break;
   }
 
@@ -323,13 +336,7 @@ void calibration_draw(const CalibrationState &state) {
 
 void calibration_update(CalibrationState &state) {
 
-  state.encoder_data = encoder[RIGHT].pos();
-  if (state.encoder_data < state.current_step->min)
-    state.encoder_data = state.current_step->min;
-  else if (state.encoder_data > state.current_step->max)
-    state.encoder_data = state.current_step->max;
-  encoder[RIGHT].setPos(state.encoder_data);
-
+  CONSTRAIN(state.encoder_value, state.current_step->min, state.current_step->max);
   const CalibrationStep *step = state.current_step;
 
   switch (step->calibration_type) {
@@ -337,11 +344,11 @@ void calibration_update(CalibrationState &state) {
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_OCTAVE:
-      OC::calibration_data.dac.octaves[step->type_index] = state.encoder_data;
+      OC::calibration_data.dac.octaves[step->type_index] = state.encoder_value;
       DAC::set_all(OC::calibration_data.dac.octaves[step->type_index]);
       break;
     case CALIBRATE_DAC_FINE:
-      OC::calibration_data.dac.fine[step->type_index] = state.encoder_data;
+      OC::calibration_data.dac.fine[step->type_index] = state.encoder_value;
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 1]);
       break;
     case CALIBRATE_ADC_TRIMMER:
@@ -350,11 +357,11 @@ void calibration_update(CalibrationState &state) {
       break;
     case CALIBRATE_ADC_OFFSET:
       state.CV = (state.CV * (kCalibrationAdcSmoothing - 1) + OC::ADC::raw_value(static_cast<ADC_CHANNEL>(step->type_index))) / kCalibrationAdcSmoothing;
-      OC::calibration_data.adc.offset[step->type_index] = state.encoder_data;
+      OC::calibration_data.adc.offset[step->type_index] = state.encoder_value;
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_DISPLAY:
-      OC::calibration_data.display_offset = state.encoder_data;
+      OC::calibration_data.display_offset = state.encoder_value;
       SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
       break;
   }

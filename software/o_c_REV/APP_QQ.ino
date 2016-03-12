@@ -451,11 +451,6 @@ void QQ_isr() {
 }
 
 void QQ_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 template <bool rtl>

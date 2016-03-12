@@ -242,11 +242,6 @@ void H1200_isr() {
 }
 
 void H1200_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 void H1200_topButton() {

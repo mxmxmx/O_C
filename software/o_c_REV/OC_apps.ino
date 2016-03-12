@@ -1,7 +1,5 @@
 #include "OC_apps.h"
 
-extern int LAST_ENCODER_VALUE[2];
-
 #define DECLARE_APP(a, b, name, prefix, isr) \
 { TWOCC<a,b>::value, name, \
   prefix ## _init, prefix ## _storageSize, prefix ## _save, prefix ## _restore, \
@@ -250,79 +248,55 @@ void OC::APPS::Init(bool use_defaults) {
   set_current_app(current_app_index);
   OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
 
-  LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
-  LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
+  delay(100);
 }
 
-void OC::APPS::Select() {
+void OC::Ui::SelectApp() {
 
-  // Save state
-  int encoder_values[2] = { encoder[LEFT].pos(), encoder[RIGHT].pos() };
+  bool ignore_right = OC::ui.read_immediate(OC::CONTROL_BUTTON_R);
+
   OC::current_app->handleEvent(OC::APP_EVENT_SUSPEND);
 
   int selected = APPS::index_of(global_settings.current_app_id);
-  encoder[RIGHT].setPos(selected);
-
-  draw_app_menu(selected);
-  while (!digitalRead(butR));
-
-  uint32_t time = millis();
-  bool redraw = true;
+  bool change_app = false;
   bool save = false;
-  while (!(millis() - time > APP_SELECTION_TIMEOUT_MS)) {
-    if (_ENC) {
-      _ENC = false;
-      int value = encoder[RIGHT].pos();
-      if (value < 0) value = 0;
-      else if (value >= NUM_AVAILABLE_APPS) value = NUM_AVAILABLE_APPS - 1;
-      encoder[RIGHT].setPos(value);
-      if (value != selected) {
-        selected = value;
-        redraw = true;
+  while (!change_app && idle_time() < APP_SELECTION_TIMEOUT_MS) {
+
+    while (event_queue_.available()) {
+      UI::Event event = event_queue_.PullEvent();
+      if (UI::EVENT_ENCODER == event.type && OC::CONTROL_ENCODER_R == event.control) {
+        selected += event.value;
+        CONSTRAIN(selected, 0, NUM_AVAILABLE_APPS - 1);
+      } else if (OC::CONTROL_BUTTON_R == event.control) {
+        if (ignore_right) {
+          ignore_right = false;
+        } else {
+          save = event.type == UI::EVENT_BUTTON_LONG_PRESS;
+          change_app = true;
+        }
+      } else if (OC::CONTROL_BUTTON_L == event.control) {
+        OC::ui.DebugStats();
       }
     }
 
-    button_left.read();
-    if (button_left.event()) {
-      SERIAL_PRINTLN("DEBUG MENU");
-      OC::debug_menu();
-      time = millis();
-      redraw = true;
-    }
-    button_right.read();
-    if (button_right.long_event()) {
-      save = true;
-      break;
-    }
-    else if (button_right.event())
-      break;
-
-    if (redraw) {
-      draw_app_menu(selected);
-      redraw = false;
-    }
+    draw_app_menu(selected);
   }
+
+  event_queue_.Flush();
+  event_queue_.Poke();
 
   OC::CORE::app_isr_enabled = false;
   delay(1);
 
-  set_current_app(selected);
-  if (save) {
-    save_global_settings();
-    save_app_data();
+  if (change_app) {
+    set_current_app(selected);
+    if (save) {
+      save_global_settings();
+      save_app_data();
+    }
   }
 
   // Restore state
-  encoder[LEFT].setPos(encoder_values[0]);
-  encoder[RIGHT].setPos(encoder_values[1]);
-
   OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
-
-  LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
-  LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
-
-  MENU_REDRAW = 1;
-  _UI_TIMESTAMP = millis();
-
   OC::CORE::app_isr_enabled = true;
 }

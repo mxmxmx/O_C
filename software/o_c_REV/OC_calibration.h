@@ -16,14 +16,21 @@
 
 namespace OC {
 
+enum CalibrationFlags {
+	UI_ENCODERS_SWAP,
+	UI_ENCODERS_ACCELERATION
+};
+
 struct CalibrationData {
   static constexpr uint32_t FOURCC = FOURCC<'C', 'A', 'L', 1>::value;
 
   DAC::CalibrationData dac;
   ADC::CalibrationData adc;
 
-  uint32_t flags;
   uint8_t display_offset;
+  uint32_t flags;
+  uint32_t reserved0;
+  uint32_t reserved1;
 };
 
 typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_END, CalibrationData> CalibrationStorage;

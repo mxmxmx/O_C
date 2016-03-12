@@ -351,11 +351,6 @@ void ASR_handleEvent(OC::AppEvent event) {
 }
 
 void ASR_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);      
 }
 
 void ASR_isr() {

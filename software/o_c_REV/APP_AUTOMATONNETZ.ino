@@ -439,11 +439,6 @@ void AutomatonnetzState::update_trigger_out() {
 }
 
 void Automatonnetz_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 void FASTRUN Automatonnetz_isr() {

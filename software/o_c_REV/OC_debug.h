@@ -13,6 +13,10 @@ namespace DEBUG {
   void Init();
 
   extern SmoothedValue<uint32_t, 16> ISR_cycles;
+  extern SmoothedValue<uint32_t, 16> UI_cycles;
+  extern uint32_t UI_event_count;
+  extern uint32_t UI_max_queue_depth;
+  extern uint32_t UI_queue_overflow;
 };
 
 class DebugPins {
@@ -25,6 +29,6 @@ public:
   }
 };
 
-};
+}; // namespace OC
 
 #endif // OC_DEBUG_H

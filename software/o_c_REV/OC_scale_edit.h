@@ -3,9 +3,6 @@
 
 #include "OC_bitmaps.h"
 
-extern TimerDebouncedButton<butL, 50, 2000> button_left;
-extern TimerDebouncedButton<butR, 50, 2000> button_right;
-
 namespace OC {
 
 // Scale editor
@@ -180,11 +177,12 @@ bool ScaleEditor<Owner>::handle_encoders() {
   long right_value = encoder[RIGHT].pos();
   if (mutable_scale_) {
     if (cursor_pos_ < num_notes_) {
-      if (button_left.pressed()) {
+/*      if (button_left.pressed()) {
         change_note(cursor_pos_, right_value, false);
         changed = scale_changed = true;
         right_value = 0;
       }
+*/
     } else {
       if (cursor_pos_ == num_notes_) {
         long num_notes = num_notes_;
@@ -247,6 +245,7 @@ bool ScaleEditor<Owner>::move_cursor(long pos) {
 
 template <typename Owner>
 void ScaleEditor<Owner>::handle_topButton() {
+/*
   if (button_left.pressed()) {
     if (cursor_pos_ == num_notes_)
       reset_scale();
@@ -255,14 +254,17 @@ void ScaleEditor<Owner>::handle_topButton() {
   }
   else
     invert_mask();
+*/
 }
 
 template <typename Owner>
 void ScaleEditor<Owner>::handle_bottomButton() {
+/*
   if (button_left.pressed())
     change_note(cursor_pos_, -128, true);
   else
     invert_mask();
+*/
 }
 
 template <typename Owner>
