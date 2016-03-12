@@ -31,6 +31,8 @@ static constexpr int NUM_AVAILABLE_APPS = ARRAY_SIZE(available_apps);
 
 namespace OC {
 
+// Global settings are stored separately to actual app setings.
+// The theory is that they might not change as often.
 struct GlobalSettings {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','S',2>::value;
 
@@ -38,6 +40,11 @@ struct GlobalSettings {
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
 };
 
+// App settings are packed into a single blob of binary data; each app's chunk
+// gets its own header with id and the length of the entire chunk. This makes
+// this a bit more flexible during development.
+// Chunks are aligned on 2-byte boundaries for arbitrary reasons (thankfully M4
+// allows unaligned access...)
 struct AppChunkHeader {
   uint16_t id;
   uint16_t length;
@@ -85,6 +92,7 @@ void save_app_data() {
   for (size_t i = 0; i < NUM_AVAILABLE_APPS; ++i) {
     const auto &app = available_apps[(start_app + i) % NUM_AVAILABLE_APPS];
     size_t storage_size = app.storageSize() + sizeof(OC::AppChunkHeader);
+    if (storage_size & 1) ++storage_size; // Align chunks on 2-byte boundaries
     if (app.Save) {
       if (data + storage_size > data_end) {
         SERIAL_PRINTLN("*********************");
@@ -130,15 +138,17 @@ void restore_app_data() {
       data += chunk->length;
       continue;
     }
-    const size_t len = chunk->length - sizeof(OC::AppChunkHeader);
-    if (len != app->storageSize()) {
-      SERIAL_PRINTLN("* %s (%02x): header size %u != storage size %u, skipping...", app->name, chunk->id, len, app->storageSize());
+    size_t expected_length = app->storageSize() + sizeof(OC::AppChunkHeader);
+    if (expected_length & 0x1) ++expected_length;
+    if (chunk->length != expected_length) {
+      SERIAL_PRINTLN("* %s (%02x): chunk length %u != %u (storageSize=%u), skipping...", app->name, chunk->id, chunk->length, expected_length, app->storageSize());
       data += chunk->length;
       continue;
     }
 
     size_t used = 0;
     if (app->Restore) {
+      const size_t len = chunk->length - sizeof(OC::AppChunkHeader);
       used = app->Restore(chunk + 1);
       SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, used, len, chunk->length);
     }

@@ -221,7 +221,6 @@ protected:
     }
     if (nibbles & 1) ++nibbles;
     s += nibbles >> 1;
-    if (s & 1) ++s;
     return s;
   }
 };
