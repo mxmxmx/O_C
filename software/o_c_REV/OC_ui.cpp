@@ -71,6 +71,11 @@ void hello() {
     if (button_right.read_immediate())
       graphics.invertRect(xstart, y, 128, kUiLineH - 1);
 
+    y += kUiLineH;
+    graphics.setPrintPos(xstart, y + 1);
+    if (!digitalRead(but_top) && !digitalRead(but_bot))
+      graphics.print("    Using defaults!");
+
     weegfx::coord_t w;
     if (now - start < SPLASHSCREEN_DELAY_MS)
       w = 128;

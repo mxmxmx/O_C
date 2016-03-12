@@ -6,6 +6,7 @@
 namespace OC {
 
 void hello();
+void debug_menu();
 
 }; // namespace OC
 

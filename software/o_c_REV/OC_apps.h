@@ -47,7 +47,7 @@ extern App *current_app;
 
 namespace APPS {
 
-  void Init();
+  void Init(bool use_defaults);
   void Select();
 
   inline void ISR() __attribute__((always_inline));
@@ -57,10 +57,9 @@ namespace APPS {
   }
 
   App *find(uint16_t id);
+  int index_of(uint16_t id);
 };
 
 };
-
-extern bool SELECT_APP;
 
 #endif // OC_APP_H_

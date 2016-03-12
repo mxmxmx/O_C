@@ -52,7 +52,7 @@ PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
 weegfx::Graphics graphics;
 
 unsigned long LAST_REDRAW_TIME = 0;
-
+bool SELECT_APP = false;
 uint_fast8_t UI_MODE = UI::DISPLAY_MENU;
 uint_fast8_t MENU_REDRAW = true;
 
@@ -190,12 +190,14 @@ void setup() {
 
   // Display splash screen
   OC::hello();
-  
+  bool use_defaults = !digitalRead(but_top) && !digitalRead(but_bot);
   if (button_left.read_immediate())
     calibration_menu();
+  else if (button_right.read_immediate())
+    SELECT_APP = true;
 
   // initialize 
-  OC::APPS::Init();
+  OC::APPS::Init(use_defaults);
   OC::CORE::app_isr_enabled = true;
 }
 
@@ -207,8 +209,10 @@ void FASTRUN loop() {
 
   while (1) {
     // don't change current_app while it's running
-    if (SELECT_APP)
+    if (SELECT_APP) {
       OC::APPS::Select();
+      SELECT_APP = false;
+    }
 
     // Refresh display
     if (MENU_REDRAW) {

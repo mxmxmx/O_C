@@ -18,4 +18,6 @@ static constexpr uint16_t _ZERO = 0x3;                                     // "z
 static constexpr unsigned long SPLASHSCREEN_DELAY_MS = 500;
 static constexpr unsigned long SPLASHSCREEN_TIMEOUT_MS = 2048;
 
+static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
+
 #endif // OC_CONFIG_H_

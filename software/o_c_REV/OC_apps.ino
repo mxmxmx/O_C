@@ -27,18 +27,14 @@ OC::App available_apps[] = {
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
 };
 
-static constexpr int APP_COUNT = sizeof(available_apps) / sizeof(available_apps[0]);
+static constexpr int NUM_AVAILABLE_APPS = ARRAY_SIZE(available_apps);
 
 namespace OC {
 
-extern void debug_menu();
-
 struct GlobalSettings {
-  static constexpr uint32_t FOURCC = FOURCC<'O','C','S',1>::value;
+  static constexpr uint32_t FOURCC = FOURCC<'O','C','S',2>::value;
 
-  // TODO: Save app id instead of index?
-
-  uint8_t current_app_index;
+  uint16_t current_app_id;
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
 };
 
@@ -65,11 +61,9 @@ OC::GlobalSettingsStorage global_settings_storage;
 OC::AppData app_settings;
 OC::AppDataStorage app_data_storage;
 
-OC::App *OC::current_app = &available_apps[0];
-bool SELECT_APP = false;
-static const uint32_t SELECT_APP_TIMEOUT = 25000;
-static const int DEFAULT_APP_INDEX = 1;
-
+static constexpr int DEFAULT_APP_INDEX = 0;
+static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
+OC::App *OC::current_app = &available_apps[DEFAULT_APP_INDEX];
 
 void save_global_settings() {
   serial_printf("Saving global settings...\n");
@@ -87,9 +81,9 @@ void save_app_data() {
   char *data = app_settings.data;
   char *data_end = data + OC::AppData::kAppDataSize;
 
-  size_t start_app = random(APP_COUNT);
-  for (size_t i = 0; i < APP_COUNT; ++i) {
-    const auto &app = available_apps[(start_app + i) % APP_COUNT];
+  size_t start_app = random(NUM_AVAILABLE_APPS);
+  for (size_t i = 0; i < NUM_AVAILABLE_APPS; ++i) {
+    const auto &app = available_apps[(start_app + i) % NUM_AVAILABLE_APPS];
     size_t storage_size = app.storageSize() + sizeof(OC::AppChunkHeader);
     if (app.Save) {
       if (data + storage_size > data_end) {
@@ -162,15 +156,14 @@ void draw_app_menu(int selected) {
   int first = selected - 4;
   if (first < 0) first = 0;
 
-  uint8_t y = 0;
   const weegfx::coord_t xstart = 0;
-  for (int i = 0, current = first; i < 5 && current < APP_COUNT; ++i, ++current, y += kUiLineH) {
+  weegfx::coord_t y = (64 - (5 * kUiLineH)) / 2;
+  for (int i = 0, current = first; i < 5 && current < NUM_AVAILABLE_APPS; ++i, ++current, y += kUiLineH) {
     UI_SETUP_ITEM(current == selected);
-    if (global_settings.current_app_index == current)
-      graphics.print('>');
-    else
-      graphics.print(' ');
+    graphics.print(' ');
     graphics.print(available_apps[current].name);
+    if (global_settings.current_app_id == available_apps[current].id)
+       graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
     UI_END_ITEM();
   }
 
@@ -178,24 +171,36 @@ void draw_app_menu(int selected) {
 }
 
 void set_current_app(int index) {
-  global_settings.current_app_index = index;
   OC::current_app = &available_apps[index];
+  global_settings.current_app_id = OC::current_app->id;
 }
 
 OC::App *OC::APPS::find(uint16_t id) {
   for (auto &app : available_apps)
     if (app.id == id) return &app;
-
   return nullptr;
 }
 
-void OC::APPS::Init() {
+int OC::APPS::index_of(uint16_t id) {
+  int i = 0;
+  for (const auto &app : available_apps) {
+    if (app.id == id) return i;
+    ++i;
+  }
+  return i;
+}
+
+void OC::APPS::Init(bool use_defaults) {
 
   OC::Scales::Init();
   for (auto &app : available_apps)
     app.Init();
 
-  if (!digitalRead(but_top) && !digitalRead(but_bot)) {
+  global_settings.current_app_id = DEFAULT_APP_ID;
+
+  int current_app_index = DEFAULT_APP_INDEX;
+
+  if (use_defaults) {
     serial_printf("Skipping loading of global/app settings\n");
     global_settings_storage.Init();
     app_data_storage.Init();
@@ -205,13 +210,11 @@ void OC::APPS::Init() {
                   OC::GlobalSettingsStorage::PAGESIZE,
                   OC::GlobalSettingsStorage::PAGES);
 
-    if (!global_settings_storage.Load(global_settings) || global_settings.current_app_index >= APP_COUNT) {
-      serial_printf("Settings not loaded or invalid, using defaults... (index=%u, APP_COUNT=%u)\n",
-                    global_settings.current_app_index, APP_COUNT);
-      global_settings.current_app_index = DEFAULT_APP_INDEX;
+    if (!global_settings_storage.Load(global_settings)) {
+      serial_printf("Settings not loaded or invalid, using defaults...");
     } else {
-      serial_printf("Loaded settings from page_index %d, current_app_index is %d\n",
-                    global_settings_storage.page_index(),global_settings.current_app_index);
+      serial_printf("Loaded settings from page_index %d, current_app_id is %x\n",
+                    global_settings_storage.page_index(),global_settings.current_app_id);
       memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
     }
 
@@ -227,16 +230,18 @@ void OC::APPS::Init() {
     }
   }
 
-  set_current_app(global_settings.current_app_index);
+  int index = APPS::index_of(global_settings.current_app_id);
+  if (index < 0 || index >= NUM_AVAILABLE_APPS) {
+    serial_printf("App id %x not found, using default...", global_settings.current_app_id);
+    global_settings.current_app_id = DEFAULT_APP_INDEX;
+    index = DEFAULT_APP_INDEX;
+  }
+
+  set_current_app(current_app_index);
   OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
 
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
-
-  if (!digitalRead(butR))
-    SELECT_APP = true;
-  else
-    delay(500);
 }
 
 void OC::APPS::Select() {
@@ -245,7 +250,7 @@ void OC::APPS::Select() {
   int encoder_values[2] = { encoder[LEFT].pos(), encoder[RIGHT].pos() };
   OC::current_app->handleEvent(OC::APP_EVENT_SUSPEND);
 
-  int selected = global_settings.current_app_index;
+  int selected = APPS::index_of(global_settings.current_app_id);
   encoder[RIGHT].setPos(selected);
 
   draw_app_menu(selected);
@@ -254,12 +259,12 @@ void OC::APPS::Select() {
   uint32_t time = millis();
   bool redraw = true;
   bool save = false;
-  while (!(millis() - time > SELECT_APP_TIMEOUT)) {
+  while (!(millis() - time > APP_SELECTION_TIMEOUT_MS)) {
     if (_ENC) {
       _ENC = false;
       int value = encoder[RIGHT].pos();
       if (value < 0) value = 0;
-      else if (value >= APP_COUNT) value = APP_COUNT - 1;
+      else if (value >= NUM_AVAILABLE_APPS) value = NUM_AVAILABLE_APPS - 1;
       encoder[RIGHT].setPos(value);
       if (value != selected) {
         selected = value;
@@ -306,7 +311,6 @@ void OC::APPS::Select() {
   LAST_ENCODER_VALUE[LEFT] = encoder[LEFT].pos();
   LAST_ENCODER_VALUE[RIGHT] = encoder[RIGHT].pos();
 
-  SELECT_APP = false;
   MENU_REDRAW = 1;
   _UI_TIMESTAMP = millis();
 
