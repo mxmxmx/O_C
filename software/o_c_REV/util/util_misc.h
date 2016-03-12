@@ -17,4 +17,7 @@ struct TWOCC
 
 void serial_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
+#define SERIAL_PRINTLN(msg, ...) \
+	serial_printf(msg "\n", ##__VA_ARGS__)
+
 #endif // UTIL_MISC_H

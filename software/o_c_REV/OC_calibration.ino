@@ -39,23 +39,23 @@ void calibration_reset() {
 }
 
 void calibration_load() {
-  serial_printf("CalibrationStorage: PAGESIZE=%u, PAGES=%u\n",
-                OC::CalibrationStorage::PAGESIZE, OC::CalibrationStorage::PAGES);
+  SERIAL_PRINTLN("CalibrationStorage: PAGESIZE=%u, PAGES=%u, LENGTH=%u",
+                 OC::CalibrationStorage::PAGESIZE, OC::CalibrationStorage::PAGES, OC::CalibrationStorage::LENGTH);
 
   calibration_reset();
   if (!OC::calibration_storage.Load(OC::calibration_data)) {
     if (EEPROM.read(0x2) > 0) {
-      Serial.println("Calibration not loaded, non-zero data found, trying to import...");
+      SERIAL_PRINTLN("Calibration not loaded, non-zero data found, trying to import...");
       calibration_read_old();
       calibration_save();
     } else {
-      Serial.println("No calibration data found, using defaults");
+      SERIAL_PRINTLN("No calibration data found, using defaults");
     }
   }
 }
 
 void calibration_save() {
-  Serial.println("Saving calibration data... DISABLED!");
+  SERIAL_PRINTLN("Saving calibration data... DISABLED!");
 //  OC::calibration_storage.Save(OC::calibration_data);
 }
 
@@ -141,7 +141,7 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
 /* make DAC table from calibration values */ 
 
 void init_DACtable() {
-  Serial.println("Initializing semitones LUT...");
+  SERIAL_PRINTLN("Initializing semitones LUT...");
 
   float _diff, _offset, _semitone;
   _offset = OC::calibration_data.dac.octaves[OCTAVES-2];          // = 5v
@@ -181,7 +181,7 @@ void init_DACtable() {
 
 void calibration_menu() {
   // Calibration data should be loaded (or defaults) by now
-  Serial.println("Starting calibration...");
+  SERIAL_PRINTLN("Starting calibration...");
 
   CalibrationState calibration_state = {
     HELLO,
@@ -225,7 +225,7 @@ void calibration_menu() {
       switch (calibration_state.current_step->step) {
         case HELLO:
           if (calibration_state.encoder_data) {
-            Serial.println("Resetting to defaults...");
+            SERIAL_PRINTLN("Resetting to defaults...");
             calibration_reset();
           }
           break;
@@ -254,7 +254,7 @@ void calibration_menu() {
     }
   }
 
-  Serial.println("Calibration complete");
+  SERIAL_PRINTLN("Calibration complete");
   calibration_save();
 }
 
@@ -400,7 +400,7 @@ void calibration_read_old() {
    uint8_t byte0, byte1, adr;
    
    adr = 0; 
-   Serial.println("Loading original O&C calibration from eeprom:");
+   SERIAL_PRINTLN("Loading original O&C calibration from eeprom:");
    
    for (int i = 0; i < OCTAVES; i++) {  
   
@@ -409,7 +409,7 @@ void calibration_read_old() {
        byte1 = EEPROM.read(adr);
        adr++;
        OC::calibration_data.dac.octaves[i] = (uint16_t)(byte0 << 8) + byte1;
-       serial_printf(" OCTAVE %2d: %u\n", i, OC::calibration_data.dac.octaves[i]);
+       SERIAL_PRINTLN(" OCTAVE %2d: %u", i, OC::calibration_data.dac.octaves[i]);
    }
    
    uint16_t _offset[ADC_CHANNEL_LAST];
@@ -421,12 +421,12 @@ void calibration_read_old() {
        byte1 = EEPROM.read(adr);
        adr++;
        _offset[i] = (uint16_t)(byte0 << 8) + byte1;
-       serial_printf(" ADC %d: %u\n", i, _offset[i]);
+       SERIAL_PRINTLN(" ADC %d: %u", i, _offset[i]);
    }
    
    OC::calibration_data.adc.offset[ADC_CHANNEL_1] = _offset[0];
    OC::calibration_data.adc.offset[ADC_CHANNEL_2] = _offset[1];
    OC::calibration_data.adc.offset[ADC_CHANNEL_3] = _offset[2];
    OC::calibration_data.adc.offset[ADC_CHANNEL_4] = _offset[3];
-   Serial.println("......");
+   SERIAL_PRINTLN("......");
 }  
