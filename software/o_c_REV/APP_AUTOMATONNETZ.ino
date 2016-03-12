@@ -1,4 +1,5 @@
 #include "util/util_grid.h"
+#include "util/util_ringbuffer.h"
 #include "util/util_settings.h"
 #include "util/util_sync.h"
 #include "util_ui.h"
