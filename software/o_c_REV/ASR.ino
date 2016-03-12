@@ -340,11 +340,9 @@ size_t ASR_restore(const void *storage) {
 void ASR_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(asr_state.left_encoder_value);
-      if (ASR_SETTING_MASK != asr_state.selected_param)
-        encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
-      else
-        encoder[RIGHT].setPos(0);
+      encoder[LEFT].setPos(0);
+      encoder[RIGHT].setPos(0);
+      asr_state.left_encoder_value = asr.get_scale();
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -368,33 +366,29 @@ void ASR_isr() {
 bool ASR_encoders() {
 
   if (asr_state.scale_editor.active())
-      return asr_state.scale_editor.handle_encoders();
+    return asr_state.scale_editor.handle_encoders();
 
   bool changed = false;
   int value = encoder[LEFT].pos();
-
-  if (value != asr_state.left_encoder_value) {
-        if (value >= (int)OC::Scales::NUM_SCALES) value = OC::Scales::NUM_SCALES - 1;
-        else if (value < 0) value = 0;
-        asr_state.left_encoder_value = value;
-        encoder[LEFT].setPos(value);
-        changed = true;
+  if (value) {
+    encoder[LEFT].setPos(0);
+    value += asr_state.left_encoder_value;
+    CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
+    asr_state.left_encoder_value = value;
+    changed = true;
   }
   
   value = encoder[RIGHT].pos();
- 
-  if (ASR_SETTING_MASK != asr_state.selected_param) {
-     if (value != asr.get_value(asr_state.selected_param)) {
-        asr.apply_value(asr_state.selected_param, value);
-       changed = true;
-     }
-     encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
-  } else {
+  if (value) {
     encoder[RIGHT].setPos(0);
-    int scale = asr.get_scale();
-    if (value && OC::Scales::SCALE_NONE != scale) {
-      asr_state.scale_editor.Edit(&asr, scale);
-      changed = true;
+    if (ASR_SETTING_MASK != asr_state.selected_param) {
+      changed = asr.change_value(asr_state.selected_param, value);
+    } else {
+      int scale = asr.get_scale();
+      if (OC::Scales::SCALE_NONE != scale) {
+        asr_state.scale_editor.Edit(&asr, scale);
+        changed = true;
+      }
     }
   }
 
@@ -421,11 +415,6 @@ void ASR_rightButton() {
   ++asr_state.selected_param;
   if (asr_state.selected_param >= ASR_SETTING_LAST)
     asr_state.selected_param = ASR_SETTING_ROOT;
-  if (ASR_SETTING_MASK != asr_state.selected_param) {
-    encoder[RIGHT].setPos(asr.get_value(asr_state.selected_param));
-  } else {
-    encoder[RIGHT].setPos(0);
-  }
 }
 
 void ASR_leftButton() {
@@ -466,18 +455,17 @@ void ASR_menu() {
   
   UI_DRAW_TITLE(kStartX);
   
-  graphics.setPrintPos(2, 2);
+  graphics.setPrintPos(2, kUiTitleTextY);
   // print scale:
   int scale = asr_state.left_encoder_value;
-  if (asr.get_scale() == scale)
-    graphics.print("> ");
-  else
-    graphics.print("- ");
+  graphics.print(' ');
   graphics.print(OC::scale_names[scale]);
+  if (asr.get_scale() == scale)
+    graphics.drawBitmap8(2, kUiTitleTextY, 4, OC::bitmap_indicator_4x8);
 
   // print octave offset: 
   int oct = asr.get_octave();
-  graphics.setPrintPos(95, kUiTitleTextY+2);
+  graphics.setPrintPos(95, kUiTitleTextY);
   if (oct >= 0) 
     graphics.print("+");
   graphics.print(oct);
