@@ -225,7 +225,7 @@ const char* const envelope_types[ENV_TYPE_LAST] = {
 };
 
 const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
-  "Lin", "Exp", "Quart", "Sine", "Ledge","Cliff","BgDip","MeDip","LtDip","Wiggl"
+  "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "BgDip", "MeDip", "LtDip", "Wiggl"
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
@@ -261,7 +261,8 @@ public:
     }
 
     ui.left_encoder_value = 0;
-    ui.edit_mode = MODE_SELECT_CHANNEL;
+    ui.left_edit_mode = MODE_SELECT_CHANNEL;
+    ui.editing = false;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
     ui.selected_setting = ENV_SETTING_TRIGGER_INPUT;
@@ -282,14 +283,16 @@ public:
     envelopes_[3].Update<DAC_CHANNEL_D>(triggers, cvs);
   }
 
-  enum EditMode {
+  enum LeftEditMode {
     MODE_SELECT_CHANNEL,
     MODE_EDIT_SETTINGS
   };
 
   struct {
-    EditMode edit_mode;
+    LeftEditMode left_edit_mode;
     int left_encoder_value;
+    bool editing;
+
     int selected_channel;
     int selected_segment;
     int selected_setting;
@@ -406,6 +409,8 @@ void ENVGEN_menu_settings() {
     first_visible_param = ENV_SETTING_TRIGGER_INPUT;
 
   UI_BEGIN_ITEMS_LOOP(0, first_visible_param, ENV_SETTING_LAST, envgen.ui.selected_setting, 1);
+    if (__selected && envgen.ui.editing)
+      graphics.print(">");
     UI_DRAW_SETTING(EnvelopeGenerator::value_attr(current_item), env.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
 }
@@ -424,7 +429,7 @@ void ENVGEN_menu() {
     }
   }
 
-  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode)
+  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode)
     ENVGEN_menu_preview();
   else
     ENVGEN_menu_settings();
@@ -445,7 +450,7 @@ void ENVGEN_lowerButton() {
 
 void ENVGEN_rightButton() {
 
-  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode) {
+  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
     auto const &selected_env = envgen.selected();
     int segment = envgen.ui.selected_segment + 1;
     if (segment > selected_env.active_segments() - 1)
@@ -455,19 +460,16 @@ void ENVGEN_rightButton() {
       encoder[RIGHT].setPos(0);
     }
   } else {
-    if (envgen.ui.selected_setting < ENV_SETTING_LAST - 1)
-      ++envgen.ui.selected_setting;
-    else
-      envgen.ui.selected_setting = ENV_SETTING_TRIGGER_INPUT;
+    envgen.ui.editing = !envgen.ui.editing;
   }
 }
 
 void ENVGEN_leftButton() {
-  if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.edit_mode) {
+  if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.left_edit_mode) {
     envgen.selected().apply_value(ENV_SETTING_TYPE, envgen.ui.left_encoder_value);
-    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
+    envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
   } else {
-    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
+    envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
   }
   encoder[LEFT].setPos(0);
@@ -476,32 +478,36 @@ void ENVGEN_leftButton() {
 
 void ENVGEN_leftButtonLong() { }
 bool ENVGEN_encoders() {
-  bool changed = false;
   long left_value = encoder[LEFT].pos();
   long right_value = encoder[RIGHT].pos();
+  bool changed = left_value || right_value;
 
-  if (left_value) {
-    if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode) {
+  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
+    if (left_value) {
       left_value += envgen.ui.selected_channel;
       CONSTRAIN(left_value, 0, 3);
       envgen.ui.selected_channel = left_value;
-    } else {
+    }
+    if (right_value) {
+      auto &selected_env = envgen.selected();
+      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
+    }
+  } else {
+    if (left_value) {
       left_value += envgen.ui.left_encoder_value;
       CONSTRAIN(left_value, ENV_TYPE_FIRST, ENV_TYPE_LAST - 1);
       envgen.ui.left_encoder_value = left_value;
     }
-    right_value = 0;
-    changed = true;
-  }
-
-  if (right_value) {
-    auto &selected_env = envgen.selected();
-    if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.edit_mode) {
-      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
-    } else {
-      selected_env.change_value(envgen.ui.selected_setting, right_value);
+    if (right_value) {
+      if (envgen.ui.editing) {
+        auto &selected_env = envgen.selected();
+        selected_env.change_value(envgen.ui.selected_setting, right_value);
+      } else {
+        right_value += envgen.ui.selected_setting;
+        CONSTRAIN(right_value, ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
+        envgen.ui.selected_setting = right_value;
+      }
     }
-    changed = true;
   }
 
   encoder[LEFT].setPos(0);
