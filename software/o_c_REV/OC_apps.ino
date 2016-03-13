@@ -208,8 +208,6 @@ void OC::APPS::Init(bool use_defaults) {
 
   global_settings.current_app_id = DEFAULT_APP_ID;
 
-  int current_app_index = DEFAULT_APP_INDEX;
-
   if (use_defaults) {
     SERIAL_PRINTLN("Skipping loading of global/app settings");
     global_settings_storage.Init();
@@ -242,11 +240,11 @@ void OC::APPS::Init(bool use_defaults) {
     }
   }
 
-  int index = APPS::index_of(global_settings.current_app_id);
-  if (index < 0 || index >= NUM_AVAILABLE_APPS) {
+  int current_app_index = APPS::index_of(global_settings.current_app_id);
+  if (current_app_index < 0 || current_app_index >= NUM_AVAILABLE_APPS) {
     SERIAL_PRINTLN("App id %02x not found, using default...", global_settings.current_app_id);
     global_settings.current_app_id = DEFAULT_APP_INDEX;
-    index = DEFAULT_APP_INDEX;
+    current_app_index = DEFAULT_APP_INDEX;
   }
 
   set_current_app(current_app_index);
