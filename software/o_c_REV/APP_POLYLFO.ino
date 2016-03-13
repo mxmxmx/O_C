@@ -172,11 +172,7 @@ void POLYLFO_menu() {
 
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, POLYLFO_SETTING_LAST, poly_lfo_state.selected_param, 0)
-    if (__selected && poly_lfo_state.editing) {
-      graphics.print(' ');
-      graphics.drawBitmap8(1, y + 1, 6, OC::bitmap_edit_indicator_6x8);
-    }
-
+    UI_DRAW_EDITABLE(poly_lfo_state.editing);
     const settings::value_attr &attr = PolyLfo::value_attr(current_item);
     if (current_item != POLYLFO_SETTING_SHAPE) {
       UI_DRAW_SETTING(attr, poly_lfo.get_value(current_item), kUiWideMenuCol1X);
