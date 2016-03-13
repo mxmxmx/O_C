@@ -356,7 +356,7 @@ const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
 };
 
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
-  "CV1", "CV2", "CV3", "CV4", "TURING", "LOGISTIC"
+  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc"
 };
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {

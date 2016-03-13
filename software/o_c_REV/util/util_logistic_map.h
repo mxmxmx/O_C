@@ -46,7 +46,10 @@ public:
   }
 
   void set_seed(uint8_t seed) {
-    seed_ = seed << 16 ; // seed range 1 to 255 = 1/256 to 1
+    if (seed_ != seed << 16) {
+      seed_ = seed << 16 ; // seed range 1 to 255 = 1/256 to 1
+      x_ = seed_;
+    }
   }
 
   void set_r(uint8_t r) {
