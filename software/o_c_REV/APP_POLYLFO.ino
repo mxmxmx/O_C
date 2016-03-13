@@ -88,6 +88,7 @@ PolyLfo poly_lfo;
 struct {
   int selected_param;
   POLYLFO_SETTINGS left_edit_mode;
+  bool editing;
 } poly_lfo_state;
 
 void FASTRUN POLYLFO_isr() {
@@ -129,6 +130,7 @@ void FASTRUN POLYLFO_isr() {
 void POLYLFO_init() {
   poly_lfo_state.selected_param = POLYLFO_SETTING_SHAPE;
   poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+  poly_lfo_state.editing = false;
   poly_lfo.Init();
 }
 
@@ -166,12 +168,15 @@ void POLYLFO_menu() {
   graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
   graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
 
-  int first_visible_param = POLYLFO_SETTING_SHAPE; /*poly_lfo_state.selected_param - 1;
-  if (first_visible_param < POLYLFO_SETTING_SHAPE)
-    first_visible_param = POLYLFO_SETTING_SHAPE;*/
+  int first_visible_param = POLYLFO_SETTING_SHAPE;
 
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, POLYLFO_SETTING_LAST, poly_lfo_state.selected_param, 0)
+    if (__selected && poly_lfo_state.editing) {
+      graphics.print(' ');
+      graphics.drawBitmap8(1, y + 1, 6, OC::bitmap_edit_indicator_6x8);
+    }
+
     const settings::value_attr &attr = PolyLfo::value_attr(current_item);
     if (current_item != POLYLFO_SETTING_SHAPE) {
       UI_DRAW_SETTING(attr, poly_lfo.get_value(current_item), kUiWideMenuCol1X);
@@ -217,9 +222,7 @@ void POLYLFO_lowerButton() {
 }
 
 void POLYLFO_rightButton() {
-  ++poly_lfo_state.selected_param;
-  if (poly_lfo_state.selected_param >= POLYLFO_SETTING_LAST)
-    poly_lfo_state.selected_param = POLYLFO_SETTING_SHAPE;
+  poly_lfo_state.editing = !poly_lfo_state.editing;
 }
 
 void POLYLFO_leftButton() {
@@ -244,9 +247,15 @@ bool POLYLFO_encoders() {
 
   value = encoder[RIGHT].pos();
   encoder[RIGHT].setPos(0);
-  if (value){
-    if (poly_lfo.change_value(poly_lfo_state.selected_param, value))
-      changed = true;
+  if (value) {
+    if (poly_lfo_state.editing) {
+      poly_lfo.change_value(poly_lfo_state.selected_param, value);
+    } else {
+      value += poly_lfo_state.selected_param;
+      CONSTRAIN(value, POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
+      poly_lfo_state.selected_param = value;
+    }
+    changed = true;
   }
 
   return changed;
