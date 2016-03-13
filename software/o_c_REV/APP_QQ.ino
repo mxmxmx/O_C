@@ -111,8 +111,10 @@ public:
     return values_[CHANNEL_SETTING_TURING_RANGE];
   }
 
-  void Init() {
+  void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
+    apply_value(CHANNEL_SETTING_SOURCE, source);
+    apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
 
     force_update_ = false;
     last_scale_ = -1;
@@ -296,8 +298,8 @@ QuantizerChannel quantizer_channels[4];
 
 void QQ_init() {
   for (size_t i = 0; i < 4; ++i) {
-    quantizer_channels[i].Init();
-    quantizer_channels[i].apply_value(CHANNEL_SETTING_SOURCE, (int)i); // override
+    quantizer_channels[i].Init(static_cast<ChannelSource>(CHANNEL_SOURCE_CV1 + i),
+                               static_cast<ChannelTriggerSource>(CHANNEL_TRIGGER_TR1 + i));
   }
 
   qq_state.selected_channel = 0;
