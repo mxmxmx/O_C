@@ -371,9 +371,9 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, -999, 999, "fine", NULL, settings::STORAGE_TYPE_I16 },
   { 16, 0, 32, " LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " LFSR P", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 0, 120, " LFSR range", NULL, settings::STORAGE_TYPE_U8 }
+  { 24, 1, 120, " LFSR range", NULL, settings::STORAGE_TYPE_U8 }
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 0, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
 };
 
