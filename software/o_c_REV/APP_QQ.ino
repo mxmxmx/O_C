@@ -406,7 +406,7 @@ void QQ_menu() {
   UI_START_MENU(kStartX);
 
   int first_visible_param = qq_state.selected_param - 2;
-  int last_visible_param = channel.visible_params() - 1;
+  int last_visible_param = channel.visible_params();
   if (first_visible_param < CHANNEL_SETTING_SCALE)
     first_visible_param = CHANNEL_SETTING_SCALE;
   else if (first_visible_param + kUiVisibleItems > last_visible_param)
@@ -475,7 +475,7 @@ bool QQ_encoders() {
       }
     } else {
       int selected_param = qq_state.selected_param + value;
-      CONSTRAIN(selected_param, 0, selected.visible_params() - 2);
+      CONSTRAIN(selected_param, 0, selected.visible_params() - 1);
       qq_state.selected_param = selected_param;
     }
   }
