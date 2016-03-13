@@ -74,6 +74,13 @@ static const uint8_t kUiWideMenuCol1X = 96;
     UI_END_ITEM(); \
   } while (0)
 
+#define UI_DRAW_EDITABLE(b) \
+  do { \
+     if (__selected && (b)) { \
+      graphics.print(' '); \
+      graphics.drawBitmap8(1, y + 1, 6, OC::bitmap_edit_indicator_6x8); \
+    } \
+ } while (0)
 
 #define GRAPHICS_BEGIN_FRAME(wait) \
 do { \

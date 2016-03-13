@@ -141,6 +141,7 @@ LorenzGenerator lorenz_generator;
 struct {
   int selected_param;
   bool selected_generator;
+  bool editing;
 } lorenz_generator_state;
 
 void FASTRUN LORENZ_isr() {
@@ -204,6 +205,8 @@ void FASTRUN LORENZ_isr() {
 
 void LORENZ_init() {
   lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
+  lorenz_generator_state.selected_generator = 0; 
+  lorenz_generator_state.editing = false;
   lorenz_generator.Init();
 }
 
@@ -257,6 +260,7 @@ void LORENZ_menu() {
 
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, lorenz_generator_state.selected_param, 0)
+    UI_DRAW_EDITABLE(lorenz_generator_state.editing);
     const settings::value_attr &attr = LorenzGenerator::value_attr(current_item);
     UI_DRAW_SETTING(attr, lorenz_generator.get_value(current_item), kUiWideMenuCol1X-12);
   UI_END_ITEMS_LOOP();
@@ -264,17 +268,9 @@ void LORENZ_menu() {
   GRAPHICS_END_FRAME();
 }
 
-// static const size_t kLargePreviewBufferSize = 64;
-// uint16_t large_preview_buffer[kLargePreviewBufferSize];
-
-// weegfx::coord_t scanner = 0;
-// unsigned scanner_millis = 0;
-// static const unsigned SCANNER_RATE = 200;
-
 void LORENZ_screensaver() {
   GRAPHICS_BEGIN_FRAME(false);
 
-  // lorenz_scope_render();
   scope_render();
 
   GRAPHICS_END_FRAME();
@@ -283,12 +279,8 @@ void LORENZ_screensaver() {
 void LORENZ_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      if (lorenz_generator_state.selected_generator) {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));    
-      } else {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
-      }
-      encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
+      encoder[LEFT].setPos(0);
+      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -299,39 +291,25 @@ void LORENZ_handleEvent(OC::AppEvent event) {
 void LORENZ_topButton() {
   if (lorenz_generator_state.selected_generator) {
     lorenz_generator.change_value(LORENZ_SETTING_FREQ2, 32);
-    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
   } else {
     lorenz_generator.change_value(LORENZ_SETTING_FREQ1, 32);
-    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
   }
 }
 
 void LORENZ_lowerButton() {
   if (lorenz_generator_state.selected_generator) {
     lorenz_generator.change_value(LORENZ_SETTING_FREQ2, -32);
-    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
   } else {
     lorenz_generator.change_value(LORENZ_SETTING_FREQ1, -32);
-    encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
-    
   }
 }
 
 void LORENZ_rightButton() {
-  ++lorenz_generator_state.selected_param;
-  if (lorenz_generator_state.selected_param >= LORENZ_SETTING_LAST)
-    lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
-  encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
+  lorenz_generator_state.editing = !lorenz_generator_state.editing;
 }
 
 void LORENZ_leftButton() {
-  lorenz_generator_state.selected_generator = !lorenz_generator_state.selected_generator;
-  if (lorenz_generator_state.selected_generator) {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
-  } else {
-        encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
-  }
-
+  lorenz_generator_state.selected_generator = 1 - lorenz_generator_state.selected_generator;
 }
 
 void LORENZ_leftButtonLong() {
@@ -340,24 +318,26 @@ void LORENZ_leftButtonLong() {
 bool LORENZ_encoders() {
   bool changed = false;
   int value = encoder[LEFT].pos();
-  if (lorenz_generator_state.selected_generator) {
-    if (value != lorenz_generator.get_value(LORENZ_SETTING_FREQ2)) {
-      lorenz_generator.apply_value(LORENZ_SETTING_FREQ2, value);
-      encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ2));
-      changed = true;
+  encoder[LEFT].setPos(0);
+  if (value) {
+    if (lorenz_generator_state.selected_generator) {
+      lorenz_generator.change_value(LORENZ_SETTING_FREQ2, value);
+    } else {
+      lorenz_generator.change_value(LORENZ_SETTING_FREQ1, value);
     }
-  } else {
-    if (value != lorenz_generator.get_value(LORENZ_SETTING_FREQ1)) {
-      lorenz_generator.apply_value(LORENZ_SETTING_FREQ1, value);
-      encoder[LEFT].setPos(lorenz_generator.get_value(LORENZ_SETTING_FREQ1));
-      changed = true;
-    }
+    changed = true;
   }
 
   value = encoder[RIGHT].pos();
-  if (value != lorenz_generator.get_value(lorenz_generator_state.selected_param)) {
-    lorenz_generator.apply_value(lorenz_generator_state.selected_param, value);
-    encoder[RIGHT].setPos(lorenz_generator.get_value(lorenz_generator_state.selected_param));
+  encoder[RIGHT].setPos(0);
+  if (value) {
+    if (lorenz_generator_state.editing) {
+      lorenz_generator.change_value(lorenz_generator_state.selected_param, value);
+    } else {
+      value += lorenz_generator_state.selected_param;
+      CONSTRAIN(value, LORENZ_SETTING_RHO1, LORENZ_SETTING_LAST - 1);
+      lorenz_generator_state.selected_param = value;
+    }
     changed = true;
   }
 
@@ -370,7 +350,7 @@ void LORENZ_debug() {
   graphics.print(" ");
   int32_t value = SCALE8_16(lorenz_generator.get_freq1());
   graphics.print(value);
-  graphics.setPrintPos(12, 12);
+  graphics.setPrintPos(2, 22);
   graphics.print(lorenz_generator.cv_freq2.value());
   graphics.print(" ");
   value = SCALE8_16(lorenz_generator.get_freq2());
@@ -383,5 +363,3 @@ void LORENZ_debug() {
 //  value = USAT16(value);
 //  graphics.print(value);
 }
-
-
