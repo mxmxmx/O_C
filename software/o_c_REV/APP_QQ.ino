@@ -6,6 +6,7 @@
 #include "OC_strings.h"
 #include "util/util_settings.h"
 #include "util/util_turing.h"
+#include "util/util_logistic_map.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "OC_scales.h"
@@ -28,6 +29,9 @@ enum ChannelSetting {
   CHANNEL_SETTING_TURING_LENGTH,
   CHANNEL_SETTING_TURING_PROB,
   CHANNEL_SETTING_TURING_RANGE,
+  CHANNEL_SETTING_LOGISTIC_MAP_R,
+  CHANNEL_SETTING_LOGISTIC_MAP_RANGE,
+  CHANNEL_SETTING_LOGISTIC_MAP_SEED,
   CHANNEL_SETTING_LAST
 };
 
@@ -46,6 +50,7 @@ enum ChannelSource {
   CHANNEL_SOURCE_CV3,
   CHANNEL_SOURCE_CV4,
   CHANNEL_SOURCE_TURING,
+  CHANNEL_SOURCE_LOGISTIC_MAP,
   CHANNEL_SOURCE_LAST
 };
 
@@ -111,6 +116,18 @@ public:
     return values_[CHANNEL_SETTING_TURING_RANGE];
   }
 
+  uint8_t get_logistic_map_r() const {
+    return values_[CHANNEL_SETTING_LOGISTIC_MAP_R];
+  }
+
+  uint8_t get_logistic_map_range() const {
+    return values_[CHANNEL_SETTING_LOGISTIC_MAP_RANGE];
+  }
+
+  uint8_t get_logistic_map_seed() const {
+    return values_[CHANNEL_SETTING_LOGISTIC_MAP_SEED];
+  }
+
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
     apply_value(CHANNEL_SETTING_SOURCE, source);
@@ -123,6 +140,7 @@ public:
     clock_ = 0;
 
     turing_machine_.Init();
+    logistic_map_.Init();
     quantizer_.Init();
     update_scale(true);
     trigger_display_.Init();
@@ -157,49 +175,83 @@ public:
 
     int32_t sample = last_output_;
 
-    if (CHANNEL_SOURCE_TURING != source) {
-      if (update) {
-        int32_t transpose = get_transpose();
-        int32_t pitch = OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
-        if (index != source) {
-          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
+    switch (source) {
+      case CHANNEL_SOURCE_TURING:
+        {
+          uint8_t turing_length = get_turing_length();
+          turing_machine_.set_length(turing_length);
+          int32_t probability = get_turing_prob() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
+          CONSTRAIN(probability, 0, 255);
+          turing_machine_.set_probability(probability);  
+          if (triggered) {
+            uint32_t shift_register = turing_machine_.Clock();
+            int32_t pitch;
+            if (quantizer_.enabled()) {
+              uint8_t range = get_turing_range();
+    
+              // To use full range of bits is something like:
+              // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
+              // Since our range is limited anyway, just grab the last byte
+              uint32_t scaled = ((shift_register & 0xff) * range) >> 8;
+    
+              // TODO This is just a bodge to get things working;
+              // I think we can convert the quantizer codebook to work in a better range
+              // The same things happen in all apps that use it, so can be simplified/unified.
+              pitch = quantizer_.Lookup(64 + range / 2 - scaled);
+              pitch += (get_root() + 60) << 7;
+            } else {
+              pitch = shift_register;
+            }  
+            //pitch += 3 * 12 << 7; // offset for LUT range
+            sample = DAC::pitch_to_dac(pitch, get_octave());
+          }
         }
-        CONSTRAIN(transpose, -12, 12);
-
-        pitch += 3 * 12 << 7; // offset for LUT range
-        sample = DAC::pitch_to_dac(quantizer_.Process(pitch, (get_root() + 60) << 7, transpose), get_octave());
-      }
-    } else {
-      uint8_t turing_length = get_turing_length();
-      turing_machine_.set_length(turing_length);
-      int32_t probability = get_turing_prob() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
-      CONSTRAIN(probability, 0, 255);
-      turing_machine_.set_probability(probability);
- 
-      if (triggered) {
-        uint32_t shift_register = turing_machine_.Clock();
-        int32_t pitch;
-        if (quantizer_.enabled()) {
-          uint8_t range = get_turing_range();
-
-          // To use full range of bits is something like:
-          // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
-          // Since our range is limited anyway, just grab the last byte
-          uint32_t scaled = ((shift_register & 0xff) * range) >> 8;
-
-          // TODO This is just a bodge to get things working;
-          // I think we can convert the quantizer codebook to work in a better range
-          // The same things happen in all apps that use it, so can be simplified/unified.
-          pitch = quantizer_.Lookup(64 + range / 2 - scaled);
-          pitch += (get_root() + 60) << 7;
-        } else {
-          pitch = shift_register;
+        break;
+      case CHANNEL_SOURCE_LOGISTIC_MAP:
+        {
+          uint8_t logistic_map_seed = get_logistic_map_seed();
+          logistic_map_.set_seed(logistic_map_seed);
+          uint8_t logistic_map_r = get_logistic_map_r() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
+          CONSTRAIN(logistic_map_r, 0, 255);
+          logistic_map_.set_r(logistic_map_r);  
+          if (triggered) {
+            int64_t logistic_map_x = logistic_map_.Clock();
+            int32_t pitch;
+            if (quantizer_.enabled()) {
+              uint8_t range = get_logistic_map_range();
+    
+              // To use full range of bits is something like:
+              // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
+              // Since our range is limited anyway, just grab the last byte
+              uint32_t logistic_scaled = (logistic_map_x * range) >> 24;
+    
+              // TODO This is just a bodge to get things working;
+              // I think we can convert the quantizer codebook to work in a better range
+              // The same things happen in all apps that use it, so can be simplified/unified.
+              pitch = quantizer_.Lookup(64 + range / 2 - logistic_scaled);
+              pitch += (get_root() + 60) << 7;
+            } else {
+              pitch = logistic_map_x >> 8;;
+            }  
+            //pitch += 3 * 12 << 7; // offset for LUT range
+            sample = DAC::pitch_to_dac(pitch, get_octave());
+          }
         }
-
-        //pitch += 3 * 12 << 7; // offset for LUT range
-        sample = DAC::pitch_to_dac(pitch, get_octave());
-      }
-    }
+        break;
+      default:
+        {
+          if (update) {
+            int32_t transpose = get_transpose();
+            int32_t pitch = OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
+            if (index != source) {
+              transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
+            }
+            CONSTRAIN(transpose, -12, 12); 
+            pitch += 3 * 12 << 7; // offset for LUT range
+            sample = DAC::pitch_to_dac(quantizer_.Process(pitch, (get_root() + 60) << 7, transpose), get_octave());
+          }
+        }
+    } // end switch  
 
     bool changed = last_output_ != sample;
     if (changed) {
@@ -278,6 +330,7 @@ private:
   uint8_t clock_;
 
   util::TuringShiftRegister turing_machine_;
+  util::LogisticMap logistic_map_;
   braids::Quantizer quantizer_;
   OC::DigitalInputDisplay trigger_display_;
 
@@ -303,7 +356,7 @@ const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
 };
 
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
-  "CV1", "CV2", "CV3", "CV4", "TURING"
+  "CV1", "CV2", "CV3", "CV4", "TURING", "LOGISTIC"
 };
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
@@ -319,6 +372,9 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 16, 0, 32, " LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " LFSR P", NULL, settings::STORAGE_TYPE_U8 },
   { 24, 0, 120, " LFSR range", NULL, settings::STORAGE_TYPE_U8 }
+  { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 0, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
