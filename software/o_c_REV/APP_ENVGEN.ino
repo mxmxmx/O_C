@@ -409,8 +409,10 @@ void ENVGEN_menu_settings() {
     first_visible_param = ENV_SETTING_TRIGGER_INPUT;
 
   UI_BEGIN_ITEMS_LOOP(0, first_visible_param, ENV_SETTING_LAST, envgen.ui.selected_setting, 1);
-    if (__selected && envgen.ui.editing)
-      graphics.print(">");
+    if (__selected && envgen.ui.editing) {
+      graphics.print(' ');
+      graphics.drawBitmap8(1, y + 1, 6, OC::bitmap_edit_indicator_6x8);
+    }
     UI_DRAW_SETTING(EnvelopeGenerator::value_attr(current_item), env.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
 }
