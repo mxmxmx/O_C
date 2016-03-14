@@ -154,10 +154,10 @@ void setup() {
   delay(10);
 
   // pins 
-  pinMode(butL, INPUT);
-  pinMode(butR, INPUT);
-  pinMode(but_top, INPUT);
-  pinMode(but_bot, INPUT);
+  pinMode(butL, INPUT_PULLUP);
+  pinMode(butR, INPUT_PULLUP);
+  pinMode(but_top, INPUT_PULLUP);
+  pinMode(but_bot, INPUT_PULLUP);
   buttons_init();
 
   DebugPins::Init();

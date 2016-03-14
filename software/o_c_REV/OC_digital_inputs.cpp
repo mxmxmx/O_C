@@ -36,7 +36,7 @@ void OC::DigitalInputs::Init() {
   };
 
   for (auto pin : pins) {
-    pinMode(pin.pin, INPUT);
+    pinMode(pin.pin, INPUT_PULLUP);
     attachInterrupt(pin.pin, pin.isr_fn, FALLING);
   }
 

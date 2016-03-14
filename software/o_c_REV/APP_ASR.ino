@@ -221,12 +221,10 @@ public:
 
      bool forced_update = force_update_;
      force_update_ = false;
+     update_scale(forced_update);
 
-     bool clocked = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
-     clock_display_.Update(1, clocked);
-
-     bool update = forced_update || clocked;
-     update |= update_scale(forced_update);
+     bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
+     clock_display_.Update(1, update);
 
       if (update) {        
    
