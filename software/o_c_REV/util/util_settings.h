@@ -160,7 +160,7 @@ protected:
   }
 
   uint8_t *write_nibble(uint8_t *dest, size_t index) const {
-    nibbles_ = (nibbles_ << 4) & (values_[index] & 0x0f);
+    nibbles_ = (nibbles_ << 4) | (values_[index] & 0x0f);
     if (nibbles_ & 0xf0000000) {
       dest = flush_nibbles(dest);
     } else {
@@ -195,6 +195,7 @@ protected:
 
   template <typename storage_type>
   const uint8_t *read_setting(const uint8_t *src, size_t index) {
+    nibbles_ = 0;
     const storage_type *storage = reinterpret_cast<const storage_type*>(src);
     apply_value(index, *storage++);
     return reinterpret_cast<const uint8_t *>(storage);
