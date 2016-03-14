@@ -56,18 +56,18 @@ void hello() {
 
     UI_DRAW_TITLE(0);
     graphics.print("Ornaments & Crimes");
-
+ 
     UI_START_MENU(0);
     y += kUiLineH / 2;
 
     graphics.setPrintPos(xstart, y + 1);
-    graphics.print("[L] Calibrate");
+    graphics.print("Depress L: Calibrate");
     if (button_left.read_immediate())
       graphics.invertRect(xstart, y, 128, kUiLineH - 1);
 
     y += kUiLineH;
     graphics.setPrintPos(xstart, y + 1);
-    graphics.print("[R] Select app");
+    graphics.print("Depress R: Select app");
     if (button_right.read_immediate())
       graphics.invertRect(xstart, y, 128, kUiLineH - 1);
 
