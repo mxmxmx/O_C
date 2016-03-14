@@ -43,12 +43,12 @@ public:
 
     if (scale < OC::Scales::SCALE_USER_LAST) {
       scale_ = mutable_scale_ = &OC::user_scales[scale];
-      scale_name_ = OC::scale_names[scale];
+      scale_name_ = OC::scale_names_short[scale];
       Serial.print("Editing mutable scale "); Serial.println(scale_name_);
     } else {
       scale_ = &OC::Scales::GetScale(scale);
       mutable_scale_ = nullptr;
-      scale_name_ = OC::scale_names[scale];
+      scale_name_ = OC::scale_names_short[scale];
       Serial.print("Editing const scale "); Serial.println(scale_name_);
     }
     owner_ = owner;

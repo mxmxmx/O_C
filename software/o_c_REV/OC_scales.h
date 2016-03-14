@@ -31,6 +31,7 @@ public:
 };
 
 extern const char *const scale_names[];
+extern const char *const scale_names_short[];
 extern Scale user_scales[OC::Scales::SCALE_USER_LAST];
 extern Scale dummy_scale;
 

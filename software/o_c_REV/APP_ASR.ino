@@ -299,7 +299,7 @@ const char* const mult[20] = {
 };
 
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
-  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
   { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
