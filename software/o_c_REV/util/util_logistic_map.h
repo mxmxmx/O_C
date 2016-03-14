@@ -35,7 +35,7 @@ public:
   static const int64_t kDefaultR = 3.6 * kONE;
 
   void Init() {
-    x_ = kDefaultSeed;
+    x_ = seed_ = kDefaultSeed;
     r_ = kDefaultR;
   }
 
@@ -65,4 +65,4 @@ private:
 
 }; // namespace util
 
-#endif // UTIL_TURING_H_
+#endif // UTIL_LOGISTIC_MAP_H_

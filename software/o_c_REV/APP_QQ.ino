@@ -176,10 +176,8 @@ public:
     int32_t sample = last_output_;
 
     switch (source) {
-      case CHANNEL_SOURCE_TURING:
-        {
-          uint8_t turing_length = get_turing_length();
-          turing_machine_.set_length(turing_length);
+      case CHANNEL_SOURCE_TURING: {
+          turing_machine_.set_length(get_turing_length());
           int32_t probability = get_turing_prob() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
           CONSTRAIN(probability, 0, 255);
           turing_machine_.set_probability(probability);  
@@ -207,11 +205,9 @@ public:
           }
         }
         break;
-      case CHANNEL_SOURCE_LOGISTIC_MAP:
-        {
-          uint8_t logistic_map_seed = get_logistic_map_seed();
-          logistic_map_.set_seed(logistic_map_seed);
-          uint8_t logistic_map_r = get_logistic_map_r() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
+      case CHANNEL_SOURCE_LOGISTIC_MAP: {
+          logistic_map_.set_seed(get_logistic_map_seed());
+          int32_t logistic_map_r = get_logistic_map_r() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
           CONSTRAIN(logistic_map_r, 0, 255);
           logistic_map_.set_r(logistic_map_r);  
           if (triggered) {
@@ -220,14 +216,9 @@ public:
             if (quantizer_.enabled()) {
               uint8_t range = get_logistic_map_range();
     
-              // To use full range of bits is something like:
-              // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
-              // Since our range is limited anyway, just grab the last byte
               uint32_t logistic_scaled = (logistic_map_x * range) >> 24;
-    
-              // TODO This is just a bodge to get things working;
-              // I think we can convert the quantizer codebook to work in a better range
-              // The same things happen in all apps that use it, so can be simplified/unified.
+
+              // See above, may need tweaking    
               pitch = quantizer_.Lookup(64 + range / 2 - logistic_scaled);
               pitch += (get_root() + 60) << 7;
             } else {
@@ -238,8 +229,7 @@ public:
           }
         }
         break;
-      default:
-        {
+      default: {
           if (update) {
             int32_t transpose = get_transpose();
             int32_t pitch = OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
@@ -308,6 +298,10 @@ public:
         *settings++ = CHANNEL_SETTING_TURING_RANGE;
         *settings++ = CHANNEL_SETTING_TURING_PROB;
       break;
+      case CHANNEL_SOURCE_LOGISTIC_MAP:
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R;
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE;
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_SEED;
       default:
       break;
     }
@@ -371,10 +365,10 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, -999, 999, "fine", NULL, settings::STORAGE_TYPE_I16 },
   { 16, 0, 32, " LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " LFSR P", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, " LFSR range", NULL, settings::STORAGE_TYPE_U8 }
-  { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
+  { 24, 1, 120, " LFSR range", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, " Logistic r", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 1, 120, " Logistic range", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, " Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
