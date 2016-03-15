@@ -289,8 +289,10 @@ public:
   void update_enabled_settings() {
     ChannelSetting *settings = enabled_settings_;
     *settings++ = CHANNEL_SETTING_SCALE;
-    *settings++ = CHANNEL_SETTING_ROOT;
-    *settings++ = CHANNEL_SETTING_MASK;
+    if (OC::Scales::SCALE_NONE != get_scale()) {
+      *settings++ = CHANNEL_SETTING_ROOT;
+      *settings++ = CHANNEL_SETTING_MASK;
+    }
     *settings++ = CHANNEL_SETTING_SOURCE;
     switch (get_source()) {
       case CHANNEL_SOURCE_TURING:
@@ -309,8 +311,8 @@ public:
     if (CHANNEL_TRIGGER_CONTINUOUS != get_trigger_source())
       *settings++ = CHANNEL_SETTING_CLKDIV;
 
-    *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_OCTAVE;
+    *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
 
     num_enabled_settings_ = settings - enabled_settings_;
@@ -572,6 +574,7 @@ bool QQ_encoders() {
           changed = true;
         }
         switch (setting) {
+          case CHANNEL_SETTING_SCALE:
           case CHANNEL_SETTING_TRIGGER:
           case CHANNEL_SETTING_SOURCE:
             selected.update_enabled_settings();
