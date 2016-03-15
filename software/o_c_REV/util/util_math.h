@@ -30,6 +30,22 @@ inline uint32_t USAT16(int32_t value) {
   return result;
 }
 
+static inline uint32_t multiply_u32xu32_rshift24(uint32_t a, uint32_t b) __attribute__((always_inline));
+static inline uint32_t multiply_u32xu32_rshift24(uint32_t a, uint32_t b)
+{
+  register uint32_t lo, hi;
+  asm volatile("umull %0, %1, %2, %3" : "=r" (lo), "=r" (hi) : "r" (a), "r" (b));
+  return (lo >> 24) | (hi << 8);
+}
+
+static inline uint32_t multiply_u32xu32_rshift(uint32_t a, uint32_t b, uint32_t shift) __attribute__((always_inline));
+static inline uint32_t multiply_u32xu32_rshift(uint32_t a, uint32_t b, uint32_t shift)
+{
+  register uint32_t lo, hi;
+  asm volatile("umull %0, %1, %2, %3" : "=r" (lo), "=r" (hi) : "r" (a), "r" (b));
+  return (lo >> shift) | (hi << (32 - shift));
+}
+
 template <typename T, T smoothing>
 struct SmoothedValue {
   SmoothedValue() : value_(0) { }
