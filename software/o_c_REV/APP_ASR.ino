@@ -311,6 +311,7 @@ struct ASRState {
  
   int left_encoder_value;
   int selected_param;
+  bool editing;
 
   OC::ScaleEditor<ASR> scale_editor;
 };
@@ -324,6 +325,7 @@ void ASR_init() {
   asr.init();
   asr_state.left_encoder_value  = 0;
   asr_state.selected_param = ASR_SETTING_ROOT;
+  asr_state.editing = false;
   asr_state.scale_editor.Init();
 }
 
@@ -379,14 +381,14 @@ bool ASR_encoders() {
   value = encoder[RIGHT].pos();
   if (value) {
     encoder[RIGHT].setPos(0);
-    if (ASR_SETTING_MASK != asr_state.selected_param) {
-      changed = asr.change_value(asr_state.selected_param, value);
-    } else {
-      int scale = asr.get_scale();
-      if (OC::Scales::SCALE_NONE != scale) {
-        asr_state.scale_editor.Edit(&asr, scale);
-        changed = true;
+    if (asr_state.editing) {
+      if (ASR_SETTING_MASK != asr_state.selected_param) {
+        changed = asr.change_value(asr_state.selected_param, value);
       }
+    } else {
+      int selected_param = value + asr_state.selected_param;
+      CONSTRAIN(selected_param, ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
+      asr_state.selected_param = selected_param;
     }
   }
 
@@ -409,10 +411,14 @@ void ASR_rightButton() {
     asr_state.scale_editor.handle_rightButton();
     return;
   }
-  
-  ++asr_state.selected_param;
-  if (asr_state.selected_param >= ASR_SETTING_LAST)
-    asr_state.selected_param = ASR_SETTING_ROOT;
+
+  if (asr_state.selected_param != ASR_SETTING_MASK) {
+    asr_state.editing = !asr_state.editing;
+  } else {
+    int scale = asr.get_scale();
+    if (OC::Scales::SCALE_NONE != scale)
+      asr_state.scale_editor.Edit(&asr, scale);
+  }
 }
 
 void ASR_leftButton() {
@@ -477,6 +483,7 @@ void ASR_menu() {
   int first_visible_param = ASR_SETTING_ROOT;
   
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, ASR_SETTING_LAST, asr_state.selected_param, 0)
+    UI_DRAW_EDITABLE(asr_state.editing);
     const settings::value_attr &attr = ASR::value_attr(current_item);
     if (ASR_SETTING_MASK != current_item) {
       UI_DRAW_SETTING(attr, asr.get_value(current_item), kUiWideMenuCol1X);
