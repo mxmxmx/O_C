@@ -19,15 +19,6 @@ namespace DEBUG {
   }
 }
 
-enum DebugMenu {
-  DEBUG_MENU_CORE,
-  DEBUG_MENU_GFX,
-  DEBUG_MENU_ADC,
-  DEBUG_MENU_POLYLFO,
-  DEBUG_MENU_LORENZ,
-  DEBUG_MENU_LAST
-};
-
 static void debug_menu_core() {
 
   uint32_t cycles = DEBUG::ISR_cycles.value();
@@ -66,43 +57,44 @@ static void debug_menu_adc() {
 //      graphics.setPrintPos(2, 52); graphics.print(OC::ADC::fail_flag1());
 }
 
-struct {
-  DebugMenu menu;
+struct DebugMenu {
   const char *title;
   void (*display_fn)();
-}
-const debug_menus[DEBUG_MENU_LAST] = {
-  { DEBUG_MENU_CORE, " CORE", debug_menu_core },
-  { DEBUG_MENU_GFX, " GFX", debug_menu_gfx },
-  { DEBUG_MENU_ADC, " ADC", debug_menu_adc },
-  { DEBUG_MENU_POLYLFO, " POLYLFO", POLYLFO_debug },
-  { DEBUG_MENU_LORENZ, " LORENZ", LORENZ_debug },
 };
 
-void debug_menu() {
+static const DebugMenu debug_menus[] = {
+  { " CORE", debug_menu_core },
+  { " GFX", debug_menu_gfx },
+  { " ADC", debug_menu_adc },
+  { " POLYLFO", POLYLFO_debug },
+  { " LORENZ", LORENZ_debug },
+  { nullptr, nullptr }
+};
 
-  DebugMenu current_menu = DEBUG_MENU_CORE;
-  while (true) {
+>>>>>>> Stashed changes
+void debug_menu() {
+  const DebugMenu *current_menu = &debug_menus[0];
+  bool exit_loop = false;
+  while (!exit_loop) {
 
     GRAPHICS_BEGIN_FRAME(false);
       graphics.setPrintPos(2, 2);
-      graphics.print((int)current_menu + 1); graphics.print("/"); graphics.print((int)DEBUG_MENU_LAST);
-      graphics.print(debug_menus[current_menu].title);
-      debug_menus[current_menu].display_fn();
+      graphics.printf("%d/%u", (int)(current_menu - &debug_menus[0]) + 1, ARRAY_SIZE(debug_menus) - 1);
+      graphics.print(current_menu->title);
+      current_menu->display_fn();
     GRAPHICS_END_FRAME();
 
     button_right.read();
     if (button_right.event())
-      break;
+      exit_loop = true;
 
     button_left.read();
     if (button_left.event()) {
-      if (current_menu < DEBUG_MENU_LAST - 1)
-        current_menu = static_cast<DebugMenu>(current_menu + 1);
-      else
-        current_menu = DEBUG_MENU_CORE;
+      ++current_menu;
+      if (!current_menu->title || !current_menu->display_fn)
+        current_menu = &debug_menus[0];
     }
   }
 }
 
-};
+}; // namespace OC
