@@ -10,6 +10,15 @@ extern void LORENZ_debug();
 
 namespace OC {
 
+namespace DEBUG {
+  SmoothedValue<uint32_t, 16> ISR_cycles;
+
+  void Init() {
+    debug::CycleMeasurement::Init();
+    DebugPins::Init();
+  }
+}
+
 enum DebugMenu {
   DEBUG_MENU_CORE,
   DEBUG_MENU_GFX,
@@ -21,15 +30,14 @@ enum DebugMenu {
 
 static void debug_menu_core() {
 
-  uint32_t cycles = OC::CORE::ISR_cycles.value();
+  uint32_t cycles = DEBUG::ISR_cycles.value();
   uint32_t isr_us = multiply_u32xu32_rshift32(cycles, (1ULL << 32) / (F_CPU / 1000000));
 
+  graphics.setPrintPos(2, 12);
+  graphics.printf("F_CPU: %uMHz", F_CPU / 1000 / 1000, OC_CORE_TIMER_RATE);
   graphics.setPrintPos(2, 22);
-  graphics.printf("%uMHz, ISR %uus", F_CPU / 1000 / 1000, OC_CORE_TIMER_RATE);
+  graphics.printf("CORE :%3u/%uus %2u%%", isr_us, OC_CORE_TIMER_RATE, (isr_us * 100) /  OC_CORE_TIMER_RATE);
   graphics.setPrintPos(2, 32);
-  graphics.printf("ISR us: %u", isr_us);
-  graphics.setPrintPos(2, 42);
-  graphics.printf("ISR %% : %u", (isr_us * 100) /  OC_CORE_TIMER_RATE);
 }
 
 static void debug_menu_gfx() {
@@ -70,7 +78,6 @@ const debug_menus[DEBUG_MENU_LAST] = {
   { DEBUG_MENU_POLYLFO, " POLYLFO", POLYLFO_debug },
   { DEBUG_MENU_LORENZ, " LORENZ", LORENZ_debug },
 };
-
 
 void debug_menu() {
 

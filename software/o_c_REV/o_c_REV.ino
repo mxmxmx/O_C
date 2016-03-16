@@ -105,7 +105,6 @@ uint32_t ENC_timer_counter = 0;
 
 volatile bool OC::CORE::app_isr_enabled = false;
 volatile uint32_t OC::CORE::ticks = 0;
-SmoothedValue<uint32_t, 16> OC::CORE::ISR_cycles;
 
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
@@ -142,7 +141,7 @@ void FASTRUN CORE_timer_ISR() {
   if (OC::CORE::app_isr_enabled)
     OC::APPS::ISR();
 
-  OC::CORE::ISR_cycles.push(cycles.read());
+  OC::DEBUG::ISR_cycles.push(cycles.read());
 }
 
 /*       ---------------------------------------------------------         */
@@ -160,7 +159,7 @@ void setup() {
   pinMode(but_bot, INPUT_PULLUP);
   buttons_init();
 
-  OC::DebugPins::Init();
+  OC::DEBUG::Init();
   OC::DigitalInputs::Init();
 
   // encoder ISR 
