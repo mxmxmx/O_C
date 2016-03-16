@@ -44,6 +44,7 @@ OC::App available_apps[] = {
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
+  DECLARE_APP('B','B', "New Tone", BBGEN, BBGEN_isr),
 };
 
 static constexpr int NUM_AVAILABLE_APPS = ARRAY_SIZE(available_apps);

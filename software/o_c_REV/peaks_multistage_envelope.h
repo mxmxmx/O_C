@@ -32,24 +32,9 @@
 #include <stdint.h>
 #include "util/util_macros.h"
 //#include "stmlib/stmlib.h"
-//#include "peaks/gate_processor.h"
+#include "peaks_gate_processor.h"
 
 namespace peaks {
-
-enum ControlBitMask {
-  CONTROL_GATE = 1,
-  CONTROL_GATE_RISING = 2,
-  CONTROL_GATE_FALLING = 4,
-
-  CONTROL_GATE_AUXILIARY = 16,
-  CONTROL_GATE_RISING_AUXILIARY = 32,
-  CONTROL_GATE_FALLING_AUXILIARY = 64
-};
-
-enum ControlMode {
-  CONTROL_MODE_FULL,
-  CONTROL_MODE_HALF
-};
 
 enum EnvelopeShape {
   ENV_SHAPE_LINEAR,
