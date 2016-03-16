@@ -34,7 +34,9 @@
 #define butL  23
 
 // NOTE: back side :(
-#define DEBUG_PIN_1 24
-#define DEBUG_PIN_2 25
+#define OC_GPIO_DEBUG_PIN1 24
+#define OC_GPIO_DEBUG_PIN2 25
+
+#define OC_GPIO_TRx_PINMODE INPUT_PULLUP
 
 #endif // OC_GPIO_H_

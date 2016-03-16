@@ -160,7 +160,7 @@ void setup() {
   pinMode(but_bot, INPUT_PULLUP);
   buttons_init();
 
-  DebugPins::Init();
+  OC::DebugPins::Init();
   OC::DigitalInputs::Init();
 
   // encoder ISR 
