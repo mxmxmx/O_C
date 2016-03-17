@@ -300,7 +300,7 @@ bool H1200_encoders() {
 
 void H1200_menu() {
   GRAPHICS_BEGIN_FRAME(false);
-  graphics.setFont(UI_DEFAULT_FONT);
+  graphics.setFont(MENU_DEFAULT_FONT);
 
   static const uint8_t kStartX = 0;
 

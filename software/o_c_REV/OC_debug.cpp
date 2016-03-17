@@ -2,7 +2,7 @@
 #include "OC_ADC.h"
 #include "OC_config.h"
 #include "OC_debug.h"
-#include "util_ui.h"
+#include "OC_menus.h"
 #include "extern/dspinst.h"
 
 extern void POLYLFO_debug();
@@ -71,7 +71,6 @@ static const DebugMenu debug_menus[] = {
   { nullptr, nullptr }
 };
 
->>>>>>> Stashed changes
 void debug_menu() {
   const DebugMenu *current_menu = &debug_menus[0];
   bool exit_loop = false;

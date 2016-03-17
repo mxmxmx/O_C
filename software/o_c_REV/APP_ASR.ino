@@ -1,5 +1,5 @@
 #include "util/util_settings.h"
-#include "util_ui.h"
+#include "OC_menus.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
@@ -453,7 +453,7 @@ void ASR_menu() {
  
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(UI_DEFAULT_FONT);
+  graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
   

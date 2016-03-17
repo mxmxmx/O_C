@@ -2,9 +2,9 @@
 #include "util/util_ringbuffer.h"
 #include "util/util_settings.h"
 #include "util/util_sync.h"
-#include "util_ui.h"
 #include "tonnetz/tonnetz_state.h"
 #include "OC_bitmaps.h"
+#include "OC_menus.h"
 
 // Drive the tonnetz transformations from a grid of cells that contain the type
 // of transformation and other goodies. Instead of stepping through the grid

@@ -1,9 +1,9 @@
 #include "OC_apps.h"
 #include "OC_digital_inputs.h"
+#include "OC_menus.h"
 
 #include "util/util_math.h"
 #include "util/util_settings.h"
-#include "util_ui.h"
 #include "frames_poly_lfo.h"
 
 enum POLYLFO_SETTINGS {
@@ -160,7 +160,7 @@ uint16_t preview_buffer[kSmallPreviewBufferSize];
 void POLYLFO_menu() {
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(UI_DEFAULT_FONT);
+  graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);

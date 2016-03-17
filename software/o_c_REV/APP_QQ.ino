@@ -9,10 +9,10 @@
 #include "util/util_logistic_map.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
+#include "OC_menus.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
-#include "util_ui.h"
 
 // TODO Extend calibration to get exact octave spacing for inputs?
 
@@ -474,7 +474,7 @@ void draw_mask(weegfx::coord_t y, uint32_t mask, size_t count) {
 void QQ_menu() {
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(UI_DEFAULT_FONT);
+  graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
 

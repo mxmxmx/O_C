@@ -233,7 +233,7 @@ void LORENZ_loop() {
 void LORENZ_menu() {
   GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(UI_DEFAULT_FONT);
+  graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);

@@ -162,7 +162,7 @@ void restore_app_data() {
 void draw_app_menu(int selected) {
   GRAPHICS_BEGIN_FRAME(true);
 
-  graphics.setFont(UI_DEFAULT_FONT);
+  graphics.setFont(MENU_DEFAULT_FONT);
   int first = selected - 4;
   if (first < 0) first = 0;
 

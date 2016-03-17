@@ -1,5 +1,5 @@
-#ifndef UTIL_UI_H_
-#define UTIL_UI_H_
+#ifndef OC_MENUS_H
+#define OC_MENUS_H
 
 #include "weegfx.h"
 #include "util_framebuffer.h"
@@ -17,7 +17,7 @@ extern uint_fast8_t MENU_REDRAW;
 extern unsigned long LAST_REDRAW_TIME;
 
 
-#define UI_DEFAULT_FONT nullptr
+#define MENU_DEFAULT_FONT nullptr
 
 static const uint8_t kUiDefaultFontH = 12;
 static const uint8_t kUiTitleTextY = 2;
@@ -102,4 +102,4 @@ do { \
   } \
 } while (0)
 
-#endif // UTIL_UI_H_
+#endif // OC_MENUS_H
