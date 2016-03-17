@@ -433,8 +433,6 @@ size_t QQ_restore(const void *storage) {
 void QQ_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -544,37 +542,26 @@ void QQ_menu() {
   GRAPHICS_END_FRAME();
 }
 
-bool QQ_encoders() {
+bool QQ_handleEncoderEvent(const UI::Event &event) {
   if (qq_state.scale_editor.active())
-    return qq_state.scale_editor.handle_encoders();
+    return qq_state.scale_editor.handleEncoderEvent(event);
 
-  bool changed = false;
-
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
-    int selected_channel = qq_state.selected_channel + value;
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int selected_channel = qq_state.selected_channel + event.value;
     CONSTRAIN(selected_channel, 0, 3);
     qq_state.selected_channel = selected_channel;
 
     QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
     if (qq_state.cursor_pos > selected.num_enabled_settings())
       qq_state.cursor_pos = selected.num_enabled_settings() - 1;
-
-    changed = true;
-  }
-
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
-  if (value) {
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
     if (qq_state.editing) {
       ChannelSetting setting = selected.enabled_setting_at(qq_state.cursor_pos);
       if (CHANNEL_SETTING_MASK != setting) {
-        if (selected.change_value(setting, value)) {
+        if (selected.change_value(setting, event.value))
           selected.force_update();
-          changed = true;
-        }
+
         switch (setting) {
           case CHANNEL_SETTING_SCALE:
           case CHANNEL_SETTING_TRIGGER:
@@ -586,13 +573,13 @@ bool QQ_encoders() {
         }
       }
     } else {
-      int cursor_pos = qq_state.cursor_pos + value;
+      int cursor_pos = qq_state.cursor_pos + event.value;
       CONSTRAIN(cursor_pos, 0, selected.num_enabled_settings() - 1);
       qq_state.cursor_pos = cursor_pos;
     }
   }
 
-  return changed;
+  return true;
 }
 
 void QQ_topButton() {

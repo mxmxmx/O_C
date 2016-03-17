@@ -120,11 +120,7 @@ UiMode Ui::DispatchEvents(App *app) {
         break;
 
       case UI::EVENT_ENCODER:
-        if (OC::CONTROL_ENCODER_L == event.control)
-          encoder[LEFT].setPos(event.value);
-        else
-          encoder[RIGHT].setPos(event.value);
-        app->update_encoders();
+        app->handleEncoderEvent(event);
         break;
       default:
         break;

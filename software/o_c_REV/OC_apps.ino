@@ -7,7 +7,7 @@
   prefix ## _loop, prefix ## _menu, prefix ## _screensaver, \
   prefix ## _topButton, prefix ## _lowerButton, \
   prefix ## _rightButton, prefix ## _leftButton, prefix ## _leftButtonLong, \
-  prefix ## _encoders, \
+  prefix ## _handleEncoderEvent, \
   isr \
 }
 

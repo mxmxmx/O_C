@@ -274,8 +274,6 @@ void LORENZ_screensaver() {
 void LORENZ_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -310,33 +308,25 @@ void LORENZ_leftButton() {
 void LORENZ_leftButtonLong() {
 }
 
-bool LORENZ_encoders() {
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
-    if (lorenz_generator_state.selected_generator) {
-      lorenz_generator.change_value(LORENZ_SETTING_FREQ2, value);
-    } else {
-      lorenz_generator.change_value(LORENZ_SETTING_FREQ1, value);
-    }
-    changed = true;
-  }
+bool LORENZ_handleEncoderEvent(const UI::Event &event) {
 
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (value) {
-    if (lorenz_generator_state.editing) {
-      lorenz_generator.change_value(lorenz_generator_state.selected_param, value);
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    if (lorenz_generator_state.selected_generator) {
+      lorenz_generator.change_value(LORENZ_SETTING_FREQ2, event.value);
     } else {
-      value += lorenz_generator_state.selected_param;
+      lorenz_generator.change_value(LORENZ_SETTING_FREQ1, event.value);
+    }
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (lorenz_generator_state.editing) {
+      lorenz_generator.change_value(lorenz_generator_state.selected_param, event.value);
+    } else {
+      int value = event.value + lorenz_generator_state.selected_param;
       CONSTRAIN(value, LORENZ_SETTING_RHO1, LORENZ_SETTING_LAST - 1);
       lorenz_generator_state.selected_param = value;
     }
-    changed = true;
   }
 
-  return changed;
+  return true;
 }
 
 void LORENZ_debug() {

@@ -8,16 +8,6 @@
 #include "UI/ui_encoder.h"
 #include "UI/ui_event_queue.h"
 
-// TEMP
-#include <rotaryplus.h>
-enum {
-  LEFT, RIGHT
-};
-// TEMP
-
-extern Rotary encoder[2];
-// TEMP
-
 namespace OC {
 
 struct App;

@@ -340,8 +340,6 @@ size_t ASR_restore(const void *storage) {
 void ASR_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       asr_state.left_encoder_value = asr.get_scale();
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -358,36 +356,28 @@ void ASR_isr() {
   asr.update();
 }
 
-bool ASR_encoders() {
+bool ASR_handleEncoderEvent(const UI::Event &event) {
 
   if (asr_state.scale_editor.active())
-    return asr_state.scale_editor.handle_encoders();
+    return asr_state.scale_editor.handleEncoderEvent(event);
 
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  if (value) {
-    encoder[LEFT].setPos(0);
-    value += asr_state.left_encoder_value;
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int value = asr_state.left_encoder_value + event.value;
     CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
-    asr_state.left_encoder_value = value;
-    changed = true;
-  }
-  
-  value = encoder[RIGHT].pos();
-  if (value) {
-    encoder[RIGHT].setPos(0);
+    asr_state.left_encoder_value = event.value;
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (asr_state.editing) {
       if (ASR_SETTING_MASK != asr_state.selected_param) {
-        changed = asr.change_value(asr_state.selected_param, value);
+        asr.change_value(asr_state.selected_param, event.value);
       }
     } else {
-      int selected_param = value + asr_state.selected_param;
+      int selected_param = event.value + asr_state.selected_param;
       CONSTRAIN(selected_param, ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
       asr_state.selected_param = selected_param;
     }
   }
 
-  return changed;
+  return true;
  }
 
 void ASR_topButton() {

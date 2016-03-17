@@ -1,6 +1,7 @@
 #ifndef OC_APP_H_
 #define OC_APP_H_
 
+#include "UI/ui_events.h"
 #include "util/util_misc.h"
 
 namespace OC {
@@ -38,7 +39,8 @@ struct App {
   void (*right_button)();
   void (*left_button)();
   void (*left_button_long)();
-  bool (*update_encoders)();
+
+  bool (*handleEncoderEvent)(const UI::Event &);
 
   void (*isr)();
 };

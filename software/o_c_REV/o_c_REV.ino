@@ -51,12 +51,6 @@ unsigned long LAST_REDRAW_TIME = 0;
 uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
 
-Rotary encoder[2] =
-{
-  Rotary(encL1, encL2),
-  Rotary(encR1, encR2)
-}; 
-
 /*  --------------------- UI timer ISR -------------------------   */
 
 IntervalTimer UI_timer;

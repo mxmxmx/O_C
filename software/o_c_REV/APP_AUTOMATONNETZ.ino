@@ -629,8 +629,6 @@ size_t Automatonnetz_restore(const void *dest) {
 void Automatonnetz_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       automatonnetz_state.AddUserAction(USER_ACTION_RESET);
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -669,29 +667,23 @@ void Automatonnetz_leftButtonLong() {
   automatonnetz_state.AddUserAction(USER_ACTION_RESET);
 }
 
-bool Automatonnetz_encoders() {
-  bool changed = false;
+bool Automatonnetz_handleEncoderEvent(const UI::Event &event) {
 
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
-    int selected = automatonnetz_state.ui.selected_cell + value;
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int selected = automatonnetz_state.ui.selected_cell + event.value;
     while (selected < 0) selected += 25;
     while (selected > 24) selected -= 25;
     automatonnetz_state.ui.selected_cell = selected;
-    changed = true;
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (automatonnetz_state.ui.edit_cell) {
+      size_t selected_cell_param = automatonnetz_state.ui.selected_cell_param;
+      TransformCell &cell = automatonnetz_state.grid.mutable_cell(automatonnetz_state.ui.selected_cell);
+      cell.change_value(selected_cell_param, event.value);
+    } else {
+      size_t selected_param = automatonnetz_state.ui.selected_param;
+      automatonnetz_state.change_value(selected_param, event.value);
+    }
   }
 
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (automatonnetz_state.ui.edit_cell) {
-    size_t selected_cell_param = automatonnetz_state.ui.selected_cell_param;
-    TransformCell &cell = automatonnetz_state.grid.mutable_cell(automatonnetz_state.ui.selected_cell);
-    changed = cell.change_value(selected_cell_param, value);
-  } else {
-    size_t selected_param = automatonnetz_state.ui.selected_param;
-    changed = automatonnetz_state.change_value(selected_param, value);
-  }
-
-  return changed;
+  return true;
 }

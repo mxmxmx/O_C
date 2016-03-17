@@ -195,8 +195,6 @@ void POLYLFO_screensaver() {
 void POLYLFO_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -227,29 +225,20 @@ void POLYLFO_leftButton() {
 void POLYLFO_leftButtonLong() {
 }
 
-bool POLYLFO_encoders() {
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
-    if (poly_lfo.change_value(poly_lfo_state.left_edit_mode, value))
-      changed = true;
-  }
-
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (value) {
+bool POLYLFO_handleEncoderEvent(const UI::Event &event) {
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    poly_lfo.change_value(poly_lfo_state.left_edit_mode, event.value);
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (poly_lfo_state.editing) {
-      poly_lfo.change_value(poly_lfo_state.selected_param, value);
+      poly_lfo.change_value(poly_lfo_state.selected_param, event.value);
     } else {
-      value += poly_lfo_state.selected_param;
+      int value = event.value + poly_lfo_state.selected_param;
       CONSTRAIN(value, POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
       poly_lfo_state.selected_param = value;
     }
-    changed = true;
   }
 
-  return changed;
+  return true;
 }
 
 void POLYLFO_debug() {

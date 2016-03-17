@@ -337,8 +337,6 @@ size_t ENVGEN_restore(const void *storage) {
 void ENVGEN_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER:
@@ -451,7 +449,6 @@ void ENVGEN_rightButton() {
       segment = 0;
     if (segment != envgen.ui.selected_segment) {
       envgen.ui.selected_segment = segment;
-      encoder[RIGHT].setPos(0);
     }
   } else {
     envgen.ui.editing = !envgen.ui.editing;
@@ -466,47 +463,39 @@ void ENVGEN_leftButton() {
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
   }
-  encoder[LEFT].setPos(0);
-  encoder[RIGHT].setPos(0);
 }
 
 void ENVGEN_leftButtonLong() { }
-bool ENVGEN_encoders() {
-  long left_value = encoder[LEFT].pos();
-  long right_value = encoder[RIGHT].pos();
-  bool changed = left_value || right_value;
+
+bool ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
-    if (left_value) {
-      left_value += envgen.ui.selected_channel;
+    if (OC::CONTROL_ENCODER_L == event.control) {
+      int left_value = envgen.ui.selected_channel + event.value;
       CONSTRAIN(left_value, 0, 3);
       envgen.ui.selected_channel = left_value;
-    }
-    if (right_value) {
+    } else if (OC::CONTROL_ENCODER_R == event.control) {
       auto &selected_env = envgen.selected();
-      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
+      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, event.value);
     }
   } else {
-    if (left_value) {
-      left_value += envgen.ui.left_encoder_value;
+    if (OC::CONTROL_ENCODER_L == event.control) {
+      int left_value = envgen.ui.left_encoder_value + event.value;
       CONSTRAIN(left_value, ENV_TYPE_FIRST, ENV_TYPE_LAST - 1);
       envgen.ui.left_encoder_value = left_value;
-    }
-    if (right_value) {
+    } else if (OC::CONTROL_ENCODER_R == event.control) {
       if (envgen.ui.editing) {
         auto &selected_env = envgen.selected();
-        selected_env.change_value(envgen.ui.selected_setting, right_value);
+        selected_env.change_value(envgen.ui.selected_setting, event.value);
       } else {
-        right_value += envgen.ui.selected_setting;
+        int right_value = envgen.ui.selected_setting + event.value;
         CONSTRAIN(right_value, ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
         envgen.ui.selected_setting = right_value;
       }
     }
   }
 
-  encoder[LEFT].setPos(0);
-  encoder[RIGHT].setPos(0);
-  return changed;
+  return true;
 }
 
 void ENVGEN_screensaver() {

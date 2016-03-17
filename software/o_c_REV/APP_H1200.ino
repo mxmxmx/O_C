@@ -212,8 +212,6 @@ size_t H1200_restore(const void *storage) {
 void H1200_handleEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       h1200_state.tonnetz_state.reset(h1200_settings.mode());
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -271,26 +269,18 @@ void H1200_leftButtonLong() {
   h1200_state.manual_reset();
 }
 
-bool H1200_encoders() {
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
+bool H1200_handleEncoderEvent(const UI::Event &event) {
 
-  if (value) {
-    value += h1200_state.cursor_pos;
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int value = h1200_state.cursor_pos + event.value;
     CONSTRAIN(value, 0, H1200_SETTING_LAST - 1);
     h1200_state.cursor_pos = value;
-    changed = true;
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (h1200_settings.change_value(h1200_state.cursor_pos, event.value))
+      h1200_state.force_update();
   }
 
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (value && h1200_settings.change_value(h1200_state.cursor_pos, value)) {
-    h1200_state.force_update();
-    changed = true;
-  }
-
-  return changed;
+  return true;
 }
 
 void H1200_menu() {

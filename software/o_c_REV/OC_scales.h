@@ -8,8 +8,8 @@ namespace OC {
 
 typedef braids::Scale Scale;
 
-static constexpr long kMaxScaleLength = 16;
-static constexpr long kMinScaleLength = 4;
+static constexpr int kMaxScaleLength = 16;
+static constexpr int kMinScaleLength = 4;
 
 class Scales {
 public:
