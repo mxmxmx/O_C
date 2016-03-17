@@ -33,12 +33,18 @@ static void debug_menu_core() {
   graphics.setPrintPos(2, 12);
   graphics.printf("F_CPU: %uMHz", F_CPU / 1000 / 1000, OC_CORE_TIMER_RATE);
   graphics.setPrintPos(2, 22);
-  graphics.printf(" CORE:%3u/%uus %2u%%", isr_us, OC_CORE_TIMER_RATE, (isr_us * 100) /  OC_CORE_TIMER_RATE);
+  graphics.printf("CORE :%3u/%uus %2u%%", isr_us, OC_CORE_TIMER_RATE, (isr_us * 100) /  OC_CORE_TIMER_RATE);
 
   cycles = DEBUG::UI_cycles.value();
   isr_us = multiply_u32xu32_rshift32(cycles, (1ULL << 32) / (F_CPU / 1000000));
   graphics.setPrintPos(2, 32);
-  graphics.printf(" UI  :%3uus (%uus)", (isr_us * 100) /  OC_CORE_TIMER_RATE, OC_UI_TIMER_RATE);
+  graphics.printf("POLL :%3uus (%uus)", (isr_us * 100) /  OC_CORE_TIMER_RATE, OC_UI_TIMER_RATE);
+#ifdef OC_UI_DEBUG
+  graphics.setPrintPos(2, 42);
+  graphics.printf("UI # : %u", DEBUG::UI_event_count);
+  graphics.setPrintPos(2, 52);
+  graphics.printf("UI ! : %u", DEBUG::UI_queue_overflow);
+#endif
 }
 
 static void debug_menu_gfx() {
