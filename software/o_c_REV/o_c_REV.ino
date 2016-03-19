@@ -111,7 +111,7 @@ void setup() {
   delay(10);
 
   Serial.begin(9600);
-  delay(500);
+  delay(200);
   SERIAL_PRINTLN("* O&C BOOTING...");
 
   OC::DEBUG::Init();

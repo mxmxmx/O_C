@@ -40,7 +40,11 @@ static DMAChannel page_dma;
   0x02e,        /* 2012-05-27: Deactivate scroll */ 
   0x0a4,        /* output ram to display */
   0x0a6,        /* none inverted normal display mode */
-  0x0af,        /* display on */
+  //0x0af,        /* display on */
+};
+
+/*static*/ uint8_t SH1106_128x64_Driver::display_on_seq[] = {
+  0xaf
 };
 
 /*static*/
@@ -80,6 +84,8 @@ void SH1106_128x64_Driver::Init() {
   page_dma.triggerAtHardwareEvent(DMAMUX_SOURCE_SPI0_TX);
   page_dma.disable();
 #endif
+
+  Clear();
 }
 
 /*static*/
@@ -93,6 +99,27 @@ void SH1106_128x64_Driver::Flush() {
   SPI0_RSER = 0;
   SPI0_SR = 0xFF0F0000;
 #endif
+}
+
+static uint8_t empty_page[SH1106_128x64_Driver::kPageSize];
+
+/*static*/
+void SH1106_128x64_Driver::Clear() {
+  memset(empty_page, 0, sizeof(kPageSize));
+
+  data_start_seq[2] = 0xb0 | 0;
+  digitalWriteFast(OLED_DC, LOW);
+  digitalWriteFast(OLED_CS, OLED_CS_HIGH);
+  spi4teensy3::send(data_start_seq, sizeof(data_start_seq));
+  digitalWriteFast(OLED_DC, HIGH);
+  for (size_t p = 0; p < kNumPages; ++p)
+    spi4teensy3::send(empty_page, kPageSize);
+  digitalWriteFast(OLED_CS, OLED_CS_LOW); // U8G_ESC_CS(0)
+
+  digitalWriteFast(OLED_DC, LOW);
+  digitalWriteFast(OLED_CS, OLED_CS_HIGH);
+  spi4teensy3::send(display_on_seq, sizeof(display_on_seq));
+  digitalWriteFast(OLED_DC, HIGH);
 }
 
 /*static*/

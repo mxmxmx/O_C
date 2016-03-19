@@ -11,11 +11,13 @@ struct SH1106_128x64_Driver {
   static constexpr uint8_t kDefaultOffset = 2;
 
   static void Init();
+  static void Clear();
   static void Flush();
   static void SendPage(uint_fast8_t index, const uint8_t *data);
 
   static uint8_t data_start_seq[];
   static uint8_t init_seq[];
+  static uint8_t display_on_seq[];
 
   // SH1106 ram is 132x64, so it needs an offset to center data in display.
   // However at least one display (mine) uses offset 0 so it's minimally
