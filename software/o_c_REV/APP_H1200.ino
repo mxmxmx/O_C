@@ -105,6 +105,7 @@ public:
 
   void Init() {
     cursor_pos = 0;
+    editing = false;
     display_notes = true;
   
     tonnetz_state.init();
@@ -119,6 +120,7 @@ public:
   }
 
   int cursor_pos;
+  bool editing;
   bool display_notes;
 
   TonnetzState tonnetz_state;
@@ -255,21 +257,6 @@ void H1200_lowerButton() {
   }
 }
 
-void H1200_rightButton() {
-  ++h1200_state.cursor_pos;
-  if (h1200_state.cursor_pos >= H1200_SETTING_LAST)
-    h1200_state.cursor_pos = 0;
-}
-
-void H1200_leftButton() {
-  h1200_state.display_notes = !h1200_state.display_notes;
-}
-
-void H1200_leftButtonLong() {
-  h1200_settings.InitDefaults();
-  h1200_state.manual_reset();
-}
-
 void H1200_handleButtonEvent(const UI::Event &event) {
   if (UI::EVENT_BUTTON_PRESS == event.type) {
     switch (event.control) {
@@ -280,27 +267,34 @@ void H1200_handleButtonEvent(const UI::Event &event) {
         H1200_lowerButton();
         break;
       case OC::CONTROL_BUTTON_L:
-        H1200_leftButton();
+        h1200_state.display_notes = !h1200_state.display_notes;
         break;
       case OC::CONTROL_BUTTON_R:
-        H1200_rightButton();
+        h1200_state.editing = !h1200_state.editing;
         break;
     }
   } else {
-    if (OC::CONTROL_BUTTON_L == event.control)
-      H1200_leftButtonLong();
+    if (OC::CONTROL_BUTTON_L == event.control) {
+      h1200_settings.InitDefaults();
+      h1200_state.manual_reset();
+    }
   }
 }
 
 void H1200_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
-    int value = h1200_state.cursor_pos + event.value;
-    CONSTRAIN(value, 0, H1200_SETTING_LAST - 1);
-    h1200_state.cursor_pos = value;
-  } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (h1200_settings.change_value(h1200_state.cursor_pos, event.value))
+    if (h1200_settings.change_value(H1200_SETTING_ROOT_OFFSET, event.value))
       h1200_state.force_update();
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (h1200_state.editing) {
+      if (h1200_settings.change_value(h1200_state.cursor_pos, event.value))
+        h1200_state.force_update();
+    } else {
+      int value = h1200_state.cursor_pos + event.value;
+      CONSTRAIN(value, 0, H1200_SETTING_LAST - 1);
+      h1200_state.cursor_pos = value;
+    }
   }
 }
 
@@ -337,9 +331,12 @@ void H1200_menu() {
   int first_visible = h1200_state.cursor_pos - 2;
   if (first_visible < 0)
     first_visible = 0;
+  else if (first_visible + kUiVisibleItems > H1200_SETTING_LAST)
+    first_visible = H1200_SETTING_LAST - kUiVisibleItems;
 
   UI_START_MENU(kStartX);
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, H1200_SETTING_LAST, h1200_state.cursor_pos, 0)
+    UI_DRAW_EDITABLE(h1200_state.editing);
     const settings::value_attr &attr = H1200Settings::value_attr(current_item);
     UI_DRAW_SETTING(attr, h1200_settings.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
