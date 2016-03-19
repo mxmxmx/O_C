@@ -12,6 +12,12 @@ extern FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 extern uint_fast8_t MENU_REDRAW;
 extern unsigned long LAST_REDRAW_TIME;
 
+void init_circle_lut();
+void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegfx::coord_t centery);
+
+void screensaver();
+void scope();
+void scope_render();
 
 #define MENU_DEFAULT_FONT nullptr
 
