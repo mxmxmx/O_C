@@ -357,10 +357,12 @@ void ASR_isr() {
   asr.update();
 }
 
-bool ASR_handleEncoderEvent(const UI::Event &event) {
+void ASR_handleEncoderEvent(const UI::Event &event) {
 
-  if (asr_state.scale_editor.active())
-    return asr_state.scale_editor.handleEncoderEvent(event);
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.handleEncoderEvent(event);
+    return;
+  }
 
   if (OC::CONTROL_ENCODER_L == event.control) {
     int value = asr_state.left_encoder_value + event.value;
@@ -377,9 +379,7 @@ bool ASR_handleEncoderEvent(const UI::Event &event) {
       asr_state.selected_param = selected_param;
     }
   }
-
-  return true;
- }
+}
 
 void ASR_topButton() {
 

@@ -543,9 +543,11 @@ void QQ_menu() {
   GRAPHICS_END_FRAME();
 }
 
-bool QQ_handleEncoderEvent(const UI::Event &event) {
-  if (qq_state.scale_editor.active())
-    return qq_state.scale_editor.handleEncoderEvent(event);
+void QQ_handleEncoderEvent(const UI::Event &event) {
+  if (qq_state.scale_editor.active()) {
+    qq_state.scale_editor.handleEncoderEvent(event);
+    return;
+  }
 
   if (OC::CONTROL_ENCODER_L == event.control) {
     int selected_channel = qq_state.selected_channel + event.value;
@@ -579,8 +581,6 @@ bool QQ_handleEncoderEvent(const UI::Event &event) {
       qq_state.cursor_pos = cursor_pos;
     }
   }
-
-  return true;
 }
 
 void QQ_topButton() {

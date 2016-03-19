@@ -309,7 +309,7 @@ void LORENZ_leftButton() {
 void LORENZ_leftButtonLong() {
 }
 
-bool LORENZ_handleEncoderEvent(const UI::Event &event) {
+void LORENZ_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
     if (lorenz_generator_state.selected_generator) {
@@ -326,8 +326,6 @@ bool LORENZ_handleEncoderEvent(const UI::Event &event) {
       lorenz_generator_state.selected_param = value;
     }
   }
-
-  return true;
 }
 
 void LORENZ_debug() {

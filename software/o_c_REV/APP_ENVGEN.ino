@@ -468,7 +468,7 @@ void ENVGEN_leftButton() {
 
 void ENVGEN_leftButtonLong() { }
 
-bool ENVGEN_handleEncoderEvent(const UI::Event &event) {
+void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
     if (OC::CONTROL_ENCODER_L == event.control) {
@@ -495,8 +495,6 @@ bool ENVGEN_handleEncoderEvent(const UI::Event &event) {
       }
     }
   }
-
-  return true;
 }
 
 void ENVGEN_screensaver() {

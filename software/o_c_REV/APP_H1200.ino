@@ -270,7 +270,7 @@ void H1200_leftButtonLong() {
   h1200_state.manual_reset();
 }
 
-bool H1200_handleEncoderEvent(const UI::Event &event) {
+void H1200_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
     int value = h1200_state.cursor_pos + event.value;
@@ -280,8 +280,6 @@ bool H1200_handleEncoderEvent(const UI::Event &event) {
     if (h1200_settings.change_value(h1200_state.cursor_pos, event.value))
       h1200_state.force_update();
   }
-
-  return true;
 }
 
 void H1200_menu() {

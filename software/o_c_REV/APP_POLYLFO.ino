@@ -226,7 +226,7 @@ void POLYLFO_leftButton() {
 void POLYLFO_leftButtonLong() {
 }
 
-bool POLYLFO_handleEncoderEvent(const UI::Event &event) {
+void POLYLFO_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {
     poly_lfo.change_value(poly_lfo_state.left_edit_mode, event.value);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
@@ -238,8 +238,6 @@ bool POLYLFO_handleEncoderEvent(const UI::Event &event) {
       poly_lfo_state.selected_param = value;
     }
   }
-
-  return true;
 }
 
 void POLYLFO_debug() {

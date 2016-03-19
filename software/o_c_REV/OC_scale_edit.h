@@ -54,7 +54,7 @@ public:
   }
 
   void Draw();
-  bool handleEncoderEvent(const UI::Event &event);
+  void handleEncoderEvent(const UI::Event &event);
   void handle_leftButton();
   void handle_leftButtonLong();
   void handle_rightButton();
@@ -147,7 +147,7 @@ void ScaleEditor<Owner>::Draw() {
 }
 
 template <typename Owner>
-bool ScaleEditor<Owner>::handleEncoderEvent(const UI::Event &event) {
+void ScaleEditor<Owner>::handleEncoderEvent(const UI::Event &event) {
   bool scale_changed = false;
   uint16_t mask = mask_;
 
@@ -201,8 +201,6 @@ bool ScaleEditor<Owner>::handleEncoderEvent(const UI::Event &event) {
   apply_mask(mask);
   if (scale_changed)
     owner_->scale_changed();
-
-  return true;
 }
 
 template <typename Owner>

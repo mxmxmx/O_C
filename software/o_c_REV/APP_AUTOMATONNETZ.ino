@@ -668,7 +668,7 @@ void Automatonnetz_leftButtonLong() {
   automatonnetz_state.AddUserAction(USER_ACTION_RESET);
 }
 
-bool Automatonnetz_handleEncoderEvent(const UI::Event &event) {
+void Automatonnetz_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
     int selected = automatonnetz_state.ui.selected_cell + event.value;
@@ -685,6 +685,4 @@ bool Automatonnetz_handleEncoderEvent(const UI::Event &event) {
       automatonnetz_state.change_value(selected_param, event.value);
     }
   }
-
-  return true;
 }

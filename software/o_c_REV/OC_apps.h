@@ -41,7 +41,7 @@ struct App {
   void (*left_button)();
   void (*left_button_long)();
 
-  bool (*handleEncoderEvent)(const UI::Event &);
+  void (*handleEncoderEvent)(const UI::Event &);
 
   void (*isr)();
 };
