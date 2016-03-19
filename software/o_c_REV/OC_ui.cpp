@@ -57,6 +57,9 @@ void Ui::Init() {
     buttons_[i].Init(button_pins[i], OC_GPIO_BUTTON_PINMODE);
   }
   std::fill(button_press_time_, button_press_time_ + 4, 0);
+  button_state_ = 0;
+  button_ignore_mask_ = 0;
+  screensaver_ = false;
 
   encoder_right_.Init(OC_GPIO_ENC_PINMODE);
   encoder_left_.Init(OC_GPIO_ENC_PINMODE);
@@ -66,16 +69,14 @@ void Ui::Init() {
 
 void FASTRUN Ui::Poll() {
 
+  uint32_t now = ++ticks_;
   uint16_t button_state = 0;
+
   for (size_t i = 0; i < CONTROL_BUTTON_LAST; ++i) {
     buttons_[i].Poll();
     if (buttons_[i].pressed())
-      button_state |= 0x1 << i;
+      button_state |= control_mask(i);
   }
-  encoder_right_.Poll();
-  encoder_left_.Poll();
-
-  uint32_t now = ++ticks_;
 
   for (size_t i = 0; i < CONTROL_BUTTON_LAST; ++i) {
     auto &button = buttons_[i];
@@ -83,11 +84,14 @@ void FASTRUN Ui::Poll() {
       button_press_time_[i] = now;
     } else if (button.released()) {
       if (now - button_press_time_[i] < kLongPressTicks)
-        PushEvent(UI::EVENT_BUTTON_PRESS, i, 0, button_state);
+        PushEvent(UI::EVENT_BUTTON_PRESS, control_mask(i), 0, button_state);
       else
-        PushEvent(UI::EVENT_BUTTON_LONG_PRESS, i, 0, button_state);
+        PushEvent(UI::EVENT_BUTTON_LONG_PRESS, control_mask(i), 0, button_state);
     }
   }
+
+  encoder_right_.Poll();
+  encoder_left_.Poll();
 
   int32_t increment;
   increment = encoder_right_.Read();
@@ -97,11 +101,17 @@ void FASTRUN Ui::Poll() {
   increment = encoder_left_.Read();
   if (increment)
     PushEvent(UI::EVENT_ENCODER, CONTROL_ENCODER_L, increment, button_state);
+
+  button_state_ = button_state;
 }
 
 UiMode Ui::DispatchEvents(App *app) {
+
   while (event_queue_.available()) {
-    UI::Event event = event_queue_.PullEvent();
+    const UI::Event event = event_queue_.PullEvent();
+    if (IgnoreEvent(event))
+      continue;
+
     if (event.type == UI::EVENT_BUTTON_LONG_PRESS && event.control == OC::CONTROL_BUTTON_R)
       return UI_MODE_SELECT_APP;
 
@@ -128,14 +138,31 @@ UiMode Ui::DispatchEvents(App *app) {
     MENU_REDRAW = 1;
   }
 
-  return UI_MODE_MENU;
+  if (idle_time() > SCREENSAVER_TIMEOUT_MS) {
+    if (!screensaver_)
+      screensaver_ = true;
+    return UI_MODE_SCREENSAVER;
+  } else {
+    return UI_MODE_MENU;
+  }
 }
 
-void Ui::Splashscreen() {
+UiMode Ui::Splashscreen(bool &use_defaults) {
+
+  UiMode mode = UI_MODE_MENU;
 
   unsigned long start = millis();
   unsigned long now = start;
   do {
+
+    if (read_immediate(CONTROL_BUTTON_L))
+      mode = UI_MODE_CALIBRATE;
+    if (read_immediate(CONTROL_BUTTON_R))
+      mode = UI_MODE_SELECT_APP;
+
+    use_defaults = 
+      read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN);
+
     now = millis();
 
     GRAPHICS_BEGIN_FRAME(true);
@@ -147,20 +174,20 @@ void Ui::Splashscreen() {
     y += kUiLineH / 2;
 
     graphics.setPrintPos(xstart, y + 2);
-    graphics.print("[L] Calibrate");
-    if (read_immediate(CONTROL_BUTTON_L))
+    graphics.print("[L] => calibration");
+    if (UI_MODE_CALIBRATE == mode)
       graphics.invertRect(xstart, y, 128, kUiLineH);
 
     y += kUiLineH;
     graphics.setPrintPos(xstart, y + 2);
-    graphics.print("[R] Select app");
-    if (read_immediate(CONTROL_BUTTON_R))
+    graphics.print("[R] => select app");
+    if (UI_MODE_SELECT_APP == mode)
       graphics.invertRect(xstart, y, 128, kUiLineH);
 
     y += kUiLineH;
     graphics.setPrintPos(xstart, y + 1);
-    if (read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN))
-      graphics.print("    Using defaults!");
+    if (use_defaults)
+      graphics.print("Reset EEPROM!");
 
     weegfx::coord_t w;
     if (now - start < SPLASHSCREEN_DELAY_MS)
@@ -172,6 +199,9 @@ void Ui::Splashscreen() {
     GRAPHICS_END_FRAME();
 
   } while (now - start < SPLASHSCREEN_TIMEOUT_MS + SPLASHSCREEN_DELAY_MS);
+
+  SetButtonIgnoreMask();
+  return mode;
 }
 
 } // namespace OC

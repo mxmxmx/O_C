@@ -121,7 +121,7 @@ void ScaleEditor<Owner>::Draw() {
   graphics.setPrintPos(x, y + 24);
   if (cursor_pos_ != num_notes) {
     graphics.print(' ');
-    if (mutable_scale_)
+    if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
       graphics.drawBitmap8(x + 1, y + 23, 6, OC::bitmap_edit_indicator_6x8);
     graphics.print(scale_->notes[cursor_pos_], 4);
   } else {
@@ -157,7 +157,8 @@ bool ScaleEditor<Owner>::handleEncoderEvent(const UI::Event &event) {
     bool handled = false;
     if (mutable_scale_) {
       if (cursor_pos_ < num_notes_) {
-        if (event.mask & (0x1 << OC::CONTROL_BUTTON_L)) {
+        if (event.mask & OC::CONTROL_BUTTON_L) {
+          OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
           change_note(cursor_pos_, event.value, false);
           scale_changed = true;
           handled = true;
@@ -335,6 +336,7 @@ void ScaleEditor<Owner>::BeginEditing() {
 
 template <typename Owner>
 void ScaleEditor<Owner>::Close() {
+  ui.SetButtonIgnoreMask();
   owner_ = nullptr;
 }
 

@@ -9,7 +9,8 @@ namespace OC {
 enum AppEvent {
   APP_EVENT_SUSPEND,
   APP_EVENT_RESUME,
-  APP_EVENT_SCREENSAVER
+  APP_EVENT_SCREENSAVER_ON,
+  APP_EVENT_SCREENSAVER_OFF
 };
 
 // This is a very poor-man's application "switching" framework. The main UI/

@@ -215,7 +215,8 @@ void H1200_handleEvent(OC::AppEvent event) {
       h1200_state.tonnetz_state.reset(h1200_settings.mode());
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }

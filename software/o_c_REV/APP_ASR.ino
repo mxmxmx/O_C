@@ -343,7 +343,8 @@ void ASR_handleEvent(OC::AppEvent event) {
       asr_state.left_encoder_value = asr.get_scale();
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }

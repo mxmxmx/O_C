@@ -253,7 +253,7 @@ void OC::APPS::Init(bool use_defaults) {
 
 void OC::Ui::SelectApp() {
 
-  bool ignore_right = OC::ui.read_immediate(OC::CONTROL_BUTTON_R);
+  SetButtonIgnoreMask();
 
   OC::current_app->handleEvent(OC::APP_EVENT_SUSPEND);
 
@@ -264,16 +264,15 @@ void OC::Ui::SelectApp() {
 
     while (event_queue_.available()) {
       UI::Event event = event_queue_.PullEvent();
+      if (IgnoreEvent(event))
+        continue;
+
       if (UI::EVENT_ENCODER == event.type && OC::CONTROL_ENCODER_R == event.control) {
         selected += event.value;
         CONSTRAIN(selected, 0, NUM_AVAILABLE_APPS - 1);
       } else if (OC::CONTROL_BUTTON_R == event.control) {
-        if (ignore_right) {
-          ignore_right = false;
-        } else {
-          save = event.type == UI::EVENT_BUTTON_LONG_PRESS;
-          change_app = true;
-        }
+        save = event.type == UI::EVENT_BUTTON_LONG_PRESS;
+        change_app = true;
       } else if (OC::CONTROL_BUTTON_L == event.control) {
         OC::ui.DebugStats();
       }

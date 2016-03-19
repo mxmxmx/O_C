@@ -197,7 +197,8 @@ void POLYLFO_handleEvent(OC::AppEvent event) {
     case OC::APP_EVENT_RESUME:
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }

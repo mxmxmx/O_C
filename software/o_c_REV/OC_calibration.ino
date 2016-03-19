@@ -205,7 +205,10 @@ void OC::Ui::Calibrate() {
     digital_input_displays[3].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>());
 
     while (event_queue_.available()) {
-      UI::Event event = event_queue_.PullEvent();
+      const UI::Event event = event_queue_.PullEvent();
+      if (IgnoreEvent(event))
+        continue;
+
       switch (event.control) {
         case OC::CONTROL_BUTTON_L:
           if (calibration_state.step > CENTER_DISPLAY)

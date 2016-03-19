@@ -632,7 +632,8 @@ void Automatonnetz_handleEvent(OC::AppEvent event) {
       automatonnetz_state.AddUserAction(USER_ACTION_RESET);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }   
 }

@@ -12,16 +12,25 @@ namespace OC {
 
 struct App;
 
+// UI::Event::control is uint16_t, but we only have 6 controls anyway.
+// So we can helpfully make things into bitmasks, which seems useful.
 enum UiControl {
-  CONTROL_BUTTON_UP,
-  CONTROL_BUTTON_DOWN,
-  CONTROL_BUTTON_L,
-  CONTROL_BUTTON_R,
-  CONTROL_ENCODER_L,
-  CONTROL_ENCODER_R,
-  CONTROL_LAST,
-  CONTROL_BUTTON_LAST = CONTROL_ENCODER_L
+  CONTROL_BUTTON_UP   = 0x1,
+  CONTROL_BUTTON_DOWN = 0x2,
+  CONTROL_BUTTON_L    = 0x4,
+  CONTROL_BUTTON_R    = 0x8,
+  CONTROL_BUTTON_MASK = 0xf,
+
+  CONTROL_ENCODER_L   = 0x10,
+  CONTROL_ENCODER_R   = 0x20,
+
+  CONTROL_LAST = 5,
+  CONTROL_BUTTON_LAST = 4,
 };
+
+static inline uint16_t control_mask(unsigned i) {
+  return 1 << i;
+}
 
 enum UiMode {
   UI_MODE_SCREENSAVER,
@@ -39,7 +48,7 @@ public:
 
   void Init();
 
-  void Splashscreen();
+  UiMode Splashscreen(bool &use_defaults);
   void DebugStats();
   void Calibrate();
   void SelectApp();
@@ -48,10 +57,7 @@ public:
   void Poll();
 
   inline bool read_immediate(UiControl control) {
-    if (control < CONTROL_BUTTON_LAST)
-      return buttons_[control].read_immediate();
-    else
-      return false;
+    return button_state_ & control;
   }
 
   inline void encoder_enable_acceleration(UiControl encoder, bool enable) {
@@ -70,12 +76,23 @@ public:
     return event_queue_.idle_time();
   }
 
+  inline void SetButtonIgnoreMask() {
+    button_ignore_mask_ = button_state_;
+  }
+
+  inline void IgnoreButton(UiControl control) {
+    button_ignore_mask_ |= control;
+  }
+
 private:
 
   uint32_t ticks_;
 
   UI::Button buttons_[4];
   uint32_t button_press_time_[4];
+  uint16_t button_state_;
+  uint16_t button_ignore_mask_;
+  bool screensaver_;
 
   UI::Encoder<encR1, encR2> encoder_right_;
   UI::Encoder<encL1, encL2> encoder_left_;
@@ -90,6 +107,21 @@ private:
 #endif
     event_queue_.PushEvent(t, c, v, m);
   }
+
+  bool IgnoreEvent(const UI::Event &event) {
+    bool ignore = false;
+    if (button_ignore_mask_ & event.control) {
+      button_ignore_mask_ &= ~event.control;
+      ignore = true;
+    }
+    if (screensaver_) {
+      screensaver_ = false;
+      ignore = true;
+    }
+
+    return ignore;
+  }
+
 };
 
 extern Ui ui;

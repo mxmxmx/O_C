@@ -142,14 +142,8 @@ void setup() {
 #endif
 
   // Display splash screen
-  OC::ui.Splashscreen();
-  bool use_defaults =
-    OC::ui.read_immediate(OC::CONTROL_BUTTON_UP) && OC::ui.read_immediate(OC::CONTROL_BUTTON_DOWN);
-
-  if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-    ui_mode = OC::UI_MODE_CALIBRATE;
-  else if (OC::ui.read_immediate(OC::CONTROL_BUTTON_R))
-    ui_mode = OC::UI_MODE_SELECT_APP;
+  bool use_defaults = false;
+  ui_mode = OC::ui.Splashscreen(use_defaults);
 
   // initialize apps
   OC::APPS::Init(use_defaults);
@@ -163,7 +157,6 @@ void FASTRUN loop() {
   if (ui_mode == OC::UI_MODE_CALIBRATE)
     OC::ui.Calibrate();
 
-  ui_mode = OC::UI_MODE_MENU;
   while (true) {
 
     // don't change current_app while it's running
@@ -185,13 +178,15 @@ void FASTRUN loop() {
     OC::current_app->loop();
 
     // UI events
-    ui_mode = OC::ui.DispatchEvents(OC::current_app);
+    OC::UiMode mode = OC::ui.DispatchEvents(OC::current_app);
 
-    // Check UI timeouts for screensaver/forced redraw
-    if (OC::ui.idle_time() > SCREENSAVER_TIMEOUT_MS) {
-      if (OC::UI_MODE_SCREENSAVER != ui_mode)
-        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER);
-      ui_mode = OC::UI_MODE_SCREENSAVER;
+    // State transition for app
+    if (mode != ui_mode) {
+      if (OC::UI_MODE_SCREENSAVER == mode)
+        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER_ON);
+      else
+        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER_OFF);
+      ui_mode = mode;
     }
 
     if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
