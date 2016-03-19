@@ -394,7 +394,7 @@ void ASR_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {
     int value = asr_state.left_encoder_value + event.value;
     CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
-    asr_state.left_encoder_value = event.value;
+    asr_state.left_encoder_value = value;
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (asr_state.editing) {
       if (ASR_SETTING_MASK != asr_state.selected_param) {
