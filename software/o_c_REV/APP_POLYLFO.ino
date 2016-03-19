@@ -86,9 +86,10 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
 
 PolyLfo poly_lfo;
 struct {
-  int selected_param;
+
   POLYLFO_SETTINGS left_edit_mode;
-  bool editing;
+  menu::ScreenCursor<kUiVisibleItems> cursor;
+
 } poly_lfo_state;
 
 void FASTRUN POLYLFO_isr() {
@@ -128,9 +129,9 @@ void FASTRUN POLYLFO_isr() {
 }
 
 void POLYLFO_init() {
-  poly_lfo_state.selected_param = POLYLFO_SETTING_SHAPE;
+
   poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
-  poly_lfo_state.editing = false;
+  poly_lfo_state.cursor.Init(POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
   poly_lfo.Init();
 }
 
@@ -161,21 +162,25 @@ void POLYLFO_menu() {
   graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
   graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
 
-  int first_visible_param = POLYLFO_SETTING_SHAPE;
+  const int first_visible = poly_lfo_state.cursor.first_visible();
+  const int last_visible = poly_lfo_state.cursor.last_visible();
 
   UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, POLYLFO_SETTING_LAST, poly_lfo_state.selected_param, 0)
-    UI_DRAW_EDITABLE(poly_lfo_state.editing);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, poly_lfo_state.cursor.cursor_pos(), 0)
     const settings::value_attr &attr = PolyLfo::value_attr(current_item);
+    const int value = poly_lfo.get_value(current_item);
+    if (__selected && poly_lfo_state.cursor.editing())
+      menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
     if (current_item != POLYLFO_SETTING_SHAPE) {
-      UI_DRAW_SETTING(attr, poly_lfo.get_value(current_item), kUiWideMenuCol1X);
+      UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
     } else {
-      uint16_t shape = poly_lfo.get_value(current_item);
-      poly_lfo.lfo.RenderPreview(shape << 8, preview_buffer, kSmallPreviewBufferSize);
-      for (weegfx::coord_t x = 0; x < (weegfx::coord_t)kSmallPreviewBufferSize; ++x)
-        graphics.setPixel(96 + x, y + 8 - (preview_buffer[x] >> 13));
-
-      UI_DRAW_SETTING(attr, shape,  96 - 32);
+      poly_lfo.lfo.RenderPreview(value << 8, preview_buffer, kSmallPreviewBufferSize);
+      const uint16_t *preview = preview_buffer;
+      uint16_t count = kSmallPreviewBufferSize;
+      weegfx::coord_t x = kUiWideMenuCol1X;
+      while (count--)
+        graphics.setPixel(x++, y + 8 - (*preview++ >> 13));
+      UI_DRAW_SETTING(attr, value,  kUiWideMenuCol1X - 36);
     }
   UI_END_ITEMS_LOOP();
 }
@@ -187,6 +192,7 @@ void POLYLFO_screensaver() {
 void POLYLFO_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
+      poly_lfo_state.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
@@ -211,7 +217,7 @@ void POLYLFO_handleButtonEvent(const UI::Event &event) {
         poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
       break;
       case OC::CONTROL_BUTTON_R:
-        poly_lfo_state.editing = !poly_lfo_state.editing;
+        poly_lfo_state.cursor.toggle_editing();
         break;
     }
   }
@@ -221,12 +227,10 @@ void POLYLFO_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {
     poly_lfo.change_value(poly_lfo_state.left_edit_mode, event.value);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (poly_lfo_state.editing) {
-      poly_lfo.change_value(poly_lfo_state.selected_param, event.value);
+    if (poly_lfo_state.cursor.editing()) {
+      poly_lfo.change_value(poly_lfo_state.cursor.cursor_pos(), event.value);
     } else {
-      int value = event.value + poly_lfo_state.selected_param;
-      CONSTRAIN(value, POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
-      poly_lfo_state.selected_param = value;
+      poly_lfo_state.cursor.Scroll(event.value);
     }
   }
 }

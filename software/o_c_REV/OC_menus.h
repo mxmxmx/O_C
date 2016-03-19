@@ -2,9 +2,12 @@
 #define OC_MENUS_H
 
 #include "weegfx.h"
+#include "OC_bitmaps.h"
 #include "util_framebuffer.h"
 #include "SH1106_128x64_Driver.h"
 #include "util/util_debugpins.h"
+#include "util/util_misc.h"
+#include "util/util_settings.h"
 
 extern weegfx::Graphics graphics;
 extern FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
@@ -15,6 +18,104 @@ void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegf
 void screensaver();
 void scope();
 void scope_render();
+
+namespace menu {
+
+// Helper to manage cursor position in settings-type menus.
+// The "fancy" mode tries to indicate that there may be more items by not
+// moving to line 0 until the first item is selected (and vice versa for end
+// of list).
+// Currently assumes there are at least 4 items!
+template <int screen_lines, bool fancy = true>
+class ScreenCursor {
+public:
+  ScreenCursor() { }
+  ~ScreenCursor() { }
+
+  void Init(int start, int end) {
+    editing_ = false;
+    start_ = start;
+    end_ = end;
+    cursor_pos_ = start;
+    screen_line_ = 0;
+  }
+
+  void AdjustEnd(int end) {
+    // WARN This has a specific use case where we don't have to adjust screen line!
+    end_ = end;
+  }
+
+  void Scroll(int amount) {
+    int pos = cursor_pos_ + amount;
+    CONSTRAIN(pos, start_, end_);
+    cursor_pos_ = pos;
+
+    int screen_line = screen_line_ + amount;
+    if (fancy) {
+      if (amount < 0) {
+        if (screen_line < 2) {
+          if (pos >= start_ + 1)
+            screen_line = 1;
+          else
+            screen_line = 0;
+        }
+      } else {
+        if (screen_line >= screen_lines - 2) {
+          if (pos <= end_ - 1)
+            screen_line = screen_lines - 2;
+          else
+            screen_line = screen_lines - 1;
+        }
+      }
+    } else {
+      CONSTRAIN(screen_line, 0, screen_lines - 1);
+    }
+    screen_line_ = screen_line;
+  }
+
+  inline int cursor_pos() const {
+    return cursor_pos_;
+  }
+
+  inline int first_visible() const {
+    return cursor_pos_ - screen_line_;
+  }
+
+  inline int last_visible() const {
+    return cursor_pos_ - screen_line_ + screen_lines - 1;
+  }
+
+  inline bool editing() const {
+    return editing_;
+  }
+
+  inline void toggle_editing() {
+    editing_ = !editing_;
+  }
+
+  inline void set_editing(bool enable) {
+    editing_ = enable;
+  }
+
+private:
+  bool editing_;
+
+  int start_, end_;
+  int cursor_pos_;
+  int screen_line_;
+};
+
+inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, const settings::value_attr &attr) {
+  const uint8_t *src = OC::bitmap_edit_indicators_8;
+  if (value == attr.max_)
+    src += OC::kBitmapEditIndicatorW * 2;
+  else if (value == attr.min_)
+    src += OC::kBitmapEditIndicatorW;
+
+  graphics.drawBitmap8(x - 5, y + 1, OC::kBitmapEditIndicatorW, src);
+}
+
+};
 
 #define MENU_DEFAULT_FONT nullptr
 

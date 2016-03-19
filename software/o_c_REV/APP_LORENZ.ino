@@ -139,9 +139,9 @@ SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
 
 LorenzGenerator lorenz_generator;
 struct {
-  int selected_param;
   bool selected_generator;
-  bool editing;
+
+  menu::ScreenCursor<kUiVisibleItems> cursor;
 } lorenz_generator_state;
 
 void FASTRUN LORENZ_isr() {
@@ -204,9 +204,8 @@ void FASTRUN LORENZ_isr() {
 }
 
 void LORENZ_init() {
-  lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
   lorenz_generator_state.selected_generator = 0; 
-  lorenz_generator_state.editing = false;
+  lorenz_generator_state.cursor.Init(LORENZ_SETTING_RHO1, LORENZ_SETTING_LAST - 1);
   lorenz_generator.Init();
 }
 
@@ -248,15 +247,16 @@ void LORENZ_menu() {
   }
   
 
-  int first_visible_param = lorenz_generator_state.selected_param - 3;
-  if (first_visible_param < LORENZ_SETTING_RHO1)
-    first_visible_param = LORENZ_SETTING_RHO1;
+  int first_visible = lorenz_generator_state.cursor.first_visible();
+  int last_visible = lorenz_generator_state.cursor.last_visible();
 
   UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, lorenz_generator_state.selected_param, 0)
-    UI_DRAW_EDITABLE(lorenz_generator_state.editing);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, lorenz_generator_state.cursor.cursor_pos(), 0)
+    const int value = lorenz_generator.get_value(current_item);
     const settings::value_attr &attr = LorenzGenerator::value_attr(current_item);
-    UI_DRAW_SETTING(attr, lorenz_generator.get_value(current_item), kUiWideMenuCol1X-12);
+    if (__selected && lorenz_generator_state.cursor.editing())
+      menu::DrawEditIcon(kUiWideMenuCol1X-12, y, value, attr);
+    UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X-12);
   UI_END_ITEMS_LOOP();
 }
 
@@ -292,7 +292,7 @@ void LORENZ_lowerButton() {
 }
 
 void LORENZ_rightButton() {
-  lorenz_generator_state.editing = !lorenz_generator_state.editing;
+  lorenz_generator_state.cursor.toggle_editing();
 }
 
 void LORENZ_leftButton() {
@@ -327,12 +327,10 @@ void LORENZ_handleEncoderEvent(const UI::Event &event) {
       lorenz_generator.change_value(LORENZ_SETTING_FREQ1, event.value);
     }
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (lorenz_generator_state.editing) {
-      lorenz_generator.change_value(lorenz_generator_state.selected_param, event.value);
+    if (lorenz_generator_state.cursor.editing()) {
+      lorenz_generator.change_value(lorenz_generator_state.cursor.cursor_pos(), event.value);
     } else {
-      int value = event.value + lorenz_generator_state.selected_param;
-      CONSTRAIN(value, LORENZ_SETTING_RHO1, LORENZ_SETTING_LAST - 1);
-      lorenz_generator_state.selected_param = value;
+      lorenz_generator_state.cursor.Scroll(event.value);
     }
   }
 }

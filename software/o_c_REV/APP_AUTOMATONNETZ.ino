@@ -164,6 +164,9 @@ public:
     memset(cells_, 0, sizeof(cells_));
     grid.Init(cells_);
     memset(&ui, 0, sizeof(ui));
+    ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
+    ui.grid_cursor.Init(GRID_SETTING_DX, GRID_SETTING_LAST - 1);
+
     history_ = 0;
     cell_transpose_ = cell_inversion_ = 0;
     user_actions_.Init();
@@ -243,9 +246,9 @@ public:
   struct {
     int selected_cell;
     bool edit_cell;
-    bool editing;
-    int selected_param;
-    int selected_cell_param;
+
+    menu::ScreenCursor<kUiVisibleItems> grid_cursor;
+    menu::ScreenCursor<kUiVisibleItems> cell_cursor;
   } ui;
 
 private:
@@ -463,12 +466,17 @@ void draw_cell_menu() {
   graphics.print(',');
   graphics.print(automatonnetz_state.ui.selected_cell % 5 + 1);
 
+  int first_visible = automatonnetz_state.ui.cell_cursor.first_visible();
+  int last_visible = automatonnetz_state.ui.cell_cursor.last_visible();
+
   UI_START_MENU(kMenuStartX);
-  UI_BEGIN_ITEMS_LOOP(kMenuStartX, 0, CELL_SETTING_LAST, automatonnetz_state.ui.selected_cell_param, 0)
-    UI_DRAW_EDITABLE(automatonnetz_state.ui.editing);
+  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, last_visible + 1, automatonnetz_state.ui.cell_cursor.cursor_pos(), 0)
     const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_cell);
+    const int value = cell.get_value(current_item);
     const settings::value_attr &attr = TransformCell::value_attr(current_item);
-    UI_DRAW_SETTING(attr, cell.get_value(current_item), 128 - 25);
+    if (__selected && automatonnetz_state.ui.cell_cursor.editing())
+      menu::DrawEditIcon(128 - 25, y, value, attr);
+    UI_DRAW_SETTING(attr, value, 128 - 25);
   UI_END_ITEMS_LOOP();
 }
 
@@ -487,40 +495,38 @@ void draw_grid_menu() {
   else
     graphics.print(" -");
 
-  int first_visible = automatonnetz_state.ui.selected_param - kUiVisibleItems + 1;
-  if (first_visible < 0)
-    first_visible = 0;
+  int first_visible = automatonnetz_state.ui.grid_cursor.first_visible();
+  int last_visible = automatonnetz_state.ui.grid_cursor.last_visible();
 
   UI_START_MENU(kMenuStartX);
-  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, GRID_SETTING_LAST, automatonnetz_state.ui.selected_param, 0)
-    UI_DRAW_EDITABLE(automatonnetz_state.ui.editing);
-
+  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, last_visible + 1, automatonnetz_state.ui.grid_cursor.cursor_pos(), 0)
+    const int value = automatonnetz_state.get_value(current_item);
     const settings::value_attr &attr = AutomatonnetzState::value_attr(current_item);
-    graphics.print(attr.name);
-    int value = automatonnetz_state.get_value(current_item);
-    if (attr.value_names) {
-      graphics.setPrintPos(128 - 25, y + 1);
-      graphics.print(attr.value_names[value]);
-    } else if (current_item <= GRID_SETTING_DY) {
+    if (current_item <= GRID_SETTING_DY) {
+      graphics.print(attr.name);
+      if (__selected && automatonnetz_state.ui.grid_cursor.editing())
+        menu::DrawEditIcon(128 - 31, y, value, attr);
       graphics.setPrintPos(128 - 31, y + 1);
       const int integral = value / 8;
       const int fraction = value % 8;
       if (integral || !fraction)
         graphics.print((char)('0' + value/8));
       if (fraction) {
-          if (integral)
-            graphics.print(' ');
-          graphics.print(clock_fraction_names[fraction]);
-        }
+        if (integral)
+          graphics.print(' ');
+        graphics.print(clock_fraction_names[fraction]);
+      }
+      UI_END_ITEM();
     } else {
-      graphics.setPrintPos(128 - 25, y + 1);
-      graphics.pretty_print(value);
+      if (__selected && automatonnetz_state.ui.grid_cursor.editing())
+        menu::DrawEditIcon(128 - 25, y, value, attr);
+      UI_DRAW_SETTING(attr, value, 128 - 25);
     }
-    UI_END_ITEM();
 
   UI_END_ITEMS_LOOP();
 }
-};
+
+}; // namespace automatonnetz
 
 void Automatonnetz_menu() {
   uint16_t row = 0, col = 0;
@@ -637,11 +643,13 @@ void Automatonnetz_handleButtonEvent(const UI::Event &event) {
         automatonnetz_state.AddUserAction(USER_ACTION_CLOCK);
         break;
       case OC::CONTROL_BUTTON_L:
-        automatonnetz_state.ui.edit_cell = !automatonnetz_state.ui.edit_cell;
-        automatonnetz_state.ui.editing = false;
+        automatonnetz_state.ui.edit_cell = !automatonnetz_state.ui.edit_cell;       
         break;
       case OC::CONTROL_BUTTON_R:
-        automatonnetz_state.ui.editing = !automatonnetz_state.ui.editing;
+        if (automatonnetz_state.ui.edit_cell)
+          automatonnetz_state.ui.cell_cursor.toggle_editing();
+        else
+          automatonnetz_state.ui.grid_cursor.toggle_editing();
         break;
     }
   } else {
@@ -661,25 +669,18 @@ void Automatonnetz_handleEncoderEvent(const UI::Event &event) {
     while (selected > 24) selected -= 25;
     automatonnetz_state.ui.selected_cell = selected;
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (automatonnetz_state.ui.editing) {
-      if (automatonnetz_state.ui.edit_cell) {
-        size_t selected_cell_param = automatonnetz_state.ui.selected_cell_param;
+    if (automatonnetz_state.ui.edit_cell) {
+      if (automatonnetz_state.ui.cell_cursor.editing()) {
         TransformCell &cell = automatonnetz_state.grid.mutable_cell(automatonnetz_state.ui.selected_cell);
-        cell.change_value(selected_cell_param, event.value);
+        cell.change_value(automatonnetz_state.ui.cell_cursor.cursor_pos(), event.value);
       } else {
-        size_t selected_param = automatonnetz_state.ui.selected_param;
-        automatonnetz_state.change_value(selected_param, event.value);
+        automatonnetz_state.ui.cell_cursor.Scroll(event.value);
       }
     } else {
-      int value = event.value;
-      if (automatonnetz_state.ui.edit_cell) {
-        value += automatonnetz_state.ui.selected_cell_param;
-        CONSTRAIN(value, 0, CELL_SETTING_LAST - 1);
-        automatonnetz_state.ui.selected_cell_param = value;
+      if (automatonnetz_state.ui.grid_cursor.editing()) {
+        automatonnetz_state.change_value(automatonnetz_state.ui.grid_cursor.cursor_pos(), event.value);
       } else {
-        value += automatonnetz_state.ui.selected_param;
-        CONSTRAIN(value, 0, GRID_SETTING_LAST - 1);
-        automatonnetz_state.ui.selected_param = value;
+        automatonnetz_state.ui.grid_cursor.Scroll(event.value);
       }
     }
   }

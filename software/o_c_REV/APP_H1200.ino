@@ -104,10 +104,8 @@ public:
   static constexpr int kMaxInversion = 3;
 
   void Init() {
-    cursor_pos = 0;
-    editing = false;
+    cursor.Init(H1200_SETTING_ROOT_OFFSET, H1200_SETTING_LAST - 1);
     display_notes = true;
-  
     tonnetz_state.init();
   }
 
@@ -119,8 +117,7 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
-  int cursor_pos;
-  bool editing;
+  menu::ScreenCursor<kUiVisibleItems> cursor;
   bool display_notes;
 
   TonnetzState tonnetz_state;
@@ -214,6 +211,7 @@ size_t H1200_restore(const void *storage) {
 void H1200_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
+      h1200_state.cursor.set_editing(false);
       h1200_state.tonnetz_state.reset(h1200_settings.mode());
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -245,32 +243,22 @@ void H1200_isr() {
 void H1200_loop() {
 }
 
-void H1200_topButton() {
-  if (h1200_settings.change_value(H1200_SETTING_INVERSION, 1)) {
-    h1200_state.force_update();
-  }
-}
-
-void H1200_lowerButton() {
-  if (h1200_settings.change_value(H1200_SETTING_INVERSION, -1)) {
-    h1200_state.force_update();
-  }
-}
-
 void H1200_handleButtonEvent(const UI::Event &event) {
   if (UI::EVENT_BUTTON_PRESS == event.type) {
     switch (event.control) {
       case OC::CONTROL_BUTTON_UP:
-        H1200_topButton();
+        if (h1200_settings.change_value(H1200_SETTING_INVERSION, 1))
+          h1200_state.force_update();
         break;
       case OC::CONTROL_BUTTON_DOWN:
-        H1200_lowerButton();
+        if (h1200_settings.change_value(H1200_SETTING_INVERSION, -1))
+          h1200_state.force_update();
         break;
       case OC::CONTROL_BUTTON_L:
         h1200_state.display_notes = !h1200_state.display_notes;
         break;
       case OC::CONTROL_BUTTON_R:
-        h1200_state.editing = !h1200_state.editing;
+        h1200_state.cursor.toggle_editing();
         break;
     }
   } else {
@@ -287,13 +275,11 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
     if (h1200_settings.change_value(H1200_SETTING_ROOT_OFFSET, event.value))
       h1200_state.force_update();
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (h1200_state.editing) {
-      if (h1200_settings.change_value(h1200_state.cursor_pos, event.value))
+    if (h1200_state.cursor.editing()) {
+      if (h1200_settings.change_value(h1200_state.cursor.cursor_pos(), event.value))
         h1200_state.force_update();
     } else {
-      int value = h1200_state.cursor_pos + event.value;
-      CONSTRAIN(value, 0, H1200_SETTING_LAST - 1);
-      h1200_state.cursor_pos = value;
+      h1200_state.cursor.Scroll(event.value);
     }
   }
 }
@@ -325,17 +311,16 @@ void H1200_menu() {
     }
   }
 
-  int first_visible = h1200_state.cursor_pos - 2;
-  if (first_visible < 0)
-    first_visible = 0;
-  else if (first_visible + kUiVisibleItems > H1200_SETTING_LAST)
-    first_visible = H1200_SETTING_LAST - kUiVisibleItems;
+  int first_visible = h1200_state.cursor.first_visible();
+  int last_visible = h1200_state.cursor.last_visible();
 
   UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, H1200_SETTING_LAST, h1200_state.cursor_pos, 0)
-    UI_DRAW_EDITABLE(h1200_state.editing);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, h1200_state.cursor.cursor_pos(), 0)
     const settings::value_attr &attr = H1200Settings::value_attr(current_item);
-    UI_DRAW_SETTING(attr, h1200_settings.get_value(current_item), kUiWideMenuCol1X);
+    const int value = h1200_settings.get_value(current_item);
+    if (__selected && h1200_state.cursor.editing())
+      menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
+    UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
 }
 
@@ -348,9 +333,6 @@ void H1200_screensaver() {
   static const weegfx::coord_t note_circle_x = 32;
   static const weegfx::coord_t note_circle_y = 32;
 
-  //u8g.setFont(u8g_font_timB12); BBX 19x27
-  //graphics.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
- 
   uint32_t history = h1200_state.tonnetz_state.history();
   int outputs[4];
   h1200_state.tonnetz_state.get_outputs(outputs);

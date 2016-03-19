@@ -121,7 +121,7 @@ void ScaleEditor<Owner>::Draw() {
   if (cursor_pos_ != num_notes) {
     graphics.print(' ');
     if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-      graphics.drawBitmap8(x + 1, y + 23, 6, OC::bitmap_edit_indicator_6x8);
+      graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
     graphics.print(scale_->notes[cursor_pos_], 4);
   } else {
     graphics.print((int)num_notes, 2);

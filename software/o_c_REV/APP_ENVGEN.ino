@@ -262,10 +262,10 @@ public:
 
     ui.left_encoder_value = 0;
     ui.left_edit_mode = MODE_SELECT_CHANNEL;
-    ui.editing = false;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
-    ui.selected_setting = ENV_SETTING_TRIGGER_INPUT;
+
+    ui.cursor.Init(ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
   }
 
   void ISR() {
@@ -291,11 +291,11 @@ public:
   struct {
     LeftEditMode left_edit_mode;
     int left_encoder_value;
-    bool editing;
 
     int selected_channel;
     int selected_segment;
-    int selected_setting;
+
+    menu::ScreenCursor<3> cursor;
   } ui;
 
   EnvelopeGenerator &selected() {
@@ -398,13 +398,15 @@ void ENVGEN_menu_settings() {
   graphics.print(' ');
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
 
-  int first_visible_param = envgen.ui.selected_setting - 2;
-  if (first_visible_param < ENV_SETTING_TRIGGER_INPUT)
-    first_visible_param = ENV_SETTING_TRIGGER_INPUT;
+  int first_visible = envgen.ui.cursor.first_visible();
+  int last_visible = envgen.ui.cursor.last_visible();
 
-  UI_BEGIN_ITEMS_LOOP(0, first_visible_param, ENV_SETTING_LAST, envgen.ui.selected_setting, 1);
-    UI_DRAW_EDITABLE(envgen.ui.editing);
-    UI_DRAW_SETTING(EnvelopeGenerator::value_attr(current_item), env.get_value(current_item), kUiWideMenuCol1X);
+  UI_BEGIN_ITEMS_LOOP(0, first_visible, last_visible + 1, envgen.ui.cursor.cursor_pos(), 1);
+    int value = env.get_value(current_item);
+    const settings::value_attr &attr = EnvelopeGenerator::value_attr(current_item);
+    if (__selected && envgen.ui.cursor.editing())
+      menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
+    UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
 }
 
@@ -450,7 +452,7 @@ void ENVGEN_rightButton() {
       envgen.ui.selected_segment = segment;
     }
   } else {
-    envgen.ui.editing = !envgen.ui.editing;
+    envgen.ui.cursor.toggle_editing();
   }
 }
 
@@ -458,6 +460,7 @@ void ENVGEN_leftButton() {
   if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.left_edit_mode) {
     envgen.selected().apply_value(ENV_SETTING_TYPE, envgen.ui.left_encoder_value);
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
+    envgen.ui.cursor.set_editing(false);
   } else {
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
@@ -500,13 +503,11 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
       CONSTRAIN(left_value, ENV_TYPE_FIRST, ENV_TYPE_LAST - 1);
       envgen.ui.left_encoder_value = left_value;
     } else if (OC::CONTROL_ENCODER_R == event.control) {
-      if (envgen.ui.editing) {
+      if (envgen.ui.cursor.editing()) {
         auto &selected_env = envgen.selected();
-        selected_env.change_value(envgen.ui.selected_setting, event.value);
+        selected_env.change_value(envgen.ui.cursor.cursor_pos(), event.value);
       } else {
-        int right_value = envgen.ui.selected_setting + event.value;
-        CONSTRAIN(right_value, ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
-        envgen.ui.selected_setting = right_value;
+        envgen.ui.cursor.Scroll(event.value);
       }
     }
   }

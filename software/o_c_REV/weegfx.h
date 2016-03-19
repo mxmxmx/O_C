@@ -69,6 +69,7 @@ public:
   void drawCircle(coord_t center_x, coord_t center_y, coord_t r);
 
   void setPrintPos(coord_t x, coord_t y);
+  void movePrintPos(coord_t dx, coord_t dy);
 
   void print(char);
   void print(int);
@@ -101,6 +102,11 @@ inline void Graphics::setPixel(coord_t x, coord_t y) {
 inline void Graphics::setPrintPos(coord_t x, coord_t y) {
   text_x_ = x;
   text_y_ = y;
+}
+
+inline void Graphics::movePrintPos(coord_t dx, coord_t dy) {
+  text_x_ += dx;
+  text_y_ += dy;
 }
 
 inline uint8_t *Graphics::get_frame_ptr(const coord_t x, const coord_t  y) {

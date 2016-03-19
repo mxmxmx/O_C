@@ -14,8 +14,6 @@
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
 
-// TODO Extend calibration to get exact octave spacing for inputs?
-
 enum ChannelSetting {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
@@ -325,6 +323,21 @@ public:
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
+  static bool indentSetting(ChannelSetting s) {
+    switch (s) {
+      case CHANNEL_SETTING_TURING_LENGTH:
+      case CHANNEL_SETTING_TURING_RANGE:
+      case CHANNEL_SETTING_TURING_PROB:
+      case CHANNEL_SETTING_LOGISTIC_MAP_R:
+      case CHANNEL_SETTING_LOGISTIC_MAP_RANGE:
+      case CHANNEL_SETTING_LOGISTIC_MAP_SEED:
+      case CHANNEL_SETTING_CLKDIV:
+        return true;
+      default: break;
+    }
+    return false;
+  }
+
 private:
   bool force_update_;
   int last_scale_;
@@ -368,16 +381,16 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 },
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "source", channel_input_sources, settings::STORAGE_TYPE_U4 },
   { CHANNEL_TRIGGER_CONTINUOUS, 0, CHANNEL_TRIGGER_LAST - 1, "trigger", channel_trigger_sources, settings::STORAGE_TYPE_U4 },
-  { 1, 1, 16, " clock div", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 1, 16, "clock div", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -999, 999, "fine", NULL, settings::STORAGE_TYPE_I16 },
-  { 16, 1, 32, " LFSR length", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, " LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, " LFSR range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, " Logistic r", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, " Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, " Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
+  { 16, 1, 32, "LFSR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "LFSR p", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
@@ -385,15 +398,20 @@ class QuadQuantizer {
 public:
   void Init() {
     selected_channel = 0;
-    cursor_pos = 0;
-    editing = false;
+    cursor.Init(CHANNEL_SETTING_SCALE, CHANNEL_SETTING_LAST - 1);
     scale_editor.Init();
   }
 
-  int selected_channel;
-  int cursor_pos;
-  bool editing;
+  inline bool editing() const {
+    return cursor.editing();
+  }
 
+  inline int cursor_pos() const {
+    return cursor.cursor_pos();
+  }
+
+  int selected_channel;
+  menu::ScreenCursor<kUiVisibleItems> cursor;
   OC::ScaleEditor<QuantizerChannel> scale_editor;
 };
 
@@ -407,6 +425,8 @@ void QQ_init() {
     quantizer_channels[i].Init(static_cast<ChannelSource>(CHANNEL_SOURCE_CV1 + i),
                                static_cast<ChannelTriggerSource>(CHANNEL_TRIGGER_TR1 + i));
   }
+
+  qq_state.cursor.AdjustEnd(quantizer_channels[0].num_enabled_settings() - 1);
 }
 
 size_t QQ_storageSize() {
@@ -427,6 +447,7 @@ size_t QQ_restore(const void *storage) {
     used += quantizer_channels[i].Restore(static_cast<const char*>(storage) + used);
     quantizer_channels[i].update_enabled_settings();
   }
+  qq_state.cursor.AdjustEnd(quantizer_channels[0].num_enabled_settings() - 1);
   return used;
 }
 
@@ -501,20 +522,21 @@ void QQ_menu() {
 
   UI_START_MENU(kStartX);
 
-  int first_visible = qq_state.cursor_pos - 2;
-  int last_visible = channel.num_enabled_settings();
-  if (first_visible < 0)
-    first_visible = 0;
-  else if (first_visible + kUiVisibleItems > last_visible)
-    first_visible = last_visible - kUiVisibleItems;
+  int first_visible = qq_state.cursor.first_visible();
+  int last_visible = qq_state.cursor.last_visible();
 
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible, qq_state.cursor_pos, 0)
-    UI_DRAW_EDITABLE(qq_state.editing);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, qq_state.cursor_pos(), 0)
     int setting = channel.enabled_setting_at(current_item);
+    const int value = channel.get_value(setting);
     const settings::value_attr &attr = QuantizerChannel::value_attr(setting);
+
     switch (setting) {
       case CHANNEL_SETTING_SCALE:
-        graphics.print(OC::scale_names[channel.get_scale()]);
+        if (__selected && qq_state.editing()) {
+          menu::DrawEditIcon(6, y, value, attr);
+          graphics.movePrintPos(6, 0);
+        }
+        graphics.print(OC::scale_names[value]);
         UI_END_ITEM();
         break;
       case CHANNEL_SETTING_MASK:
@@ -524,14 +546,24 @@ void QQ_menu() {
         break;
       case CHANNEL_SETTING_SOURCE:
         if (CHANNEL_SOURCE_TURING == channel.get_source()) {
+          int turing_length = channel.get_turing_length();
+          if (__selected && qq_state.editing()) {
+            int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
+            menu::DrawEditIcon(kUiDisplayWidth - w - 1, y, channel.get_source(), attr);
+          }
           graphics.print(attr.name);
-          draw_mask<true>(y, channel.get_shift_register(), channel.get_turing_length());
+          draw_mask<true>(y, channel.get_shift_register(), turing_length);
           UI_END_ITEM();
           break;
         }
-      default:
-        UI_DRAW_SETTING(attr, channel.get_value(setting), kUiWideMenuCol1X);
-        break;
+      default: {
+        if (__selected && qq_state.editing())
+          menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
+        if (QuantizerChannel::indentSetting(static_cast<ChannelSetting>(setting)))
+          graphics.movePrintPos(2, 0);
+        UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
+      }
+      break;
     }
   UI_END_ITEMS_LOOP();
 
@@ -578,12 +610,11 @@ void QQ_handleEncoderEvent(const UI::Event &event) {
     qq_state.selected_channel = selected_channel;
 
     QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
-    if (qq_state.cursor_pos > selected.num_enabled_settings())
-      qq_state.cursor_pos = selected.num_enabled_settings() - 1;
+    qq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
-    if (qq_state.editing) {
-      ChannelSetting setting = selected.enabled_setting_at(qq_state.cursor_pos);
+    if (qq_state.editing()) {
+      ChannelSetting setting = selected.enabled_setting_at(qq_state.cursor_pos());
       if (CHANNEL_SETTING_MASK != setting) {
         if (selected.change_value(setting, event.value))
           selected.force_update();
@@ -593,15 +624,14 @@ void QQ_handleEncoderEvent(const UI::Event &event) {
           case CHANNEL_SETTING_TRIGGER:
           case CHANNEL_SETTING_SOURCE:
             selected.update_enabled_settings();
+            qq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
           break;
           default:
           break;
         }
       }
     } else {
-      int cursor_pos = qq_state.cursor_pos + event.value;
-      CONSTRAIN(cursor_pos, 0, selected.num_enabled_settings() - 1);
-      qq_state.cursor_pos = cursor_pos;
+      qq_state.cursor.Scroll(event.value);
     }
   }
 }
@@ -621,27 +651,25 @@ void QQ_lowerButton() {
 }
 
 void QQ_rightButton() {
-  if (qq_state.editing) {
-    qq_state.editing = false;
-  } else {
-    QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
-    switch (selected.enabled_setting_at(qq_state.cursor_pos)) {
-      case CHANNEL_SETTING_MASK: {
-        int scale = selected.get_scale();
-        if (OC::Scales::SCALE_NONE != scale) {
-          qq_state.scale_editor.Edit(&selected, scale);
-        }
+  QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
+  switch (selected.enabled_setting_at(qq_state.cursor_pos())) {
+    case CHANNEL_SETTING_MASK: {
+      int scale = selected.get_scale();
+      if (OC::Scales::SCALE_NONE != scale) {
+        qq_state.scale_editor.Edit(&selected, scale);
       }
-      break;
-      default:
-        qq_state.editing = true;
-        break;
     }
+    break;
+    default:
+      qq_state.cursor.toggle_editing();
+      break;
   }
 }
 
 void QQ_leftButton() {
   qq_state.selected_channel = (qq_state.selected_channel + 1) & 3;
+  QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
+  qq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
 }
 
 void QQ_leftButtonLong() {

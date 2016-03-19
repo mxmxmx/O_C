@@ -310,9 +310,8 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
 struct ASRState {
  
   int left_encoder_value;
-  int selected_param;
-  bool editing;
 
+  menu::ScreenCursor<kUiVisibleItems> cursor;
   OC::ScaleEditor<ASR> scale_editor;
 };
 
@@ -324,8 +323,7 @@ void ASR_init() {
   asr.InitDefaults();
   asr.init();
   asr_state.left_encoder_value  = 0;
-  asr_state.selected_param = ASR_SETTING_ROOT;
-  asr_state.editing = false;
+  asr_state.cursor.Init(ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
   asr_state.scale_editor.Init();
 }
 
@@ -341,6 +339,7 @@ void ASR_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       asr_state.left_encoder_value = asr.get_scale();
+      asr_state.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
@@ -396,14 +395,12 @@ void ASR_handleEncoderEvent(const UI::Event &event) {
     CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
     asr_state.left_encoder_value = value;
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (asr_state.editing) {
-      if (ASR_SETTING_MASK != asr_state.selected_param) {
-        asr.change_value(asr_state.selected_param, event.value);
+    if (asr_state.cursor.editing()) {
+      if (ASR_SETTING_MASK != asr_state.cursor.cursor_pos()) {
+        asr.change_value(asr_state.cursor.cursor_pos(), event.value);
       }
     } else {
-      int selected_param = event.value + asr_state.selected_param;
-      CONSTRAIN(selected_param, ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
-      asr_state.selected_param = selected_param;
+      asr_state.cursor.Scroll(event.value);
     }
   }
 }
@@ -420,8 +417,8 @@ void ASR_lowerButton() {
 
 void ASR_rightButton() {
 
-  if (asr_state.selected_param != ASR_SETTING_MASK) {
-    asr_state.editing = !asr_state.editing;
+  if (asr_state.cursor.cursor_pos() != ASR_SETTING_MASK) {
+    asr_state.cursor.toggle_editing();
   } else {
     int scale = asr.get_scale();
     if (OC::Scales::SCALE_NONE != scale)
@@ -475,12 +472,14 @@ void ASR_menu() {
 
   UI_START_MENU(kStartX);
   
-  int first_visible_param = ASR_SETTING_ROOT;
+  int first_visible = asr_state.cursor.first_visible();
+  int last_visible = asr_state.cursor.last_visible();
   
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, ASR_SETTING_LAST, asr_state.selected_param, 0)
-    UI_DRAW_EDITABLE(asr_state.editing);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, asr_state.cursor.cursor_pos(), 0)
     const settings::value_attr &attr = ASR::value_attr(current_item);
     if (ASR_SETTING_MASK != current_item) {
+      if (__selected && asr_state.cursor.editing())
+        menu::DrawEditIcon(kUiWideMenuCol1X, y, asr.get_value(current_item), attr);
       UI_DRAW_SETTING(attr, asr.get_value(current_item), kUiWideMenuCol1X);
     } else {
       graphics.print(attr.name);

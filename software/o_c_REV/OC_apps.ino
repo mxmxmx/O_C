@@ -156,27 +156,6 @@ void restore_app_data() {
   SERIAL_PRINTLN("App data restored: %u, expected %u", restored_bytes, app_settings.used);
 }
 
-void draw_app_menu(int selected) {
-  GRAPHICS_BEGIN_FRAME(true);
-
-  graphics.setFont(MENU_DEFAULT_FONT);
-  int first = selected - 4;
-  if (first < 0) first = 0;
-
-  const weegfx::coord_t xstart = 0;
-  weegfx::coord_t y = (64 - (5 * kUiLineH)) / 2;
-  for (int i = 0, current = first; i < 5 && current < NUM_AVAILABLE_APPS; ++i, ++current, y += kUiLineH) {
-    UI_SETUP_ITEM(current == selected);
-    graphics.print(' ');
-    graphics.print(available_apps[current].name);
-    if (global_settings.current_app_id == available_apps[current].id)
-       graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
-    UI_END_ITEM();
-  }
-
-  GRAPHICS_END_FRAME();
-}
-
 void set_current_app(int index) {
   OC::current_app = &available_apps[index];
   global_settings.current_app_id = OC::current_app->id;
@@ -250,13 +229,33 @@ void OC::APPS::Init(bool use_defaults) {
   delay(100);
 }
 
+void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
+  GRAPHICS_BEGIN_FRAME(true);
+
+  const weegfx::coord_t xstart = 0;
+  weegfx::coord_t y = (64 - (5 * kUiLineH)) / 2;
+  for (int current = cursor.first_visible(); current <= cursor.last_visible(); ++current, y += kUiLineH) {
+    UI_SETUP_ITEM(current == cursor.cursor_pos());
+    graphics.print(' ');
+    graphics.print(available_apps[current].name);
+    if (global_settings.current_app_id == available_apps[current].id)
+       graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
+    UI_END_ITEM();
+  }
+
+  GRAPHICS_END_FRAME();
+}
+
 void OC::Ui::SelectApp() {
 
   SetButtonIgnoreMask();
 
   OC::current_app->HandleAppEvent(OC::APP_EVENT_SUSPEND);
 
-  int selected = APPS::index_of(global_settings.current_app_id);
+  menu::ScreenCursor<5> cursor;
+  cursor.Init(0, NUM_AVAILABLE_APPS - 1);
+  cursor.Scroll(APPS::index_of(global_settings.current_app_id));
+
   bool change_app = false;
   bool save = false;
   while (!change_app && idle_time() < APP_SELECTION_TIMEOUT_MS) {
@@ -267,8 +266,7 @@ void OC::Ui::SelectApp() {
         continue;
 
       if (UI::EVENT_ENCODER == event.type && OC::CONTROL_ENCODER_R == event.control) {
-        selected += event.value;
-        CONSTRAIN(selected, 0, NUM_AVAILABLE_APPS - 1);
+        cursor.Scroll(event.value);
       } else if (OC::CONTROL_BUTTON_R == event.control) {
         save = event.type == UI::EVENT_BUTTON_LONG_PRESS;
         change_app = true;
@@ -277,7 +275,7 @@ void OC::Ui::SelectApp() {
       }
     }
 
-    draw_app_menu(selected);
+    draw_app_menu(cursor);
   }
 
   event_queue_.Flush();
@@ -287,7 +285,7 @@ void OC::Ui::SelectApp() {
   delay(1);
 
   if (change_app) {
-    set_current_app(selected);
+    set_current_app(cursor.cursor_pos());
     if (save) {
       save_global_settings();
       save_app_data();
