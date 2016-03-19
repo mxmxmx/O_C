@@ -337,7 +337,7 @@ size_t ASR_restore(const void *storage) {
   return asr.Restore(storage);
 }
 
-void ASR_handleEvent(OC::AppEvent event) {
+void ASR_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       asr_state.left_encoder_value = asr.get_scale();
@@ -360,7 +360,7 @@ void ASR_isr() {
 void ASR_handleEncoderEvent(const UI::Event &event) {
 
   if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handleEncoderEvent(event);
+    asr_state.scale_editor.HandleEncoderEvent(event);
     return;
   }
 

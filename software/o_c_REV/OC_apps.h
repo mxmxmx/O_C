@@ -29,11 +29,11 @@ struct App {
   size_t (*Save)(void *);
   size_t (*Restore)(const void *);
 
-  void (*handleEvent)(AppEvent); // Generic event handler
+  void (*HandleAppEvent)(AppEvent); // Generic event handler
 
   void (*loop)(); // main loop function
-  void (*draw_menu)(); 
-  void (*draw_screensaver)();
+  void (*DrawMenu)(); 
+  void (*DrawScreensaver)();
 
   void (*top_button)();
   void (*lower_button)();
@@ -41,7 +41,7 @@ struct App {
   void (*left_button)();
   void (*left_button_long)();
 
-  void (*handleEncoderEvent)(const UI::Event &);
+  void (*HandleEncoderEvent)(const UI::Event &);
 
   void (*isr)();
 };

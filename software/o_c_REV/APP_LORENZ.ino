@@ -271,7 +271,7 @@ void LORENZ_screensaver() {
   GRAPHICS_END_FRAME();
 }
 
-void LORENZ_handleEvent(OC::AppEvent event) {
+void LORENZ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       break;

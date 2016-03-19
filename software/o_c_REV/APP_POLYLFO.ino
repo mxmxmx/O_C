@@ -192,7 +192,7 @@ void POLYLFO_screensaver() {
   GRAPHICS_END_FRAME();
 }
 
-void POLYLFO_handleEvent(OC::AppEvent event) {
+void POLYLFO_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       break;

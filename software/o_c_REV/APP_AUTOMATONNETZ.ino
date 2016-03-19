@@ -626,7 +626,7 @@ size_t Automatonnetz_restore(const void *dest) {
   return used;
 }
 
-void Automatonnetz_handleEvent(OC::AppEvent event) {
+void Automatonnetz_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       automatonnetz_state.AddUserAction(USER_ACTION_RESET);

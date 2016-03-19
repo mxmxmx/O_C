@@ -168,9 +168,9 @@ void FASTRUN loop() {
     // Refresh display
     if (MENU_REDRAW) {
       if (OC::UI_MODE_MENU == ui_mode)
-        OC::current_app->draw_menu();
+        OC::current_app->DrawMenu();
       else
-        OC::current_app->draw_screensaver();
+        OC::current_app->DrawScreensaver();
       // MENU_REDRAW reset in GRAPHICS_END_FRAME if drawn
     }
 
@@ -183,9 +183,9 @@ void FASTRUN loop() {
     // State transition for app
     if (mode != ui_mode) {
       if (OC::UI_MODE_SCREENSAVER == mode)
-        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER_ON);
+        OC::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
       else
-        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER_OFF);
+        OC::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
       ui_mode = mode;
     }
 

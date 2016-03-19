@@ -130,7 +130,7 @@ UiMode Ui::DispatchEvents(App *app) {
         break;
 
       case UI::EVENT_ENCODER:
-        app->handleEncoderEvent(event);
+        app->HandleEncoderEvent(event);
         break;
       default:
         break;

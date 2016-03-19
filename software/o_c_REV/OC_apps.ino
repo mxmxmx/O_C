@@ -3,7 +3,7 @@
 #define DECLARE_APP(a, b, name, prefix, isr) \
 { TWOCC<a,b>::value, name, \
   prefix ## _init, prefix ## _storageSize, prefix ## _save, prefix ## _restore, \
-  prefix ## _handleEvent, \
+  prefix ## _handleAppEvent, \
   prefix ## _loop, prefix ## _menu, prefix ## _screensaver, \
   prefix ## _topButton, prefix ## _lowerButton, \
   prefix ## _rightButton, prefix ## _leftButton, prefix ## _leftButtonLong, \
@@ -246,7 +246,7 @@ void OC::APPS::Init(bool use_defaults) {
   }
 
   set_current_app(current_app_index);
-  OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
+  OC::current_app->HandleAppEvent(OC::APP_EVENT_RESUME);
 
   delay(100);
 }
@@ -255,7 +255,7 @@ void OC::Ui::SelectApp() {
 
   SetButtonIgnoreMask();
 
-  OC::current_app->handleEvent(OC::APP_EVENT_SUSPEND);
+  OC::current_app->HandleAppEvent(OC::APP_EVENT_SUSPEND);
 
   int selected = APPS::index_of(global_settings.current_app_id);
   bool change_app = false;
@@ -296,6 +296,6 @@ void OC::Ui::SelectApp() {
   }
 
   // Restore state
-  OC::current_app->handleEvent(OC::APP_EVENT_RESUME);
+  OC::current_app->HandleAppEvent(OC::APP_EVENT_RESUME);
   OC::CORE::app_isr_enabled = true;
 }

@@ -334,7 +334,7 @@ size_t ENVGEN_restore(const void *storage) {
   return s;
 }
 
-void ENVGEN_handleEvent(OC::AppEvent event) {
+void ENVGEN_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       break;

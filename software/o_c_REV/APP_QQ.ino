@@ -430,7 +430,7 @@ size_t QQ_restore(const void *storage) {
   return used;
 }
 
-void QQ_handleEvent(OC::AppEvent event) {
+void QQ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       break;
@@ -545,7 +545,7 @@ void QQ_menu() {
 
 void QQ_handleEncoderEvent(const UI::Event &event) {
   if (qq_state.scale_editor.active()) {
-    qq_state.scale_editor.handleEncoderEvent(event);
+    qq_state.scale_editor.HandleEncoderEvent(event);
     return;
   }
 

@@ -209,7 +209,7 @@ size_t H1200_restore(const void *storage) {
   return h1200_settings.Restore(storage);
 }
 
-void H1200_handleEvent(OC::AppEvent event) {
+void H1200_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       h1200_state.tonnetz_state.reset(h1200_settings.mode());
