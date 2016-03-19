@@ -9,7 +9,7 @@
 #include "extern/dspinst.h"
 
 extern void POLYLFO_debug();
-extern void LORENZ_debug();
+extern void BBGEN_debug();
 
 namespace OC {
 
@@ -95,7 +95,7 @@ static const DebugMenu debug_menus[] = {
   { " GFX", debug_menu_gfx },
   { " ADC", debug_menu_adc },
   { " POLYLFO", POLYLFO_debug },
-  { " LORENZ", LORENZ_debug },
+  { " BBGEN", BBGEN_debug },
   { nullptr, nullptr }
 };
 

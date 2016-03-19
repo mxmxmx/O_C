@@ -4,14 +4,14 @@
 #include "OC_strings.h"
 #include "util/util_math.h"
 #include "util/util_settings.h"
-#include "util_ui.h"
+#include "OC_menus.h"
 #include "peaks_bouncing_balls.h"
 
 enum BouncingBallSettings {
-  BB_SETTING_INITIAL_AMPLITUDE,
-  BB_SETTING_INITIAL_VELOCITY,
   BB_SETTING_GRAVITY,
   BB_SETTING_BOUNCE_LOSS,
+  BB_SETTING_INITIAL_AMPLITUDE,
+  BB_SETTING_INITIAL_VELOCITY,
   BB_SETTING_TRIGGER_INPUT,
   BB_SETTING_CV1,
   BB_SETTING_CV2,
@@ -23,10 +23,10 @@ enum BouncingBallSettings {
 
 enum BallCVMapping {
   BB_CV_MAPPING_NONE,
-  BB_CV_MAPPING_INITIAL_AMPLITUDE,
-  BB_CV_MAPPING_INITIAL_VELOCITY,
   BB_CV_MAPPING_GRAVITY,
   BB_CV_MAPPING_BOUNCE_LOSS,
+  BB_CV_MAPPING_INITIAL_AMPLITUDE,
+  BB_CV_MAPPING_INITIAL_VELOCITY,
   BB_CV_MAPPING_LAST
 };
 
@@ -80,26 +80,32 @@ public:
 
   inline void apply_cv_mapping(BouncingBallSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxBouncingBallParameters]) {
     int mapping = values_[cv_setting];
+    uint8_t bb_cv_rshift = 12 ;
     switch (mapping) {
-      case BB_CV_MAPPING_INITIAL_AMPLITUDE:
-      case BB_CV_MAPPING_INITIAL_VELOCITY:
       case BB_CV_MAPPING_GRAVITY:
       case BB_CV_MAPPING_BOUNCE_LOSS:
-        segments[mapping - BB_CV_MAPPING_INITIAL_AMPLITUDE] += (cvs[cv_setting - BB_SETTING_CV1] * 65536) >> 12;
+        bb_cv_rshift = 13 ;
+        break ;
+      case BB_CV_MAPPING_INITIAL_AMPLITUDE:
+        bb_cv_rshift = 12 ;
+        break;
+      case BB_CV_MAPPING_INITIAL_VELOCITY:
+        bb_cv_rshift = 13 ;
         break;
       default:
         break;
     }
+    segments[mapping - BB_CV_MAPPING_GRAVITY] += (cvs[cv_setting - BB_SETTING_CV1] * 65536) >> bb_cv_rshift ;
   }
 
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
     int32_t s[kMaxBouncingBallParameters];
-    s[0] = SCALE8_16(static_cast<int32_t>(get_initial_amplitude()));
-    s[1] = SCALE8_16(static_cast<int32_t>(get_initial_velocity()));
-    s[2] = SCALE8_16(static_cast<int32_t>(get_gravity()));
-    s[3] = SCALE8_16(static_cast<int32_t>(get_bounce_loss()));
+    s[0] = SCALE8_16(static_cast<int32_t>(get_gravity()));
+    s[1] = SCALE8_16(static_cast<int32_t>(get_bounce_loss()));
+    s[2] = SCALE8_16(static_cast<int32_t>(get_initial_amplitude()));
+    s[3] = SCALE8_16(static_cast<int32_t>(get_initial_velocity()));
 
     apply_cv_mapping(BB_SETTING_CV1, cvs, s);
     apply_cv_mapping(BB_SETTING_CV2, cvs, s);
@@ -147,19 +153,19 @@ void BouncingBall::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const bb_cv_mapping_names[BB_CV_MAPPING_LAST] = {
-  "off", "ampl", "vel", "grav", "bnce"
+  "off", "grav", "bnce", "ampl", "vel" 
 };
 
 SETTINGS_DECLARE(BouncingBall, BB_SETTING_LAST) {
-  { 255, 0, 255, "Amplitude", NULL, settings::STORAGE_TYPE_U8 }, // could be U8??? (also in ENVGEN)
-  { 0, 0, 255, "Velocity", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "Gravity", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "Bounce loss", NULL, settings::STORAGE_TYPE_U8 },
+  { 96, 0, 255, "Bounce loss", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "Amplitude", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 228, 0, 255, "Velocity", NULL, settings::STORAGE_TYPE_U8 },
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
-  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_BOUNCE_LOSS, "CV1 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_BOUNCE_LOSS, "CV2 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_BOUNCE_LOSS, "CV3 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_BOUNCE_LOSS, "CV4 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV1 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV2 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV3 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV4 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
 };
 
@@ -178,7 +184,7 @@ public:
     }
 
     ui.left_encoder_value = 0;
-    ui.left_edit_mode = MODE_SELECT_CHANNEL;
+    ui.left_edit_mode = MODE_EDIT_SETTINGS;
     ui.editing = false;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
@@ -276,8 +282,8 @@ void BBGEN_menu_settings() {
   UI_START_MENU(0);
 
   int first_visible_param = bbgen.ui.selected_setting - 3;
-  if (first_visible_param < BB_SETTING_INITIAL_AMPLITUDE)
-    first_visible_param = BB_SETTING_INITIAL_AMPLITUDE;
+  if (first_visible_param < BB_SETTING_GRAVITY)
+    first_visible_param = BB_SETTING_GRAVITY;
 
   UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, BB_SETTING_LAST, bbgen.ui.selected_setting, 0); // was 1
     UI_DRAW_EDITABLE(bbgen.ui.editing);
@@ -307,12 +313,12 @@ void BBGEN_menu() {
 
 void BBGEN_topButton() {
   auto &selected_bb = bbgen.selected();
-  selected_bb.change_value(BB_SETTING_INITIAL_AMPLITUDE + bbgen.ui.selected_segment, 32);
+  selected_bb.change_value(BB_SETTING_GRAVITY + bbgen.ui.selected_segment, 32);
 }
 
 void BBGEN_lowerButton() {
   auto &selected_bb = bbgen.selected();
-  selected_bb.change_value(BB_SETTING_INITIAL_AMPLITUDE + bbgen.ui.selected_segment, -32); 
+  selected_bb.change_value(BB_SETTING_GRAVITY + bbgen.ui.selected_segment, -32); 
 }
 
 void BBGEN_rightButton() {
@@ -322,11 +328,11 @@ void BBGEN_rightButton() {
 }
 
 void BBGEN_leftButton() {
-  if (QuadBouncingBalls::MODE_EDIT_SETTINGS == bbgen.ui.left_edit_mode) {
-    bbgen.ui.left_edit_mode = QuadBouncingBalls::MODE_SELECT_CHANNEL;
-  } else {
-    bbgen.ui.left_edit_mode = QuadBouncingBalls::MODE_EDIT_SETTINGS;
-  }
+//  if (QuadBouncingBalls::MODE_EDIT_SETTINGS == bbgen.ui.left_edit_mode) {
+//    bbgen.ui.left_edit_mode = QuadBouncingBalls::MODE_SELECT_CHANNEL;
+//  } else {
+//    bbgen.ui.left_edit_mode = QuadBouncingBalls::MODE_EDIT_SETTINGS;
+//  }
   encoder[LEFT].setPos(0);
   encoder[RIGHT].setPos(0);  
 }
@@ -346,16 +352,21 @@ bool BBGEN_encoders() {
     }
     if (right_value) {
       auto &selected_bb = bbgen.selected();
-      selected_bb.change_value(BB_SETTING_INITIAL_AMPLITUDE + bbgen.ui.selected_segment, right_value);
+      selected_bb.change_value(BB_SETTING_GRAVITY + bbgen.ui.selected_segment, right_value);
     }
   } else {
+    if (left_value) {
+      left_value += bbgen.ui.selected_channel;
+      CONSTRAIN(left_value, 0, 3);
+      bbgen.ui.selected_channel = left_value;
+    }
     if (right_value) {
       if (bbgen.ui.editing) {
         auto &selected_bb = bbgen.selected();
         selected_bb.change_value(bbgen.ui.selected_setting, right_value);
       } else {
         right_value += bbgen.ui.selected_setting;
-        CONSTRAIN(right_value, BB_SETTING_INITIAL_AMPLITUDE, BB_SETTING_LAST - 1);
+        CONSTRAIN(right_value, BB_SETTING_GRAVITY, BB_SETTING_LAST - 1);
         bbgen.ui.selected_setting = right_value;
       }
     }
@@ -364,6 +375,17 @@ bool BBGEN_encoders() {
   encoder[LEFT].setPos(0);
   encoder[RIGHT].setPos(0);
   return changed;
+}
+
+void BBGEN_debug() {
+  graphics.setPrintPos(2, 12);
+  graphics.print(bbgen.cv1.value());
+  graphics.setPrintPos(2, 22);
+  graphics.print(bbgen.cv2.value());
+  graphics.setPrintPos(2, 32);
+  graphics.print(bbgen.cv3.value());
+  graphics.setPrintPos(2, 42);
+  graphics.print(bbgen.cv4.value());
 }
 
 void BBGEN_screensaver() {

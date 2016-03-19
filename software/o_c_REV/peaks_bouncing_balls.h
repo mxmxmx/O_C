@@ -64,7 +64,7 @@ class BouncingBall {
       set_gravity(parameter[0]);
       set_bounce_loss(parameter[1]);
     } else {
-      set_gravity(parameter[0]);
+      set_gravity(65535 - parameter[0]);
       set_bounce_loss(parameter[1]);
       set_initial_amplitude(parameter[2]);
       set_initial_velocity(parameter[3] - 32768);
@@ -74,8 +74,15 @@ class BouncingBall {
   inline int16_t ProcessSingleSample(uint8_t control) {
     uint16_t const kMaxPos = 32767L ;
     if (control & CONTROL_GATE_RISING) {
-      velocity_ = initial_velocity_;
-      position_ = initial_amplitude_;
+      if (hard_reset_) {
+        velocity_ = initial_velocity_;
+        position_ = initial_amplitude_;
+      } else {
+        velocity_ += initial_velocity_ ;
+        if (velocity_ > initial_velocity_) {
+          velocity_ = initial_velocity_ ;
+        }
+      }
     }
     velocity_ -= gravity_;
     position_ += velocity_;
@@ -95,9 +102,9 @@ class BouncingBall {
   }
   
   inline void set_bounce_loss(uint16_t bounce_loss) {
-    uint32_t b = 65535 - bounce_loss;
+    uint32_t b = bounce_loss;
     b = b * b >> 16;
-    bounce_loss_ = 4095 - (b >> 4);
+    bounce_loss_ = 4095 - (b >> 4); // was 4
   }
 
   inline void set_initial_amplitude(uint16_t initial_amplitude) {
@@ -105,7 +112,7 @@ class BouncingBall {
   }
   
   inline void set_initial_velocity(int16_t initial_velocity) {
-    initial_velocity_ = static_cast<int32_t>(initial_velocity) << 4;
+    initial_velocity_ = static_cast<int32_t>(initial_velocity) << 4; // was 4
   }
 
   inline void set_hard_reset(bool hard_reset) {
