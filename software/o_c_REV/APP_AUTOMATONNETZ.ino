@@ -668,6 +668,28 @@ void Automatonnetz_leftButtonLong() {
   automatonnetz_state.AddUserAction(USER_ACTION_RESET);
 }
 
+void Automatonnetz_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        Automatonnetz_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        Automatonnetz_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        Automatonnetz_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        Automatonnetz_rightButton();
+        break;
+    }
+  } else {
+    if (OC::CONTROL_BUTTON_L == event.control)
+      Automatonnetz_leftButtonLong();
+  }
+}
+
 void Automatonnetz_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {

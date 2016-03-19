@@ -203,27 +203,26 @@ void POLYLFO_handleAppEvent(OC::AppEvent event) {
   }
 }
 
-void POLYLFO_topButton() {
-  poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
-}
-
-void POLYLFO_lowerButton() {
-  poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
-}
-
-void POLYLFO_rightButton() {
-  poly_lfo_state.editing = !poly_lfo_state.editing;
-}
-
-void POLYLFO_leftButton() {
-  if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode) {
-    poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
-  } else {
-    poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+void POLYLFO_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
+        break;
+      case OC::CONTROL_BUTTON_L:
+      if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode)
+        poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
+      else
+        poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+      break;
+      case OC::CONTROL_BUTTON_R:
+        poly_lfo_state.editing = !poly_lfo_state.editing;
+        break;
+    }
   }
-}
-
-void POLYLFO_leftButtonLong() {
 }
 
 void POLYLFO_handleEncoderEvent(const UI::Event &event) {

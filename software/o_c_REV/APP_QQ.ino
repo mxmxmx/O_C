@@ -543,6 +543,33 @@ void QQ_menu() {
   GRAPHICS_END_FRAME();
 }
 
+void QQ_handleButtonEvent(const UI::Event &event) {
+  if (qq_state.scale_editor.active()) {
+    qq_state.scale_editor.HandleButtonEvent(event);
+    return;
+  }
+
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        QQ_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        QQ_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        QQ_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        QQ_rightButton();
+        break;
+    }
+  } else {
+    if (OC::CONTROL_BUTTON_L == event.control)
+      QQ_leftButtonLong();
+  }
+}
+
 void QQ_handleEncoderEvent(const UI::Event &event) {
   if (qq_state.scale_editor.active()) {
     qq_state.scale_editor.HandleEncoderEvent(event);
@@ -584,11 +611,6 @@ void QQ_handleEncoderEvent(const UI::Event &event) {
 }
 
 void QQ_topButton() {
-  if (qq_state.scale_editor.active()) {
-    qq_state.scale_editor.handle_topButton();
-    return;
-  }
-
   QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   if (selected.change_value(CHANNEL_SETTING_OCTAVE, 1)) {
     selected.force_update();
@@ -596,11 +618,6 @@ void QQ_topButton() {
 }
 
 void QQ_lowerButton() {
-  if (qq_state.scale_editor.active()) {
-    qq_state.scale_editor.handle_bottomButton();
-    return;
-  }
-
   QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   if (selected.change_value(CHANNEL_SETTING_OCTAVE, -1)) {
     selected.force_update();
@@ -608,11 +625,6 @@ void QQ_lowerButton() {
 }
 
 void QQ_rightButton() {
-  if (qq_state.scale_editor.active()) {
-    qq_state.scale_editor.handle_rightButton();
-    return;
-  }
-
   if (qq_state.editing) {
     qq_state.editing = false;
   } else {
@@ -633,20 +645,10 @@ void QQ_rightButton() {
 }
 
 void QQ_leftButton() {
-  if (qq_state.scale_editor.active()) {
-    qq_state.scale_editor.handle_leftButton();
-    return;
-  }
-
   qq_state.selected_channel = (qq_state.selected_channel + 1) & 3;
 }
 
 void QQ_leftButtonLong() {
-  if (qq_state.scale_editor.active()) {
-    qq_state.scale_editor.handle_leftButtonLong();
-    return;
-  }
-
   QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
   int scale = selected_channel.get_scale();
   int root = selected_channel.get_root();

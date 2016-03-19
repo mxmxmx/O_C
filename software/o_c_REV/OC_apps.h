@@ -35,12 +35,7 @@ struct App {
   void (*DrawMenu)(); 
   void (*DrawScreensaver)();
 
-  void (*top_button)();
-  void (*lower_button)();
-  void (*right_button)();
-  void (*left_button)();
-  void (*left_button_long)();
-
+  void (*HandleButtonEvent)(const UI::Event &);
   void (*HandleEncoderEvent)(const UI::Event &);
 
   void (*isr)();

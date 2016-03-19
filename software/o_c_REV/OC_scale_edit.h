@@ -54,12 +54,8 @@ public:
   }
 
   void Draw();
+  void HandleButtonEvent(const UI::Event &event);
   void HandleEncoderEvent(const UI::Event &event);
-  void handle_leftButton();
-  void handle_leftButtonLong();
-  void handle_rightButton();
-  void handle_topButton();
-  void handle_bottomButton();
 
 private:
 
@@ -92,6 +88,9 @@ private:
 
   void reset_scale();
   void change_note(size_t pos, int delta, bool notify);
+  void handleButtonLeft(const UI::Event &event);
+  void handleButtonUp(const UI::Event &event);
+  void handleButtonDown(const UI::Event &event);
 };
 
 template <typename Owner>
@@ -143,6 +142,26 @@ void ScaleEditor<Owner>::Draw() {
     graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
     if (cursor_pos_ == num_notes)
       graphics.drawFrame(x - 2, y - 2, 8, 12);
+  }
+}
+
+template <typename Owner>
+void ScaleEditor<Owner>::HandleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        handleButtonUp(event);
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        handleButtonDown(event);
+        break;
+      case OC::CONTROL_BUTTON_L:
+        handleButtonLeft(event);
+        break;
+      case OC::CONTROL_BUTTON_R:
+        Close();
+        break;
+    }
   }
 }
 
@@ -213,31 +232,31 @@ void ScaleEditor<Owner>::move_cursor(int offset) {
 }
 
 template <typename Owner>
-void ScaleEditor<Owner>::handle_topButton() {
-/*
-  if (button_left.pressed()) {
+void ScaleEditor<Owner>::handleButtonUp(const UI::Event &event) {
+
+  if (event.mask & OC::CONTROL_BUTTON_L) {
+    OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
     if (cursor_pos_ == num_notes_)
       reset_scale();
     else
       change_note(cursor_pos_, 128, true);
+  } else {
+    invert_mask();
   }
-  else
-    invert_mask();
-*/
 }
 
 template <typename Owner>
-void ScaleEditor<Owner>::handle_bottomButton() {
-/*
-  if (button_left.pressed())
+void ScaleEditor<Owner>::handleButtonDown(const UI::Event &event) {
+  if (event.mask & OC::CONTROL_BUTTON_L) {
+    OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
     change_note(cursor_pos_, -128, true);
-  else
+  } else {
     invert_mask();
-*/
+  }
 }
 
 template <typename Owner>
-void ScaleEditor<Owner>::handle_leftButton() {
+void ScaleEditor<Owner>::handleButtonLeft(const UI::Event &) {
   uint16_t m = 0x1 << cursor_pos_;
   uint16_t mask = mask_;
 
@@ -250,17 +269,7 @@ void ScaleEditor<Owner>::handle_leftButton() {
       mask |= m;
     }
     apply_mask(mask);
-    return;
   }
-}
-
-template <typename Owner>
-void ScaleEditor<Owner>::handle_leftButtonLong() {
-}
-
-template <typename Owner>
-void ScaleEditor<Owner>::handle_rightButton() {
-  Close();
 }
 
 template <typename Owner>

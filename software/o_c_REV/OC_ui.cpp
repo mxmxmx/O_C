@@ -117,18 +117,14 @@ UiMode Ui::DispatchEvents(App *app) {
 
     switch (event.type) {
       case UI::EVENT_BUTTON_PRESS:
-        switch (event.control) {
-          case OC::CONTROL_BUTTON_UP: app->top_button(); break;
-          case OC::CONTROL_BUTTON_DOWN: app->lower_button(); break;
-          case OC::CONTROL_BUTTON_L: app->left_button(); break;
-          case OC::CONTROL_BUTTON_R: app->right_button(); break;
-          default: break;
-        }
+        app->HandleButtonEvent(event);
         break;
       case UI::EVENT_BUTTON_LONG_PRESS:
-        app->left_button_long();
+        if (OC::CONTROL_BUTTON_R != event.control)
+          app->HandleButtonEvent(event);
+        else
+          return UI_MODE_SELECT_APP;
         break;
-
       case UI::EVENT_ENCODER:
         app->HandleEncoderEvent(event);
         break;

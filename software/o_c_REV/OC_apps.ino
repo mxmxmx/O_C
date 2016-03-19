@@ -5,8 +5,7 @@
   prefix ## _init, prefix ## _storageSize, prefix ## _save, prefix ## _restore, \
   prefix ## _handleAppEvent, \
   prefix ## _loop, prefix ## _menu, prefix ## _screensaver, \
-  prefix ## _topButton, prefix ## _lowerButton, \
-  prefix ## _rightButton, prefix ## _leftButton, prefix ## _leftButtonLong, \
+  prefix ## _handleButtonEvent, \
   prefix ## _handleEncoderEvent, \
   isr \
 }

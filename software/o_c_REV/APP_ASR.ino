@@ -357,6 +357,33 @@ void ASR_isr() {
   asr.update();
 }
 
+void ASR_handleButtonEvent(const UI::Event &event) {
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.HandleButtonEvent(event);
+    return;
+  }
+
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        ASR_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        ASR_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        ASR_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        ASR_rightButton();
+        break;
+    }
+  } else {
+    if (OC::CONTROL_BUTTON_L == event.control)
+      ASR_leftButtonLong();
+  }
+}
+
 void ASR_handleEncoderEvent(const UI::Event &event) {
 
   if (asr_state.scale_editor.active()) {
@@ -393,11 +420,6 @@ void ASR_lowerButton() {
 
 void ASR_rightButton() {
 
-  if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handle_rightButton();
-    return;
-  }
-
   if (asr_state.selected_param != ASR_SETTING_MASK) {
     asr_state.editing = !asr_state.editing;
   } else {
@@ -408,22 +430,12 @@ void ASR_rightButton() {
 }
 
 void ASR_leftButton() {
- 
-  if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handle_leftButton();
-    return;
-  }
-  
+
   if (asr_state.left_encoder_value != asr.get_scale())
     asr.set_scale(asr_state.left_encoder_value);
 }
 
 void ASR_leftButtonLong() {
-
-  if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handle_leftButtonLong();
-    return;
-  }
 
   int scale = asr_state.left_encoder_value;
   asr.set_scale(asr_state.left_encoder_value);

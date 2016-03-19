@@ -306,7 +306,23 @@ void LORENZ_leftButton() {
   lorenz_generator_state.selected_generator = 1 - lorenz_generator_state.selected_generator;
 }
 
-void LORENZ_leftButtonLong() {
+void LORENZ_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        LORENZ_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        LORENZ_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        LORENZ_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        LORENZ_rightButton();
+        break;
+    }
+  }
 }
 
 void LORENZ_handleEncoderEvent(const UI::Event &event) {

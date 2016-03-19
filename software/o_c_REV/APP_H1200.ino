@@ -270,6 +270,28 @@ void H1200_leftButtonLong() {
   h1200_state.manual_reset();
 }
 
+void H1200_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        H1200_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        H1200_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        H1200_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        H1200_rightButton();
+        break;
+    }
+  } else {
+    if (OC::CONTROL_BUTTON_L == event.control)
+      H1200_leftButtonLong();
+  }
+}
+
 void H1200_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {

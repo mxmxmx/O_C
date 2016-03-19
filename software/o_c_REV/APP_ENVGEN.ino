@@ -466,7 +466,24 @@ void ENVGEN_leftButton() {
   }
 }
 
-void ENVGEN_leftButtonLong() { }
+void ENVGEN_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        ENVGEN_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        ENVGEN_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        ENVGEN_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        ENVGEN_rightButton();
+        break;
+    }
+  }
+}
 
 void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
