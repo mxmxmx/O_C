@@ -70,7 +70,8 @@ enum CALIBRATION_STEP {
   CV_OFFSET_0, CV_OFFSET_1, CV_OFFSET_2, CV_OFFSET_3,
   CV_SCALE_1V, CV_SCALE_3V,
   EXIT,
-  CALIBRATION_STEP_LAST
+  CALIBRATION_STEP_LAST,
+  CALIBRARION_STEP_FINAL = CV_SCALE_3V
 };  
 
 enum CALIBRATION_TYPE {
@@ -199,10 +200,10 @@ void OC::Ui::Calibrate() {
   while (!calibration_complete) {
 
     uint32_t ticks = tick_count.Update();
-    digital_input_displays[0].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>());
-    digital_input_displays[1].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>());
-    digital_input_displays[2].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>());
-    digital_input_displays[3].Update(ticks, OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_4>());
+    digital_input_displays[0].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_1>());
+    digital_input_displays[1].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>());
+    digital_input_displays[2].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_3>());
+    digital_input_displays[3].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>());
 
     while (event_queue_.available()) {
       const UI::Event event = event_queue_.PullEvent();
@@ -219,6 +220,10 @@ void OC::Ui::Calibrate() {
             calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + 1);
           else
             calibration_complete = true;
+          break;
+        case OC::CONTROL_ENCODER_L:
+          calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + event.value);
+          CONSTRAIN(calibration_state.step, CENTER_DISPLAY, CALIBRARION_STEP_FINAL);
           break;
         case OC::CONTROL_ENCODER_R:
           calibration_state.encoder_value += event.value;
@@ -278,7 +283,7 @@ void calibration_draw(const CalibrationState &state) {
   GRAPHICS_BEGIN_FRAME(true);
   const CalibrationStep *step = state.current_step;
 
-  graphics.setPrintPos(2, kUiTitleTextY + 2);
+  graphics.setPrintPos(2, kUiTitleTextY + 1);
   graphics.print(step->title);
   graphics.drawHLine(0, kUiDefaultFontH, kUiDisplayWidth);
 
@@ -323,11 +328,12 @@ void calibration_draw(const CalibrationState &state) {
       break;
   }
 
-  weegfx::coord_t x = 64 - 10;
+  weegfx::coord_t x = kUiDisplayWidth - 22;
+  weegfx::coord_t y = 2;
   for (int input = OC::DIGITAL_INPUT_1; input < OC::DIGITAL_INPUT_LAST; ++input) {
     uint8_t state = (digital_input_displays[input].getState() + 3) >> 2;
     if (state)
-      graphics.drawBitmap8(x, 31 + kUiLineH * 2, 4, OC::bitmap_gate_indicators_8 + (state << 2));
+      graphics.drawBitmap8(x, y, 4, OC::bitmap_gate_indicators_8 + (state << 2));
     x += 5;
   }
 
