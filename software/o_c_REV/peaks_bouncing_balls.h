@@ -72,6 +72,7 @@ class BouncingBall {
   }
   
   inline int16_t ProcessSingleSample(uint8_t control) {
+    uint16_t const kMaxPos = 32767L ;
     if (control & CONTROL_GATE_RISING) {
       velocity_ = initial_velocity_;
       position_ = initial_amplitude_;
@@ -82,11 +83,11 @@ class BouncingBall {
       position_ = 0;
       velocity_ = -(velocity_ >> 12) * bounce_loss_;
     }
-    if (position_ > (32767L << 15)) {
-      position_ = 32767L << 15;
+    if (position_ > (kMaxPos << 15)) {
+      position_ = kMaxPos << 15;
       velocity_ = -(velocity_ >> 12) * bounce_loss_;
     }
-    return position_ >> 15;
+    return position_ >> 15; // was 15
   }
   
   inline void set_gravity(uint16_t gravity) {
@@ -122,7 +123,7 @@ class BouncingBall {
   int32_t initial_velocity_;
    
   int32_t velocity_;
-  int32_t position_; 
+  int64_t position_; 
 
   bool hard_reset_;
 

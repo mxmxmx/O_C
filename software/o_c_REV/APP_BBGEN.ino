@@ -151,8 +151,8 @@ const char* const bb_cv_mapping_names[BB_CV_MAPPING_LAST] = {
 };
 
 SETTINGS_DECLARE(BouncingBall, BB_SETTING_LAST) {
-  { 128, 0, 255, "Amplitude", NULL, settings::STORAGE_TYPE_U8 }, // could be U8??? (also in ENVGEN)
-  { 128, 0, 255, "Velocity", NULL, settings::STORAGE_TYPE_U8 },
+  { 255, 0, 255, "Amplitude", NULL, settings::STORAGE_TYPE_U8 }, // could be U8??? (also in ENVGEN)
+  { 0, 0, 255, "Velocity", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "Gravity", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "Bounce loss", NULL, settings::STORAGE_TYPE_U8 },
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
@@ -275,12 +275,11 @@ void BBGEN_menu_settings() {
   auto const &bb = bbgen.selected();
   UI_START_MENU(0);
 
-  // probably redundant
-  int first_visible_param = bbgen.ui.selected_setting;
+  int first_visible_param = bbgen.ui.selected_setting - 3;
   if (first_visible_param < BB_SETTING_INITIAL_AMPLITUDE)
     first_visible_param = BB_SETTING_INITIAL_AMPLITUDE;
 
-  UI_BEGIN_ITEMS_LOOP(0, first_visible_param, BB_SETTING_LAST, bbgen.ui.selected_setting, 1);
+  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, BB_SETTING_LAST, bbgen.ui.selected_setting, 0); // was 1
     UI_DRAW_EDITABLE(bbgen.ui.editing);
     UI_DRAW_SETTING(BouncingBall::value_attr(current_item), bb.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
