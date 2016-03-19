@@ -74,7 +74,7 @@ static const uint8_t kUiWideMenuCol1X = 96;
   do { \
      if (__selected && (b)) { \
       graphics.print(' '); \
-      graphics.drawBitmap8(1, y + 1, 6, OC::bitmap_edit_indicator_6x8); \
+      graphics.drawBitmap8(xstart + 1, y + 1, 6, OC::bitmap_edit_indicator_6x8); \
     } \
  } while (0)
 
