@@ -40,32 +40,13 @@ namespace frames {
 using namespace std;
 using namespace stmlib;
 
-/* static */
-const uint8_t PolyLfo::rainbow_[17][3] = {
-  { 255, 0, 0 },
-  { 255, 32, 0 },
-  { 255, 192, 0 },
-  { 255, 240, 0 },
-  { 240, 255, 0 },
-  { 192, 255, 0 },
-  { 32, 255, 0 },
-  { 0, 255, 0 },
-  { 0, 255, 32 },
-  { 0, 255, 192 },
-  { 0, 255, 255 },
-  { 0, 192, 255 },
-  { 0, 32, 255 },
-  { 0, 0, 255 },
-  { 32, 0, 255 },
-  { 192, 0, 192 },
-  { 255, 0, 128 },
-};
-
 void PolyLfo::Init() {
   spread_ = 0;
   shape_ = 0;
   shape_spread_ = 0;
   coupling_ = 0;
+  freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_DIV_NONE ;
+  phase_reset_flag_ = false;
   std::fill(&value_[0], &value_[kNumChannels], 0);
   std::fill(&phase_[0], &phase_[kNumChannels], 0);
 }
@@ -80,20 +61,58 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency) {
 }
 
 void PolyLfo::Render(int32_t frequency, bool reset_phase) {
-  uint16_t rainbow_index = frequency < 0 ? 0 : (frequency > 65535 ? 65535 : frequency);
-  for (uint8_t i = 0; i < 3; ++i) {
-    int16_t a = rainbow_[rainbow_index >> 12][i];
-    int16_t b = rainbow_[(rainbow_index >> 12) + 1][i];
-    color_[i] = a + ((b - a) * (rainbow_index & 0x0fff) >> 12);
-  }
 
   // reset phase
-  if (reset_phase) {
+  if (reset_phase || phase_reset_flag_) {
     std::fill(&phase_[0], &phase_[kNumChannels], 0);
+    phase_reset_flag_ = false ;
   } else {
+    // increment freqs for each LFO
+    for (uint8_t i = 0; i < kNumChannels; ++i) {
+      if (i == 0) {
+        phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency);
+        phase_[i] += phase_increment_ch1_ ;
+      } else {
+        PolyLfoFreqDivisions freq_divisor = (i == 1) ? freq_div_b_ : (i == 2) ? freq_div_c_ : freq_div_d_ ;
+        uint64_t divided_phase_increment ;
+        switch(freq_divisor) {
+          case POLYLFO_FREQ_DIV_NONE:
+            phase_[i] += phase_increment_ch1_;
+            break ;
+          case POLYLFO_FREQ_DIV_BY2:
+            divided_phase_increment = phase_increment_ch1_ >> 1;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_BY3:
+            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 5592405) >> 24 ;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_BY4:
+            divided_phase_increment = phase_increment_ch1_ >> 2;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_BY5:
+            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 3355443) >> 24 ;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_BY8:
+            divided_phase_increment = phase_increment_ch1_ >> 3;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_BY16:
+            divided_phase_increment = phase_increment_ch1_ >> 4;
+            phase_[i] += divided_phase_increment;
+            break ;
+          default:
+            phase_[i] += phase_increment_ch1_;
+            break ;          
+        }        
+      }
+    }
+       
     // Advance phasors.
     if (spread_ >= 0) {
-      phase_[0] += FrequencyToPhaseIncrement(frequency);
+      // phase_[0] += FrequencyToPhaseIncrement(frequency);
       uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
       phase_[1] = phase_[0] + phase_difference;
       phase_[2] = phase_[1] + phase_difference;

@@ -37,6 +37,17 @@ namespace frames {
 
 const size_t kNumChannels = 4;
 
+enum PolyLfoFreqDivisions {
+  POLYLFO_FREQ_DIV_NONE,
+  POLYLFO_FREQ_DIV_BY2,
+  POLYLFO_FREQ_DIV_BY3,
+  POLYLFO_FREQ_DIV_BY4,
+  POLYLFO_FREQ_DIV_BY5,
+  POLYLFO_FREQ_DIV_BY8,
+  POLYLFO_FREQ_DIV_BY16,
+  POLYLFO_FREQ_DIV_LAST
+};
+
 class PolyLfo {
  public:
   PolyLfo() { }
@@ -49,9 +60,11 @@ class PolyLfo {
   inline void set_shape(uint16_t shape) {
     shape_ = shape;
   }
+
   inline void set_shape_spread(uint16_t shape_spread) {
     shape_spread_ = static_cast<int16_t>(shape_spread - 32768) >> 1;
   }
+
   inline void set_spread(uint16_t spread) {
     if (spread < 32768) {
       int32_t x = spread - 32768;
@@ -61,6 +74,7 @@ class PolyLfo {
       spread_ = spread - 32768;
     }
   }
+
   inline void set_coupling(uint16_t coupling) {
     int32_t x = coupling - 32768;
     int32_t scaled = x * x >> 15;
@@ -69,30 +83,54 @@ class PolyLfo {
     coupling_ = (scaled >> 4) * 10;
     
   }
+
+  inline void set_freq_div_b(PolyLfoFreqDivisions div) {
+    if (div != freq_div_b_) {
+      freq_div_b_ = div;
+      phase_reset_flag_ = true;
+    }
+  }
+
+  inline void set_freq_div_c(PolyLfoFreqDivisions div) {
+    if (div != freq_div_c_) {
+      freq_div_c_ = div;
+      phase_reset_flag_ = true;
+    }
+  }
+
+  inline void set_freq_div_d(PolyLfoFreqDivisions div) {
+    if (div != freq_div_d_) {
+      freq_div_d_ = div;
+      phase_reset_flag_ = true;
+    }
+  }
+
   inline uint8_t level(uint8_t index) const {
     return level_[index];
   }
-  inline const uint8_t* color() const {
-    return &color_[0];
-  }
+ 
   inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
   static uint32_t FrequencyToPhaseIncrement(int32_t frequency);
 
  private:
-  static const uint8_t rainbow_[17][3];
+  // static const uint8_t rainbow_[17][3];
 
   uint16_t shape_;
   int16_t shape_spread_;
   int32_t spread_;
   int16_t coupling_;
+  PolyLfoFreqDivisions freq_div_b_;
+  PolyLfoFreqDivisions freq_div_c_;
+  PolyLfoFreqDivisions freq_div_d_;
+  bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];
   uint32_t phase_[kNumChannels];
+  uint32_t phase_increment_ch1_;
   uint8_t level_[kNumChannels];
   uint16_t dac_code_[kNumChannels];
-  uint8_t color_[3];
 
   DISALLOW_COPY_AND_ASSIGN(PolyLfo);
 };
