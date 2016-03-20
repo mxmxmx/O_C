@@ -8,6 +8,8 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 
+extern uint_fast8_t MENU_REDRAW;
+
 namespace OC {
 
 Ui ui;

@@ -15,6 +15,7 @@ namespace OC {
 namespace DEBUG {
   SmoothedValue<uint32_t, 16> ISR_cycles;
   SmoothedValue<uint32_t, 16> UI_cycles;
+  SmoothedValue<uint32_t, 16> MENU_draw_cycles;
   uint32_t UI_event_count;
   uint32_t UI_max_queue_depth;
   uint32_t UI_queue_overflow;
@@ -27,18 +28,15 @@ namespace DEBUG {
 
 static void debug_menu_core() {
 
-  uint32_t cycles = DEBUG::ISR_cycles.value();
-  uint32_t isr_us = multiply_u32xu32_rshift32(cycles, (1ULL << 32) / (F_CPU / 1000000));
-
+  uint32_t isr_us = debug::cycles_to_us(DEBUG::ISR_cycles.value());
   graphics.setPrintPos(2, 12);
   graphics.printf("F_CPU: %uMHz", F_CPU / 1000 / 1000, OC_CORE_TIMER_RATE);
   graphics.setPrintPos(2, 22);
   graphics.printf("CORE :%3u/%uus %2u%%", isr_us, OC_CORE_TIMER_RATE, (isr_us * 100) /  OC_CORE_TIMER_RATE);
 
-  cycles = DEBUG::UI_cycles.value();
-  isr_us = multiply_u32xu32_rshift32(cycles, (1ULL << 32) / (F_CPU / 1000000));
+  isr_us = debug::cycles_to_us(DEBUG::UI_cycles.value());
   graphics.setPrintPos(2, 32);
-  graphics.printf("POLL :%3uus (%uus)", (isr_us * 100) /  OC_CORE_TIMER_RATE, OC_UI_TIMER_RATE);
+  graphics.printf("POLL :%3uus", isr_us);
 #ifdef OC_UI_DEBUG
   graphics.setPrintPos(2, 42);
   graphics.printf("UI # : %u", DEBUG::UI_event_count);
@@ -52,20 +50,24 @@ static void debug_menu_gfx() {
 
   graphics.setPrintPos(0, 12);
   graphics.print("W");
+
+  graphics.setPrintPos(2, 22);
+  uint32_t us = debug::cycles_to_us(DEBUG::MENU_draw_cycles.value());
+  graphics.printf("MENU: %uus", us);
 }
 
 static void debug_menu_adc() {
-    graphics.setPrintPos(2, 12);
-    graphics.print("CV1: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_1>(), 6);
+  graphics.setPrintPos(2, 12);
+  graphics.print("CV1: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_1>(), 6);
 
-    graphics.setPrintPos(2, 22);
-    graphics.print("CV2: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_2>(), 6);
+  graphics.setPrintPos(2, 22);
+  graphics.print("CV2: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_2>(), 6);
 
-    graphics.setPrintPos(2, 32);
-    graphics.print("CV3: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_3>(), 6);
+  graphics.setPrintPos(2, 32);
+  graphics.print("CV3: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_3>(), 6);
 
-    graphics.setPrintPos(2, 42);
-    graphics.print("CV4: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_4>(), 6);
+  graphics.setPrintPos(2, 42);
+  graphics.print("CV4: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_4>(), 6);
 
 //      graphics.setPrintPos(2, 42);
 //      graphics.print((long)ADC::busy_waits());

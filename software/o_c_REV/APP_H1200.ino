@@ -299,9 +299,6 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
 }
 
 void H1200_menu() {
-  GRAPHICS_BEGIN_FRAME(false);
-  graphics.setFont(MENU_DEFAULT_FONT);
-
   static const uint8_t kStartX = 0;
 
   const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
@@ -340,13 +337,9 @@ void H1200_menu() {
     const settings::value_attr &attr = H1200Settings::value_attr(current_item);
     UI_DRAW_SETTING(attr, h1200_settings.get_value(current_item), kUiWideMenuCol1X);
   UI_END_ITEMS_LOOP();
-
-  GRAPHICS_END_FRAME();
 }
 
 void H1200_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   uint8_t y = 0;
   static const uint8_t x_col_0 = 66;
   static const uint8_t x_col_1 = 66 + 24;
@@ -387,6 +380,4 @@ void H1200_screensaver() {
   }
 
   visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
-
-  GRAPHICS_END_FRAME();
 }

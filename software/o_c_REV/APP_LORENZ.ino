@@ -226,12 +226,11 @@ void LORENZ_loop() {
 }
 
 void LORENZ_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-
   graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);
+
   graphics.setPrintPos(2, 2);
   graphics.print("FREQ1 ");
   int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
@@ -259,16 +258,10 @@ void LORENZ_menu() {
     const settings::value_attr &attr = LorenzGenerator::value_attr(current_item);
     UI_DRAW_SETTING(attr, lorenz_generator.get_value(current_item), kUiWideMenuCol1X-12);
   UI_END_ITEMS_LOOP();
-
-  GRAPHICS_END_FRAME();
 }
 
 void LORENZ_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   scope_render();
-
-  GRAPHICS_END_FRAME();
 }
 
 void LORENZ_handleAppEvent(OC::AppEvent event) {

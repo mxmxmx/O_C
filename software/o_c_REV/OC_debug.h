@@ -14,6 +14,7 @@ namespace DEBUG {
 
   extern SmoothedValue<uint32_t, 16> ISR_cycles;
   extern SmoothedValue<uint32_t, 16> UI_cycles;
+  extern SmoothedValue<uint32_t, 16> MENU_draw_cycles;
   extern uint32_t UI_event_count;
   extern uint32_t UI_max_queue_depth;
   extern uint32_t UI_queue_overflow;

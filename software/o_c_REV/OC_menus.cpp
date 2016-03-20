@@ -43,8 +43,6 @@ void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegf
 
 /* ----------- screensaver ----------------- */
 void screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   weegfx::coord_t x = 8;
   uint8_t y, width = 8;
   for(int i = 0; i < 4; i++, x += 32 ) { 
@@ -52,8 +50,6 @@ void screensaver() {
     y++; 
     graphics.drawRect(x, 64-y, width, width); // replace second 'width' with y for bars.
   }
-
-  GRAPHICS_END_FRAME();
 }
 
 static const size_t kScopeDepth = 64;
@@ -73,9 +69,7 @@ inline uint16_t calc_average(const uint16_t *data) {
 }
 
 void scope() {
-  GRAPHICS_BEGIN_FRAME(false);
   scope_render();
-  GRAPHICS_END_FRAME();
 }
 
 void scope_render() {

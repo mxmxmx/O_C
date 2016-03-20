@@ -473,8 +473,6 @@ void draw_mask(weegfx::coord_t y, uint32_t mask, size_t count) {
 }
 
 void QQ_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-
   graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
@@ -539,8 +537,6 @@ void QQ_menu() {
 
   if (qq_state.scale_editor.active())
     qq_state.scale_editor.Draw();
-
-  GRAPHICS_END_FRAME();
 }
 
 void QQ_handleButtonEvent(const UI::Event &event) {

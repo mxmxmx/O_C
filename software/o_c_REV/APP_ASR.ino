@@ -448,9 +448,6 @@ size_t ASR_save(void *storage) {
 }
 
 void ASR_menu() {
- 
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-
   graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
@@ -500,6 +497,4 @@ void ASR_menu() {
 
   if (asr_state.scale_editor.active())  
     asr_state.scale_editor.Draw();
-    
-  GRAPHICS_END_FRAME();
 }

@@ -167,11 +167,17 @@ void FASTRUN loop() {
 
     // Refresh display
     if (MENU_REDRAW) {
-      if (OC::UI_MODE_MENU == ui_mode)
-        OC::current_app->DrawMenu();
-      else
-        OC::current_app->DrawScreensaver();
-      // MENU_REDRAW reset in GRAPHICS_END_FRAME if drawn
+      GRAPHICS_BEGIN_FRAME(false); // Don't busy wait
+        if (OC::UI_MODE_MENU == ui_mode) {
+          debug::CycleMeasurement cycles;
+          OC::current_app->DrawMenu();
+          OC::DEBUG::MENU_draw_cycles.push(cycles.read());
+        } else {
+          OC::current_app->DrawScreensaver();
+        }
+        MENU_REDRAW = 0;
+        LAST_REDRAW_TIME = millis();
+      GRAPHICS_END_FRAME();
     }
 
     // Run current app

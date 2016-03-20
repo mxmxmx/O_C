@@ -409,7 +409,6 @@ void ENVGEN_menu_settings() {
 }
 
 void ENVGEN_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
   static const weegfx::coord_t kStartX = 0;
   UI_DRAW_TITLE(kStartX);
 
@@ -428,7 +427,6 @@ void ENVGEN_menu() {
     ENVGEN_menu_settings();
 
   // TODO Draw phase anyway?
-  GRAPHICS_END_FRAME();
 }
 
 void ENVGEN_topButton() {
@@ -515,9 +513,7 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 }
 
 void ENVGEN_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
   scope_render();
-  GRAPHICS_END_FRAME();
 }
 
 void FASTRUN ENVGEN_isr() {

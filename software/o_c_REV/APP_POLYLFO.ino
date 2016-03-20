@@ -153,8 +153,6 @@ static const size_t kSmallPreviewBufferSize = 32;
 uint16_t preview_buffer[kSmallPreviewBufferSize];
 
 void POLYLFO_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-
   graphics.setFont(MENU_DEFAULT_FONT);
 
   static const weegfx::coord_t kStartX = 0;
@@ -180,16 +178,10 @@ void POLYLFO_menu() {
       UI_DRAW_SETTING(attr, shape,  96 - 32);
     }
   UI_END_ITEMS_LOOP();
-
-  GRAPHICS_END_FRAME();
 }
 
 void POLYLFO_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   scope_render();
-
-  GRAPHICS_END_FRAME();
 }
 
 void POLYLFO_handleAppEvent(OC::AppEvent event) {

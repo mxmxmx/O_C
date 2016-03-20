@@ -523,8 +523,6 @@ void draw_grid_menu() {
 };
 
 void Automatonnetz_menu() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   uint16_t row = 0, col = 0;
   for (int i = 0; i < GRID_CELLS; ++i) {
 
@@ -555,8 +553,6 @@ void Automatonnetz_menu() {
     automatonnetz::draw_cell_menu();
   else
     automatonnetz::draw_grid_menu();
-
-  GRAPHICS_END_FRAME();
 }
 
 static const weegfx::coord_t kScreenSaverGridX = kGridXStart + kGridW / 2;
@@ -572,8 +568,6 @@ inline vec2<size_t> extract_pos(uint32_t history) {
 }
 
 void Automatonnetz_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   int outputs[4];
   automatonnetz_state.tonnetz_state.get_outputs(outputs);
   uint32_t cell_history = automatonnetz_state.history();
@@ -598,8 +592,6 @@ void Automatonnetz_screensaver() {
                          8, OC::circle_bitmap_8x8);
     last_pos = current;
   }
-
-  GRAPHICS_END_FRAME();
 }
 
 size_t Automatonnetz_save(void *dest) {
