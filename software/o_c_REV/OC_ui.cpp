@@ -114,6 +114,7 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
   unsigned long now = start;
   do {
 
+    mode = UI_MODE_MENU;
     if (read_immediate(CONTROL_BUTTON_L))
       mode = UI_MODE_CALIBRATE;
     if (read_immediate(CONTROL_BUTTON_R))
