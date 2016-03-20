@@ -32,7 +32,7 @@
 #include <algorithm>
 
 #include "extern/stmlib_utils_dsp.h"
-
+#include "util/util_math.h"
 #include "frames_resources.h"
 
 namespace frames {
@@ -68,27 +68,25 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     phase_reset_flag_ = false ;
   } else {
     // increment freqs for each LFO
-    for (uint8_t i = 0; i < kNumChannels; ++i) {
-      if (i == 0) {
-        phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency);
-        phase_[i] += phase_increment_ch1_ ;
-      } else {
+    phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency);
+    phase_[0] += phase_increment_ch1_ ;
+    for (uint8_t i = 1; i < kNumChannels; ++i) {
         PolyLfoFreqDivisions freq_divisor = (i == 1) ? freq_div_b_ : (i == 2) ? freq_div_c_ : freq_div_d_ ;
-        uint64_t divided_phase_increment ;
+        uint32_t divided_phase_increment ;
         switch(freq_divisor) {
           case POLYLFO_FREQ_DIV_NONE:
             phase_[i] += phase_increment_ch1_;
             break ;
           case POLYLFO_FREQ_DIV_4_OVER_5:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 13421772) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 13421772) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_2_OVER_3:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 11184810) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 11184810) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_3_OVER_5:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 10066329) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 10066329) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY2:
@@ -96,11 +94,11 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
             phase_[i] += divided_phase_increment;
             break ;
           case   POLYLFO_FREQ_DIV_2_OVER_5:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 6710886) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 6710886) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY3:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 5592405) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 5592405) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY4:
@@ -108,15 +106,15 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY5:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 3355443) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 3355443) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY6:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 2796202) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 2796202) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY7:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 2396745) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 2396745) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY8:
@@ -124,31 +122,31 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY9:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1864135) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1864135) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY10:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1677721) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1677721) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY11:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1525201) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1525201) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY12:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1398101) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1398101) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY13:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1290555) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1290555) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY14:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1198372) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1198372) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY15:
-            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 1118481) >> 24 ;
+            divided_phase_increment = multiply_u32xu32_rshift24(phase_increment_ch1_, 1118481) ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY16:
@@ -159,7 +157,6 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
             phase_[i] += phase_increment_ch1_;
             break ;          
         }        
-      }
     }
 
     // Advance phasors.
@@ -179,8 +176,8 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
       }
     } else {
       // if frequency division is in use
-      if (spread_ > 4) {
-        uint32_t phase_difference = static_cast<uint32_t>(spread_ - 4) << 2;
+      if (spread_ > 10) {
+        uint32_t phase_difference = static_cast<uint32_t>(spread_ - 10) << 2;
         phase_[1] = phase_[1] + phase_difference;
         phase_[2] = phase_[2] + phase_difference;
         phase_[3] = phase_[3] + phase_difference;
