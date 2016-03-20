@@ -474,32 +474,28 @@ void QQ_loop() {
 }
 
 void QQ_menu() {
-  graphics.setFont(MENU_DEFAULT_FONT);
 
-  static const weegfx::coord_t kStartX = 0;
-
-  UI_DRAW_TITLE(kStartX);
-
+  menu::QuadTitleBar::Draw();
   for (int i = 0, x = 0; i < 4; ++i, x += 32) {
     const QuantizerChannel &channel = quantizer_channels[i];
-    const uint8_t trigger_state = (channel.getTriggerState() + 3) >> 2;
-    if (trigger_state)
-      graphics.drawBitmap8(x + 1, 2, 4, OC::bitmap_gate_indicators_8 + (trigger_state << 2));
-
-    graphics.setPrintPos(x + 6, 2);
+    menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
-    graphics.setPrintPos(x + 14, 2);
+    graphics.movePrintPos(2, 0);
     int octave = channel.get_octave();
     if (octave)
       graphics.pretty_print(octave);
 
-    if (i == qq_state.selected_channel) {
-      graphics.invertRect(x, 0, 32, 11);
-    }
+    const uint8_t trigger_state = (channel.getTriggerState() + 3) >> 2;
+    if (trigger_state)
+      graphics.drawBitmap8(x + 1, 2, 4, OC::bitmap_gate_indicators_8 + (trigger_state << 2));
+
   }
 
-  const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];
+  menu::QuadTitleBar::Selected(qq_state.selected_channel);
 
+
+  const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];
+  static const weegfx::coord_t kStartX = 0;
   UI_START_MENU(kStartX);
 
   int first_visible = qq_state.cursor.first_visible();

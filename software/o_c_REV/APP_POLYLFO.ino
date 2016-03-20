@@ -154,19 +154,16 @@ static const size_t kSmallPreviewBufferSize = 32;
 uint16_t preview_buffer[kSmallPreviewBufferSize];
 
 void POLYLFO_menu() {
-  graphics.setFont(MENU_DEFAULT_FONT);
 
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
-  graphics.setPrintPos(2, 2);
+  menu::DefaultTitleBar::Draw();
   graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
   graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
 
   const int first_visible = poly_lfo_state.cursor.first_visible();
   const int last_visible = poly_lfo_state.cursor.last_visible();
 
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, poly_lfo_state.cursor.cursor_pos(), 0)
+  UI_START_MENU(0);
+  UI_BEGIN_ITEMS_LOOP(0, first_visible, last_visible + 1, poly_lfo_state.cursor.cursor_pos(), 0)
     const settings::value_attr &attr = PolyLfo::value_attr(current_item);
     const int value = poly_lfo.get_value(current_item);
     if (__selected && poly_lfo_state.cursor.editing())

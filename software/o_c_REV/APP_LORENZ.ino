@@ -225,27 +225,22 @@ void LORENZ_loop() {
 }
 
 void LORENZ_menu() {
-  graphics.setFont(MENU_DEFAULT_FONT);
 
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
-
-  graphics.setPrintPos(2, 2);
+  menu::DualTitleBar::Draw();
   graphics.print("FREQ1 ");
   int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
   freq1 = USAT16(freq1);
-   graphics.print(freq1 >> 8);
-  graphics.setPrintPos(66, 2);
+  graphics.print(freq1 >> 8);
+
+  menu::DualTitleBar::SetColumn(1);
   graphics.print("FREQ2 ");
   int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
   graphics.print(freq2 >> 8);
-  if (lorenz_generator_state.selected_generator) {
-      graphics.invertRect(66, 0, 127, 10);
-  } else {
-      graphics.invertRect(2, 0, 64, 10);    
-  }
-  
+
+  menu::DualTitleBar::Selected(lorenz_generator_state.selected_generator);
+
+  static const weegfx::coord_t kStartX = 0;
 
   int first_visible = lorenz_generator_state.cursor.first_visible();
   int last_visible = lorenz_generator_state.cursor.last_visible();

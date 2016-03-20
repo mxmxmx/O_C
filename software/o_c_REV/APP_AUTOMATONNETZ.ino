@@ -453,14 +453,14 @@ static const uint8_t kGridXStart = 0;
 static const uint8_t kGridYStart = 2;
 static const uint8_t kGridH = 12;
 static const uint8_t kGridW = 12;
-static const uint8_t kMenuStartX = 62;
+static const weegfx::coord_t kMenuStartX = 62;
 static const uint8_t kLineHeight = 11;
 
 namespace automatonnetz {
 
 void draw_cell_menu() {
 
-  UI_DRAW_TITLE(kMenuStartX);
+  menu::TitleBar<kMenuStartX, 1, 2>::Draw();
   graphics.print("CELL ");
   graphics.print(automatonnetz_state.ui.selected_cell / 5 + 1);
   graphics.print(',');
@@ -485,15 +485,15 @@ void draw_grid_menu() {
   int outputs[4];
   automatonnetz_state.tonnetz_state.get_outputs(outputs);
 
-  UI_DRAW_TITLE(kMenuStartX);
+  menu::TitleBar<kMenuStartX, 1, 2>::Draw();
   for (size_t i=1; i < 4; ++i) {
-    if (i > 1) graphics.print(' ');
     graphics.print(note_name(outputs[i]));
+    graphics.print(' ');
   }
   if (MODE_MAJOR == mode)
-    graphics.print(" +");
+    graphics.print('+');
   else
-    graphics.print(" -");
+    graphics.print('-');
 
   int first_visible = automatonnetz_state.ui.grid_cursor.first_visible();
   int last_visible = automatonnetz_state.ui.grid_cursor.last_visible();

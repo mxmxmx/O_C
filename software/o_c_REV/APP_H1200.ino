@@ -285,31 +285,28 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
 }
 
 void H1200_menu() {
-  static const uint8_t kStartX = 0;
 
   const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
   int outputs[4];
   h1200_state.tonnetz_state.get_outputs(outputs);
 
-  UI_DRAW_TITLE(kStartX);
-  if (h1200_state.display_notes)
-    graphics.print(note_name(outputs[0]));
-  else
-    graphics.print(outputs[0]);
+  menu::DefaultTitleBar::Draw();
+  graphics.print(note_name(outputs[0]));
   graphics.print(mode_names[current_mode]);
 
-  graphics.setPrintPos(64, kUiTitleTextY);
   if (h1200_state.display_notes) {
     for (size_t i=1; i < 4; ++i) {
-      if (i > 1) graphics.print(' ');
+      graphics.print(' ');
       graphics.print(note_name(outputs[i]));
     }
   } else {
     for (size_t i=1; i < 4; ++i) {
-      if (i > 1) graphics.print(' ');
+      graphics.print(' ');
       graphics.print(outputs[i]);
     }
   }
+
+  static const uint8_t kStartX = 0;
 
   int first_visible = h1200_state.cursor.first_visible();
   int last_visible = h1200_state.cursor.last_visible();

@@ -129,7 +129,7 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
 
     GRAPHICS_BEGIN_FRAME(true);
 
-    UI_DRAW_TITLE(0);
+    menu::DefaultTitleBar::Draw();
     graphics.print("Ornaments & Crimes");
  
     UI_START_MENU(0);

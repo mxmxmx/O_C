@@ -445,23 +445,18 @@ size_t ASR_save(void *storage) {
 }
 
 void ASR_menu() {
-  graphics.setFont(MENU_DEFAULT_FONT);
 
-  static const weegfx::coord_t kStartX = 0;
-  
-  UI_DRAW_TITLE(kStartX);
-  
-  graphics.setPrintPos(2, kUiTitleTextY);
+  menu::TitleBar<0, 4, 0>::Draw();
   // print scale:
   int scale = asr_state.left_encoder_value;
   graphics.print(' ');
   graphics.print(OC::scale_names[scale]);
   if (asr.get_scale() == scale)
-    graphics.drawBitmap8(2, kUiTitleTextY, 4, OC::bitmap_indicator_4x8);
+    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
   // print octave offset: 
+  menu::TitleBar<0, 4, 0>::SetColumn(3);
   int oct = asr.get_octave();
-  graphics.setPrintPos(95, kUiTitleTextY);
   if (oct >= 0) 
     graphics.print("+");
   graphics.print(oct);
@@ -470,6 +465,7 @@ void ASR_menu() {
   if (clock_state)
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
 
+  static const weegfx::coord_t kStartX = 0;
   UI_START_MENU(kStartX);
   
   int first_visible = asr_state.cursor.first_visible();

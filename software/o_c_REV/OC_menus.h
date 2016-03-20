@@ -135,6 +135,37 @@ void DrawMask(weegfx::coord_t y, uint32_t mask, size_t count) {
   }
 }
 
+static constexpr weegfx::coord_t kUiDisplayWidth = 128;
+static constexpr weegfx::coord_t kDefaultMenuStartX = 0;
+static constexpr weegfx::coord_t kMenuLineH = 12;
+
+
+// Templated title bar that can have multiple columns
+template <weegfx::coord_t start_x, int columns, weegfx::coord_t text_dx>
+class TitleBar {
+public:
+  static constexpr weegfx::coord_t kColumnWidth = kUiDisplayWidth / columns;
+  static constexpr weegfx::coord_t kTextX = text_dx;
+  static constexpr weegfx::coord_t kTextY = 2;
+
+  inline static void SetColumn(int column) {
+    graphics.setPrintPos(start_x + kColumnWidth * column + kTextX, kTextY);
+  }
+
+  inline static void Draw() {
+    graphics.drawHLine(start_x, kMenuLineH, kUiDisplayWidth - start_x);
+    SetColumn(0);
+  }
+
+  inline static void Selected(int column) {
+    graphics.invertRect(start_x + kColumnWidth * column, 0, kColumnWidth, kMenuLineH - 1);
+  }
+};
+
+typedef TitleBar<kDefaultMenuStartX, 1, 2> DefaultTitleBar;
+typedef TitleBar<kDefaultMenuStartX, 2, 2> DualTitleBar;
+typedef TitleBar<kDefaultMenuStartX, 4, 6> QuadTitleBar;
+
 };
 
 #define MENU_DEFAULT_FONT nullptr
@@ -148,12 +179,6 @@ static const uint8_t kUiVisibleItems = 4;
 static const uint8_t kUiDisplayWidth = 128;
 
 static const uint8_t kUiWideMenuCol1X = 96;
-
-#define UI_DRAW_TITLE(xstart) \
-  do { \
-  graphics.setPrintPos(xstart + 2, kUiTitleTextY); \
-  graphics.drawHLine(xstart, kUiDefaultFontH, kUiDisplayWidth); \
-  } while (0)
 
 #define UI_SETUP_ITEM(sel) \
   const bool __selected = sel; \

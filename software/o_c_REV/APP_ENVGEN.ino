@@ -411,17 +411,13 @@ void ENVGEN_menu_settings() {
 }
 
 void ENVGEN_menu() {
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
 
-  for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    graphics.setPrintPos(x + 6, 2);
+  menu::QuadTitleBar::Draw();
+  for (uint_fast8_t i = 0; i < 4; ++i) {
+    menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
-    graphics.setPrintPos(x + 14, 2);
-    if (i == envgen.ui.selected_channel) {
-      graphics.invertRect(x, 0, 32, 11);
-    }
   }
+  menu::QuadTitleBar::Selected(envgen.ui.selected_channel);
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode)
     ENVGEN_menu_preview();
