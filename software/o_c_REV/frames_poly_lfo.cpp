@@ -109,18 +109,29 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
         }        
       }
     }
-       
+
     // Advance phasors.
-    if (spread_ >= 0) {
-      // phase_[0] += FrequencyToPhaseIncrement(frequency);
-      uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
-      phase_[1] = phase_[0] + phase_difference;
-      phase_[2] = phase_[1] + phase_difference;
-      phase_[3] = phase_[2] + phase_difference;
+    if (!(freq_div_b_ || freq_div_c_ || freq_div_c_)) {
+      // original Frames behaviour
+      if (spread_ >= 0) {
+        phase_[0] += FrequencyToPhaseIncrement(frequency);
+        uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
+        phase_[1] = phase_[0] + phase_difference;
+        phase_[2] = phase_[1] + phase_difference;
+        phase_[3] = phase_[2] + phase_difference;
+      } else {
+        for (uint8_t i = 0; i < kNumChannels; ++i) {
+          phase_[i] += FrequencyToPhaseIncrement(frequency);
+          frequency -= 5040 * spread_ >> 15;
+        }
+      }
     } else {
-      for (uint8_t i = 0; i < kNumChannels; ++i) {
-        phase_[i] += FrequencyToPhaseIncrement(frequency);
-        frequency -= 5040 * spread_ >> 15;
+      // if frequency division is in use
+      if (spread_ > 4) {
+        uint32_t phase_difference = static_cast<uint32_t>(spread_ - 4) << 2;
+        phase_[1] = phase_[1] + phase_difference;
+        phase_[2] = phase_[2] + phase_difference;
+        phase_[3] = phase_[3] + phase_difference;
       }
     }
   }
