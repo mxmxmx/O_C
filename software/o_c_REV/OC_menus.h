@@ -115,6 +115,26 @@ inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, const 
   graphics.drawBitmap8(x - 5, y + 1, OC::kBitmapEditIndicatorW, src);
 }
 
+template <bool rtl, size_t max_bits>
+void DrawMask(weegfx::coord_t y, uint32_t mask, size_t count) {
+  weegfx::coord_t x, dx;
+  if (count > max_bits) count = max_bits;
+  if (rtl) {
+    x = 128 - 3;
+    dx = -3;
+  } else {
+    x = 128 - count * 3;
+    dx = 3;
+  }
+
+  for (size_t i = 0; i < count; ++i, mask >>= 1, x += dx) {
+    if (mask & 0x1)
+      graphics.drawRect(x, y + 1, 2, 8);
+    else
+      graphics.drawRect(x, y + 8, 2, 1);
+  }
+}
+
 };
 
 #define MENU_DEFAULT_FONT nullptr

@@ -483,13 +483,7 @@ void ASR_menu() {
       UI_DRAW_SETTING(attr, asr.get_value(current_item), kUiWideMenuCol1X);
     } else {
       graphics.print(attr.name);
-      uint16_t mask = asr.get_mask();
-      size_t num_notes = OC::Scales::GetScale(asr.get_scale()).num_notes;
-      weegfx::coord_t x = kUiDisplayWidth - num_notes * 3;
-      for (size_t i = 0; i < num_notes; ++i, mask >>= 1, x+=3) {
-        if (mask & 0x1)
-          graphics.drawRect(x, y + 1, 2, 8);
-      }
+      menu::DrawMask<false, 16>(y, asr.get_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
       UI_END_ITEM();
     }
   UI_END_ITEMS_LOOP();

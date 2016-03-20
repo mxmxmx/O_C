@@ -473,26 +473,6 @@ void QQ_isr() {
 void QQ_loop() {
 }
 
-template <bool rtl>
-void draw_mask(weegfx::coord_t y, uint32_t mask, size_t count) {
-  weegfx::coord_t x, dx;
-  if (count > 16) count = 16;
-  if (rtl) {
-    x = kUiDisplayWidth - 3;
-    dx = -3;
-  } else {
-    x = kUiDisplayWidth - count * 3;
-    dx = 3;
-  }
-
-  for (size_t i = 0; i < count; ++i, mask >>= 1, x += dx) {
-    if (mask & 0x1)
-      graphics.drawRect(x, y + 1, 2, 8);
-    else
-      graphics.drawRect(x, y + 8, 2, 1);
-  }
-}
-
 void QQ_menu() {
   graphics.setFont(MENU_DEFAULT_FONT);
 
@@ -541,7 +521,7 @@ void QQ_menu() {
         break;
       case CHANNEL_SETTING_MASK:
         graphics.print(attr.name);
-        draw_mask<false>(y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+        menu::DrawMask<false, 16>(y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
         UI_END_ITEM();
         break;
       case CHANNEL_SETTING_SOURCE:
@@ -552,7 +532,7 @@ void QQ_menu() {
             menu::DrawEditIcon(kUiDisplayWidth - w - 1, y, channel.get_source(), attr);
           }
           graphics.print(attr.name);
-          draw_mask<true>(y, channel.get_shift_register(), turing_length);
+          menu::DrawMask<true, 16>(y, channel.get_shift_register(), turing_length);
           UI_END_ITEM();
           break;
         }
