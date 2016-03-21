@@ -247,8 +247,8 @@ public:
     int selected_cell;
     bool edit_cell;
 
-    menu::ScreenCursor<kUiVisibleItems> grid_cursor;
-    menu::ScreenCursor<kUiVisibleItems> cell_cursor;
+    menu::ScreenCursor<menu::kScreenLines> grid_cursor;
+    menu::ScreenCursor<menu::kScreenLines> cell_cursor;
   } ui;
 
 private:
@@ -449,12 +449,12 @@ void FASTRUN Automatonnetz_isr() {
   automatonnetz_state.ISR();
 }
 
-static const uint8_t kGridXStart = 0;
-static const uint8_t kGridYStart = 2;
-static const uint8_t kGridH = 12;
-static const uint8_t kGridW = 12;
+static const weegfx::coord_t kGridXStart = 0;
+static const weegfx::coord_t kGridYStart = 2;
+static const weegfx::coord_t kGridH = 12;
+static const weegfx::coord_t kGridW = 12;
 static const weegfx::coord_t kMenuStartX = 62;
-static const uint8_t kLineHeight = 11;
+static const weegfx::coord_t kLineHeight = 11;
 
 namespace automatonnetz {
 
@@ -466,18 +466,14 @@ void draw_cell_menu() {
   graphics.print(',');
   graphics.print(automatonnetz_state.ui.selected_cell % 5 + 1);
 
-  int first_visible = automatonnetz_state.ui.cell_cursor.first_visible();
-  int last_visible = automatonnetz_state.ui.cell_cursor.last_visible();
+  const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_cell);
 
-  UI_START_MENU(kMenuStartX);
-  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, last_visible + 1, automatonnetz_state.ui.cell_cursor.cursor_pos(), 0)
-    const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_cell);
-    const int value = cell.get_value(current_item);
-    const settings::value_attr &attr = TransformCell::value_attr(current_item);
-    if (__selected && automatonnetz_state.ui.cell_cursor.editing())
-      menu::DrawEditIcon(128 - 25, y, value, attr);
-    UI_DRAW_SETTING(attr, value, 128 - 25);
-  UI_END_ITEMS_LOOP();
+  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDisplayWidth - 25> settings_list(automatonnetz_state.ui.cell_cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(cell.get_value(current), TransformCell::value_attr(current));
+  }
 }
 
 void draw_grid_menu() {
@@ -495,35 +491,30 @@ void draw_grid_menu() {
   else
     graphics.print('-');
 
-  int first_visible = automatonnetz_state.ui.grid_cursor.first_visible();
-  int last_visible = automatonnetz_state.ui.grid_cursor.last_visible();
+  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDisplayWidth - 25> settings_list(automatonnetz_state.ui.grid_cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    const int value = automatonnetz_state.get_value(current);
+    const settings::value_attr &attr = AutomatonnetzState::value_attr(current);
 
-  UI_START_MENU(kMenuStartX);
-  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, last_visible + 1, automatonnetz_state.ui.grid_cursor.cursor_pos(), 0)
-    const int value = automatonnetz_state.get_value(current_item);
-    const settings::value_attr &attr = AutomatonnetzState::value_attr(current_item);
-    if (current_item <= GRID_SETTING_DY) {
-      graphics.print(attr.name);
-      if (__selected && automatonnetz_state.ui.grid_cursor.editing())
-        menu::DrawEditIcon(128 - 31, y, value, attr);
-      graphics.setPrintPos(128 - 31, y + 1);
+    if (current <= GRID_SETTING_DY) {
+      list_item.valuex = menu::kDisplayWidth - 31;
+      list_item.SetValuePrintPos();
       const int integral = value / 8;
       const int fraction = value % 8;
       if (integral || !fraction)
-        graphics.print((char)('0' + value/8));
+        graphics.print((char)('0' + integral));
       if (fraction) {
         if (integral)
           graphics.print(' ');
         graphics.print(clock_fraction_names[fraction]);
       }
-      UI_END_ITEM();
+      list_item.DrawNoValue<true>(value, attr);
     } else {
-      if (__selected && automatonnetz_state.ui.grid_cursor.editing())
-        menu::DrawEditIcon(128 - 25, y, value, attr);
-      UI_DRAW_SETTING(attr, value, 128 - 25);
+      list_item.DrawDefault(value, attr);
     }
-
-  UI_END_ITEMS_LOOP();
+  }
 }
 
 }; // namespace automatonnetz

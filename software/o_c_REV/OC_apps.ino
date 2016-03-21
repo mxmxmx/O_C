@@ -232,15 +232,20 @@ void OC::APPS::Init(bool use_defaults) {
 void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
   GRAPHICS_BEGIN_FRAME(true);
 
-  const weegfx::coord_t xstart = 0;
-  weegfx::coord_t y = (64 - (5 * kUiLineH)) / 2;
-  for (int current = cursor.first_visible(); current <= cursor.last_visible(); ++current, y += kUiLineH) {
-    UI_SETUP_ITEM(current == cursor.cursor_pos());
+  menu::SettingsListItem item;
+  item.x = menu::kIndentDx;
+  item.y = (64 - (5 * menu::kMenuLineH)) / 2;
+
+  for (int current = cursor.first_visible();
+       current <= cursor.last_visible();
+       ++current, item.y += menu::kMenuLineH) {
+    item.selected = current == cursor.cursor_pos();
+    item.SetPrintPos();
     graphics.print(' ');
     graphics.print(available_apps[current].name);
     if (global_settings.current_app_id == available_apps[current].id)
-       graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
-    UI_END_ITEM();
+       graphics.drawBitmap8(item.x + 2, item.y + 1, 4, OC::bitmap_indicator_4x8);
+     item.DrawCustom();
   }
 
   GRAPHICS_END_FRAME();

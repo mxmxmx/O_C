@@ -311,7 +311,7 @@ struct ASRState {
  
   int left_encoder_value;
 
-  menu::ScreenCursor<kUiVisibleItems> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
   OC::ScaleEditor<ASR> scale_editor;
 };
 
@@ -447,14 +447,13 @@ size_t ASR_save(void *storage) {
 void ASR_menu() {
 
   menu::TitleBar<0, 4, 0>::Draw();
-  // print scale:
+
   int scale = asr_state.left_encoder_value;
   graphics.print(' ');
   graphics.print(OC::scale_names[scale]);
   if (asr.get_scale() == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
-  // print octave offset: 
   menu::TitleBar<0, 4, 0>::SetColumn(3);
   int oct = asr.get_octave();
   if (oct >= 0) 
@@ -465,24 +464,18 @@ void ASR_menu() {
   if (clock_state)
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
 
-  static const weegfx::coord_t kStartX = 0;
-  UI_START_MENU(kStartX);
-  
-  int first_visible = asr_state.cursor.first_visible();
-  int last_visible = asr_state.cursor.last_visible();
-  
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, asr_state.cursor.cursor_pos(), 0)
-    const settings::value_attr &attr = ASR::value_attr(current_item);
-    if (ASR_SETTING_MASK != current_item) {
-      if (__selected && asr_state.cursor.editing())
-        menu::DrawEditIcon(kUiWideMenuCol1X, y, asr.get_value(current_item), attr);
-      UI_DRAW_SETTING(attr, asr.get_value(current_item), kUiWideMenuCol1X);
+
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(asr_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    if (ASR_SETTING_MASK != current) {
+      list_item.DrawDefault(asr.get_value(current), ASR::value_attr(current));
     } else {
-      graphics.print(attr.name);
-      menu::DrawMask<false, 16>(y, asr.get_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
-      UI_END_ITEM();
+      menu::DrawMask<false, 16>(list_item.y, asr.get_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
+      list_item.DrawNoValue<false>(asr.get_value(current), ASR::value_attr(current));
     }
-  UI_END_ITEMS_LOOP();
+  }
 
   if (asr_state.scale_editor.active())  
     asr_state.scale_editor.Draw();

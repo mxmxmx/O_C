@@ -1,25 +1,57 @@
+// Copyright (c) 2016 Patrick Dowling
+//
+// Author: Patrick Dowling (pld@gurkenkiste.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// 
+// Menu drawing helpers
+
 #ifndef OC_MENUS_H
 #define OC_MENUS_H
 
 #include "weegfx.h"
 #include "OC_bitmaps.h"
-#include "util_framebuffer.h"
-#include "SH1106_128x64_Driver.h"
-#include "util/util_debugpins.h"
+#include "util/util_macros.h"
 #include "util/util_misc.h"
 #include "util/util_settings.h"
-
-extern weegfx::Graphics graphics;
-extern FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
 
 void init_circle_lut();
 void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegfx::coord_t centery);
 
 void screensaver();
-void scope();
 void scope_render();
 
 namespace menu {
+
+static constexpr weegfx::coord_t kDisplayWidth = weegfx::Graphics::kWidth;
+static constexpr weegfx::coord_t kDisplayHeight = weegfx::Graphics::kHeight;
+static constexpr weegfx::coord_t kMenuLineH = 12;
+static constexpr weegfx::coord_t kFontHeight = 8;
+static constexpr weegfx::coord_t kDefaultMenuStartX = 0;
+static constexpr weegfx::coord_t kDefaultValueX = 96;
+static constexpr weegfx::coord_t kIndentDx = 2;
+
+static constexpr int kScreenLines = 4;
+
+static inline weegfx::coord_t CalcLineY(int line) {
+  return (line + 1) * kMenuLineH + 2 + 1;
+}
 
 // Helper to manage cursor position in settings-type menus.
 // The "fancy" mode tries to indicate that there may be more items by not
@@ -120,10 +152,10 @@ void DrawMask(weegfx::coord_t y, uint32_t mask, size_t count) {
   weegfx::coord_t x, dx;
   if (count > max_bits) count = max_bits;
   if (rtl) {
-    x = 128 - 3;
+    x = kDisplayWidth - 3;
     dx = -3;
   } else {
-    x = 128 - count * 3;
+    x = kDisplayWidth - count * 3;
     dx = 3;
   }
 
@@ -135,16 +167,11 @@ void DrawMask(weegfx::coord_t y, uint32_t mask, size_t count) {
   }
 }
 
-static constexpr weegfx::coord_t kUiDisplayWidth = 128;
-static constexpr weegfx::coord_t kDefaultMenuStartX = 0;
-static constexpr weegfx::coord_t kMenuLineH = 12;
-
-
 // Templated title bar that can have multiple columns
 template <weegfx::coord_t start_x, int columns, weegfx::coord_t text_dx>
 class TitleBar {
 public:
-  static constexpr weegfx::coord_t kColumnWidth = kUiDisplayWidth / columns;
+  static constexpr weegfx::coord_t kColumnWidth = kDisplayWidth / columns;
   static constexpr weegfx::coord_t kTextX = text_dx;
   static constexpr weegfx::coord_t kTextY = 2;
 
@@ -153,7 +180,7 @@ public:
   }
 
   inline static void Draw() {
-    graphics.drawHLine(start_x, kMenuLineH, kUiDisplayWidth - start_x);
+    graphics.drawHLine(start_x, kMenuLineH, kDisplayWidth - start_x);
     SetColumn(0);
   }
 
@@ -162,87 +189,103 @@ public:
   }
 };
 
+// Common, default types
 typedef TitleBar<kDefaultMenuStartX, 1, 2> DefaultTitleBar;
 typedef TitleBar<kDefaultMenuStartX, 2, 2> DualTitleBar;
 typedef TitleBar<kDefaultMenuStartX, 4, 6> QuadTitleBar;
 
+// Essentially all O&C apps are built around a list of settings; these two
+// wrappers and the cursor wrapper replace the original macro-based drawing.
+
+struct SettingsListItem {
+  bool selected, editing;
+  weegfx::coord_t x, y;
+  weegfx::coord_t valuex;
+
+  SettingsListItem() { }
+  ~SettingsListItem() { }
+
+  inline void DrawDefault(int value, const settings::value_attr &attr) const {
+    graphics.setPrintPos(x + 2, y + 1);
+    graphics.print(attr.name);
+
+    graphics.setPrintPos(valuex, y + 1);
+    if(attr.value_names)
+      graphics.print(attr.value_names[value]);
+    else
+      graphics.pretty_print(value);
+
+    if (editing)
+      menu::DrawEditIcon(valuex, y, value, attr);
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
+
+  template <bool editable>
+  inline void DrawNoValue(int value, const settings::value_attr &attr) const {
+    graphics.setPrintPos(x + 2, y + 1);
+    graphics.print(attr.name);
+
+    if (editable && editing)
+      menu::DrawEditIcon(valuex, y, value, attr);
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
+
+  inline void DrawCustom() const {
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
+
+  inline void SetValuePrintPos() const {
+    graphics.setPrintPos(valuex, y + 1);
+  }
+
+  inline void SetPrintPos() const {
+    graphics.setPrintPos(x + 2, y + 1);
+  }
+
+  DISALLOW_COPY_AND_ASSIGN(SettingsListItem);
 };
 
-#define MENU_DEFAULT_FONT nullptr
+template <int screen_lines, weegfx::coord_t start_x, weegfx::coord_t value_x>
+class SettingsList {
+public:
 
-static const uint8_t kUiDefaultFontH = 12;
-static const uint8_t kUiTitleTextY = 2;
-static const uint8_t kUiItemsStartY = kUiDefaultFontH + 2 + 1;
-static const uint8_t kUiLineH = 12;
+  SettingsList(const ScreenCursor<screen_lines> &cursor)
+  : cursor_(cursor)
+  , current_item_(cursor.first_visible())
+  , last_item_(cursor.last_visible())
+  , y_(CalcLineY(kScreenLines - screen_lines))
+  { }
 
-static const uint8_t kUiVisibleItems = 4;
-static const uint8_t kUiDisplayWidth = 128;
+  bool available() const {
+    return current_item_ <= last_item_;
+  }
 
-static const uint8_t kUiWideMenuCol1X = 96;
+  int Next(SettingsListItem &item) {
+    item.selected = current_item_ == cursor_.cursor_pos();
+    item.editing = item.selected && cursor_.editing();
+    item.x = start_x;
+    item.y = y_;
+    item.valuex = value_x;
+    y_ += kMenuLineH;
+    return current_item_++;
+  }
 
-#define UI_SETUP_ITEM(sel) \
-  const bool __selected = sel; \
-  do { \
-    graphics.setPrintPos(xstart + 2, y + 1); \
-  } while (0)
+  static void AbsoluteLine(int line, SettingsListItem &item) {
+    item.x = start_x;
+    item.y = CalcLineY(line);
+    item.valuex = value_x;
+  }
 
-#define UI_END_ITEM() \
-  do { \
-    if (__selected) \
-      graphics.invertRect(xstart, y, kUiDisplayWidth - xstart, kUiLineH - 1); \
-  } while (0)
+private:
+  const ScreenCursor<screen_lines> cursor_;
+  int current_item_, last_item_;
+  weegfx::coord_t y_;
 
-
-#define UI_START_MENU(x) \
-  const weegfx::coord_t xstart = x; \
-  weegfx::coord_t y = kUiItemsStartY; \
-  graphics.setPrintPos(xstart + 2, y + 1); \
-  do {} while (0)
-
-
-#define UI_BEGIN_ITEMS_LOOP(xstart, first, last, selected, startline) \
-  y = kUiItemsStartY + startline * kUiLineH; \
-  for (int i = 0, current_item = first; i < kUiVisibleItems - startline && current_item < last; ++i, ++current_item, y += kUiLineH) { \
-    UI_SETUP_ITEM(selected == current_item);
-
-#define UI_END_ITEMS_LOOP() } do {} while (0)
-
-#define UI_DRAW_SETTING(attr, value, xoffset) \
-  do { \
-    const int val = value; \
-    graphics.print(attr.name); \
-    if (xoffset) graphics.setPrintPos(xoffset, y + 1); \
-    if(attr.value_names) \
-      graphics.print(attr.value_names[val]); \
-    else \
-      graphics.pretty_print(val); \
-    UI_END_ITEM(); \
-  } while (0)
-
-#define UI_DRAW_EDITABLE(b) \
-  do { \
-     if (__selected && (b)) { \
-      graphics.print(' '); \
-      graphics.drawBitmap8(xstart + 1, y + 1, 6, OC::bitmap_edit_indicator_6x8); \
-    } \
- } while (0)
-
-#define GRAPHICS_BEGIN_FRAME(wait) \
-do { \
-  DEBUG_PIN_SCOPE(DEBUG_PIN_1); \
-  uint8_t *frame = NULL; \
-  do { \
-    if (frame_buffer.writeable()) \
-      frame = frame_buffer.writeable_frame(); \
-  } while (!frame && wait); \
-  if (frame) { \
-    graphics.Begin(frame, true); \
-    do {} while(0)
-
-#define GRAPHICS_END_FRAME() \
-    graphics.End(); \
-    frame_buffer.written(); \
-  } \
-} while (0)
+  DISALLOW_COPY_AND_ASSIGN(SettingsList);
+};
+};
 
 #endif // OC_MENUS_H

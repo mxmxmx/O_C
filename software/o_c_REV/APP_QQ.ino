@@ -411,7 +411,7 @@ public:
   }
 
   int selected_channel;
-  menu::ScreenCursor<kUiVisibleItems> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
   OC::ScaleEditor<QuantizerChannel> scale_editor;
 };
 
@@ -488,60 +488,51 @@ void QQ_menu() {
     const uint8_t trigger_state = (channel.getTriggerState() + 3) >> 2;
     if (trigger_state)
       graphics.drawBitmap8(x + 1, 2, 4, OC::bitmap_gate_indicators_8 + (trigger_state << 2));
-
   }
-
   menu::QuadTitleBar::Selected(qq_state.selected_channel);
 
 
   const QuantizerChannel &channel = quantizer_channels[qq_state.selected_channel];
-  static const weegfx::coord_t kStartX = 0;
-  UI_START_MENU(kStartX);
 
-  int first_visible = qq_state.cursor.first_visible();
-  int last_visible = qq_state.cursor.last_visible();
-
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, qq_state.cursor_pos(), 0)
-    int setting = channel.enabled_setting_at(current_item);
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(qq_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int setting =
+        channel.enabled_setting_at(settings_list.Next(list_item));
     const int value = channel.get_value(setting);
     const settings::value_attr &attr = QuantizerChannel::value_attr(setting);
 
     switch (setting) {
       case CHANNEL_SETTING_SCALE:
-        if (__selected && qq_state.editing()) {
-          menu::DrawEditIcon(6, y, value, attr);
+        list_item.SetPrintPos();
+        if (list_item.editing) {
+          menu::DrawEditIcon(6, list_item.y, value, attr);
           graphics.movePrintPos(6, 0);
         }
         graphics.print(OC::scale_names[value]);
-        UI_END_ITEM();
+        list_item.DrawCustom();
         break;
       case CHANNEL_SETTING_MASK:
-        graphics.print(attr.name);
-        menu::DrawMask<false, 16>(y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
-        UI_END_ITEM();
+        menu::DrawMask<false, 16>(list_item.y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+        list_item.DrawNoValue<false>(value, attr);
         break;
       case CHANNEL_SETTING_SOURCE:
         if (CHANNEL_SOURCE_TURING == channel.get_source()) {
           int turing_length = channel.get_turing_length();
-          if (__selected && qq_state.editing()) {
-            int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
-            menu::DrawEditIcon(kUiDisplayWidth - w - 1, y, channel.get_source(), attr);
-          }
-          graphics.print(attr.name);
-          menu::DrawMask<true, 16>(y, channel.get_shift_register(), turing_length);
-          UI_END_ITEM();
+          int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
+
+          menu::DrawMask<true, 16>(list_item.y, channel.get_shift_register(), turing_length);
+          list_item.valuex = menu::kDisplayWidth - w - 1;
+          list_item.DrawNoValue<true>(value, attr);
           break;
+          // Fall through if not Turing
         }
-      default: {
-        if (__selected && qq_state.editing())
-          menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
+      default:
         if (QuantizerChannel::indentSetting(static_cast<ChannelSetting>(setting)))
-          graphics.movePrintPos(2, 0);
-        UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
-      }
-      break;
+          list_item.x += menu::kIndentDx;
+        list_item.DrawDefault(value, attr);
     }
-  UI_END_ITEMS_LOOP();
+  }
 
   if (qq_state.scale_editor.active())
     qq_state.scale_editor.Draw();

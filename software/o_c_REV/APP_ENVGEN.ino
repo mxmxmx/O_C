@@ -354,10 +354,11 @@ uint32_t preview_loops[peaks::kMaxNumSegments];
 
 void ENVGEN_menu_preview() {
   auto const &env = envgen.selected();
-  UI_START_MENU(0);
 
+  weegfx::coord_t y = menu::CalcLineY(0);
+  graphics.setPrintPos(2, y + 1);
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[env.get_type()]);
-  y += kUiLineH;
+  y += menu::kMenuLineH;
 
   uint32_t current_phase = 0;
   weegfx::coord_t x = 0;
@@ -392,22 +393,21 @@ void ENVGEN_menu_preview() {
 
 void ENVGEN_menu_settings() {
   auto const &env = envgen.selected();
-  UI_START_MENU(0);
+
+  menu::SettingsList<menu::kScreenLines - 1, 0, menu::kDefaultValueX> settings_list(envgen.ui.cursor);
+  menu::SettingsListItem list_item;
+
+  settings_list.AbsoluteLine(0, list_item);
+  list_item.SetPrintPos();
   if (env.get_type() == envgen.ui.left_encoder_value)
-    graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
+    graphics.drawBitmap8(2, list_item.y, 4, OC::bitmap_indicator_4x8);
   graphics.print(' ');
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
 
-  int first_visible = envgen.ui.cursor.first_visible();
-  int last_visible = envgen.ui.cursor.last_visible();
-
-  UI_BEGIN_ITEMS_LOOP(0, first_visible, last_visible + 1, envgen.ui.cursor.cursor_pos(), 1);
-    int value = env.get_value(current_item);
-    const settings::value_attr &attr = EnvelopeGenerator::value_attr(current_item);
-    if (__selected && envgen.ui.cursor.editing())
-      menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
-    UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
-  UI_END_ITEMS_LOOP();
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(env.get_value(current), EnvelopeGenerator::value_attr(current));
+  }
 }
 
 void ENVGEN_menu() {

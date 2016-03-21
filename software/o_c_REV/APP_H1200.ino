@@ -117,7 +117,7 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
-  menu::ScreenCursor<kUiVisibleItems> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
   bool display_notes;
 
   TonnetzState tonnetz_state;
@@ -306,19 +306,12 @@ void H1200_menu() {
     }
   }
 
-  static const uint8_t kStartX = 0;
-
-  int first_visible = h1200_state.cursor.first_visible();
-  int last_visible = h1200_state.cursor.last_visible();
-
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, h1200_state.cursor.cursor_pos(), 0)
-    const settings::value_attr &attr = H1200Settings::value_attr(current_item);
-    const int value = h1200_settings.get_value(current_item);
-    if (__selected && h1200_state.cursor.editing())
-      menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
-    UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
-  UI_END_ITEMS_LOOP();
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(h1200_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(h1200_settings.get_value(current), H1200Settings::value_attr(current));
+  }
 }
 
 void H1200_screensaver() {

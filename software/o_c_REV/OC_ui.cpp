@@ -4,6 +4,7 @@
 #include "OC_apps.h"
 #include "OC_bitmaps.h"
 #include "OC_config.h"
+#include "OC_core.h"
 #include "OC_gpio.h"
 #include "OC_menus.h"
 #include "OC_ui.h"
@@ -132,22 +133,21 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
     menu::DefaultTitleBar::Draw();
     graphics.print("Ornaments & Crimes");
  
-    UI_START_MENU(0);
-    y += kUiLineH / 2;
+    weegfx::coord_t y = menu::CalcLineY(0) + menu::kMenuLineH / 2;
 
-    graphics.setPrintPos(xstart, y + 2);
+    graphics.setPrintPos(menu::kIndentDx, y + 2);
     graphics.print("[L] => calibration");
     if (UI_MODE_CALIBRATE == mode)
-      graphics.invertRect(xstart, y, 128, kUiLineH);
+      graphics.invertRect(menu::kIndentDx, y, 128, menu::kMenuLineH);
 
-    y += kUiLineH;
-    graphics.setPrintPos(xstart, y + 2);
+    y += menu::kMenuLineH;
+    graphics.setPrintPos(menu::kIndentDx, y + 2);
     graphics.print("[R] => select app");
     if (UI_MODE_SELECT_APP == mode)
-      graphics.invertRect(xstart, y, 128, kUiLineH);
+      graphics.invertRect(menu::kIndentDx, y, 128, menu::kMenuLineH);
 
-    y += kUiLineH;
-    graphics.setPrintPos(xstart, y + 1);
+    y += menu::kMenuLineH;
+    graphics.setPrintPos(menu::kIndentDx, y + 1);
     if (use_defaults)
       graphics.print("Reset EEPROM!");
 

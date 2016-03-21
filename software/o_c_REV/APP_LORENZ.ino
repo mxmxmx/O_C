@@ -141,7 +141,7 @@ LorenzGenerator lorenz_generator;
 struct {
   bool selected_generator;
 
-  menu::ScreenCursor<kUiVisibleItems> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
 } lorenz_generator_state;
 
 void FASTRUN LORENZ_isr() {
@@ -240,19 +240,12 @@ void LORENZ_menu() {
 
   menu::DualTitleBar::Selected(lorenz_generator_state.selected_generator);
 
-  static const weegfx::coord_t kStartX = 0;
-
-  int first_visible = lorenz_generator_state.cursor.first_visible();
-  int last_visible = lorenz_generator_state.cursor.last_visible();
-
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, last_visible + 1, lorenz_generator_state.cursor.cursor_pos(), 0)
-    const int value = lorenz_generator.get_value(current_item);
-    const settings::value_attr &attr = LorenzGenerator::value_attr(current_item);
-    if (__selected && lorenz_generator_state.cursor.editing())
-      menu::DrawEditIcon(kUiWideMenuCol1X-12, y, value, attr);
-    UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X-12);
-  UI_END_ITEMS_LOOP();
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 12> settings_list(lorenz_generator_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(lorenz_generator.get_value(current), LorenzGenerator::value_attr(current));
+  }
 }
 
 void LORENZ_screensaver() {

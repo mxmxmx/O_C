@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "OC_config.h"
+#include "OC_core.h"
 #include "OC_bitmaps.h"
 #include "OC_menus.h"
 #include "DAC.h"
@@ -66,10 +67,6 @@ inline uint16_t calc_average(const uint16_t *data) {
   while (n--)
     sum += *data++;
   return sum / size;
-}
-
-void scope() {
-  scope_render();
 }
 
 void scope_render() {

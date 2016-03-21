@@ -88,7 +88,7 @@ PolyLfo poly_lfo;
 struct {
 
   POLYLFO_SETTINGS left_edit_mode;
-  menu::ScreenCursor<kUiVisibleItems> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
 
 } poly_lfo_state;
 
@@ -159,27 +159,27 @@ void POLYLFO_menu() {
   graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
   graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
 
-  const int first_visible = poly_lfo_state.cursor.first_visible();
-  const int last_visible = poly_lfo_state.cursor.last_visible();
 
-  UI_START_MENU(0);
-  UI_BEGIN_ITEMS_LOOP(0, first_visible, last_visible + 1, poly_lfo_state.cursor.cursor_pos(), 0)
-    const settings::value_attr &attr = PolyLfo::value_attr(current_item);
-    const int value = poly_lfo.get_value(current_item);
-    if (__selected && poly_lfo_state.cursor.editing())
-      menu::DrawEditIcon(kUiWideMenuCol1X, y, value, attr);
-    if (current_item != POLYLFO_SETTING_SHAPE) {
-      UI_DRAW_SETTING(attr, value, kUiWideMenuCol1X);
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(poly_lfo_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    const int value = poly_lfo.get_value(current);
+    if (POLYLFO_SETTING_SHAPE != current) {
+      list_item.DrawDefault(value, PolyLfo::value_attr(current));
     } else {
+
       poly_lfo.lfo.RenderPreview(value << 8, preview_buffer, kSmallPreviewBufferSize);
       const uint16_t *preview = preview_buffer;
       uint16_t count = kSmallPreviewBufferSize;
-      weegfx::coord_t x = kUiWideMenuCol1X;
+      weegfx::coord_t x = list_item.valuex;
       while (count--)
-        graphics.setPixel(x++, y + 8 - (*preview++ >> 13));
-      UI_DRAW_SETTING(attr, value,  kUiWideMenuCol1X - 36);
+        graphics.setPixel(x++, list_item.y + 8 - (*preview++ >> 13));
+
+      list_item.valuex = menu::kDefaultValueX - 36;
+      list_item.DrawDefault(value, PolyLfo::value_attr(current));
     }
-  UI_END_ITEMS_LOOP();
+  }
 }
 
 void POLYLFO_screensaver() {

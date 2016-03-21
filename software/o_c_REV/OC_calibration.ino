@@ -222,8 +222,10 @@ void OC::Ui::Calibrate() {
             calibration_complete = true;
           break;
         case OC::CONTROL_ENCODER_L:
-          calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + event.value);
-          CONSTRAIN(calibration_state.step, CENTER_DISPLAY, CALIBRARION_STEP_FINAL);
+          if (calibration_state.step > HELLO) {
+            calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + event.value);
+            CONSTRAIN(calibration_state.step, CENTER_DISPLAY, CALIBRARION_STEP_FINAL);
+          }
           break;
         case OC::CONTROL_ENCODER_R:
           calibration_state.encoder_value += event.value;
@@ -283,11 +285,12 @@ void calibration_draw(const CalibrationState &state) {
   GRAPHICS_BEGIN_FRAME(true);
   const CalibrationStep *step = state.current_step;
 
-  graphics.setPrintPos(2, kUiTitleTextY + 1);
+  menu::DefaultTitleBar::Draw();
   graphics.print(step->title);
-  graphics.drawHLine(0, kUiDefaultFontH, kUiDisplayWidth);
 
-  graphics.setPrintPos(2, 28);
+  weegfx::coord_t y = menu::CalcLineY(0) + menu::kMenuLineH / 2;
+
+  graphics.setPrintPos(menu::kIndentDx, y);
   switch (step->calibration_type) {
     case CALIBRATE_OCTAVE:
       graphics.print(step->message);
@@ -303,14 +306,14 @@ void calibration_draw(const CalibrationState &state) {
       graphics.print(_ADC_OFFSET);
       graphics.print(" == ");
       graphics.print((long)state.CV);
-      graphics.setPrintPos(2, 28 + kUiLineH);
+      graphics.setPrintPos(menu::kIndentDx, y + menu::kMenuLineH);
       graphics.print(step->message);
       break;
 
     case CALIBRATE_ADC_OFFSET:
       graphics.pretty_print(state.encoder_value - state.CV, 5);
       graphics.print(" --> 0");
-      graphics.setPrintPos(2, 28 + kUiLineH);
+      graphics.setPrintPos(menu::kIndentDx, y + menu::kMenuLineH);
       graphics.print(step->message);
       break;
 
@@ -328,8 +331,8 @@ void calibration_draw(const CalibrationState &state) {
       break;
   }
 
-  weegfx::coord_t x = kUiDisplayWidth - 22;
-  weegfx::coord_t y = 2;
+  weegfx::coord_t x = menu::kDisplayWidth - 22;
+  y = 2;
   for (int input = OC::DIGITAL_INPUT_1; input < OC::DIGITAL_INPUT_LAST; ++input) {
     uint8_t state = (digital_input_displays[input].getState() + 3) >> 2;
     if (state)
@@ -337,7 +340,11 @@ void calibration_draw(const CalibrationState &state) {
     x += 5;
   }
 
-  graphics.drawStr(0, 31 + kUiLineH * 2, step->footer);
+  graphics.drawStr(1, menu::kDisplayHeight - menu::kFontHeight - 3, step->footer);
+
+  static constexpr uint16_t step_width = (menu::kDisplayWidth << 8 ) / (CALIBRATION_STEP_LAST - 1);
+  graphics.drawRect(0, menu::kDisplayHeight - 2, (state.step * step_width) >> 8, 2);
+
   GRAPHICS_END_FRAME();
 }
 

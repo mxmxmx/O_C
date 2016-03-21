@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "OC_ADC.h"
 #include "OC_config.h"
+#include "OC_core.h"
 #include "OC_debug.h"
 #include "OC_menus.h"
 #include "OC_ui.h"
