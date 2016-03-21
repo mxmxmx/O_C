@@ -108,6 +108,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
   const uint8_t* sine = &wt_lfo_waveforms[17 * 257];
   
   uint16_t wavetable_index = shape_;
+  bool xor_flags[] = {false, a_xor_b_, b_xor_c_, c_xor_d_ } ;
   // Wavetable lookup
   for (uint8_t i = 0; i < kNumChannels; ++i) {
     uint32_t phase = phase_[i];
@@ -121,7 +122,11 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     int16_t value = Crossfade(a, b, phase, wavetable_index << 4);
     value_[i] = Interpolate824(sine, phase);
     level_[i] = (value + 32768) >> 8;
-    dac_code_[i] = value + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
+    if (xor_flags[i]) {
+      dac_code_[i] = (value + 32768) ^ dac_code_[i - 1] ; 
+    } else {
+      dac_code_[i] = value + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
+    }
     wavetable_index += shape_spread_;
   }
 }

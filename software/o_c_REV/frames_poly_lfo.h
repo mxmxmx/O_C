@@ -141,6 +141,18 @@ class PolyLfo {
     }
   }
 
+  inline void set_a_xor_b(bool xor_value) {
+    a_xor_b_ = xor_value ;
+  }
+
+  inline void set_b_xor_c(bool xor_value) {
+    b_xor_c_ = xor_value ;
+  }
+
+  inline void set_c_xor_d(bool xor_value) {
+    c_xor_d_ = xor_value ;
+  }
+
   inline uint8_t level(uint8_t index) const {
     return level_[index];
   }
@@ -160,6 +172,9 @@ class PolyLfo {
   PolyLfoFreqDivisions freq_div_b_;
   PolyLfoFreqDivisions freq_div_c_;
   PolyLfoFreqDivisions freq_div_d_;
+  bool a_xor_b_ ;
+  bool b_xor_c_ ;
+  bool c_xor_d_ ;
   bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];
