@@ -101,7 +101,7 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, -128, 127, "Fine freq", NULL, settings::STORAGE_TYPE_I16 },
   { 0, 0, 255, "Shape", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
+  { -1, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Coupling", NULL, settings::STORAGE_TYPE_I8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
