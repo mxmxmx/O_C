@@ -5,6 +5,8 @@
 #include "OC_strings.h"
 #include "extern/dspinst.h"
 
+namespace menu = OC::menu; // Ugh. This works for all .ino files
+
 #define SCALED_ADC(channel, shift) \
 (0x1+(OC::ADC::value<channel>() >> shift))
 

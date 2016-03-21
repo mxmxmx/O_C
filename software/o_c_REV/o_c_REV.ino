@@ -129,6 +129,7 @@ void setup() {
   calibration_load();
   SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
 
+  OC::menu::Init();
   OC::ui.Init();
 
   SERIAL_PRINTLN("* Starting CORE ISR @%luus", OC_CORE_TIMER_RATE);

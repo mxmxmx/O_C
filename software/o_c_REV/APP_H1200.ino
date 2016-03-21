@@ -193,7 +193,6 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 void H1200_init() {
   h1200_settings.Init();
   h1200_state.Init();
-  init_circle_lut();
 }
 
 size_t H1200_storageSize() {
@@ -351,5 +350,5 @@ void H1200_screensaver() {
     history >>= 8;
   }
 
-  visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
+  OC::visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
 }

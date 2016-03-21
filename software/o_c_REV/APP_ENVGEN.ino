@@ -510,7 +510,7 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 }
 
 void ENVGEN_screensaver() {
-  scope_render();
+  OC::scope_render();
 }
 
 void FASTRUN ENVGEN_isr() {

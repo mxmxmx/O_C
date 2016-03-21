@@ -31,13 +31,16 @@
 #include "util/util_misc.h"
 #include "util/util_settings.h"
 
-void init_circle_lut();
+namespace OC {
+
 void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegfx::coord_t centery);
 
 void screensaver();
 void scope_render();
 
 namespace menu {
+
+void Init();
 
 static constexpr weegfx::coord_t kDisplayWidth = weegfx::Graphics::kWidth;
 static constexpr weegfx::coord_t kDisplayHeight = weegfx::Graphics::kHeight;
@@ -286,6 +289,9 @@ private:
 
   DISALLOW_COPY_AND_ASSIGN(SettingsList);
 };
-};
+
+}; // namespace menu
+
+}; // namespace OC
 
 #endif // OC_MENUS_H

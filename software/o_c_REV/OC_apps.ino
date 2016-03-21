@@ -10,8 +10,8 @@
   isr \
 }
 
-#define ASR_screensaver screensaver
-#define QQ_screensaver screensaver
+#define ASR_screensaver OC::screensaver
+#define QQ_screensaver OC::screensaver
 // #define ENVGEN_screensaver screensaver
 
 OC::App available_apps[] = {
@@ -57,17 +57,16 @@ struct AppData {
 
 typedef PageStorage<EEPROMStorage, EEPROM_GLOBALSETTINGS_START, EEPROM_GLOBALSETTINGS_END, GlobalSettings> GlobalSettingsStorage;
 typedef PageStorage<EEPROMStorage, EEPROM_APPDATA_START, EEPROM_APPDATA_END, AppData> AppDataStorage;
-};
 
-OC::GlobalSettings global_settings;
-OC::GlobalSettingsStorage global_settings_storage;
+GlobalSettings global_settings;
+GlobalSettingsStorage global_settings_storage;
 
-OC::AppData app_settings;
-OC::AppDataStorage app_data_storage;
+AppData app_settings;
+AppDataStorage app_data_storage;
 
 static constexpr int DEFAULT_APP_INDEX = 0;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
-OC::App *OC::current_app = &available_apps[DEFAULT_APP_INDEX];
+App *current_app = &available_apps[DEFAULT_APP_INDEX];
 
 void save_global_settings() {
   SERIAL_PRINTLN("Saving global settings...");
@@ -157,17 +156,17 @@ void restore_app_data() {
 }
 
 void set_current_app(int index) {
-  OC::current_app = &available_apps[index];
-  global_settings.current_app_id = OC::current_app->id;
+  current_app = &available_apps[index];
+  global_settings.current_app_id = current_app->id;
 }
 
-OC::App *OC::APPS::find(uint16_t id) {
+App *APPS::find(uint16_t id) {
   for (auto &app : available_apps)
     if (app.id == id) return &app;
   return nullptr;
 }
 
-int OC::APPS::index_of(uint16_t id) {
+int APPS::index_of(uint16_t id) {
   int i = 0;
   for (const auto &app : available_apps) {
     if (app.id == id) return i;
@@ -176,9 +175,9 @@ int OC::APPS::index_of(uint16_t id) {
   return i;
 }
 
-void OC::APPS::Init(bool use_defaults) {
+void APPS::Init(bool use_defaults) {
 
-  OC::Scales::Init();
+  Scales::Init();
   for (auto &app : available_apps)
     app.Init();
 
@@ -190,10 +189,10 @@ void OC::APPS::Init(bool use_defaults) {
     app_data_storage.Init();
   } else {
     SERIAL_PRINTLN("Loading global settings: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
-                  sizeof(OC::GlobalSettings),
-                  OC::GlobalSettingsStorage::PAGESIZE,
-                  OC::GlobalSettingsStorage::PAGES,
-                  OC::GlobalSettingsStorage::LENGTH);
+                  sizeof(GlobalSettings),
+                  GlobalSettingsStorage::PAGESIZE,
+                  GlobalSettingsStorage::PAGES,
+                  GlobalSettingsStorage::LENGTH);
 
     if (!global_settings_storage.Load(global_settings)) {
       SERIAL_PRINTLN("Settings not loaded or invalid, using defaults...");
@@ -204,10 +203,10 @@ void OC::APPS::Init(bool use_defaults) {
     }
 
     SERIAL_PRINTLN("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
-                  sizeof(OC::AppData),
-                  OC::AppDataStorage::PAGESIZE,
-                  OC::AppDataStorage::PAGES,
-                  OC::AppDataStorage::LENGTH);
+                  sizeof(AppData),
+                  AppDataStorage::PAGESIZE,
+                  AppDataStorage::PAGES,
+                  AppDataStorage::LENGTH);
 
     if (!app_data_storage.Load(app_settings)) {
       SERIAL_PRINTLN("App data not loaded, using defaults...");
@@ -224,7 +223,7 @@ void OC::APPS::Init(bool use_defaults) {
   }
 
   set_current_app(current_app_index);
-  OC::current_app->HandleAppEvent(OC::APP_EVENT_RESUME);
+  current_app->HandleAppEvent(OC::APP_EVENT_RESUME);
 
   delay(100);
 }
@@ -255,7 +254,7 @@ void OC::Ui::SelectApp() {
 
   SetButtonIgnoreMask();
 
-  OC::current_app->HandleAppEvent(OC::APP_EVENT_SUSPEND);
+  current_app->HandleAppEvent(APP_EVENT_SUSPEND);
 
   menu::ScreenCursor<5> cursor;
   cursor.Init(0, NUM_AVAILABLE_APPS - 1);
@@ -270,13 +269,13 @@ void OC::Ui::SelectApp() {
       if (IgnoreEvent(event))
         continue;
 
-      if (UI::EVENT_ENCODER == event.type && OC::CONTROL_ENCODER_R == event.control) {
+      if (UI::EVENT_ENCODER == event.type && CONTROL_ENCODER_R == event.control) {
         cursor.Scroll(event.value);
-      } else if (OC::CONTROL_BUTTON_R == event.control) {
+      } else if (CONTROL_BUTTON_R == event.control) {
         save = event.type == UI::EVENT_BUTTON_LONG_PRESS;
         change_app = true;
-      } else if (OC::CONTROL_BUTTON_L == event.control) {
-        OC::ui.DebugStats();
+      } else if (CONTROL_BUTTON_L == event.control) {
+        ui.DebugStats();
       }
     }
 
@@ -286,7 +285,7 @@ void OC::Ui::SelectApp() {
   event_queue_.Flush();
   event_queue_.Poke();
 
-  OC::CORE::app_isr_enabled = false;
+  CORE::app_isr_enabled = false;
   delay(1);
 
   if (change_app) {
@@ -298,6 +297,8 @@ void OC::Ui::SelectApp() {
   }
 
   // Restore state
-  OC::current_app->HandleAppEvent(OC::APP_EVENT_RESUME);
-  OC::CORE::app_isr_enabled = true;
+  current_app->HandleAppEvent(APP_EVENT_RESUME);
+  CORE::app_isr_enabled = true;
 }
+
+}; // namespace OC

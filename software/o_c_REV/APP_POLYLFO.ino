@@ -183,7 +183,7 @@ void POLYLFO_menu() {
 }
 
 void POLYLFO_screensaver() {
-  scope_render();
+  OC::scope_render();
 }
 
 void POLYLFO_handleAppEvent(OC::AppEvent event) {

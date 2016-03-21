@@ -5,13 +5,15 @@
 #include "OC_menus.h"
 #include "DAC.h"
 
+namespace OC {
+
 static constexpr weegfx::coord_t note_circle_r = 28;
 
 static struct coords {
   weegfx::coord_t x, y;
 } circle_pos_lut[12];
 
-void init_circle_lut() {
+static void init_circle_lut() {
   static const float pi = 3.14159265358979323846f;
   static const float semitone_radians = (2.f * pi / 12.f);
 
@@ -23,6 +25,14 @@ void init_circle_lut() {
     circle_pos_lut[i].y = y;
   }
 }
+
+namespace menu {
+void Init() {
+  init_circle_lut();
+};
+
+}; // namespace menu
+
 
 void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegfx::coord_t centery) {
   graphics.drawCircle(centerx, centery, note_circle_r);
@@ -103,3 +113,5 @@ void scope_render() {
     graphics.setPixel(64 + x, 32 + averaged_scope_history[DAC_CHANNEL_D][index]);
   }
 }
+
+}; // namespace OC

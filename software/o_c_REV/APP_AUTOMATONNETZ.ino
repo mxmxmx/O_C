@@ -297,7 +297,6 @@ SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
 AutomatonnetzState automatonnetz_state;
 
 void Automatonnetz_init() {
-  init_circle_lut();
   automatonnetz_state.Init();
   automatonnetz_state.ClearGrid(CLEAR_MODE_RAND_TRANSFORM);
   automatonnetz_state.Reset();
@@ -572,7 +571,7 @@ void Automatonnetz_screensaver() {
   uint8_t normalized[3];
   for (size_t i=0; i < 3; ++i)
     normalized[i] = (outputs[i + 1] + 120) % 12;
-  visualize_pitch_classes(normalized, kNoteCircleX, kNoteCircleY);
+  OC::visualize_pitch_classes(normalized, kNoteCircleX, kNoteCircleY);
 
   vec2<size_t> last_pos = extract_pos(cell_history);
   cell_history >>= 8;

@@ -249,7 +249,7 @@ void LORENZ_menu() {
 }
 
 void LORENZ_screensaver() {
-  scope_render();
+  OC::scope_render();
 }
 
 void LORENZ_handleAppEvent(OC::AppEvent event) {
