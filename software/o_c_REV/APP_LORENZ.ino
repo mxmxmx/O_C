@@ -14,29 +14,6 @@ enum LORENZ_SETTINGS {
   LORENZ_SETTING_LAST
 };
 
-enum ELorenzOutputMap {
-  LORENZ_OUTPUT_X1,
-  LORENZ_OUTPUT_Y1,
-  LORENZ_OUTPUT_Z1,
-  LORENZ_OUTPUT_X2,
-  LORENZ_OUTPUT_Y2,
-  LORENZ_OUTPUT_Z2,
-  ROSSLER_OUTPUT_X1,
-  ROSSLER_OUTPUT_Y1,
-  ROSSLER_OUTPUT_Z1,
-  ROSSLER_OUTPUT_X2,
-  ROSSLER_OUTPUT_Y2,
-  ROSSLER_OUTPUT_Z2,
-  LORENZ_OUTPUT_LX1_PLUS_RX1,
-  LORENZ_OUTPUT_LX1_PLUS_RZ1,
-  LORENZ_OUTPUT_LX1_PLUS_LY2,
-  LORENZ_OUTPUT_LX1_PLUS_LZ2,
-  LORENZ_OUTPUT_LX1_PLUS_RX2,
-  LORENZ_OUTPUT_LX1_PLUS_RZ2,
-  LORENZ_OUTPUT_LAST,
-};
-
-
 const char * const lorenz_output_names[] = {
   "Lx1",
   "Ly1",
@@ -55,7 +32,11 @@ const char * const lorenz_output_names[] = {
   "Lx1+Ly2",
   "Lx1+Lz2",
   "Lx1+Rx2",
-  "Lx1_Rz2",
+  "Lx1+Rz2",
+  "Lx1xLy1",
+  "Lx1xLx2",
+  "Lx1xRx1",
+  "Lx1xRx2",
 };
 
 class LorenzGenerator : public settings::SettingsBase<LorenzGenerator, LORENZ_SETTING_LAST> {
@@ -127,14 +108,14 @@ void LorenzGenerator::Init() {
 }
 
 SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
-  { 128, 0, 255, "FREQ 1", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "FREQ 2", NULL, settings::STORAGE_TYPE_U8 },
-  { 63, 4, 127, "RHO/C 1", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 63, 4, 127, "RHO/C 2", NULL, settings::STORAGE_TYPE_U8 }, 
-  {LORENZ_OUTPUT_X1, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outA ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {LORENZ_OUTPUT_Y1, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outB ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {LORENZ_OUTPUT_X2, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outC ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {LORENZ_OUTPUT_Y2, LORENZ_OUTPUT_X1, LORENZ_OUTPUT_LAST - 1, "outD ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  { 128, 0, 255, "Freq 1", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "Freq 2", NULL, settings::STORAGE_TYPE_U8 },
+  { 63, 4, 127, "Rho/c 1", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 63, 4, 127, "Rho/c 2", NULL, settings::STORAGE_TYPE_U8 }, 
+  {streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out A ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_Y1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out B ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_X2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out C ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_Y2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out D ", lorenz_output_names, settings::STORAGE_TYPE_U8},
 };
 
 LorenzGenerator lorenz_generator;
