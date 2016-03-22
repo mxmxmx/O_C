@@ -12,9 +12,10 @@ namespace DEBUG {
 
   void Init();
 
-  extern SmoothedValue<uint32_t, 16> ISR_cycles;
-  extern SmoothedValue<uint32_t, 16> UI_cycles;
-  extern SmoothedValue<uint32_t, 16> MENU_draw_cycles;
+  extern debug::AveragedCycles ISR_cycles;
+  extern debug::AveragedCycles UI_cycles;
+  extern debug::AveragedCycles MENU_draw_cycles;
+
   extern uint32_t UI_event_count;
   extern uint32_t UI_max_queue_depth;
   extern uint32_t UI_queue_overflow;
@@ -31,5 +32,15 @@ public:
 };
 
 }; // namespace OC
+
+
+#define OC_DEBUG_PROFILE_SCOPE(var) \
+  debug::ScopedCycleMeasurement cycles(var)
+
+#define OC_DEBUG_RESET_CYCLES(counter, count, var) \
+  do { \
+    if (!((counter) & (count - 1))) \
+      var.Reset(); \
+  } while (0)
 
 #endif // OC_DEBUG_H

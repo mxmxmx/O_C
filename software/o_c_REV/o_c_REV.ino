@@ -56,9 +56,10 @@ OC::UiMode ui_mode = OC::UI_MODE_MENU;
 IntervalTimer UI_timer;
 
 void FASTRUN UI_timer_ISR() {
-  debug::CycleMeasurement cycles;
+  OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::UI_cycles);
   OC::ui.Poll();
-  OC::DEBUG::UI_cycles.push(cycles.read());
+
+  OC_DEBUG_RESET_CYCLES(OC::ui.ticks(), 2048, OC::DEBUG::UI_cycles);
 }
 
 /*  ------------------------ core timer ISR ---------------------------   */
@@ -68,7 +69,7 @@ volatile uint32_t OC::CORE::ticks = 0;
 
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
-  debug::CycleMeasurement cycles;
+  OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::ISR_cycles);
 
   if (display_driver.Flush())
     frame_buffer.read();
@@ -99,7 +100,7 @@ void FASTRUN CORE_timer_ISR() {
   if (OC::CORE::app_isr_enabled)
     OC::APPS::ISR();
 
-  OC::DEBUG::ISR_cycles.push(cycles.read());
+  OC_DEBUG_RESET_CYCLES(OC::CORE::ticks, 16384, OC::DEBUG::ISR_cycles);
 }
 
 /*       ---------------------------------------------------------         */
@@ -158,6 +159,7 @@ void FASTRUN loop() {
   if (ui_mode == OC::UI_MODE_CALIBRATE)
     OC::ui.Calibrate();
 
+  uint32_t menu_redraws = 0;
   while (true) {
 
     // don't change current_app while it's running
@@ -166,13 +168,15 @@ void FASTRUN loop() {
       ui_mode = OC::UI_MODE_MENU;
     }
 
+
     // Refresh display
     if (MENU_REDRAW) {
       GRAPHICS_BEGIN_FRAME(false); // Don't busy wait
         if (OC::UI_MODE_MENU == ui_mode) {
-          debug::CycleMeasurement cycles;
+          OC_DEBUG_RESET_CYCLES(menu_redraws, 512, OC::DEBUG::MENU_draw_cycles);
+          OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::MENU_draw_cycles);
           OC::current_app->DrawMenu();
-          OC::DEBUG::MENU_draw_cycles.push(cycles.read());
+          ++menu_redraws;
         } else {
           OC::current_app->DrawScreensaver();
         }

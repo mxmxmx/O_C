@@ -76,6 +76,10 @@ public:
     return event_queue_.idle_time();
   }
 
+  inline uint32_t ticks() const {
+    return ticks_;
+  }
+
   inline void SetButtonIgnoreMask() {
     button_ignore_mask_ = button_state_;
   }
