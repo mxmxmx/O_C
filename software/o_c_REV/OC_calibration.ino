@@ -87,6 +87,7 @@ struct CalibrationStep {
   CALIBRATION_STEP step;
   const char *title;
   const char *message;
+  const char *help; // optional
   const char *footer;
 
   CALIBRATION_TYPE calibration_type;
@@ -105,38 +106,42 @@ struct CalibrationState {
 
 OC::DigitalInputDisplay digital_input_displays[4];
 
-const char * default_footer = "[prev]         [next]";
+// 128/6=21                  |                     |
+const char *start_footer   = "              [START]";
+const char *end_footer     = "[PREV]         [SAVE]";
+const char *default_footer = "[PREV]         [NEXT]";
+const char *default_help_r = "Turn [R] to ajdust";
 
 const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
-  { HELLO, "Calibrate", "Use defaults? ", "              [start]", CALIBRATE_NONE, 0, OC::Strings::no_yes, 0, 1 },
-  { CENTER_DISPLAY, "Center Display", "offset ", default_footer, CALIBRATE_DISPLAY, 0, nullptr, 0, 2 },
-  { VOLT_0, "trim to 0 volts", "->  0.000V ", default_footer, CALIBRATE_OCTAVE, _ZERO, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_3m, "trim to -3 volts", "-> -3.000V ", default_footer, CALIBRATE_OCTAVE, 0, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_2m, "trim to -2 volts", "-> -2.000V ", default_footer, CALIBRATE_OCTAVE, 1, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_1m, "trim to -1 volts", "-> -1.000V ", default_footer, CALIBRATE_OCTAVE, 2, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_0, "trim to 0 volts", "->  0.000V ", default_footer, CALIBRATE_OCTAVE, 3, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_1, "trim to 1 volts", "->  1.000V ", default_footer, CALIBRATE_OCTAVE, 4, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_2, "trim to 2 volts", "->  2.000V ", default_footer, CALIBRATE_OCTAVE, 5, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_3, "trim to 3 volts", "->  3.000V ", default_footer, CALIBRATE_OCTAVE, 6, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_4, "trim to 4 volts", "->  4.000V ", default_footer, CALIBRATE_OCTAVE, 7, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_5, "trim to 5 volts", "->  5.000V ", default_footer, CALIBRATE_OCTAVE, 8, nullptr, 0, DAC::MAX_VALUE },
-  { VOLT_6, "trim to 6 volts", "->  6.000V ", default_footer, CALIBRATE_OCTAVE, 9, nullptr, 0, DAC::MAX_VALUE },
+  { HELLO, "Calibrate", "Use defaults? ", "Turn [R] to select", start_footer, CALIBRATE_NONE, 0, OC::Strings::no_yes, 0, 1 },
+  { CENTER_DISPLAY, "Center Display", "offset ", default_help_r, default_footer, CALIBRATE_DISPLAY, 0, nullptr, 0, 2 },
+  { VOLT_0, "DAC 0 volts", "->  0.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, _ZERO, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_3m, "DAC -3 volts", "-> -3.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 0, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_2m, "DAC -2 volts", "-> -2.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 1, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_1m, "DAC -1 volts", "-> -1.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 2, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_0, "DAC 0 volts", "->  0.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 3, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_1, "DAC 1 volts", "->  1.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 4, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_2, "DAC 2 volts", "->  2.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 5, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_3, "DAC 3 volts", "->  3.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 6, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_4, "DAC 4 volts", "->  4.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 7, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_5, "DAC 5 volts", "->  5.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 8, nullptr, 0, DAC::MAX_VALUE },
+  { VOLT_6, "DAC 6 volts", "->  6.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 9, nullptr, 0, DAC::MAX_VALUE },
 
-  { DAC_FINE_A, "DAC A fine", "->  1.000v ", default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_A, nullptr, -128, 127 },
-  { DAC_FINE_B, "DAC B fine", "->  1.000v ", default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_B, nullptr, -128, 127 },
-  { DAC_FINE_C, "DAC C fine", "->  1.000v ", default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_C, nullptr, -128, 127 },
-  { DAC_FINE_D, "DAC D fine", "->  1.000v ", default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_D, nullptr, -128, 127 },
+  { DAC_FINE_A, "DAC A fine", "->  1.000v ", default_help_r, default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_A, nullptr, -128, 127 },
+  { DAC_FINE_B, "DAC B fine", "->  1.000v ", default_help_r, default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_B, nullptr, -128, 127 },
+  { DAC_FINE_C, "DAC C fine", "->  1.000v ", default_help_r, default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_C, nullptr, -128, 127 },
+  { DAC_FINE_D, "DAC D fine", "->  1.000v ", default_help_r, default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_D, nullptr, -128, 127 },
 
-  { CV_OFFSET, "trim CV offset", "use trimpot!", default_footer, CALIBRATE_ADC_TRIMMER, 0, nullptr, 0, 4095 },
-  { CV_OFFSET_0, "CV1 (sample)", "use encoder!", default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
-  { CV_OFFSET_1, "CV2 (index)", "use encoder!", default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_2, nullptr, 0, 4095 },
-  { CV_OFFSET_2, "CV3 (notes/scale)", "use encoder!", default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
-  { CV_OFFSET_3, "CV4 (transpose)", "use encoder!", default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
+  { CV_OFFSET, "trim CV offset", "", "Adjust CV trimpot", default_footer, CALIBRATE_ADC_TRIMMER, 0, nullptr, 0, 4095 },
+  { CV_OFFSET_0, "CV1 (sample)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
+  { CV_OFFSET_1, "CV2 (index)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_2, nullptr, 0, 4095 },
+  { CV_OFFSET_2, "CV3 (notes/scale)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
+  { CV_OFFSET_3, "CV4 (transpose)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
 
-  { CV_SCALE_1V, "CV Scaling 1V", "TODO", default_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 },
-  { CV_SCALE_3V, "CV Scaling 3V", "TODO", default_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 },
+  { CV_SCALE_1V, "CV Scaling 1V", "TODO", "Lorem ipsum", default_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 },
+  { CV_SCALE_3V, "CV Scaling 3V", "TODO", "Lorem ipsum", default_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 },
 
-  { EXIT, "done?", "", "[prev]         [SAVE]", CALIBRATE_NONE, 0, nullptr, 0, 0 }
+  { EXIT, "Calibrated!", "", "Lorem ipsum", end_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 }
 };
 
 /* make DAC table from calibration values */ 
@@ -288,7 +293,7 @@ void calibration_draw(const CalibrationState &state) {
   menu::DefaultTitleBar::Draw();
   graphics.print(step->title);
 
-  weegfx::coord_t y = menu::CalcLineY(0) + menu::kMenuLineH / 2;
+  weegfx::coord_t y = menu::CalcLineY(0);
 
   graphics.setPrintPos(menu::kIndentDx, y);
   switch (step->calibration_type) {
@@ -306,14 +311,16 @@ void calibration_draw(const CalibrationState &state) {
       graphics.print(_ADC_OFFSET);
       graphics.print(" == ");
       graphics.print((long)state.CV);
-      graphics.setPrintPos(menu::kIndentDx, y + menu::kMenuLineH);
+      y += menu::kMenuLineH;
+      graphics.setPrintPos(menu::kIndentDx, y);
       graphics.print(step->message);
       break;
 
     case CALIBRATE_ADC_OFFSET:
       graphics.pretty_print(state.encoder_value - state.CV, 5);
       graphics.print(" --> 0");
-      graphics.setPrintPos(menu::kIndentDx, y + menu::kMenuLineH);
+      y += menu::kMenuLineH;
+      graphics.setPrintPos(menu::kIndentDx, y);
       graphics.print(step->message);
       break;
 
@@ -330,6 +337,11 @@ void calibration_draw(const CalibrationState &state) {
         graphics.print(step->value_str[state.encoder_value]);
       break;
   }
+
+  y += menu::kMenuLineH;
+  graphics.setPrintPos(menu::kIndentDx, y);
+  if (step->help)
+    graphics.print(step->help);
 
   weegfx::coord_t x = menu::kDisplayWidth - 22;
   y = 2;
