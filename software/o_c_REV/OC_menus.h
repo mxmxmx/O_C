@@ -48,6 +48,7 @@ static constexpr weegfx::coord_t kMenuLineH = 12;
 static constexpr weegfx::coord_t kFontHeight = 8;
 static constexpr weegfx::coord_t kDefaultMenuStartX = 0;
 static constexpr weegfx::coord_t kDefaultValueX = 96;
+static constexpr weegfx::coord_t kDefaultMenuEndX = kDisplayWidth - 2;
 static constexpr weegfx::coord_t kIndentDx = 2;
 
 static constexpr int kScreenLines = 4;
@@ -199,24 +200,43 @@ typedef TitleBar<kDefaultMenuStartX, 4, 6> QuadTitleBar;
 
 // Essentially all O&C apps are built around a list of settings; these two
 // wrappers and the cursor wrapper replace the original macro-based drawing.
-
+// start_x : Left edge of list (setting name column)
+// value_x : Left edge of value column (edit cursor placed left of this)
+// The value column is assumed to end at kDisplayWidth
+//
 struct SettingsListItem {
   bool selected, editing;
   weegfx::coord_t x, y;
-  weegfx::coord_t valuex;
+  weegfx::coord_t valuex, endx;
 
   SettingsListItem() { }
   ~SettingsListItem() { }
 
-  inline void DrawDefault(int value, const settings::value_attr &attr) const {
-    graphics.setPrintPos(x + 2, y + 1);
+  inline void DrawName(const settings::value_attr &attr) const {
+    graphics.setPrintPos(x + 2, y + 2);
     graphics.print(attr.name);
+  }
 
-    graphics.setPrintPos(valuex, y + 1);
+  inline void DrawDefault(int value, const settings::value_attr &attr) const {
+    DrawName(attr);
+
+    graphics.setPrintPos(endx, y + 1);
     if(attr.value_names)
-      graphics.print(attr.value_names[value]);
+      graphics.print_right(attr.value_names[value]);
     else
-      graphics.pretty_print(value);
+      graphics.pretty_print_right(value);
+
+    if (editing)
+      menu::DrawEditIcon(valuex, y, value, attr);
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
+
+  inline void DrawDefault(const char *str, int value, const settings::value_attr &attr) const {
+    DrawName(attr);
+
+    graphics.setPrintPos(endx, y + 1);
+    graphics.print_right(str);
 
     if (editing)
       menu::DrawEditIcon(valuex, y, value, attr);
@@ -226,8 +246,7 @@ struct SettingsListItem {
 
   template <bool editable>
   inline void DrawNoValue(int value, const settings::value_attr &attr) const {
-    graphics.setPrintPos(x + 2, y + 1);
-    graphics.print(attr.name);
+    DrawName(attr);
 
     if (editable && editing)
       menu::DrawEditIcon(valuex, y, value, attr);
@@ -240,10 +259,6 @@ struct SettingsListItem {
       graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
   }
 
-  inline void SetValuePrintPos() const {
-    graphics.setPrintPos(valuex, y + 1);
-  }
-
   inline void SetPrintPos() const {
     graphics.setPrintPos(x + 2, y + 1);
   }
@@ -251,7 +266,7 @@ struct SettingsListItem {
   DISALLOW_COPY_AND_ASSIGN(SettingsListItem);
 };
 
-template <int screen_lines, weegfx::coord_t start_x, weegfx::coord_t value_x>
+template <int screen_lines, weegfx::coord_t start_x, weegfx::coord_t value_x, weegfx::coord_t end_x = kDefaultMenuEndX>
 class SettingsList {
 public:
 
@@ -272,6 +287,7 @@ public:
     item.x = start_x;
     item.y = y_;
     item.valuex = value_x;
+    item.endx = end_x;
     y_ += kMenuLineH;
     return current_item_++;
   }
@@ -280,6 +296,7 @@ public:
     item.x = start_x;
     item.y = CalcLineY(line);
     item.valuex = value_x;
+    item.endx = end_x;
   }
 
 private:

@@ -377,7 +377,7 @@ const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 },
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "source", channel_input_sources, settings::STORAGE_TYPE_U4 },
   { CHANNEL_TRIGGER_CONTINUOUS, 0, CHANNEL_TRIGGER_LAST - 1, "trigger", channel_trigger_sources, settings::STORAGE_TYPE_U4 },

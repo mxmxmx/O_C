@@ -44,13 +44,15 @@
 #define GRID_EPSILON 6
 #define GRID_DIMENSION 5
 #define GRID_CELLS (GRID_DIMENSION * GRID_DIMENSION)
-  
+
+// TODO Better selection, e.g. .125, .15 .2 or 3 digits with encoder acceleration
+
 const size_t clock_fraction[] = {
   0, CLOCK_STEP_RES/8, 1+CLOCK_STEP_RES/7, CLOCK_STEP_RES/6, 1+CLOCK_STEP_RES/5, 1+CLOCK_STEP_RES/4, 1+CLOCK_STEP_RES/3, CLOCK_STEP_RES/2
 };
 
 const char *clock_fraction_names[] = {
-  "", "1/8", "1/7", "1/6", "1/5", "1/4", "1/3", "1/2"
+  " \0\0\0\0", "  1/8", "  1/7", "  1/6", "  1/5", "  1/4", "  1/3", "  1/2"
 };
 
 static constexpr uint32_t TRIGGER_MASK_GRID = OC::DIGITAL_INPUT_1_MASK;
@@ -467,7 +469,7 @@ void draw_cell_menu() {
 
   const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_cell);
 
-  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDisplayWidth - 25> settings_list(automatonnetz_state.ui.cell_cursor);
+  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDefaultMenuEndX - 25> settings_list(automatonnetz_state.ui.cell_cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {
     const int current = settings_list.Next(list_item);
@@ -483,14 +485,14 @@ void draw_grid_menu() {
   menu::TitleBar<kMenuStartX, 1, 2>::Draw();
   for (size_t i=1; i < 4; ++i) {
     graphics.print(note_name(outputs[i]));
-    graphics.print(' ');
+    graphics.movePrintPos(weegfx::Graphics::kFixedFontW/2, 0);
   }
   if (MODE_MAJOR == mode)
     graphics.print('+');
   else
     graphics.print('-');
 
-  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDisplayWidth - 25> settings_list(automatonnetz_state.ui.grid_cursor);
+  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDefaultMenuEndX - 25> settings_list(automatonnetz_state.ui.grid_cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {
     const int current = settings_list.Next(list_item);
@@ -498,18 +500,15 @@ void draw_grid_menu() {
     const settings::value_attr &attr = AutomatonnetzState::value_attr(current);
 
     if (current <= GRID_SETTING_DY) {
-      list_item.valuex = menu::kDisplayWidth - 31;
-      list_item.SetValuePrintPos();
       const int integral = value / 8;
       const int fraction = value % 8;
+      char value_str[6];
+      memcpy(value_str, clock_fraction_names[fraction], 6);
       if (integral || !fraction)
-        graphics.print((char)('0' + integral));
-      if (fraction) {
-        if (integral)
-          graphics.print(' ');
-        graphics.print(clock_fraction_names[fraction]);
-      }
-      list_item.DrawNoValue<true>(value, attr);
+        value_str[0] = (char)('0' + integral);
+
+      list_item.valuex = list_item.endx - 30;
+      list_item.DrawDefault(value_str, value, attr);
     } else {
       list_item.DrawDefault(value, attr);
     }

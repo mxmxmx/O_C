@@ -240,7 +240,7 @@ void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
        ++current, item.y += menu::kMenuLineH) {
     item.selected = current == cursor.cursor_pos();
     item.SetPrintPos();
-    graphics.print(' ');
+    graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
     graphics.print(available_apps[current].name);
     if (global_settings.current_app_id == available_apps[current].id)
        graphics.drawBitmap8(item.x + 2, item.y + 1, 4, OC::bitmap_indicator_4x8);

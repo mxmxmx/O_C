@@ -27,6 +27,7 @@
 namespace weegfx {
 
 typedef int_fast16_t coord_t;
+typedef const uint8_t *font_glyph;
 
 // Quick & dirty graphics for 128 x 64 framebuffer with vertical pixels.
 // - Writes to provided framebuffer
@@ -39,6 +40,9 @@ public:
   static const uint8_t kHeight = 64;
   static const size_t kFrameSize = kWidth * kHeight / 8;
 
+  static const weegfx::coord_t kFixedFontW = 6;
+  static const weegfx::coord_t kFixedFontH = 8;
+
   void Init();
 
   void Begin(uint8_t *frame, bool clear_frame);
@@ -47,7 +51,6 @@ public:
   // Pseudo-compatible functions with u8lib
   void setDefaultBackgroundColor() { };
   void setDefaultForegroundColor() { };
-  void setFont(const void *) { };
 
   // All Drawing is with foreground color except where otherwise noted
 
@@ -73,14 +76,23 @@ public:
 
   void print(char);
   void print(int);
-  void print(int, size_t width);
-  void print(uint16_t, size_t width);
+  void print(int, unsigned width);
+  void print(uint16_t, unsigned width);
   void print(long);
 
   void pretty_print(int);
-  void pretty_print(int, size_t width);
+  void pretty_print(int, unsigned width);
 
+  // Print right-aligned number at current print pos; print pos is unchanged  
+  void pretty_print_right(int);
+
+  // Print string at current print pos and move print pos
   void print(const char *);
+
+  // Print right-aligned string at current print pos; print pos is unchanged
+  void print_right(const char *);
+
+  // Print string at absolute coords, doesn't move print pos
   void drawStr(coord_t x, coord_t y, const char *str);
 
   // Might be time-consuming
@@ -89,10 +101,11 @@ public:
 private:
   uint8_t *frame_;
 
-  inline uint8_t *get_frame_ptr(const coord_t x, const coord_t y) __attribute__((always_inline));
-
   coord_t text_x_;
   coord_t text_y_;
+
+  inline uint8_t *get_frame_ptr(const coord_t x, const coord_t y) __attribute__((always_inline));
+  void draw_char(char c, coord_t x, coord_t y);
 };
 
 inline void Graphics::setPixel(coord_t x, coord_t y) {

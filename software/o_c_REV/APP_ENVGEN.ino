@@ -401,7 +401,7 @@ void ENVGEN_menu_settings() {
   list_item.SetPrintPos();
   if (env.get_type() == envgen.ui.left_encoder_value)
     graphics.drawBitmap8(2, list_item.y, 4, OC::bitmap_indicator_4x8);
-  graphics.print(' ');
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
 
   while (settings_list.available()) {

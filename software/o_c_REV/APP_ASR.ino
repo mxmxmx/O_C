@@ -303,7 +303,7 @@ const char* const mult[20] = {
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
-  { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
@@ -451,16 +451,13 @@ void ASR_menu() {
   menu::TitleBar<0, 4, 0>::Draw();
 
   int scale = asr_state.left_encoder_value;
-  graphics.print(' ');
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(OC::scale_names[scale]);
   if (asr.get_scale() == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
   menu::TitleBar<0, 4, 0>::SetColumn(3);
-  int oct = asr.get_octave();
-  if (oct >= 0) 
-    graphics.print("+");
-  graphics.print(oct);
+  graphics.pretty_print(asr.get_octave());
 
   uint8_t clock_state = (asr.clockState() + 3) >> 2;
   if (clock_state)

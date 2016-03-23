@@ -119,7 +119,7 @@ void ScaleEditor<Owner>::Draw() {
 
   graphics.setPrintPos(x, y + 24);
   if (cursor_pos_ != num_notes) {
-    graphics.print(' ');
+    graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
     if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
       graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
     graphics.print(scale_->notes[cursor_pos_], 4);

@@ -160,7 +160,7 @@ void POLYLFO_menu() {
   graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
 
 
-  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(poly_lfo_state.cursor);
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 1> settings_list(poly_lfo_state.cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {
     const int current = settings_list.Next(list_item);
@@ -176,7 +176,7 @@ void POLYLFO_menu() {
       while (count--)
         graphics.setPixel(x++, list_item.y + 8 - (*preview++ >> 13));
 
-      list_item.valuex = menu::kDefaultValueX - 36;
+      list_item.endx = menu::kDefaultMenuEndX - 39;
       list_item.DrawDefault(value, PolyLfo::value_attr(current));
     }
   }
