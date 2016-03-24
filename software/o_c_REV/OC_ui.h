@@ -1,7 +1,6 @@
 #ifndef OC_UI_H_
 #define OC_UI_H_
 
-#include "weegfx.h"
 #include "OC_config.h"
 #include "OC_debug.h"
 #include "UI/ui_button.h"

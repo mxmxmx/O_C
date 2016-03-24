@@ -25,7 +25,7 @@
 #ifndef OC_MENUS_H
 #define OC_MENUS_H
 
-#include "weegfx.h"
+#include "drivers/weegfx.h"
 #include "OC_bitmaps.h"
 #include "util/util_macros.h"
 #include "util/util_misc.h"

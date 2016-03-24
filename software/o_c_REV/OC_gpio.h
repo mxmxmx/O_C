@@ -18,9 +18,9 @@
 #define OLED_RST 7
 #define OLED_CS 8
 
-// These are inverted (?), see u8g_teensy.cpp
-#define OLED_CS_HIGH LOW
-#define OLED_CS_LOW  HIGH
+// OLED CS is active low
+#define OLED_CS_ACTIVE LOW
+#define OLED_CS_INACTIVE HIGH
 
 #define DAC_RST 9
 #define DAC_CS 10

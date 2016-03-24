@@ -1,7 +1,7 @@
 #ifndef PAGE_DISPLAY_DRIVER_H_
 #define PAGE_DISPLAY_DRIVER_H_
 
-#include "util/util_macros.h"
+#include "../util/util_macros.h"
 
 // Basic driver that can send parts of frame buffer (pages) to driver device.
 // In theory parts of the transfer may be done via DMA and the page memory

@@ -37,15 +37,8 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 #include "DAC.h"
-#include "util_framebuffer.h"
-#include "page_display_driver.h"
-#include "weegfx.h"
-#include "SH1106_128x64_driver.h"
+#include "drivers/display.h"
 #include "util/util_debugpins.h"
-
-FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
-PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
-weegfx::Graphics graphics;
 
 unsigned long LAST_REDRAW_TIME = 0;
 uint_fast8_t MENU_REDRAW = true;
@@ -71,17 +64,13 @@ void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
   OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::ISR_cycles);
 
-  if (display_driver.Flush())
-    frame_buffer.read();
+  // DAC and display share SPI. By first updating the DAC values, then starting
+  // a DMA transfer to the display things are fairly nicely interleaved. In the
+  // next ISR, the display transfer is finalized (CS update).
 
+  display::Flush();
   DAC::Update();
-
-  if (display_driver.frame_valid()) {
-    display_driver.Update();
-  } else {
-    if (frame_buffer.readable())
-      display_driver.Begin(frame_buffer.readable_frame());
-  }
+  display::Update();
 
   // The ADC scan uses async startSingleRead/readSingle and single channel each
   // loop, so should be fast enough even at 60us (check ADC::busy_waits() == 0)
@@ -120,15 +109,13 @@ void setup() {
   OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
   DAC::Init(&OC::calibration_data.dac);
 
-  frame_buffer.Init();
-  display_driver.Init();
-  graphics.Init();
- 
+  display::Init();
+
   GRAPHICS_BEGIN_FRAME(true);
   GRAPHICS_END_FRAME();
 
   calibration_load();
-  SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
+  display::AdjustOffset(OC::calibration_data.display_offset);
 
   OC::menu::Init();
   OC::ui.Init();

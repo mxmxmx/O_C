@@ -390,7 +390,7 @@ void calibration_update(CalibrationState &state) {
       break;
     case CALIBRATE_DISPLAY:
       OC::calibration_data.display_offset = state.encoder_value;
-      SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
+      display::AdjustOffset(OC::calibration_data.display_offset);
       break;
   }
 }

@@ -8,6 +8,7 @@
 #include "OC_gpio.h"
 #include "OC_menus.h"
 #include "OC_ui.h"
+#include "drivers/display.h"
 
 extern uint_fast8_t MENU_REDRAW;
 
