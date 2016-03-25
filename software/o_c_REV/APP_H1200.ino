@@ -76,11 +76,11 @@ const char * const mode_names[] = {
 };
 
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
-  {12, -24, 36, "transpose", NULL, settings::STORAGE_TYPE_I8},
-  {MODE_MAJOR, 0, MODE_LAST-1, "mode", mode_names, settings::STORAGE_TYPE_U8},
-  {0, -3, 3, "inversion", NULL, settings::STORAGE_TYPE_I8},
-  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "output", output_mode_names, settings::STORAGE_TYPE_U8}
+  {12, -24, 36, "Transpose", NULL, settings::STORAGE_TYPE_I8},
+  {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
+  {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
+  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "Priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8}
 };
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
