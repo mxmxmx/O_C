@@ -185,10 +185,9 @@ public:
 
     ui.left_encoder_value = 0;
     ui.left_edit_mode = MODE_EDIT_SETTINGS;
-    ui.editing = false;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
-    ui.selected_setting = BB_SETTING_TRIGGER_INPUT;
+    ui.cursor.Init(BB_SETTING_GRAVITY, BB_SETTING_LAST - 1);
   }
 
   void ISR() {
@@ -214,11 +213,10 @@ public:
   struct {
     LeftEditMode left_edit_mode;
     int left_encoder_value;
-    bool editing;
 
     int selected_channel;
     int selected_segment;
-    int selected_setting;
+    menu::ScreenCursor<menu::kScreenLines> cursor;
   } ui;
 
   BouncingBall &selected() {
@@ -257,58 +255,37 @@ size_t BBGEN_restore(const void *storage) {
   return s;
 }
 
-void BBGEN_handleEvent(OC::AppEvent event) {
+void BBGEN_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
+      bbgen.ui.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }
 
 void BBGEN_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
-}
-
-void BBGEN_menu_settings() {
-  auto const &bb = bbgen.selected();
-  UI_START_MENU(0);
-
-  int first_visible_param = bbgen.ui.selected_setting - 3;
-  if (first_visible_param < BB_SETTING_GRAVITY)
-    first_visible_param = BB_SETTING_GRAVITY;
-
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, BB_SETTING_LAST, bbgen.ui.selected_setting, 0); // was 1
-    UI_DRAW_EDITABLE(bbgen.ui.editing);
-    UI_DRAW_SETTING(BouncingBall::value_attr(current_item), bb.get_value(current_item), kUiWideMenuCol1X);
-  UI_END_ITEMS_LOOP();
 }
 
 void BBGEN_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
 
-  for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    graphics.setPrintPos(x + 6, 2);
+  menu::QuadTitleBar::Draw();
+  for (uint_fast8_t i = 0; i < 4; ++i) {
+    menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
-    graphics.setPrintPos(x + 14, 2);
-    if (i == bbgen.ui.selected_channel) {
-      graphics.invertRect(x, 0, 32, 11);
-    }
   }
+  menu::QuadTitleBar::Selected(bbgen.ui.selected_channel);
 
-  BBGEN_menu_settings();
-
-  // TODO Draw phase anyway?
-  GRAPHICS_END_FRAME();
+  auto const &bb = bbgen.selected();
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(bbgen.ui.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(bb.get_value(current), BouncingBall::value_attr(current));
+  }
 }
 
 void BBGEN_topButton() {
@@ -321,60 +298,38 @@ void BBGEN_lowerButton() {
   selected_bb.change_value(BB_SETTING_GRAVITY + bbgen.ui.selected_segment, -32); 
 }
 
-void BBGEN_rightButton() {
-    bbgen.ui.editing = !bbgen.ui.editing;
-    encoder[LEFT].setPos(0);
-    encoder[RIGHT].setPos(0);
-}
-
-void BBGEN_leftButton() {
-//  if (QuadBouncingBalls::MODE_EDIT_SETTINGS == bbgen.ui.left_edit_mode) {
-//    bbgen.ui.left_edit_mode = QuadBouncingBalls::MODE_SELECT_CHANNEL;
-//  } else {
-//    bbgen.ui.left_edit_mode = QuadBouncingBalls::MODE_EDIT_SETTINGS;
-//  }
-  encoder[LEFT].setPos(0);
-  encoder[RIGHT].setPos(0);  
-}
-
-void BBGEN_leftButtonLong() { }
-
-bool BBGEN_encoders() {
-  long left_value = encoder[LEFT].pos();
-  long right_value = encoder[RIGHT].pos();
-  bool changed = left_value || right_value;
-
-  if (QuadBouncingBalls::MODE_SELECT_CHANNEL == bbgen.ui.left_edit_mode) {
-    if (left_value) {
-      left_value += bbgen.ui.selected_channel;
-      CONSTRAIN(left_value, 0, 3);
-      bbgen.ui.selected_channel = left_value;
-    }
-    if (right_value) {
-      auto &selected_bb = bbgen.selected();
-      selected_bb.change_value(BB_SETTING_GRAVITY + bbgen.ui.selected_segment, right_value);
-    }
-  } else {
-    if (left_value) {
-      left_value += bbgen.ui.selected_channel;
-      CONSTRAIN(left_value, 0, 3);
-      bbgen.ui.selected_channel = left_value;
-    }
-    if (right_value) {
-      if (bbgen.ui.editing) {
-        auto &selected_bb = bbgen.selected();
-        selected_bb.change_value(bbgen.ui.selected_setting, right_value);
-      } else {
-        right_value += bbgen.ui.selected_setting;
-        CONSTRAIN(right_value, BB_SETTING_GRAVITY, BB_SETTING_LAST - 1);
-        bbgen.ui.selected_setting = right_value;
-      }
+void BBGEN_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        BBGEN_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        BBGEN_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        break;
+      case OC::CONTROL_BUTTON_R:
+        bbgen.ui.cursor.toggle_editing();
+        break;
     }
   }
+}
 
-  encoder[LEFT].setPos(0);
-  encoder[RIGHT].setPos(0);
-  return changed;
+void BBGEN_handleEncoderEvent(const UI::Event &event) {
+
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int left_value = bbgen.ui.selected_channel + event.value;
+    CONSTRAIN(left_value, 0, 3);
+    bbgen.ui.selected_channel = left_value;
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (bbgen.ui.cursor.editing()) {
+      auto &selected = bbgen.selected();
+      selected.change_value(bbgen.ui.cursor.cursor_pos(), event.value);
+    } else {
+      bbgen.ui.cursor.Scroll(event.value);
+    }
+  }
 }
 
 void BBGEN_debug() {
@@ -389,9 +344,7 @@ void BBGEN_debug() {
 }
 
 void BBGEN_screensaver() {
-   GRAPHICS_BEGIN_FRAME(false);
-   scope_render();
-   GRAPHICS_END_FRAME();
+  OC::scope_render();
 }
 
 void FASTRUN BBGEN_isr() {
