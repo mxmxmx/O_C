@@ -157,7 +157,8 @@ void POLYLFO_menu() {
 
   menu::DefaultTitleBar::Draw();
   graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
-  graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
+  graphics.setPrintPos(menu::kDefaultMenuEndX, menu::DefaultTitleBar::kTextY);
+  graphics.pretty_print_right(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
 
 
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 1> settings_list(poly_lfo_state.cursor);

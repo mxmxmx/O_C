@@ -59,6 +59,11 @@ public:
     return button_state_ & control;
   }
 
+  inline void encoders_enable_acceleration(bool enable) {
+    encoder_left_.enable_acceleration(enable);
+    encoder_right_.enable_acceleration(enable);
+  }
+
   inline void encoder_enable_acceleration(UiControl encoder, bool enable) {
     switch (encoder) {
     case CONTROL_ENCODER_L:

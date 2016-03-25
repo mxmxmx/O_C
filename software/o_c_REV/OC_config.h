@@ -39,4 +39,6 @@ static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
 #define OC_UI_DEBUG
 #define OC_UI_SEPARATE_ISR
 
+#define OC_ENCODERS_ENABLE_ACCELERATION_DEFAULT true
+
 #endif // OC_CONFIG_H_

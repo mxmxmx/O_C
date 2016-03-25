@@ -31,17 +31,23 @@ template <uint8_t PINA, uint8_t PINB, bool acceleration_enabled = false>
 class Encoder {
 public:
 
-  static const int32_t kAccelerationDec = 2;
-  static const int32_t kAccelerationInc = 32;
+  static const int32_t kAccelerationDec = 16;
+  static const int32_t kAccelerationInc = 208;
   static const int32_t kAccelerationMax = 16 << 8;
 
+  // For debouncing of pins, use 0x0f (b00001111) and 0x0c (b00001100) etc.
+  static const uint8_t kPinMask = 0x03;
+  static const uint8_t kPinEdge = 0x02;
+
   Encoder() { }
+  ~Encoder() { }
 
   void Init(uint8_t pin_mode) {
     pinMode(PINA, pin_mode);
     pinMode(PINB, pin_mode);
 
     acceleration_enabled_ = acceleration_enabled;
+    last_dir_ = 0;
     acceleration_ = 0;
     pin_state_[0] = pin_state_[1] = 0xff;
   }
@@ -52,8 +58,10 @@ public:
   }
 
   void enable_acceleration(bool b) {
-    acceleration_enabled_ = b;
-    acceleration_ = 0;
+    if (b != acceleration_enabled_) {
+      acceleration_enabled_ = b;
+      acceleration_ = 0;
+    }
   }
 
   inline int32_t Read() {
@@ -70,17 +78,19 @@ public:
     // Should also work just checking for falling edge on PINA and checking
     // PINB state.
     int32_t i = 0;
-    const uint8_t a = pin_state_[0] & 0x3;
-    const uint8_t b = pin_state_[1] & 0x3;
-    if (a == 0x02 && b == 0x00) {
+    const uint8_t a = pin_state_[0] & kPinMask;
+    const uint8_t b = pin_state_[1] & kPinMask;
+    if (a == kPinEdge && b == 0x00) {
       i = 1;
-    } else if (b == 0x02 && a == 0x00) {
+    } else if (b == kPinEdge && a == 0x00) {
       i = -1;
     }
 
     if (i) {
       if (acceleration_enabled_) {
-        if (i ^ last_dir_) {
+        if (i != last_dir_) {
+          // We've stored the pre-acceleration value so don't need to actually check the signs.
+          // 1001 ways to check if sign bit is different are left as an exercise for the reader ;)
           acceleration = 0;
         } else {
           acceleration += kAccelerationInc;
@@ -92,15 +102,14 @@ public:
       }
 
       last_dir_ = i;
-      acceleration_ = acceleration;
       i += i * (acceleration >> 8);
     }
 
+    acceleration_ = acceleration;
     return i;
   }
 
 private:
-
   bool acceleration_enabled_;
   int32_t last_dir_;
   int32_t acceleration_;

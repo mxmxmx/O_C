@@ -55,6 +55,10 @@ namespace OC {
 struct GlobalSettings {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','S',2>::value;
 
+  bool encoders_enable_acceleration;
+  bool reverse_encoders;
+  bool switch_encoders;
+
   uint16_t current_app_id;
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
 };
@@ -207,6 +211,9 @@ void Init(bool use_defaults) {
     app.Init();
 
   global_settings.current_app_id = DEFAULT_APP_ID;
+  global_settings.encoders_enable_acceleration = OC_ENCODERS_ENABLE_ACCELERATION_DEFAULT;
+  global_settings.switch_encoders = false;
+  global_settings.reverse_encoders = false;
 
   if (use_defaults) {
     SERIAL_PRINTLN("Skipping loading of global/app settings");
@@ -246,6 +253,9 @@ void Init(bool use_defaults) {
     global_settings.current_app_id = DEFAULT_APP_INDEX;
     current_app_index = DEFAULT_APP_INDEX;
   }
+
+  SERIAL_PRINTLN("Encoder acceleration: %s", global_settings.encoders_enable_acceleration ? "enabled" : "disabled");
+  ui.encoders_enable_acceleration(global_settings.encoders_enable_acceleration);
 
   set_current_app(current_app_index);
   current_app->HandleAppEvent(APP_EVENT_RESUME);
@@ -303,6 +313,11 @@ void Ui::AppSettings() {
         change_app = true;
       } else if (CONTROL_BUTTON_L == event.control) {
         ui.DebugStats();
+      } else if (CONTROL_BUTTON_UP == event.control) {
+        bool enabled = !global_settings.encoders_enable_acceleration;
+        SERIAL_PRINTLN("Encoder acceleration: %s", enabled ? "enabled" : "disabled");
+        ui.encoders_enable_acceleration(enabled);
+        global_settings.encoders_enable_acceleration = enabled;
       }
     }
 
@@ -322,6 +337,8 @@ void Ui::AppSettings() {
       save_app_data();
     }
   }
+
+  OC::ui.encoders_enable_acceleration(global_settings.encoders_enable_acceleration);
 
   // Restore state
   apps::current_app->HandleAppEvent(APP_EVENT_RESUME);

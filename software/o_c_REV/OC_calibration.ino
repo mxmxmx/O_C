@@ -198,17 +198,17 @@ void OC::Ui::Calibrate() {
   for (auto &did : digital_input_displays)
     did.Init();
 
-  OC::TickCount tick_count;
+  TickCount tick_count;
   tick_count.Init();
 
   bool calibration_complete = false;
   while (!calibration_complete) {
 
     uint32_t ticks = tick_count.Update();
-    digital_input_displays[0].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_1>());
-    digital_input_displays[1].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>());
-    digital_input_displays[2].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_3>());
-    digital_input_displays[3].Update(ticks, OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>());
+    digital_input_displays[0].Update(ticks, DigitalInputs::read_immediate<DIGITAL_INPUT_1>());
+    digital_input_displays[1].Update(ticks, DigitalInputs::read_immediate<DIGITAL_INPUT_2>());
+    digital_input_displays[2].Update(ticks, DigitalInputs::read_immediate<DIGITAL_INPUT_3>());
+    digital_input_displays[3].Update(ticks, DigitalInputs::read_immediate<DIGITAL_INPUT_4>());
 
     while (event_queue_.available()) {
       const UI::Event event = event_queue_.PullEvent();
@@ -216,23 +216,23 @@ void OC::Ui::Calibrate() {
         continue;
 
       switch (event.control) {
-        case OC::CONTROL_BUTTON_L:
+        case CONTROL_BUTTON_L:
           if (calibration_state.step > CENTER_DISPLAY)
             calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step - 1);
           break;
-        case OC::CONTROL_BUTTON_R:
+        case CONTROL_BUTTON_R:
           if (calibration_state.step < EXIT)
             calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + 1);
           else
             calibration_complete = true;
           break;
-        case OC::CONTROL_ENCODER_L:
+        case CONTROL_ENCODER_L:
           if (calibration_state.step > HELLO) {
             calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + event.value);
             CONSTRAIN(calibration_state.step, CENTER_DISPLAY, CALIBRARION_STEP_FINAL);
           }
           break;
-        case OC::CONTROL_ENCODER_R:
+        case CONTROL_ENCODER_R:
           calibration_state.encoder_value += event.value;
           break;
         default:

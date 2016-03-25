@@ -610,6 +610,7 @@ size_t Automatonnetz_restore(const void *dest) {
 void Automatonnetz_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
+      OC::ui.encoder_enable_acceleration(OC::CONTROL_ENCODER_L, false);
       automatonnetz_state.AddUserAction(USER_ACTION_RESET);
       break;
     case OC::APP_EVENT_SUSPEND:
@@ -654,8 +655,7 @@ void Automatonnetz_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
     int selected = automatonnetz_state.ui.selected_cell + event.value;
-    while (selected < 0) selected += 25;
-    while (selected > 24) selected -= 25;
+    CONSTRAIN(selected, 0, GRID_CELLS - 1);
     automatonnetz_state.ui.selected_cell = selected;
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (automatonnetz_state.ui.edit_cell) {
