@@ -40,8 +40,7 @@ void FASTRUN Ui::Poll() {
   uint16_t button_state = 0;
 
   for (size_t i = 0; i < CONTROL_BUTTON_LAST; ++i) {
-    buttons_[i].Poll();
-    if (buttons_[i].pressed())
+    if (buttons_[i].Poll())
       button_state |= control_mask(i);
   }
 
