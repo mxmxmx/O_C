@@ -79,8 +79,24 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
           case POLYLFO_FREQ_DIV_NONE:
             phase_[i] += phase_increment_ch1_;
             break ;
+          case POLYLFO_FREQ_DIV_4_OVER_5:
+            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 13421772) >> 24 ;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_2_OVER_3:
+            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 11184810) >> 24 ;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case POLYLFO_FREQ_DIV_3_OVER_5:
+            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 10066329) >> 24 ;
+            phase_[i] += divided_phase_increment;
+            break ;
           case POLYLFO_FREQ_DIV_BY2:
             divided_phase_increment = phase_increment_ch1_ >> 1;
+            phase_[i] += divided_phase_increment;
+            break ;
+          case   POLYLFO_FREQ_DIV_2_OVER_5:
+            divided_phase_increment = (static_cast<uint64_t>(phase_increment_ch1_) * 6710886) >> 24 ;
             phase_[i] += divided_phase_increment;
             break ;
           case POLYLFO_FREQ_DIV_BY3:

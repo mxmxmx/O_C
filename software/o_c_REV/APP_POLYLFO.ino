@@ -93,7 +93,7 @@ void PolyLfo::Init() {
 }
 
 const char* const freq_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
-  "none", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"
+  "unity", "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
 };
 
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
@@ -103,9 +103,9 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Coupling", NULL, settings::STORAGE_TYPE_I8 },
-  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq div", freq_div_names, settings::STORAGE_TYPE_U4 },
-  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq div", freq_div_names, settings::STORAGE_TYPE_U4 },
-  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq div", freq_div_names, settings::STORAGE_TYPE_U4 },
+  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
+  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
+  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
 };
 
 PolyLfo poly_lfo;
