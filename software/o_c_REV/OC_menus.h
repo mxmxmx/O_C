@@ -141,6 +141,16 @@ private:
   int screen_line_;
 };
 
+inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, int min_value, int max_value) {
+  const uint8_t *src = OC::bitmap_edit_indicators_8;
+  if (value == max_value)
+    src += OC::kBitmapEditIndicatorW * 2;
+  else if (value == min_value)
+    src += OC::kBitmapEditIndicatorW;
+
+  graphics.drawBitmap8(x - 5, y + 1, OC::kBitmapEditIndicatorW, src);
+}
+
 inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, const settings::value_attr &attr) {
   const uint8_t *src = OC::bitmap_edit_indicators_8;
   if (value == attr.max_)
@@ -220,7 +230,7 @@ struct SettingsListItem {
   inline void DrawDefault(int value, const settings::value_attr &attr) const {
     DrawName(attr);
 
-    graphics.setPrintPos(endx, y + 1);
+    graphics.setPrintPos(endx, y + 2);
     if(attr.value_names)
       graphics.print_right(attr.value_names[value]);
     else
@@ -235,7 +245,7 @@ struct SettingsListItem {
   inline void DrawDefault(const char *str, int value, const settings::value_attr &attr) const {
     DrawName(attr);
 
-    graphics.setPrintPos(endx, y + 1);
+    graphics.setPrintPos(endx, y + 2);
     graphics.print_right(str);
 
     if (editing)
@@ -260,7 +270,7 @@ struct SettingsListItem {
   }
 
   inline void SetPrintPos() const {
-    graphics.setPrintPos(x + 2, y + 1);
+    graphics.setPrintPos(x + 2, y + 2);
   }
 
   DISALLOW_COPY_AND_ASSIGN(SettingsListItem);

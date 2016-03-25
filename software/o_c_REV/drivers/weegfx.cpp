@@ -422,7 +422,7 @@ void Graphics::pretty_print(int value) {
 
 void Graphics::print(int value, unsigned width) {
   char buf[15];
-  char *str = itos<int, true>(value, buf, sizeof(buf));
+  char *str = itos<int, false>(value, buf, sizeof(buf));
   while (str > buf &&
          (unsigned)(str - buf) >= sizeof(buf) - width)
     *--str = ' ';
