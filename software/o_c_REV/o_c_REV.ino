@@ -101,7 +101,7 @@ void setup() {
   delay(10);
 
   Serial.begin(9600);
-  delay(200);
+  delay(500);
   SERIAL_PRINTLN("* O&C BOOTING...");
 
   OC::DEBUG::Init();
@@ -130,22 +130,24 @@ void setup() {
   UI_timer.priority(OC_UI_TIMER_PRIO);
 #endif
 
-  // Display splash screen
+  // Display splash screen and optional calibration
   bool use_defaults = false;
   ui_mode = OC::ui.Splashscreen(use_defaults);
 
+  if (ui_mode == OC::UI_MODE_CALIBRATE) {
+    OC::ui.Calibrate();
+    ui_mode = OC::UI_MODE_MENU;
+  }
+
   // initialize apps
   OC::apps::Init(use_defaults);
-  OC::CORE::app_isr_enabled = true;
 }
 
 /*  ---------    main loop  --------  */
 
 void FASTRUN loop() {
 
-  if (ui_mode == OC::UI_MODE_CALIBRATE)
-    OC::ui.Calibrate();
-
+  OC::CORE::app_isr_enabled = true;
   uint32_t menu_redraws = 0;
   while (true) {
 

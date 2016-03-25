@@ -34,7 +34,8 @@ struct CalibrationData {
 typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_END, CalibrationData> CalibrationStorage;
 
 extern CalibrationData calibration_data;
-};
+
+}; // namespace OC
 
 // Forward declarations for screwy build system
 struct CalibrationStep;

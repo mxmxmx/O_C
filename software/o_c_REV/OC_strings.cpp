@@ -10,6 +10,6 @@ namespace OC {
 
   const char * const cv_input_names[4] = { "CV1", "CV2", "CV3", "CV4" };
 
-  const char * const no_yes[] = { "no", "yes" };
+  const char * const no_yes[] = { "No", "Yes" };
   };
 };
