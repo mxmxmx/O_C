@@ -44,13 +44,15 @@
 #define GRID_EPSILON 6
 #define GRID_DIMENSION 5
 #define GRID_CELLS (GRID_DIMENSION * GRID_DIMENSION)
-  
+
+// TODO Better selection, e.g. .125, .15 .2 or 3 digits with encoder acceleration
+
 const size_t clock_fraction[] = {
   0, CLOCK_STEP_RES/8, 1+CLOCK_STEP_RES/7, CLOCK_STEP_RES/6, 1+CLOCK_STEP_RES/5, 1+CLOCK_STEP_RES/4, 1+CLOCK_STEP_RES/3, CLOCK_STEP_RES/2
 };
 
 const char *clock_fraction_names[] = {
-  "", "1/8", "1/7", "1/6", "1/5", "1/4", "1/3", "1/2"
+  " \0\0\0\0", "  1/8", "  1/7", "  1/6", "  1/5", "  1/4", "  1/3", "  1/2"
 };
 
 static constexpr uint32_t TRIGGER_MASK_GRID = OC::DIGITAL_INPUT_1_MASK;
@@ -119,10 +121,10 @@ const char *cell_event_masks[] = {
 };
 
 SETTINGS_DECLARE(TransformCell, CELL_SETTING_LAST) {
-  {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "tra  ", tonnetz::transform_names_str, settings::STORAGE_TYPE_U8},
-  {0, -12, 12, "off  ", NULL, settings::STORAGE_TYPE_I8},
-  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "inv  ", NULL, settings::STORAGE_TYPE_I8},
-  {0, CELL_EVENT_NONE, CELL_EVENT_ALL, "muta ", cell_event_masks, settings::STORAGE_TYPE_U8}
+  {0, tonnetz::TRANSFORM_NONE, tonnetz::TRANSFORM_LAST, "Trfm", tonnetz::transform_names_str, settings::STORAGE_TYPE_U8},
+  {0, -12, 12, "Offs", NULL, settings::STORAGE_TYPE_I8},
+  {0, CELL_MIN_INVERSION, CELL_MAX_INVERSION, "Inv", NULL, settings::STORAGE_TYPE_I8},
+  {0, CELL_EVENT_NONE, CELL_EVENT_ALL, "Muta", cell_event_masks, settings::STORAGE_TYPE_U8}
 };
 
 enum GridSettings {
@@ -164,6 +166,9 @@ public:
     memset(cells_, 0, sizeof(cells_));
     grid.Init(cells_);
     memset(&ui, 0, sizeof(ui));
+    ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
+    ui.grid_cursor.Init(GRID_SETTING_DX, GRID_SETTING_LAST - 1);
+
     history_ = 0;
     cell_transpose_ = cell_inversion_ = 0;
     user_actions_.Init();
@@ -242,10 +247,10 @@ public:
 
   struct {
     int selected_cell;
-
     bool edit_cell;
-    int selected_param;
-    int selected_cell_param;
+
+    menu::ScreenCursor<menu::kScreenLines> grid_cursor;
+    menu::ScreenCursor<menu::kScreenLines> cell_cursor;
   } ui;
 
 private:
@@ -283,18 +288,17 @@ const char * const clear_mode_names[] = {
 };
 
 SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
-  {8, 0, 8*GRID_DIMENSION - 1, "dx   ", NULL, settings::STORAGE_TYPE_I8},
-  {4, 0, 8*GRID_DIMENSION - 1, "dy   ", NULL, settings::STORAGE_TYPE_I8},
-  {MODE_MAJOR, 0, MODE_LAST-1, "mode ", mode_names, settings::STORAGE_TYPE_U8},
-  {0, -3, 3, "oct  ", NULL, settings::STORAGE_TYPE_I8},
-  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OUTA ", outputa_mode_names, settings::STORAGE_TYPE_U4},
-  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "clr  ", clear_mode_names, settings::STORAGE_TYPE_U4},
+  {8, 0, 8*GRID_DIMENSION - 1, "dx", NULL, settings::STORAGE_TYPE_I8},
+  {4, 0, 8*GRID_DIMENSION - 1, "dy", NULL, settings::STORAGE_TYPE_I8},
+  {MODE_MAJOR, 0, MODE_LAST-1, "Mode", mode_names, settings::STORAGE_TYPE_U8},
+  {0, -3, 3, "Oct", NULL, settings::STORAGE_TYPE_I8},
+  {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OutA", outputa_mode_names, settings::STORAGE_TYPE_U4},
+  {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "Clr", clear_mode_names, settings::STORAGE_TYPE_U4},
 };
 
 AutomatonnetzState automatonnetz_state;
 
 void Automatonnetz_init() {
-  init_circle_lut();
   automatonnetz_state.Init();
   automatonnetz_state.ClearGrid(CLEAR_MODE_RAND_TRANSFORM);
   automatonnetz_state.Reset();
@@ -439,11 +443,6 @@ void AutomatonnetzState::update_trigger_out() {
 }
 
 void Automatonnetz_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 void FASTRUN Automatonnetz_isr() {
@@ -451,29 +450,31 @@ void FASTRUN Automatonnetz_isr() {
   automatonnetz_state.ISR();
 }
 
-static const uint8_t kGridXStart = 0;
-static const uint8_t kGridYStart = 2;
-static const uint8_t kGridH = 12;
-static const uint8_t kGridW = 12;
-static const uint8_t kMenuStartX = 62;
-static const uint8_t kLineHeight = 11;
+static const weegfx::coord_t kGridXStart = 0;
+static const weegfx::coord_t kGridYStart = 2;
+static const weegfx::coord_t kGridH = 12;
+static const weegfx::coord_t kGridW = 12;
+static const weegfx::coord_t kMenuStartX = 62;
+static const weegfx::coord_t kLineHeight = 11;
 
 namespace automatonnetz {
 
 void draw_cell_menu() {
 
-  UI_DRAW_TITLE(kMenuStartX);
+  menu::TitleBar<kMenuStartX, 1, 2>::Draw();
   graphics.print("CELL ");
   graphics.print(automatonnetz_state.ui.selected_cell / 5 + 1);
   graphics.print(',');
   graphics.print(automatonnetz_state.ui.selected_cell % 5 + 1);
 
-  UI_START_MENU(kMenuStartX);
-  UI_BEGIN_ITEMS_LOOP(kMenuStartX, 0, CELL_SETTING_LAST, automatonnetz_state.ui.selected_cell_param, 0)
-    const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_cell);
-    const settings::value_attr &attr = TransformCell::value_attr(current_item);
-    UI_DRAW_SETTING(attr, cell.get_value(current_item), 0);
-  UI_END_ITEMS_LOOP();
+  const TransformCell &cell = automatonnetz_state.grid.at(automatonnetz_state.ui.selected_cell);
+
+  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDefaultMenuEndX - 25> settings_list(automatonnetz_state.ui.cell_cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(cell.get_value(current), TransformCell::value_attr(current));
+  }
 }
 
 void draw_grid_menu() {
@@ -481,50 +482,42 @@ void draw_grid_menu() {
   int outputs[4];
   automatonnetz_state.tonnetz_state.get_outputs(outputs);
 
-  UI_DRAW_TITLE(kMenuStartX);
+  menu::TitleBar<kMenuStartX, 1, 2>::Draw();
   for (size_t i=1; i < 4; ++i) {
-    if (i > 1) graphics.print(' ');
     graphics.print(note_name(outputs[i]));
+    graphics.movePrintPos(weegfx::Graphics::kFixedFontW/2, 0);
   }
   if (MODE_MAJOR == mode)
-    graphics.print(" +");
+    graphics.print('+');
   else
-    graphics.print(" -");
+    graphics.print('-');
 
-  int first_visible = automatonnetz_state.ui.selected_param - kUiVisibleItems + 1;
-  if (first_visible < 0)
-    first_visible = 0;
+  menu::SettingsList<menu::kScreenLines, kMenuStartX, menu::kDefaultMenuEndX - 25> settings_list(automatonnetz_state.ui.grid_cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    const int value = automatonnetz_state.get_value(current);
+    const settings::value_attr &attr = AutomatonnetzState::value_attr(current);
 
-  UI_START_MENU(kMenuStartX);
-  UI_BEGIN_ITEMS_LOOP(kMenuStartX, first_visible, GRID_SETTING_LAST, automatonnetz_state.ui.selected_param, 0)
-
-    const settings::value_attr &attr = AutomatonnetzState::value_attr(current_item);
-    graphics.print(attr.name);
-    int value = automatonnetz_state.get_value(current_item);
-    if (attr.value_names) {
-      graphics.print(attr.value_names[value]);
-    } else if (i <= GRID_SETTING_DY) {
+    if (current <= GRID_SETTING_DY) {
       const int integral = value / 8;
       const int fraction = value % 8;
+      char value_str[6];
+      memcpy(value_str, clock_fraction_names[fraction], 6);
       if (integral || !fraction)
-        graphics.print((char)('0' + value/8));
-      if (fraction) {
-          if (integral)
-            graphics.print(' ');
-          graphics.print(clock_fraction_names[fraction]);
-        }
-    } else {
-      graphics.pretty_print(value);
-    }
-    UI_END_ITEM();
+        value_str[0] = (char)('0' + integral);
 
-  UI_END_ITEMS_LOOP();
+      list_item.valuex = list_item.endx - 30;
+      list_item.DrawDefault(value_str, value, attr);
+    } else {
+      list_item.DrawDefault(value, attr);
+    }
+  }
 }
-};
+
+}; // namespace automatonnetz
 
 void Automatonnetz_menu() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   uint16_t row = 0, col = 0;
   for (int i = 0; i < GRID_CELLS; ++i) {
 
@@ -555,8 +548,6 @@ void Automatonnetz_menu() {
     automatonnetz::draw_cell_menu();
   else
     automatonnetz::draw_grid_menu();
-
-  GRAPHICS_END_FRAME();
 }
 
 static const weegfx::coord_t kScreenSaverGridX = kGridXStart + kGridW / 2;
@@ -572,8 +563,6 @@ inline vec2<size_t> extract_pos(uint32_t history) {
 }
 
 void Automatonnetz_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   int outputs[4];
   automatonnetz_state.tonnetz_state.get_outputs(outputs);
   uint32_t cell_history = automatonnetz_state.history();
@@ -581,7 +570,7 @@ void Automatonnetz_screensaver() {
   uint8_t normalized[3];
   for (size_t i=0; i < 3; ++i)
     normalized[i] = (outputs[i + 1] + 120) % 12;
-  visualize_pitch_classes(normalized, kNoteCircleX, kNoteCircleY);
+  OC::visualize_pitch_classes(normalized, kNoteCircleX, kNoteCircleY);
 
   vec2<size_t> last_pos = extract_pos(cell_history);
   cell_history >>= 8;
@@ -598,19 +587,6 @@ void Automatonnetz_screensaver() {
                          8, OC::circle_bitmap_8x8);
     last_pos = current;
   }
-
-/*
-  uint32_t history = automatonnetz_state.tonnetz_state.history();
-  weegfx::coord_t y = 0;
-  size_t len = 4;
-  while (len--) {
-    graphics.setPrintPos(128-7, y);
-    graphics.print(tonnetz::transform_names[static_cast<tonnetz::ETransformType>(history & 0x7f)]);
-    y += 12;
-    history >>= 8;
-  }
-*/
-  GRAPHICS_END_FRAME();
 }
 
 size_t Automatonnetz_save(void *dest) {
@@ -631,72 +607,70 @@ size_t Automatonnetz_restore(const void *dest) {
   return used;
 }
 
-void Automatonnetz_handleEvent(OC::AppEvent event) {
+void Automatonnetz_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
+      OC::ui.encoder_enable_acceleration(OC::CONTROL_ENCODER_L, false);
       automatonnetz_state.AddUserAction(USER_ACTION_RESET);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }   
 }
 
-void Automatonnetz_topButton() {
-  automatonnetz_state.AddUserAction(USER_ACTION_RESET);
-}
-
-void Automatonnetz_lowerButton() {
-  automatonnetz_state.AddUserAction(USER_ACTION_CLOCK);
-}
-
 void Automatonnetz_rightButton() {
-  if (automatonnetz_state.ui.edit_cell) {
-    ++automatonnetz_state.ui.selected_cell_param;
-    if (automatonnetz_state.ui.selected_cell_param >= CELL_SETTING_LAST)
-      automatonnetz_state.ui.selected_cell_param = 0;
+}
+
+void Automatonnetz_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        automatonnetz_state.AddUserAction(USER_ACTION_RESET);
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        automatonnetz_state.AddUserAction(USER_ACTION_CLOCK);
+        break;
+      case OC::CONTROL_BUTTON_L:
+        automatonnetz_state.ui.edit_cell = !automatonnetz_state.ui.edit_cell;       
+        break;
+      case OC::CONTROL_BUTTON_R:
+        if (automatonnetz_state.ui.edit_cell)
+          automatonnetz_state.ui.cell_cursor.toggle_editing();
+        else
+          automatonnetz_state.ui.grid_cursor.toggle_editing();
+        break;
+    }
   } else {
-    ++automatonnetz_state.ui.selected_param;
-    if (automatonnetz_state.ui.selected_param >= GRID_SETTING_LAST)
-      automatonnetz_state.ui.selected_param = 0;
- }
+    if (OC::CONTROL_BUTTON_L == event.control) {
+      automatonnetz_state.ClearGrid();
+      // Forcing reset might make critical section even less necesary...
+      automatonnetz_state.AddUserAction(USER_ACTION_RESET);
+    }
+  }
 }
 
-void Automatonnetz_leftButton() {
-  automatonnetz_state.ui.edit_cell = !automatonnetz_state.ui.edit_cell;
-}
+void Automatonnetz_handleEncoderEvent(const UI::Event &event) {
 
-void Automatonnetz_leftButtonLong() {
-  automatonnetz_state.ClearGrid();
-  // Forcing reset might make critical section even less necesary...
-  automatonnetz_state.AddUserAction(USER_ACTION_RESET);
-}
-
-bool Automatonnetz_encoders() {
-  bool changed = false;
-
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
-    int selected = automatonnetz_state.ui.selected_cell + value;
-    while (selected < 0) selected += 25;
-    while (selected > 24) selected -= 25;
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int selected = automatonnetz_state.ui.selected_cell + event.value;
+    CONSTRAIN(selected, 0, GRID_CELLS - 1);
     automatonnetz_state.ui.selected_cell = selected;
-    changed = true;
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (automatonnetz_state.ui.edit_cell) {
+      if (automatonnetz_state.ui.cell_cursor.editing()) {
+        TransformCell &cell = automatonnetz_state.grid.mutable_cell(automatonnetz_state.ui.selected_cell);
+        cell.change_value(automatonnetz_state.ui.cell_cursor.cursor_pos(), event.value);
+      } else {
+        automatonnetz_state.ui.cell_cursor.Scroll(event.value);
+      }
+    } else {
+      if (automatonnetz_state.ui.grid_cursor.editing()) {
+        automatonnetz_state.change_value(automatonnetz_state.ui.grid_cursor.cursor_pos(), event.value);
+      } else {
+        automatonnetz_state.ui.grid_cursor.Scroll(event.value);
+      }
+    }
   }
-
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (automatonnetz_state.ui.edit_cell) {
-    size_t selected_cell_param = automatonnetz_state.ui.selected_cell_param;
-    TransformCell &cell = automatonnetz_state.grid.mutable_cell(automatonnetz_state.ui.selected_cell);
-    changed = cell.change_value(selected_cell_param, value);
-  } else {
-    size_t selected_param = automatonnetz_state.ui.selected_param;
-    changed = automatonnetz_state.change_value(selected_param, value);
-  }
-
-  return changed;
 }

@@ -5,6 +5,8 @@
 #include "OC_strings.h"
 #include "extern/dspinst.h"
 
+namespace menu = OC::menu; // Ugh. This works for all .ino files
+
 #define SCALED_ADC(channel, shift) \
 (0x1+(OC::ADC::value<channel>() >> shift))
 
@@ -301,7 +303,7 @@ const char* const mult[20] = {
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
-  { 0, 0, 11, "root", OC::Strings::note_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
@@ -310,9 +312,8 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
 struct ASRState {
  
   int left_encoder_value;
-  int selected_param;
-  bool editing;
 
+  menu::ScreenCursor<menu::kScreenLines> cursor;
   OC::ScaleEditor<ASR> scale_editor;
 };
 
@@ -324,8 +325,7 @@ void ASR_init() {
   asr.InitDefaults();
   asr.init();
   asr_state.left_encoder_value  = 0;
-  asr_state.selected_param = ASR_SETTING_ROOT;
-  asr_state.editing = false;
+  asr_state.cursor.Init(ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
   asr_state.scale_editor.Init();
 }
 
@@ -337,25 +337,20 @@ size_t ASR_restore(const void *storage) {
   return asr.Restore(storage);
 }
 
-void ASR_handleEvent(OC::AppEvent event) {
+void ASR_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       asr_state.left_encoder_value = asr.get_scale();
+      asr_state.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }
 
 void ASR_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);      
 }
 
 void ASR_isr() {
@@ -363,37 +358,54 @@ void ASR_isr() {
   asr.update();
 }
 
-bool ASR_encoders() {
+void ASR_handleButtonEvent(const UI::Event &event) {
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.HandleButtonEvent(event);
+    return;
+  }
 
-  if (asr_state.scale_editor.active())
-    return asr_state.scale_editor.handle_encoders();
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        ASR_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        ASR_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        ASR_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        ASR_rightButton();
+        break;
+    }
+  } else {
+    if (OC::CONTROL_BUTTON_L == event.control)
+      ASR_leftButtonLong();
+  }
+}
 
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  if (value) {
-    encoder[LEFT].setPos(0);
-    value += asr_state.left_encoder_value;
+void ASR_handleEncoderEvent(const UI::Event &event) {
+
+  if (asr_state.scale_editor.active()) {
+    asr_state.scale_editor.HandleEncoderEvent(event);
+    return;
+  }
+
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int value = asr_state.left_encoder_value + event.value;
     CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
     asr_state.left_encoder_value = value;
-    changed = true;
-  }
-  
-  value = encoder[RIGHT].pos();
-  if (value) {
-    encoder[RIGHT].setPos(0);
-    if (asr_state.editing) {
-      if (ASR_SETTING_MASK != asr_state.selected_param) {
-        changed = asr.change_value(asr_state.selected_param, value);
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (asr_state.cursor.editing()) {
+      if (ASR_SETTING_MASK != asr_state.cursor.cursor_pos()) {
+        asr.change_value(asr_state.cursor.cursor_pos(), event.value);
       }
     } else {
-      int selected_param = value + asr_state.selected_param;
-      CONSTRAIN(selected_param, ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
-      asr_state.selected_param = selected_param;
+      asr_state.cursor.Scroll(event.value);
     }
   }
-
-  return changed;
- }
+}
 
 void ASR_topButton() {
 
@@ -407,13 +419,8 @@ void ASR_lowerButton() {
 
 void ASR_rightButton() {
 
-  if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handle_rightButton();
-    return;
-  }
-
-  if (asr_state.selected_param != ASR_SETTING_MASK) {
-    asr_state.editing = !asr_state.editing;
+  if (asr_state.cursor.cursor_pos() != ASR_SETTING_MASK) {
+    asr_state.cursor.toggle_editing();
   } else {
     int scale = asr.get_scale();
     if (OC::Scales::SCALE_NONE != scale)
@@ -422,22 +429,12 @@ void ASR_rightButton() {
 }
 
 void ASR_leftButton() {
- 
-  if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handle_leftButton();
-    return;
-  }
-  
+
   if (asr_state.left_encoder_value != asr.get_scale())
     asr.set_scale(asr_state.left_encoder_value);
 }
 
 void ASR_leftButtonLong() {
-
-  if (asr_state.scale_editor.active()) {
-    asr_state.scale_editor.handle_leftButtonLong();
-    return;
-  }
 
   int scale = asr_state.left_encoder_value;
   asr.set_scale(asr_state.left_encoder_value);
@@ -450,58 +447,35 @@ size_t ASR_save(void *storage) {
 }
 
 void ASR_menu() {
- 
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(MENU_DEFAULT_FONT);
+  menu::TitleBar<0, 4, 0>::Draw();
 
-  static const weegfx::coord_t kStartX = 0;
-  
-  UI_DRAW_TITLE(kStartX);
-  
-  graphics.setPrintPos(2, kUiTitleTextY);
-  // print scale:
   int scale = asr_state.left_encoder_value;
-  graphics.print(' ');
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(OC::scale_names[scale]);
   if (asr.get_scale() == scale)
-    graphics.drawBitmap8(2, kUiTitleTextY, 4, OC::bitmap_indicator_4x8);
+    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
-  // print octave offset: 
-  int oct = asr.get_octave();
-  graphics.setPrintPos(95, kUiTitleTextY);
-  if (oct >= 0) 
-    graphics.print("+");
-  graphics.print(oct);
+  menu::TitleBar<0, 4, 0>::SetColumn(3);
+  graphics.pretty_print(asr.get_octave());
 
   uint8_t clock_state = (asr.clockState() + 3) >> 2;
   if (clock_state)
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
 
-  UI_START_MENU(kStartX);
-  
-  int first_visible_param = ASR_SETTING_ROOT;
-  
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, ASR_SETTING_LAST, asr_state.selected_param, 0)
-    UI_DRAW_EDITABLE(asr_state.editing);
-    const settings::value_attr &attr = ASR::value_attr(current_item);
-    if (ASR_SETTING_MASK != current_item) {
-      UI_DRAW_SETTING(attr, asr.get_value(current_item), kUiWideMenuCol1X);
+
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(asr_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    if (ASR_SETTING_MASK != current) {
+      list_item.DrawDefault(asr.get_value(current), ASR::value_attr(current));
     } else {
-      graphics.print(attr.name);
-      uint16_t mask = asr.get_mask();
-      size_t num_notes = OC::Scales::GetScale(asr.get_scale()).num_notes;
-      weegfx::coord_t x = kUiDisplayWidth - num_notes * 3;
-      for (size_t i = 0; i < num_notes; ++i, mask >>= 1, x+=3) {
-        if (mask & 0x1)
-          graphics.drawRect(x, y + 1, 2, 8);
-      }
-      UI_END_ITEM();
+      menu::DrawMask<false, 16>(list_item.y, asr.get_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
+      list_item.DrawNoValue<false>(asr.get_value(current), ASR::value_attr(current));
     }
-  UI_END_ITEMS_LOOP();
+  }
 
   if (asr_state.scale_editor.active())  
     asr_state.scale_editor.Draw();
-    
-  GRAPHICS_END_FRAME();
 }

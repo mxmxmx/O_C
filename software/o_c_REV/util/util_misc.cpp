@@ -1,6 +1,6 @@
-#include "util/util_misc.h"
 #include <Arduino.h>
 #include <stdarg.h>
+#include "util_misc.h"
 
 void serial_printf(const char *fmt, ...) {
   char buf[128];

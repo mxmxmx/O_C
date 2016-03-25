@@ -20,43 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdint.h>
-#include "OC_bitmaps.h"
+#include "display.h"
 
-namespace OC {
+weegfx::Graphics graphics;
 
-const uint8_t bitmap_empty_frame4x8[] = {
-  0xff, 0x81, 0x81, 0xff
-};
+namespace display {
 
-const uint8_t bitmap_end_marker4x8[] = {
-  0x66, 0x6f, 0x6f, 0x66
-};
+FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
+PagedDisplayDriver<SH1106_128x64_Driver> driver;
 
-const uint8_t bitmap_indicator_4x8[] = {
-  0x00, 0x18, 0x18, 0x00
-};
+void Init() {
+  frame_buffer.Init();
+  driver.Init();
+  graphics.Init();
+}
 
-const uint8_t bitmap_edit_indicators_8[kBitmapEditIndicatorW * 3] = {
-  0x24, 0x66, 0xe7, 0x66, 0x24, // both
-  0x04, 0x06, 0x07, 0x06, 0x04, // min
-  0x20, 0x60, 0xe0, 0x60, 0x20  // max
-};
-
-const uint8_t bitmap_gate_indicators_8[] = {
-  0x00, 0x00, 0x00, 0x00,
-  0xc0, 0xc0, 0xc0, 0xc0,
-  0xf0, 0xf0, 0xf0, 0xf0,
-  0xfc, 0xfc, 0xfc, 0xfc,
-  0xff, 0xff, 0xff, 0xff
-};
-
-const uint8_t circle_disk_bitmap_8x8[] = {
-  0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
-};
-
-const uint8_t circle_bitmap_8x8[] = {
-  0, 0x18, 0x24, 0x42, 0x42, 0x24, 0x18, 0
-};
+void AdjustOffset(uint8_t offset) {
+	SH1106_128x64_Driver::AdjustOffset(offset);
+}
 
 };

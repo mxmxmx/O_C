@@ -262,10 +262,10 @@ public:
 
     ui.left_encoder_value = 0;
     ui.left_edit_mode = MODE_SELECT_CHANNEL;
-    ui.editing = false;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
-    ui.selected_setting = ENV_SETTING_TRIGGER_INPUT;
+
+    ui.cursor.Init(ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
   }
 
   void ISR() {
@@ -291,11 +291,11 @@ public:
   struct {
     LeftEditMode left_edit_mode;
     int left_encoder_value;
-    bool editing;
 
     int selected_channel;
     int selected_segment;
-    int selected_setting;
+
+    menu::ScreenCursor<3> cursor;
   } ui;
 
   EnvelopeGenerator &selected() {
@@ -334,24 +334,18 @@ size_t ENVGEN_restore(const void *storage) {
   return s;
 }
 
-void ENVGEN_handleEvent(OC::AppEvent event) {
+void ENVGEN_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }
 
 void ENVGEN_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 int16_t preview_values[128];
@@ -360,10 +354,11 @@ uint32_t preview_loops[peaks::kMaxNumSegments];
 
 void ENVGEN_menu_preview() {
   auto const &env = envgen.selected();
-  UI_START_MENU(0);
 
+  weegfx::coord_t y = menu::CalcLineY(0);
+  graphics.setPrintPos(2, y + 1);
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[env.get_type()]);
-  y += kUiLineH;
+  y += menu::kMenuLineH;
 
   uint32_t current_phase = 0;
   weegfx::coord_t x = 0;
@@ -398,35 +393,31 @@ void ENVGEN_menu_preview() {
 
 void ENVGEN_menu_settings() {
   auto const &env = envgen.selected();
-  UI_START_MENU(0);
+
+  menu::SettingsList<menu::kScreenLines - 1, 0, menu::kDefaultValueX> settings_list(envgen.ui.cursor);
+  menu::SettingsListItem list_item;
+
+  settings_list.AbsoluteLine(0, list_item);
+  list_item.SetPrintPos();
   if (env.get_type() == envgen.ui.left_encoder_value)
-    graphics.drawBitmap8(2, y + 1, 4, OC::bitmap_indicator_4x8);
-  graphics.print(' ');
+    graphics.drawBitmap8(2, list_item.y, 4, OC::bitmap_indicator_4x8);
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
 
-  int first_visible_param = envgen.ui.selected_setting - 2;
-  if (first_visible_param < ENV_SETTING_TRIGGER_INPUT)
-    first_visible_param = ENV_SETTING_TRIGGER_INPUT;
-
-  UI_BEGIN_ITEMS_LOOP(0, first_visible_param, ENV_SETTING_LAST, envgen.ui.selected_setting, 1);
-    UI_DRAW_EDITABLE(envgen.ui.editing);
-    UI_DRAW_SETTING(EnvelopeGenerator::value_attr(current_item), env.get_value(current_item), kUiWideMenuCol1X);
-  UI_END_ITEMS_LOOP();
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(env.get_value(current), EnvelopeGenerator::value_attr(current));
+  }
 }
 
 void ENVGEN_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
 
-  for (int i = 0, x = 0; i < 4; ++i, x += 32) {
-    graphics.setPrintPos(x + 6, 2);
+  menu::QuadTitleBar::Draw();
+  for (uint_fast8_t i = 0; i < 4; ++i) {
+    menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
-    graphics.setPrintPos(x + 14, 2);
-    if (i == envgen.ui.selected_channel) {
-      graphics.invertRect(x, 0, 32, 11);
-    }
   }
+  menu::QuadTitleBar::Selected(envgen.ui.selected_channel);
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode)
     ENVGEN_menu_preview();
@@ -434,7 +425,6 @@ void ENVGEN_menu() {
     ENVGEN_menu_settings();
 
   // TODO Draw phase anyway?
-  GRAPHICS_END_FRAME();
 }
 
 void ENVGEN_topButton() {
@@ -456,10 +446,9 @@ void ENVGEN_rightButton() {
       segment = 0;
     if (segment != envgen.ui.selected_segment) {
       envgen.ui.selected_segment = segment;
-      encoder[RIGHT].setPos(0);
     }
   } else {
-    envgen.ui.editing = !envgen.ui.editing;
+    envgen.ui.cursor.toggle_editing();
   }
 }
 
@@ -467,57 +456,61 @@ void ENVGEN_leftButton() {
   if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.left_edit_mode) {
     envgen.selected().apply_value(ENV_SETTING_TYPE, envgen.ui.left_encoder_value);
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
+    envgen.ui.cursor.set_editing(false);
   } else {
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
   }
-  encoder[LEFT].setPos(0);
-  encoder[RIGHT].setPos(0);
 }
 
-void ENVGEN_leftButtonLong() { }
-bool ENVGEN_encoders() {
-  long left_value = encoder[LEFT].pos();
-  long right_value = encoder[RIGHT].pos();
-  bool changed = left_value || right_value;
+void ENVGEN_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        ENVGEN_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        ENVGEN_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        ENVGEN_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        ENVGEN_rightButton();
+        break;
+    }
+  }
+}
+
+void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
-    if (left_value) {
-      left_value += envgen.ui.selected_channel;
+    if (OC::CONTROL_ENCODER_L == event.control) {
+      int left_value = envgen.ui.selected_channel + event.value;
       CONSTRAIN(left_value, 0, 3);
       envgen.ui.selected_channel = left_value;
-    }
-    if (right_value) {
+    } else if (OC::CONTROL_ENCODER_R == event.control) {
       auto &selected_env = envgen.selected();
-      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, right_value);
+      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, event.value);
     }
   } else {
-    if (left_value) {
-      left_value += envgen.ui.left_encoder_value;
+    if (OC::CONTROL_ENCODER_L == event.control) {
+      int left_value = envgen.ui.left_encoder_value + event.value;
       CONSTRAIN(left_value, ENV_TYPE_FIRST, ENV_TYPE_LAST - 1);
       envgen.ui.left_encoder_value = left_value;
-    }
-    if (right_value) {
-      if (envgen.ui.editing) {
+    } else if (OC::CONTROL_ENCODER_R == event.control) {
+      if (envgen.ui.cursor.editing()) {
         auto &selected_env = envgen.selected();
-        selected_env.change_value(envgen.ui.selected_setting, right_value);
+        selected_env.change_value(envgen.ui.cursor.cursor_pos(), event.value);
       } else {
-        right_value += envgen.ui.selected_setting;
-        CONSTRAIN(right_value, ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
-        envgen.ui.selected_setting = right_value;
+        envgen.ui.cursor.Scroll(event.value);
       }
     }
   }
-
-  encoder[LEFT].setPos(0);
-  encoder[RIGHT].setPos(0);
-  return changed;
 }
 
 void ENVGEN_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-  scope_render();
-  GRAPHICS_END_FRAME();
+  OC::scope_render();
 }
 
 void FASTRUN ENVGEN_isr() {

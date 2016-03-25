@@ -22,7 +22,7 @@
 #include <string.h>
 #include <Arduino.h>
 #include <stdarg.h>
-#include "util/util_macros.h"
+#include "../util/util_macros.h"
 
 namespace weegfx {
 enum DRAW_MODE {
@@ -91,6 +91,8 @@ inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, const uint8_t *s
   }
 }
 
+// It's tempting to check if the pixel is != 0, but first measurement shows it
+// actually makes things worse...
 #define SETPIXELS_H(start, count, value) \
 do { \
   uint8_t *ptr = start; \
@@ -330,42 +332,49 @@ void Graphics::drawCircle(coord_t center_x, coord_t center_y, coord_t r) {
   }
 }
 
-#include "extern/gfx_font_6x8.h"
+#include "../extern/gfx_font_6x8.h"
+static inline weegfx::font_glyph get_char_glyph(char c) __attribute__((always_inline));
+static inline weegfx::font_glyph get_char_glyph(char c) {
+  return ssd1306xled_font6x8 + Graphics::kFixedFontW * (c - 32);
+}
 
-void Graphics::print(char c) {
-  if (c < 32 || c > 127) {
+// OPTIMIZE When printing strings, all chars will have the same y/remainder
+// This will probably only save a few cycles, if any. Also the clipping can
+// be made optional (template?)
+void Graphics::draw_char(char c, coord_t x, coord_t y) {
+  if (!c) c = '0';
+  if (c <= 32 || c > 127)
     return;
-  }
-  const uint8_t *data = ssd1306xled_font6x8 + 6 * (c - 32);
 
-  coord_t x = text_x_;
-  coord_t y = text_y_;
-  coord_t w = 6;
-  if (x + w > kWidth) w = kWidth - x;
+  coord_t w = Graphics::kFixedFontW;
+  coord_t h = Graphics::kFixedFontH;
+  font_glyph data = get_char_glyph(c);
+  if (c + w > kWidth) w = kWidth - x;
   if (x < 0) {
     w += x;
     data += x;
   }
   if (w <= 0) return;
-
-  coord_t h = 8;
   CLIPY(y, h);
-  uint8_t *buf = get_frame_ptr(x, y);
 
+  uint8_t *dest = get_frame_ptr(x, y);
   coord_t remainder = y & 0x7;
   if (!remainder) {
-    SETPIXELS_H(buf, w, *data++);
+    SETPIXELS_H(dest, w, *data++);
   } else {
     const uint8_t *src = data;
-    SETPIXELS_H(buf, w, (*src++) << remainder);
+    SETPIXELS_H(dest, w, (*src++) << remainder);
     if (h >= 8) {
-      buf += kWidth;
+      dest += kWidth;
       src = data;
-      SETPIXELS_H(buf, w, (*src++) >> (8 - remainder));
+      SETPIXELS_H(dest, w, (*src++) >> (8 - remainder));
     }
   }
-  
-  text_x_ += 6;
+}
+
+void Graphics::print(char c) {
+  draw_char(c, text_x_, text_y_);
+  text_x_ += kFixedFontW;
 }
 
 template <typename type, bool pretty>
@@ -374,6 +383,8 @@ char *itos(type value, char *buf, size_t buflen) {
   *--pos = '\0';
   if (!value) {
     *--pos = '0';
+    if (pretty) // avoid jump when 0 -> +1 or -1
+      *--pos = ' ';
   } else {
     char sign = 0;
     if (value < 0)  {
@@ -409,37 +420,81 @@ void Graphics::pretty_print(int value) {
   print(itos<int, true>(value, buf, sizeof(buf)));
 }
 
-void Graphics::print(int value, size_t width) {
+void Graphics::print(int value, unsigned width) {
   char buf[15];
   char *str = itos<int, true>(value, buf, sizeof(buf));
   while (str > buf &&
-         (size_t)(str - buf) >= sizeof(buf) - width)
+         (unsigned)(str - buf) >= sizeof(buf) - width)
     *--str = ' ';
   print(str);
 }
 
-void Graphics::print(uint16_t value, size_t width) {
+void Graphics::print(uint16_t value, unsigned width) {
   char buf[12];
   char *str = itos<uint16_t, false>(value, buf, sizeof(buf));
   while (str > buf &&
-         (size_t)(str - buf) >= sizeof(buf) - width)
+         (unsigned)(str - buf) >= sizeof(buf) - width)
     *--str = ' ';
   print(str);
 }
 
-void Graphics::pretty_print(int value, size_t width) {
+void Graphics::pretty_print(int value, unsigned width) {
   char buf[12];
   char *str = itos<int, true>(value, buf, sizeof(buf));
 
   while (str > buf &&
-         (size_t)(str - buf) > sizeof(buf) - width)
+         (unsigned)(str - buf) >= sizeof(buf) - width)
     *--str = ' ';
   print(str);
 }
 
+void Graphics::pretty_print_right(int value) {
+  coord_t x = text_x_ - kFixedFontW;
+  coord_t y = text_y_;
+
+  if (!value) {
+    draw_char('0', x, y);
+  } else {
+    char sign;
+    if (value < 0) {
+      value = -value;
+      sign = '-';
+    } else {
+      sign = '+';
+    }
+
+    while (value) {
+      draw_char('0' + value % 10, x, y);
+      x -= kFixedFontW;
+      value /= 10;
+    }
+    if (sign)
+      draw_char(sign, x, y);
+  }
+}
+
 void Graphics::print(const char *s) {
+  coord_t x = text_x_;
+  coord_t y = text_y_;
+
+  // TODO Track position, only clip when necessary or early-out?
   while (*s) {
-    print(*s++);
+    draw_char(*s++, x, y);
+    x += kFixedFontW;
+  }
+
+  text_x_ = x;
+}
+
+void Graphics::print_right(const char *s) {
+  weegfx::coord_t x = text_x_;
+  weegfx::coord_t y = text_y_;
+  const char *c = s;
+  while (*c) ++c; // find end
+
+  while (c > s) {
+    x -= kFixedFontW;
+    draw_char(*--c, x, y);
   }
 }
 
@@ -452,13 +507,9 @@ void Graphics::printf(const char *fmt, ...) {
   print(buf);
 }
 
-void Graphics::drawStr(coord_t x, coord_t y, const char *str) {
-  const coord_t tx = text_x_;
-  const coord_t ty = text_y_;
-
-  setPrintPos(x, y);
-  print(str);
-
-  text_x_ = tx;
-  text_y_ = ty;
+void Graphics::drawStr(coord_t x, coord_t y, const char *s) {
+  while (*s) {
+    draw_char(*s++, x, y);
+    x += kFixedFontW;
+  }
 }

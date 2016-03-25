@@ -139,9 +139,9 @@ SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
 
 LorenzGenerator lorenz_generator;
 struct {
-  int selected_param;
   bool selected_generator;
-  bool editing;
+
+  menu::ScreenCursor<menu::kScreenLines> cursor;
 } lorenz_generator_state;
 
 void FASTRUN LORENZ_isr() {
@@ -204,9 +204,8 @@ void FASTRUN LORENZ_isr() {
 }
 
 void LORENZ_init() {
-  lorenz_generator_state.selected_param = LORENZ_SETTING_RHO1;
   lorenz_generator_state.selected_generator = 0; 
-  lorenz_generator_state.editing = false;
+  lorenz_generator_state.cursor.Init(LORENZ_SETTING_RHO1, LORENZ_SETTING_LAST - 1);
   lorenz_generator.Init();
 }
 
@@ -223,67 +222,43 @@ size_t LORENZ_restore(const void *storage) {
 }
 
 void LORENZ_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 void LORENZ_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(MENU_DEFAULT_FONT);
-
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
-  graphics.setPrintPos(2, 2);
+  menu::DualTitleBar::Draw();
   graphics.print("FREQ1 ");
   int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
   freq1 = USAT16(freq1);
-   graphics.print(freq1 >> 8);
-  graphics.setPrintPos(66, 2);
+  graphics.print(freq1 >> 8);
+
+  menu::DualTitleBar::SetColumn(1);
   graphics.print("FREQ2 ");
   int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
   graphics.print(freq2 >> 8);
-  if (lorenz_generator_state.selected_generator) {
-      graphics.invertRect(66, 0, 127, 10);
-  } else {
-      graphics.invertRect(2, 0, 64, 10);    
+
+  menu::DualTitleBar::Selected(lorenz_generator_state.selected_generator);
+
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 12> settings_list(lorenz_generator_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(lorenz_generator.get_value(current), LorenzGenerator::value_attr(current));
   }
-  
-
-  int first_visible_param = lorenz_generator_state.selected_param - 3;
-  if (first_visible_param < LORENZ_SETTING_RHO1)
-    first_visible_param = LORENZ_SETTING_RHO1;
-
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, LORENZ_SETTING_LAST, lorenz_generator_state.selected_param, 0)
-    UI_DRAW_EDITABLE(lorenz_generator_state.editing);
-    const settings::value_attr &attr = LorenzGenerator::value_attr(current_item);
-    UI_DRAW_SETTING(attr, lorenz_generator.get_value(current_item), kUiWideMenuCol1X-12);
-  UI_END_ITEMS_LOOP();
-
-  GRAPHICS_END_FRAME();
 }
 
 void LORENZ_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
-  scope_render();
-
-  GRAPHICS_END_FRAME();
+  OC::scope_render();
 }
 
-void LORENZ_handleEvent(OC::AppEvent event) {
+void LORENZ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }
@@ -305,43 +280,47 @@ void LORENZ_lowerButton() {
 }
 
 void LORENZ_rightButton() {
-  lorenz_generator_state.editing = !lorenz_generator_state.editing;
+  lorenz_generator_state.cursor.toggle_editing();
 }
 
 void LORENZ_leftButton() {
   lorenz_generator_state.selected_generator = 1 - lorenz_generator_state.selected_generator;
 }
 
-void LORENZ_leftButtonLong() {
+void LORENZ_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        LORENZ_topButton();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        LORENZ_lowerButton();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        LORENZ_leftButton();
+        break;
+      case OC::CONTROL_BUTTON_R:
+        LORENZ_rightButton();
+        break;
+    }
+  }
 }
 
-bool LORENZ_encoders() {
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
+void LORENZ_handleEncoderEvent(const UI::Event &event) {
+
+  if (OC::CONTROL_ENCODER_L == event.control) {
     if (lorenz_generator_state.selected_generator) {
-      lorenz_generator.change_value(LORENZ_SETTING_FREQ2, value);
+      lorenz_generator.change_value(LORENZ_SETTING_FREQ2, event.value);
     } else {
-      lorenz_generator.change_value(LORENZ_SETTING_FREQ1, value);
+      lorenz_generator.change_value(LORENZ_SETTING_FREQ1, event.value);
     }
-    changed = true;
-  }
-
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (value) {
-    if (lorenz_generator_state.editing) {
-      lorenz_generator.change_value(lorenz_generator_state.selected_param, value);
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (lorenz_generator_state.cursor.editing()) {
+      lorenz_generator.change_value(lorenz_generator_state.cursor.cursor_pos(), event.value);
     } else {
-      value += lorenz_generator_state.selected_param;
-      CONSTRAIN(value, LORENZ_SETTING_RHO1, LORENZ_SETTING_LAST - 1);
-      lorenz_generator_state.selected_param = value;
+      lorenz_generator_state.cursor.Scroll(event.value);
     }
-    changed = true;
   }
-
-  return changed;
 }
 
 void LORENZ_debug() {

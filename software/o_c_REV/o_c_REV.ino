@@ -1,29 +1,30 @@
-/*
-* ornament + crime // 4xCV DAC8565  // "ASR" 
-*
-* --------------------------------
-* TR 1 = clock
-* TR 2 = hold
-* TR 3 = oct +
-* TR 4 = oct -
-*
-* CV 1 = sample in
-* CV 2 = index CV
-* CV 3 = # notes (constrain)
-* CV 4 = octaves/offset
-*
-* left  encoder = scale select
-* right encoder = param. select
-* 
-* button 1 (top) =  oct +
-* button 2       =  oct -
-* --------------------------------
-*
-*/
+// Copyright (c) 2015, 2016 Max Stadler, Patrick Dowling
+//
+// Original Author : Max Stadler
+// Heavily modified: Patrick Dowling (pld@gurkenkiste.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// Main startup/loop for O&C firmware
 
 #include <ADC.h>
 #include <spi4teensy3.h>
-#include <rotaryplus.h>
 #include <EEPROM.h>
 
 #include "OC_apps.h"
@@ -36,91 +37,40 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 #include "DAC.h"
-#include "util/EEPROMStorage.h"
-#include "util/util_button.h"
-#include "util/util_pagestorage.h"
-#include "util_framebuffer.h"
-#include "page_display_driver.h"
-#include "weegfx.h"
-#include "SH1106_128x64_driver.h"
-
-//#define ENABLE_DEBUG_PINS
+#include "drivers/display.h"
 #include "util/util_debugpins.h"
 
-FrameBuffer<SH1106_128x64_Driver::kFrameSize, 2> frame_buffer;
-PagedDisplayDriver<SH1106_128x64_Driver> display_driver;
-weegfx::Graphics graphics;
-
 unsigned long LAST_REDRAW_TIME = 0;
-bool SELECT_APP = false;
-uint_fast8_t UI_MODE = UI::DISPLAY_MENU;
 uint_fast8_t MENU_REDRAW = true;
+OC::UiMode ui_mode = OC::UI_MODE_MENU;
 
-Rotary encoder[2] =
-{
-  Rotary(encL1, encL2),
-  Rotary(encR1, encR2)
-}; 
+/*  --------------------- UI timer ISR -------------------------   */
 
-/*  --------------------- clk / buttons / ISR -------------------------   */
+IntervalTimer UI_timer;
 
-uint32_t _CLK_TIMESTAMP = 0;
-uint32_t _BUTTONS_TIMESTAMP = 0;
-static const uint16_t TRIG_LENGTH = 150;
-static const uint16_t DEBOUNCE = 250;
+void FASTRUN UI_timer_ISR() {
+  OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::UI_cycles);
+  OC::ui.Poll();
 
-uint32_t _UI_TIMESTAMP;
-
-enum the_buttons 
-{  
-  BUTTON_TOP,
-  BUTTON_BOTTOM,
-  BUTTON_LEFT,
-  BUTTON_RIGHT
-};
-
-enum encoders
-{
-  LEFT,
-  RIGHT
-};
-
-volatile uint_fast8_t _ENC = false;
-static const uint32_t _ENC_RATE = 15000;
-
-/* encoders isr */
-void FASTRUN left_encoder_ISR() 
-{
-  encoder[LEFT].process();
-}
-
-void FASTRUN right_encoder_ISR() 
-{
-  encoder[RIGHT].process();
+  OC_DEBUG_RESET_CYCLES(OC::ui.ticks(), 2048, OC::DEBUG::UI_cycles);
 }
 
 /*  ------------------------ core timer ISR ---------------------------   */
 IntervalTimer CORE_timer;
-uint32_t ENC_timer_counter = 0;
-
 volatile bool OC::CORE::app_isr_enabled = false;
 volatile uint32_t OC::CORE::ticks = 0;
 
 void FASTRUN CORE_timer_ISR() {
   DEBUG_PIN_SCOPE(DEBUG_PIN_2);
-  debug::CycleMeasurement cycles;
+  OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::ISR_cycles);
 
-  if (display_driver.Flush())
-    frame_buffer.read();
+  // DAC and display share SPI. By first updating the DAC values, then starting
+  // a DMA transfer to the display things are fairly nicely interleaved. In the
+  // next ISR, the display transfer is finalized (CS update).
 
+  display::Flush();
   DAC::Update();
-
-  if (display_driver.frame_valid()) {
-    display_driver.Update();
-  } else {
-    if (frame_buffer.readable())
-      display_driver.Begin(frame_buffer.readable_frame());
-  }
+  display::Update();
 
   // The ADC scan uses async startSingleRead/readSingle and single channel each
   // loop, so should be fast enough even at 60us (check ADC::busy_waits() == 0)
@@ -130,18 +80,16 @@ void FASTRUN CORE_timer_ISR() {
   // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
   OC::ADC::Scan();
 
-  if (ENC_timer_counter < _ENC_RATE / OC_CORE_TIMER_RATE - 1) {
-    ++ENC_timer_counter;
-  } else {
-    ENC_timer_counter = 0;
-    _ENC = true;
-  }
+#ifndef OC_UI_SEPARATE_ISR
+  TODO needs a counter
+  UI_timer_ISR();
+#endif
+
   ++OC::CORE::ticks;
-
   if (OC::CORE::app_isr_enabled)
-    OC::APPS::ISR();
+    OC::apps::ISR();
 
-  OC::DEBUG::ISR_cycles.push(cycles.read());
+  OC_DEBUG_RESET_CYCLES(OC::CORE::ticks, 16384, OC::DEBUG::ISR_cycles);
 }
 
 /*       ---------------------------------------------------------         */
@@ -152,90 +100,93 @@ void setup() {
   spi4teensy3::init();
   delay(10);
 
-  // pins 
-  pinMode(butL, INPUT_PULLUP);
-  pinMode(butR, INPUT_PULLUP);
-  pinMode(but_top, INPUT_PULLUP);
-  pinMode(but_bot, INPUT_PULLUP);
-  buttons_init();
+  Serial.begin(9600);
+  delay(200);
+  SERIAL_PRINTLN("* O&C BOOTING...");
 
   OC::DEBUG::Init();
   OC::DigitalInputs::Init();
-
-  // encoder ISR 
-  attachInterrupt(encL1, left_encoder_ISR, CHANGE);
-  attachInterrupt(encL2, left_encoder_ISR, CHANGE);
-  attachInterrupt(encR1, right_encoder_ISR, CHANGE);
-  attachInterrupt(encR2, right_encoder_ISR, CHANGE);
-
-  Serial.begin(9600);
-  delay(500);
-
-  // Ok, technically we're using the calibration_data before it's loaded...
-  OC::ADC::Init(&OC::calibration_data.adc);
+  OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
   DAC::Init(&OC::calibration_data.dac);
 
-  frame_buffer.Init();
-  display_driver.Init();
-  graphics.Init();
- 
+  display::Init();
+
   GRAPHICS_BEGIN_FRAME(true);
   GRAPHICS_END_FRAME();
 
-  CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
-
   calibration_load();
-  SH1106_128x64_Driver::AdjustOffset(OC::calibration_data.display_offset);
+  display::AdjustOffset(OC::calibration_data.display_offset);
+
+  OC::menu::Init();
+  OC::ui.Init();
+
+  SERIAL_PRINTLN("* Starting CORE ISR @%luus", OC_CORE_TIMER_RATE);
+  CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
+  CORE_timer.priority(OC_CORE_TIMER_PRIO);
+
+#ifdef OC_UI_SEPARATE_ISR
+  SERIAL_PRINTLN("* Starting UI ISR @%luus", OC_UI_TIMER_RATE);
+  UI_timer.begin(UI_timer_ISR, OC_UI_TIMER_RATE);
+  UI_timer.priority(OC_UI_TIMER_PRIO);
+#endif
 
   // Display splash screen
-  OC::hello();
-  bool use_defaults = !digitalRead(but_top) && !digitalRead(but_bot);
-  if (button_left.read_immediate())
-    calibration_menu();
-  else if (button_right.read_immediate())
-    SELECT_APP = true;
+  bool use_defaults = false;
+  ui_mode = OC::ui.Splashscreen(use_defaults);
 
-  // initialize 
-  OC::APPS::Init(use_defaults);
+  // initialize apps
+  OC::apps::Init(use_defaults);
   OC::CORE::app_isr_enabled = true;
 }
 
 /*  ---------    main loop  --------  */
 
 void FASTRUN loop() {
-  _UI_TIMESTAMP = millis();
-  UI_MODE = UI::DISPLAY_MENU;
 
-  while (1) {
+  if (ui_mode == OC::UI_MODE_CALIBRATE)
+    OC::ui.Calibrate();
+
+  uint32_t menu_redraws = 0;
+  while (true) {
+
     // don't change current_app while it's running
-    if (SELECT_APP) {
-      OC::APPS::Select();
-      SELECT_APP = false;
+    if (OC::UI_MODE_APP_SETTINGS == ui_mode) {
+      OC::ui.AppSettings();
+      ui_mode = OC::UI_MODE_MENU;
     }
 
     // Refresh display
     if (MENU_REDRAW) {
-      if (UI::DISPLAY_MENU == UI_MODE)
-        OC::current_app->draw_menu();
-      else
-        OC::current_app->draw_screensaver();
-      // MENU_REDRAW reset in GRAPHICS_END_FRAME if drawn
+      GRAPHICS_BEGIN_FRAME(false); // Don't busy wait
+        if (OC::UI_MODE_MENU == ui_mode) {
+          OC_DEBUG_RESET_CYCLES(menu_redraws, 512, OC::DEBUG::MENU_draw_cycles);
+          OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::MENU_draw_cycles);
+          OC::apps::current_app->DrawMenu();
+          ++menu_redraws;
+        } else {
+          OC::apps::current_app->DrawScreensaver();
+        }
+        MENU_REDRAW = 0;
+        LAST_REDRAW_TIME = millis();
+      GRAPHICS_END_FRAME();
     }
 
     // Run current app
-    OC::current_app->loop();
+    OC::apps::current_app->loop();
 
-    // Check UI timeouts for screensaver/forced redraw
-    unsigned long now = millis();
-    if (UI::DISPLAY_MENU == UI_MODE) {
-      if (now - _UI_TIMESTAMP > SCREENSAVER_TIMEOUT_MS) {
-        UI_MODE = UI::DISPLAY_SCREENSAVER;
-        MENU_REDRAW = 1;
-        OC::current_app->handleEvent(OC::APP_EVENT_SCREENSAVER);
-      }
+    // UI events
+    OC::UiMode mode = OC::ui.DispatchEvents(OC::apps::current_app);
+
+    // State transition for app
+    if (mode != ui_mode) {
+      if (OC::UI_MODE_SCREENSAVER == mode)
+        OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
+      else
+        OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
+      ui_mode = mode;
     }
 
-    if (now - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
+    if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
       MENU_REDRAW = 1;
   }
 }

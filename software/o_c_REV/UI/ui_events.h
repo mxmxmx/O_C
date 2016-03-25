@@ -20,43 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdint.h>
-#include "OC_bitmaps.h"
+#ifndef UI_EVENTS_H_
+#define UI_EVENTS_H_
 
-namespace OC {
+namespace UI {
 
-const uint8_t bitmap_empty_frame4x8[] = {
-  0xff, 0x81, 0x81, 0xff
+enum EventType {
+  EVENT_NONE,
+  EVENT_BUTTON_PRESS,
+  EVENT_BUTTON_LONG_PRESS,
+  EVENT_ENCODER
 };
 
-const uint8_t bitmap_end_marker4x8[] = {
-  0x66, 0x6f, 0x6f, 0x66
+// UI event struct
+// Yes, looks similar to stmlib::Event but hey, they're UI events.
+struct Event {
+  EventType type;
+  uint16_t control;
+  int16_t value;
+  uint16_t mask;
+
+  Event() { }
+  Event(EventType t, uint16_t c, int16_t v, uint16_t m)
+  : type(t), control(c), value(v), mask(m) { }
 };
 
-const uint8_t bitmap_indicator_4x8[] = {
-  0x00, 0x18, 0x18, 0x00
-};
+}; // namespace UI
 
-const uint8_t bitmap_edit_indicators_8[kBitmapEditIndicatorW * 3] = {
-  0x24, 0x66, 0xe7, 0x66, 0x24, // both
-  0x04, 0x06, 0x07, 0x06, 0x04, // min
-  0x20, 0x60, 0xe0, 0x60, 0x20  // max
-};
-
-const uint8_t bitmap_gate_indicators_8[] = {
-  0x00, 0x00, 0x00, 0x00,
-  0xc0, 0xc0, 0xc0, 0xc0,
-  0xf0, 0xf0, 0xf0, 0xf0,
-  0xfc, 0xfc, 0xfc, 0xfc,
-  0xff, 0xff, 0xff, 0xff
-};
-
-const uint8_t circle_disk_bitmap_8x8[] = {
-  0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
-};
-
-const uint8_t circle_bitmap_8x8[] = {
-  0, 0x18, 0x24, 0x42, 0x42, 0x24, 0x18, 0
-};
-
-};
+#endif // UI_EVENTS_H_

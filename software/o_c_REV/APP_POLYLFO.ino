@@ -86,9 +86,10 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
 
 PolyLfo poly_lfo;
 struct {
-  int selected_param;
+
   POLYLFO_SETTINGS left_edit_mode;
-  bool editing;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
+
 } poly_lfo_state;
 
 void FASTRUN POLYLFO_isr() {
@@ -128,9 +129,9 @@ void FASTRUN POLYLFO_isr() {
 }
 
 void POLYLFO_init() {
-  poly_lfo_state.selected_param = POLYLFO_SETTING_SHAPE;
+
   poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
-  poly_lfo_state.editing = false;
+  poly_lfo_state.cursor.Init(POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
   poly_lfo.Init();
 }
 
@@ -147,114 +148,89 @@ size_t POLYLFO_restore(const void *storage) {
 }
 
 void POLYLFO_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
 static const size_t kSmallPreviewBufferSize = 32;
 uint16_t preview_buffer[kSmallPreviewBufferSize];
 
 void POLYLFO_menu() {
-  GRAPHICS_BEGIN_FRAME(false); // no frame, no problem
 
-  graphics.setFont(MENU_DEFAULT_FONT);
-
-  static const weegfx::coord_t kStartX = 0;
-  UI_DRAW_TITLE(kStartX);
-  graphics.setPrintPos(2, 2);
+  menu::DefaultTitleBar::Draw();
   graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
-  graphics.print(poly_lfo.get_value(poly_lfo_state.left_edit_mode), 5);
+  graphics.setPrintPos(menu::kDefaultMenuEndX, menu::DefaultTitleBar::kTextY);
+  graphics.pretty_print_right(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
 
-  int first_visible_param = POLYLFO_SETTING_SHAPE;
 
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible_param, POLYLFO_SETTING_LAST, poly_lfo_state.selected_param, 0)
-    UI_DRAW_EDITABLE(poly_lfo_state.editing);
-    const settings::value_attr &attr = PolyLfo::value_attr(current_item);
-    if (current_item != POLYLFO_SETTING_SHAPE) {
-      UI_DRAW_SETTING(attr, poly_lfo.get_value(current_item), kUiWideMenuCol1X);
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 1> settings_list(poly_lfo_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    const int value = poly_lfo.get_value(current);
+    if (POLYLFO_SETTING_SHAPE != current) {
+      list_item.DrawDefault(value, PolyLfo::value_attr(current));
     } else {
-      uint16_t shape = poly_lfo.get_value(current_item);
-      poly_lfo.lfo.RenderPreview(shape << 8, preview_buffer, kSmallPreviewBufferSize);
-      for (weegfx::coord_t x = 0; x < (weegfx::coord_t)kSmallPreviewBufferSize; ++x)
-        graphics.setPixel(96 + x, y + 8 - (preview_buffer[x] >> 13));
 
-      UI_DRAW_SETTING(attr, shape,  96 - 32);
+      poly_lfo.lfo.RenderPreview(value << 8, preview_buffer, kSmallPreviewBufferSize);
+      const uint16_t *preview = preview_buffer;
+      uint16_t count = kSmallPreviewBufferSize;
+      weegfx::coord_t x = list_item.valuex;
+      while (count--)
+        graphics.setPixel(x++, list_item.y + 8 - (*preview++ >> 13));
+
+      list_item.endx = menu::kDefaultMenuEndX - 39;
+      list_item.DrawDefault(value, PolyLfo::value_attr(current));
     }
-  UI_END_ITEMS_LOOP();
-
-  GRAPHICS_END_FRAME();
+  }
 }
 
 void POLYLFO_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
-  scope_render();
-
-  GRAPHICS_END_FRAME();
+  OC::scope_render();
 }
 
-void POLYLFO_handleEvent(OC::AppEvent event) {
+void POLYLFO_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
+      poly_lfo_state.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }
 
-void POLYLFO_topButton() {
-  poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
-}
-
-void POLYLFO_lowerButton() {
-  poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
-}
-
-void POLYLFO_rightButton() {
-  poly_lfo_state.editing = !poly_lfo_state.editing;
-}
-
-void POLYLFO_leftButton() {
-  if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode) {
-    poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
-  } else {
-    poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
-  }
-}
-
-void POLYLFO_leftButtonLong() {
-}
-
-bool POLYLFO_encoders() {
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-  if (value) {
-    if (poly_lfo.change_value(poly_lfo_state.left_edit_mode, value))
-      changed = true;
-  }
-
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (value) {
-    if (poly_lfo_state.editing) {
-      poly_lfo.change_value(poly_lfo_state.selected_param, value);
-    } else {
-      value += poly_lfo_state.selected_param;
-      CONSTRAIN(value, POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
-      poly_lfo_state.selected_param = value;
+void POLYLFO_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
+        break;
+      case OC::CONTROL_BUTTON_L:
+      if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode)
+        poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
+      else
+        poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+      break;
+      case OC::CONTROL_BUTTON_R:
+        poly_lfo_state.cursor.toggle_editing();
+        break;
     }
-    changed = true;
   }
+}
 
-  return changed;
+void POLYLFO_handleEncoderEvent(const UI::Event &event) {
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    poly_lfo.change_value(poly_lfo_state.left_edit_mode, event.value);
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (poly_lfo_state.cursor.editing()) {
+      poly_lfo.change_value(poly_lfo_state.cursor.cursor_pos(), event.value);
+    } else {
+      poly_lfo_state.cursor.Scroll(event.value);
+    }
+  }
 }
 
 void POLYLFO_debug() {

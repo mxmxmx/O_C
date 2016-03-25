@@ -104,9 +104,8 @@ public:
   static constexpr int kMaxInversion = 3;
 
   void Init() {
-    cursor_pos = 0;
+    cursor.Init(H1200_SETTING_ROOT_OFFSET, H1200_SETTING_LAST - 1);
     display_notes = true;
-  
     tonnetz_state.init();
   }
 
@@ -118,7 +117,7 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
-  int cursor_pos;
+  menu::ScreenCursor<menu::kScreenLines> cursor;
   bool display_notes;
 
   TonnetzState tonnetz_state;
@@ -194,7 +193,6 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 void H1200_init() {
   h1200_settings.Init();
   h1200_state.Init();
-  init_circle_lut();
 }
 
 size_t H1200_storageSize() {
@@ -209,15 +207,15 @@ size_t H1200_restore(const void *storage) {
   return h1200_settings.Restore(storage);
 }
 
-void H1200_handleEvent(OC::AppEvent event) {
+void H1200_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      encoder[LEFT].setPos(0);
-      encoder[RIGHT].setPos(0);
+      h1200_state.cursor.set_editing(false);
       h1200_state.tonnetz_state.reset(h1200_settings.mode());
       break;
     case OC::APP_EVENT_SUSPEND:
-    case OC::APP_EVENT_SCREENSAVER:
+    case OC::APP_EVENT_SCREENSAVER_ON:
+    case OC::APP_EVENT_SCREENSAVER_OFF:
       break;
   }
 }
@@ -242,108 +240,80 @@ void H1200_isr() {
 }
 
 void H1200_loop() {
-  if (_ENC && (millis() - _BUTTONS_TIMESTAMP > DEBOUNCE)) encoders();
-  buttons(BUTTON_BOTTOM);
-  buttons(BUTTON_TOP);
-  buttons(BUTTON_LEFT);
-  buttons(BUTTON_RIGHT);
 }
 
-void H1200_topButton() {
-  if (h1200_settings.change_value(H1200_SETTING_INVERSION, 1)) {
-    h1200_state.force_update();
+void H1200_handleButtonEvent(const UI::Event &event) {
+  if (UI::EVENT_BUTTON_PRESS == event.type) {
+    switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+        if (h1200_settings.change_value(H1200_SETTING_INVERSION, 1))
+          h1200_state.force_update();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        if (h1200_settings.change_value(H1200_SETTING_INVERSION, -1))
+          h1200_state.force_update();
+        break;
+      case OC::CONTROL_BUTTON_L:
+        h1200_state.display_notes = !h1200_state.display_notes;
+        break;
+      case OC::CONTROL_BUTTON_R:
+        h1200_state.cursor.toggle_editing();
+        break;
+    }
+  } else {
+    if (OC::CONTROL_BUTTON_L == event.control) {
+      h1200_settings.InitDefaults();
+      h1200_state.manual_reset();
+    }
   }
 }
 
-void H1200_lowerButton() {
-  if (h1200_settings.change_value(H1200_SETTING_INVERSION, -1)) {
-    h1200_state.force_update();
+void H1200_handleEncoderEvent(const UI::Event &event) {
+
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    if (h1200_settings.change_value(H1200_SETTING_ROOT_OFFSET, event.value))
+      h1200_state.force_update();
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (h1200_state.cursor.editing()) {
+      if (h1200_settings.change_value(h1200_state.cursor.cursor_pos(), event.value))
+        h1200_state.force_update();
+    } else {
+      h1200_state.cursor.Scroll(event.value);
+    }
   }
-}
-
-void H1200_rightButton() {
-  ++h1200_state.cursor_pos;
-  if (h1200_state.cursor_pos >= H1200_SETTING_LAST)
-    h1200_state.cursor_pos = 0;
-}
-
-void H1200_leftButton() {
-  h1200_state.display_notes = !h1200_state.display_notes;
-}
-
-void H1200_leftButtonLong() {
-  h1200_settings.InitDefaults();
-  h1200_state.manual_reset();
-}
-
-bool H1200_encoders() {
-  bool changed = false;
-  int value = encoder[LEFT].pos();
-  encoder[LEFT].setPos(0);
-
-  if (value) {
-    value += h1200_state.cursor_pos;
-    CONSTRAIN(value, 0, H1200_SETTING_LAST - 1);
-    h1200_state.cursor_pos = value;
-    changed = true;
-  }
-
-  value = encoder[RIGHT].pos();
-  encoder[RIGHT].setPos(0);
-  if (value && h1200_settings.change_value(h1200_state.cursor_pos, value)) {
-    h1200_state.force_update();
-    changed = true;
-  }
-
-  return changed;
 }
 
 void H1200_menu() {
-  GRAPHICS_BEGIN_FRAME(false);
-  graphics.setFont(MENU_DEFAULT_FONT);
-
-  static const uint8_t kStartX = 0;
 
   const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
   int outputs[4];
   h1200_state.tonnetz_state.get_outputs(outputs);
 
-  UI_DRAW_TITLE(kStartX);
-  if (h1200_state.display_notes)
-    graphics.print(note_name(outputs[0]));
-  else
-    graphics.print(outputs[0]);
+  menu::DefaultTitleBar::Draw();
+  graphics.print(note_name(outputs[0]));
   graphics.print(mode_names[current_mode]);
 
-  graphics.setPrintPos(64, kUiTitleTextY);
   if (h1200_state.display_notes) {
     for (size_t i=1; i < 4; ++i) {
-      if (i > 1) graphics.print(' ');
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW/2, 0);
       graphics.print(note_name(outputs[i]));
     }
   } else {
     for (size_t i=1; i < 4; ++i) {
-      if (i > 1) graphics.print(' ');
-      graphics.print(outputs[i]);
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW/2, 0);
+      graphics.pretty_print(outputs[i]);
     }
   }
 
-  int first_visible = h1200_state.cursor_pos - 2;
-  if (first_visible < 0)
-    first_visible = 0;
-
-  UI_START_MENU(kStartX);
-  UI_BEGIN_ITEMS_LOOP(kStartX, first_visible, H1200_SETTING_LAST, h1200_state.cursor_pos, 0)
-    const settings::value_attr &attr = H1200Settings::value_attr(current_item);
-    UI_DRAW_SETTING(attr, h1200_settings.get_value(current_item), kUiWideMenuCol1X);
-  UI_END_ITEMS_LOOP();
-
-  GRAPHICS_END_FRAME();
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(h1200_state.cursor);
+  menu::SettingsListItem list_item;
+  while (settings_list.available()) {
+    const int current = settings_list.Next(list_item);
+    list_item.DrawDefault(h1200_settings.get_value(current), H1200Settings::value_attr(current));
+  }
 }
 
 void H1200_screensaver() {
-  GRAPHICS_BEGIN_FRAME(false);
-
   uint8_t y = 0;
   static const uint8_t x_col_0 = 66;
   static const uint8_t x_col_1 = 66 + 24;
@@ -352,9 +322,6 @@ void H1200_screensaver() {
   static const weegfx::coord_t note_circle_x = 32;
   static const weegfx::coord_t note_circle_y = 32;
 
-  //u8g.setFont(u8g_font_timB12); BBX 19x27
-  //graphics.setFont(u8g_font_10x20); // fixed-width makes positioning a bit easier
- 
   uint32_t history = h1200_state.tonnetz_state.history();
   int outputs[4];
   h1200_state.tonnetz_state.get_outputs(outputs);
@@ -383,7 +350,5 @@ void H1200_screensaver() {
     history >>= 8;
   }
 
-  visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
-
-  GRAPHICS_END_FRAME();
+  OC::visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
 }

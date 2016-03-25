@@ -20,43 +20,55 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <stdint.h>
-#include "OC_bitmaps.h"
+#ifndef UTIL_BUTTON_H_
+#define UTIL_BUTTON_H_
 
-namespace OC {
+#include <Arduino.h>
+#include "../util/util_macros.h"
 
-const uint8_t bitmap_empty_frame4x8[] = {
-  0xff, 0x81, 0x81, 0xff
+namespace UI {
+
+// Basic button/switch wrapper that has 7 bits of debouncing on press/release.
+class Button {
+public:
+  Button() { }
+
+  void Init(uint8_t pin, uint8_t pin_mode) {
+    pin_ = pin;
+    pinMode(pin, pin_mode);
+    state_ = 0xff;
+  }
+
+  // @return True if pressed
+  uint8_t Poll() {
+    uint8_t state = (state_ << 1) | digitalReadFast(pin_);
+    state_ = state;
+    return !(state & 0x01);
+  }
+
+  inline bool pressed() const {
+    return state_ == 0x00;
+  }
+
+  inline bool just_pressed() const {
+    return state_ == 0x80;
+  }
+
+  inline bool released() const {
+    return state_ == 0x7f;
+  }
+
+  bool read_immediate() const {
+    return !digitalReadFast(pin_);
+  }
+
+private:
+  int pin_;
+  uint8_t state_;
+
+  DISALLOW_COPY_AND_ASSIGN(Button);
 };
 
-const uint8_t bitmap_end_marker4x8[] = {
-  0x66, 0x6f, 0x6f, 0x66
-};
+}; // namespace UI
 
-const uint8_t bitmap_indicator_4x8[] = {
-  0x00, 0x18, 0x18, 0x00
-};
-
-const uint8_t bitmap_edit_indicators_8[kBitmapEditIndicatorW * 3] = {
-  0x24, 0x66, 0xe7, 0x66, 0x24, // both
-  0x04, 0x06, 0x07, 0x06, 0x04, // min
-  0x20, 0x60, 0xe0, 0x60, 0x20  // max
-};
-
-const uint8_t bitmap_gate_indicators_8[] = {
-  0x00, 0x00, 0x00, 0x00,
-  0xc0, 0xc0, 0xc0, 0xc0,
-  0xf0, 0xf0, 0xf0, 0xf0,
-  0xfc, 0xfc, 0xfc, 0xfc,
-  0xff, 0xff, 0xff, 0xff
-};
-
-const uint8_t circle_disk_bitmap_8x8[] = {
-  0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
-};
-
-const uint8_t circle_bitmap_8x8[] = {
-  0, 0x18, 0x24, 0x42, 0x42, 0x24, 0x18, 0
-};
-
-};
+#endif // UTIL_BUTTON_H_

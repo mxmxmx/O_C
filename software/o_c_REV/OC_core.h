@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include "OC_config.h"
+#include "util/util_debugpins.h"
+#include "drivers/display.h"
 
 namespace OC {
   namespace CORE {
