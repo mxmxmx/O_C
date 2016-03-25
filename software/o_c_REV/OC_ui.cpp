@@ -78,9 +78,6 @@ UiMode Ui::DispatchEvents(App *app) {
     if (IgnoreEvent(event))
       continue;
 
-    if (event.type == UI::EVENT_BUTTON_LONG_PRESS && event.control == OC::CONTROL_BUTTON_R)
-      return UI_MODE_SELECT_APP;
-
     switch (event.type) {
       case UI::EVENT_BUTTON_PRESS:
         app->HandleButtonEvent(event);
@@ -89,7 +86,7 @@ UiMode Ui::DispatchEvents(App *app) {
         if (OC::CONTROL_BUTTON_R != event.control)
           app->HandleButtonEvent(event);
         else
-          return UI_MODE_SELECT_APP;
+          return UI_MODE_APP_SETTINGS;
         break;
       case UI::EVENT_ENCODER:
         app->HandleEncoderEvent(event);
@@ -121,7 +118,7 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
     if (read_immediate(CONTROL_BUTTON_L))
       mode = UI_MODE_CALIBRATE;
     if (read_immediate(CONTROL_BUTTON_R))
-      mode = UI_MODE_SELECT_APP;
+      mode = UI_MODE_APP_SETTINGS;
 
     use_defaults = 
       read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN);
@@ -143,7 +140,7 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
     y += menu::kMenuLineH;
     graphics.setPrintPos(menu::kIndentDx, y + 2);
     graphics.print("[R] => select app");
-    if (UI_MODE_SELECT_APP == mode)
+    if (UI_MODE_APP_SETTINGS == mode)
       graphics.invertRect(menu::kIndentDx, y, 128, menu::kMenuLineH);
 
     y += menu::kMenuLineH;

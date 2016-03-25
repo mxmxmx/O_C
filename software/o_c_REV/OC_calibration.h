@@ -17,8 +17,6 @@
 namespace OC {
 
 enum CalibrationFlags {
-	UI_ENCODERS_SWAP,
-	UI_ENCODERS_ACCELERATION
 };
 
 struct CalibrationData {

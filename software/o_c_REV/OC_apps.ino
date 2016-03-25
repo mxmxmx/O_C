@@ -1,3 +1,25 @@
+// Copyright (c) 2016 Patrick Dowling
+//
+// Author: Patrick Dowling (pld@gurkenkiste.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 #include "OC_apps.h"
 
 #define DECLARE_APP(a, b, name, prefix, isr) \
@@ -66,7 +88,6 @@ AppDataStorage app_data_storage;
 
 static constexpr int DEFAULT_APP_INDEX = 0;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
-App *current_app = &available_apps[DEFAULT_APP_INDEX];
 
 void save_global_settings() {
   SERIAL_PRINTLN("Saving global settings...");
@@ -87,17 +108,17 @@ void save_app_data() {
   size_t start_app = random(NUM_AVAILABLE_APPS);
   for (size_t i = 0; i < NUM_AVAILABLE_APPS; ++i) {
     const auto &app = available_apps[(start_app + i) % NUM_AVAILABLE_APPS];
-    size_t storage_size = app.storageSize() + sizeof(OC::AppChunkHeader);
+    size_t storage_size = app.storageSize() + sizeof(AppChunkHeader);
     if (storage_size & 1) ++storage_size; // Align chunks on 2-byte boundaries
     if (app.Save) {
       if (data + storage_size > data_end) {
         SERIAL_PRINTLN("*********************");
-        SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u AVAILABLE", app.name, data_end - data, OC::AppData::kAppDataSize);
+        SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u AVAILABLE", app.name, data_end - data, AppData::kAppDataSize);
         SERIAL_PRINTLN("*********************");
         continue;
       }
 
-      OC::AppChunkHeader *chunk = reinterpret_cast<OC::AppChunkHeader *>(data);
+      AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
       chunk->id = app.id;
       chunk->length = storage_size;
       size_t used = app.Save(chunk + 1);
@@ -120,13 +141,13 @@ void restore_app_data() {
   size_t restored_bytes = 0;
 
   while (data < data_end) {
-    const OC::AppChunkHeader *chunk = reinterpret_cast<const OC::AppChunkHeader *>(data);
+    const AppChunkHeader *chunk = reinterpret_cast<const AppChunkHeader *>(data);
     if (data + chunk->length > data_end) {
       SERIAL_PRINTLN("Uh oh, app chunk length %u exceeds available data left (%u)", chunk->length, data_end - data);
       break;
     }
 
-    OC::App *app = OC::APPS::find(chunk->id);
+    App *app = apps::find(chunk->id);
     if (!app) {
       SERIAL_PRINTLN("App %02x not found, ignoring chunk...", app->id);
       if (!chunk->length)
@@ -134,7 +155,7 @@ void restore_app_data() {
       data += chunk->length;
       continue;
     }
-    size_t expected_length = app->storageSize() + sizeof(OC::AppChunkHeader);
+    size_t expected_length = app->storageSize() + sizeof(AppChunkHeader);
     if (expected_length & 0x1) ++expected_length;
     if (chunk->length != expected_length) {
       SERIAL_PRINTLN("* %s (%02x): chunk length %u != %u (storageSize=%u), skipping...", app->name, chunk->id, chunk->length, expected_length, app->storageSize());
@@ -144,7 +165,7 @@ void restore_app_data() {
 
     size_t used = 0;
     if (app->Restore) {
-      const size_t len = chunk->length - sizeof(OC::AppChunkHeader);
+      const size_t len = chunk->length - sizeof(AppChunkHeader);
       used = app->Restore(chunk + 1);
       SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, used, len, chunk->length);
     }
@@ -155,18 +176,22 @@ void restore_app_data() {
   SERIAL_PRINTLN("App data restored: %u, expected %u", restored_bytes, app_settings.used);
 }
 
+namespace apps {
+
 void set_current_app(int index) {
   current_app = &available_apps[index];
   global_settings.current_app_id = current_app->id;
 }
 
-App *APPS::find(uint16_t id) {
+App *current_app = &available_apps[DEFAULT_APP_INDEX];
+
+App *find(uint16_t id) {
   for (auto &app : available_apps)
     if (app.id == id) return &app;
   return nullptr;
 }
 
-int APPS::index_of(uint16_t id) {
+int index_of(uint16_t id) {
   int i = 0;
   for (const auto &app : available_apps) {
     if (app.id == id) return i;
@@ -175,7 +200,7 @@ int APPS::index_of(uint16_t id) {
   return i;
 }
 
-void APPS::Init(bool use_defaults) {
+void Init(bool use_defaults) {
 
   Scales::Init();
   for (auto &app : available_apps)
@@ -199,7 +224,7 @@ void APPS::Init(bool use_defaults) {
     } else {
       SERIAL_PRINTLN("Loaded settings from page_index %d, current_app_id is %02x",
                     global_settings_storage.page_index(),global_settings.current_app_id);
-      memcpy(OC::user_scales, global_settings.user_scales, sizeof(OC::user_scales));
+      memcpy(user_scales, global_settings.user_scales, sizeof(user_scales));
     }
 
     SERIAL_PRINTLN("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
@@ -215,7 +240,7 @@ void APPS::Init(bool use_defaults) {
     }
   }
 
-  int current_app_index = APPS::index_of(global_settings.current_app_id);
+  int current_app_index = apps::index_of(global_settings.current_app_id);
   if (current_app_index < 0 || current_app_index >= NUM_AVAILABLE_APPS) {
     SERIAL_PRINTLN("App id %02x not found, using default...", global_settings.current_app_id);
     global_settings.current_app_id = DEFAULT_APP_INDEX;
@@ -223,10 +248,12 @@ void APPS::Init(bool use_defaults) {
   }
 
   set_current_app(current_app_index);
-  current_app->HandleAppEvent(OC::APP_EVENT_RESUME);
+  current_app->HandleAppEvent(APP_EVENT_RESUME);
 
   delay(100);
 }
+
+}; // namespace apps
 
 void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
   GRAPHICS_BEGIN_FRAME(true);
@@ -243,22 +270,22 @@ void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
     graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
     graphics.print(available_apps[current].name);
     if (global_settings.current_app_id == available_apps[current].id)
-       graphics.drawBitmap8(item.x + 2, item.y + 1, 4, OC::bitmap_indicator_4x8);
+       graphics.drawBitmap8(item.x + 2, item.y + 1, 4, bitmap_indicator_4x8);
      item.DrawCustom();
   }
 
   GRAPHICS_END_FRAME();
 }
 
-void OC::Ui::SelectApp() {
+void Ui::AppSettings() {
 
   SetButtonIgnoreMask();
 
-  current_app->HandleAppEvent(APP_EVENT_SUSPEND);
+  apps::current_app->HandleAppEvent(APP_EVENT_SUSPEND);
 
   menu::ScreenCursor<5> cursor;
   cursor.Init(0, NUM_AVAILABLE_APPS - 1);
-  cursor.Scroll(APPS::index_of(global_settings.current_app_id));
+  cursor.Scroll(apps::index_of(global_settings.current_app_id));
 
   bool change_app = false;
   bool save = false;
@@ -289,7 +316,7 @@ void OC::Ui::SelectApp() {
   delay(1);
 
   if (change_app) {
-    set_current_app(cursor.cursor_pos());
+    apps::set_current_app(cursor.cursor_pos());
     if (save) {
       save_global_settings();
       save_app_data();
@@ -297,7 +324,7 @@ void OC::Ui::SelectApp() {
   }
 
   // Restore state
-  current_app->HandleAppEvent(APP_EVENT_RESUME);
+  apps::current_app->HandleAppEvent(APP_EVENT_RESUME);
   CORE::app_isr_enabled = true;
 }
 

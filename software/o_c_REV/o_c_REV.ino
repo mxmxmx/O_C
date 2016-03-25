@@ -87,7 +87,7 @@ void FASTRUN CORE_timer_ISR() {
 
   ++OC::CORE::ticks;
   if (OC::CORE::app_isr_enabled)
-    OC::APPS::ISR();
+    OC::apps::ISR();
 
   OC_DEBUG_RESET_CYCLES(OC::CORE::ticks, 16384, OC::DEBUG::ISR_cycles);
 }
@@ -135,7 +135,7 @@ void setup() {
   ui_mode = OC::ui.Splashscreen(use_defaults);
 
   // initialize apps
-  OC::APPS::Init(use_defaults);
+  OC::apps::Init(use_defaults);
   OC::CORE::app_isr_enabled = true;
 }
 
@@ -150,11 +150,10 @@ void FASTRUN loop() {
   while (true) {
 
     // don't change current_app while it's running
-    if (OC::UI_MODE_SELECT_APP == ui_mode) {
-      OC::ui.SelectApp();
+    if (OC::UI_MODE_APP_SETTINGS == ui_mode) {
+      OC::ui.AppSettings();
       ui_mode = OC::UI_MODE_MENU;
     }
-
 
     // Refresh display
     if (MENU_REDRAW) {
@@ -162,10 +161,10 @@ void FASTRUN loop() {
         if (OC::UI_MODE_MENU == ui_mode) {
           OC_DEBUG_RESET_CYCLES(menu_redraws, 512, OC::DEBUG::MENU_draw_cycles);
           OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::MENU_draw_cycles);
-          OC::current_app->DrawMenu();
+          OC::apps::current_app->DrawMenu();
           ++menu_redraws;
         } else {
-          OC::current_app->DrawScreensaver();
+          OC::apps::current_app->DrawScreensaver();
         }
         MENU_REDRAW = 0;
         LAST_REDRAW_TIME = millis();
@@ -173,17 +172,17 @@ void FASTRUN loop() {
     }
 
     // Run current app
-    OC::current_app->loop();
+    OC::apps::current_app->loop();
 
     // UI events
-    OC::UiMode mode = OC::ui.DispatchEvents(OC::current_app);
+    OC::UiMode mode = OC::ui.DispatchEvents(OC::apps::current_app);
 
     // State transition for app
     if (mode != ui_mode) {
       if (OC::UI_MODE_SCREENSAVER == mode)
-        OC::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
+        OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
       else
-        OC::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
+        OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
       ui_mode = mode;
     }
 

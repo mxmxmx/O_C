@@ -34,7 +34,7 @@ static inline uint16_t control_mask(unsigned i) {
 enum UiMode {
   UI_MODE_SCREENSAVER,
   UI_MODE_MENU,
-  UI_MODE_SELECT_APP,
+  UI_MODE_APP_SETTINGS,
   UI_MODE_CALIBRATE
 };
 
@@ -50,7 +50,7 @@ public:
   UiMode Splashscreen(bool &use_defaults);
   void DebugStats();
   void Calibrate();
-  void SelectApp();
+  void AppSettings();
   UiMode DispatchEvents(OC::App *app);
 
   void Poll();
