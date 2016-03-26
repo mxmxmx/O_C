@@ -34,28 +34,6 @@
 
 namespace streams {
 
-enum ELorenzOutputMap {
-  LORENZ_OUTPUT_X1,
-  LORENZ_OUTPUT_Y1,
-  LORENZ_OUTPUT_Z1,
-  LORENZ_OUTPUT_X2,
-  LORENZ_OUTPUT_Y2,
-  LORENZ_OUTPUT_Z2,
-  ROSSLER_OUTPUT_X1,
-  ROSSLER_OUTPUT_Y1,
-  ROSSLER_OUTPUT_Z1,
-  ROSSLER_OUTPUT_X2,
-  ROSSLER_OUTPUT_Y2,
-  ROSSLER_OUTPUT_Z2,
-  LORENZ_OUTPUT_LX1_PLUS_RX1,
-  LORENZ_OUTPUT_LX1_PLUS_RZ1,
-  LORENZ_OUTPUT_LX1_PLUS_LY2,
-  LORENZ_OUTPUT_LX1_PLUS_LZ2,
-  LORENZ_OUTPUT_LX1_PLUS_RX2,
-  LORENZ_OUTPUT_LX1_PLUS_RZ2,
-  LORENZ_OUTPUT_LAST,
-};
-
 // using namespace stmlib;
 
 const int64_t sigma = 10.0 * (1 << 24);
@@ -222,6 +200,18 @@ void LorenzGenerator::Process(
         break;
       case LORENZ_OUTPUT_LX1_PLUS_RZ2:
         dac_code_[i] = (Lx1_scaled + Rz2_scaled) >> 1;
+        break;
+      case LORENZ_OUTPUT_LX1_XOR_LY1:
+        dac_code_[i] = Lx1_scaled ^ Ly1_scaled ;
+        break;
+      case LORENZ_OUTPUT_LX1_XOR_LX2:
+        dac_code_[i] = Lx1_scaled ^ Lx2_scaled ;
+        break;
+      case LORENZ_OUTPUT_LX1_XOR_RX1:
+        dac_code_[i] = Lx1_scaled ^ Rx1_scaled ;
+        break;
+      case LORENZ_OUTPUT_LX1_XOR_RX2:
+        dac_code_[i] = Lx1_scaled ^ Rx2_scaled ;
         break;
        default:
         break;
