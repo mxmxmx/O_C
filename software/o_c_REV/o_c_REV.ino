@@ -183,7 +183,7 @@ void FASTRUN loop() {
     if (mode != ui_mode) {
       if (OC::UI_MODE_SCREENSAVER == mode)
         OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
-      else
+      else if (OC::UI_MODE_SCREENSAVER == ui_mode)
         OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
       ui_mode = mode;
     }
