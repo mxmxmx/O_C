@@ -221,7 +221,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const envelope_types[ENV_TYPE_LAST] = {
-  "AD", "ADSR", "ADR", "AR", "ADSAR", "ADAR", "AD_LOOP", "ADR_LOOP", "ADAR_LOOP"
+  "AD", "ADSR", "ADR", "AR", "ADSAR", "ADAR", "AD loop", "ADR loop", "ADAR loop"
 };
 
 const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
