@@ -10,6 +10,7 @@
 
 extern void POLYLFO_debug();
 extern void BBGEN_debug();
+extern void BYTEBEAT_debug();
 
 namespace OC {
 

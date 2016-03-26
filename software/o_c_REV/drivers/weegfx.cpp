@@ -438,6 +438,15 @@ void Graphics::print(uint16_t value, unsigned width) {
   print(str);
 }
 
+void Graphics::print(uint32_t value, size_t width) {
+  char buf[24];
+  char *str = itos<uint32_t, false>(value, buf, sizeof(buf));
+  while (str > buf &&
+         (size_t)(str - buf) >= sizeof(buf) - width)
+    *--str = ' ';
+  print(str);
+}
+
 void Graphics::pretty_print(int value, unsigned width) {
   char buf[12];
   char *str = itos<int, true>(value, buf, sizeof(buf));

@@ -78,6 +78,7 @@ public:
   void print(int);
   void print(int, unsigned width);
   void print(uint16_t, unsigned width);
+  void print(uint32_t, unsigned width);
   void print(long);
 
   void pretty_print(int);
