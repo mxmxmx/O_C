@@ -112,10 +112,10 @@ SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
   { 128, 0, 255, "Freq 2", NULL, settings::STORAGE_TYPE_U8 },
   { 63, 4, 127, "Rho/c 1", NULL, settings::STORAGE_TYPE_U8 }, 
   { 63, 4, 127, "Rho/c 2", NULL, settings::STORAGE_TYPE_U8 }, 
-  {streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out A ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {streams::LORENZ_OUTPUT_Y1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out B ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {streams::LORENZ_OUTPUT_X2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out C ", lorenz_output_names, settings::STORAGE_TYPE_U8},
-  {streams::LORENZ_OUTPUT_Y2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "out D ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out A ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_Y1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out B ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_X2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out C ", lorenz_output_names, settings::STORAGE_TYPE_U8},
+  {streams::LORENZ_OUTPUT_Y2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out D ", lorenz_output_names, settings::STORAGE_TYPE_U8},
 };
 
 LorenzGenerator lorenz_generator;
@@ -208,13 +208,13 @@ void LORENZ_loop() {
 void LORENZ_menu() {
 
   menu::DualTitleBar::Draw();
-  graphics.print("FREQ1 ");
+  graphics.print("Freq1 ");
   int32_t freq1 = SCALE8_16(lorenz_generator.get_freq1()) + (lorenz_generator.cv_freq1.value() * 16);
   freq1 = USAT16(freq1);
   graphics.print(freq1 >> 8);
 
   menu::DualTitleBar::SetColumn(1);
-  graphics.print("FREQ2 ");
+  graphics.print("Freq2 ");
   int32_t freq2 = SCALE8_16(lorenz_generator.get_freq2()) + (lorenz_generator.cv_freq2.value() * 16);
   freq2 = USAT16(freq2);
   graphics.print(freq2 >> 8);
@@ -315,11 +315,5 @@ void LORENZ_debug() {
   graphics.print(" ");
   value = SCALE8_16(lorenz_generator.get_freq2());
   graphics.print(value);
-//  graphics.print(" ");
-//  graphics.print(lorenz_generator.cv_shape.value() * 16);
-//  value += lorenz_generator.cv_shape.value() * 16;
-//  graphics.setPrintPos(2, 22);
-//  graphics.print(value); graphics.print(" ");
-//  value = USAT16(value);
-//  graphics.print(value);
+
 }
