@@ -63,7 +63,7 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
     start_value_ = level_[segment_ + 1];
     ++segment_;
     phase_ = 0;
-    if (segment_ == loop_end_) {
+    if (segment_ == loop_end_ && (control & CONTROL_GATE)) {
       segment_ = loop_start_;
     }
   }
