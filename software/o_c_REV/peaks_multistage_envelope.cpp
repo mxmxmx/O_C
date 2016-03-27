@@ -29,6 +29,7 @@
 #include "peaks_multistage_envelope.h"
 #include "extern/stmlib_utils_dsp.h"
 #include "peaks_resources.h"
+#include "util/util_misc.h"
 
 namespace peaks {
 
@@ -45,7 +46,6 @@ void MultistageEnvelope::Init() {
   attack_shape_ = ENV_SHAPE_QUARTIC;
   decay_shape_ = ENV_SHAPE_EXPONENTIAL;
   release_shape_ = ENV_SHAPE_EXPONENTIAL;
-  
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
@@ -84,62 +84,68 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
   return value_;
 }
 
-size_t MultistageEnvelope::render_preview(
+uint16_t MultistageEnvelope::RenderPreview(
     int16_t *values,
-    uint32_t *segment_starts,
-    uint32_t *loops,
-    uint32_t &current_phase) const {
-  size_t points = 0;
-  uint16_t num_segments = num_segments_;
+    uint16_t *segment_start_points,
+    uint16_t *loop_points,
+    uint16_t &current_phase) const {
+
+  const uint16_t num_segments = num_segments_;
+  const uint16_t current_segment = segment_;
+  const uint16_t sustain_point = sustain_point_;
+  const uint16_t sustain_index = sustain_index_;
+  const uint32_t phase = phase_;
   int32_t start_value = level_[0];
-  bool loop_end = true;
-  for (uint16_t segment = 0; segment < num_segments; ++segment) {
 
-    if (loop_end_ && segment == loop_start_) {
-      *loops++ = points;
-      loop_end = false;
-    }
+  const uint16_t segment_width = sustain_point
+    ? (2 * kPreviewWidth) / (2 * num_segments + 1)
+    : kPreviewWidth / num_segments;
 
-    if (sustain_point_ && segment == sustain_point_) {
-      *segment_starts++ = points;
-      size_t width = 16;
-      while (--width) {
+  int16_t current_pos = 0;
+  uint16_t segment;
+  for (segment = 0; segment < num_segments; ++segment) {
+
+    if (loop_end_ && segment == loop_start_)
+      *loop_points++ = current_pos;
+
+    if (sustain_point && segment == sustain_point) {
+      // Sustain points are half as wide as normal segments
+      *segment_start_points++ = current_pos;
+      uint16_t w = segment_width / 2;
+      current_pos += w;
+      while (w--)
         *values++ = start_value;
-        ++points;
-      }
+    } else if (sustain_index && segment == sustain_index) {
+      // While this isn't strictly a segment, it's used for visualization
+      *segment_start_points++ = current_pos;
     }
 
-    uint32_t width = 1 + (time_[segment]>>11);
-    uint32_t phase = 0;
-    uint32_t phase_increment = (0xff << 24) / width;
+    *segment_start_points++ = current_pos;
+    uint32_t w = time_[segment] * segment_width >> 16;
+    if (w < 1) w = 1;
+    if (segment == current_segment)
+      current_phase = current_pos + (((phase_ >> 24) * w) / 256);
+    current_pos += w;
 
-    if (segment == segment_) {
-      current_phase = points + ((phase_ >> 24) * width / 256);
-    }
-
+    uint32_t phase = 0, phase_increment = (0xff << 24) / w;
     int32_t a = start_value;
     int32_t b = level_[segment + 1];
-    *segment_starts++ = points;
-    while (width--) {
+    while (w--) {
       uint16_t t = Interpolate824(
           lookup_table_table[LUT_ENV_LINEAR + shape_[segment]], phase);
-
       *values++ = a + ((b - a) * (t >> 1) >> 15);
-      ++points;
       phase += phase_increment;
     }
     start_value = b;
-    if (loop_end_ && segment == loop_end_) {
-      *loops++ = points;
-      loop_end = true;
-    }
   }
-  if (!loop_end)
-    *loops++ = points;
+  // Current setups loop at num_segments_
+  if (loop_end_ && segment == loop_end_)
+    *loop_points++ = current_pos;
 
-  *segment_starts = 0xffffffff;
-  *loops = 0xffffffff;
-  return points;
+  *segment_start_points++ = 0xffff;
+  *loop_points++ = 0xffff;
+
+  return current_pos;
 }
 
 }  // namespace peaks

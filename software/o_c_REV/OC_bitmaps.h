@@ -32,10 +32,13 @@ extern const uint8_t bitmap_empty_frame4x8[];
 extern const uint8_t bitmap_end_marker4x8[];
 extern const uint8_t bitmap_indicator_4x8[];
 
-static constexpr int kBitmapEditIndicatorW = 5;
+static constexpr int16_t kBitmapEditIndicatorW = 5;
 extern const uint8_t bitmap_edit_indicators_8[];
 
 extern const uint8_t bitmap_gate_indicators_8[];
+
+static constexpr int16_t kBitmapLoopMarkerW = 2;
+extern const uint8_t bitmap_loop_markers_8[];
 
 extern const uint8_t circle_disk_bitmap_8x8[];
 extern const uint8_t circle_bitmap_8x8[];

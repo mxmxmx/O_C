@@ -106,7 +106,7 @@ public:
     return values_[ENV_SETTING_SEG1_VALUE + segment];
   }
 
-  int active_segments() const {
+  int num_editable_segments() const {
     switch (get_type()) {
       case ENV_TYPE_AD:
       case ENV_TYPE_AR:
@@ -202,8 +202,8 @@ public:
     DAC::set<dac_channel>(value);
   }
 
-  size_t render_preview(int16_t *values, uint32_t *segments, uint32_t *loops, uint32_t &current_phase) const {
-    return env_.render_preview(values, segments, loops, current_phase);
+  uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const {
+    return env_.RenderPreview(values, segment_start_points, loop_points, current_phase);
   }
 
 private:
@@ -224,12 +224,16 @@ const char* const envelope_types[ENV_TYPE_LAST] = {
   "AD", "ADSR", "ADR", "AR", "ADSAR", "ADAR", "AD loop", "ADR loop", "ADAR loop"
 };
 
+const char* const segment_names[] = {
+  "Attack", "Decay", "Sustain/Level", "Release"
+};
+
 const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
   "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "BgDip", "MeDip", "LtDip", "Wiggl"
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "off", "S1", "S2", "S3", "S4"
+  "None", "Att", "Dec", "Sus", "Rel"
 };
 
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
@@ -264,6 +268,7 @@ public:
     ui.left_edit_mode = MODE_SELECT_CHANNEL;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
+    ui.segment_editing = false;
 
     ui.cursor.Init(ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
   }
@@ -294,6 +299,7 @@ public:
 
     int selected_channel;
     int selected_segment;
+    bool segment_editing;
 
     menu::ScreenCursor<3> cursor;
   } ui;
@@ -348,47 +354,76 @@ void ENVGEN_handleAppEvent(OC::AppEvent event) {
 void ENVGEN_loop() {
 }
 
-int16_t preview_values[128];
-uint32_t preview_segments[peaks::kMaxNumSegments];
-uint32_t preview_loops[peaks::kMaxNumSegments];
+static constexpr weegfx::coord_t kPreviewH = 32;
+static constexpr weegfx::coord_t kPreviewTopY = 32;
+static constexpr weegfx::coord_t kPreviewBottomY = 32 + kPreviewH - 1;
+
+static constexpr weegfx::coord_t kLoopMarkerY = 28;
+static constexpr weegfx::coord_t kCurrentSegmentCursorY = 26;
+
+int16_t preview_values[128 + 64];
+uint16_t preview_segment_starts[peaks::kMaxNumSegments];
+uint16_t preview_loop_points[peaks::kMaxNumSegments];
+static constexpr uint16_t kPreviewTerminator = 0xffff;
+
+settings::value_attr segment_editing_attr = { 128, 0, 255, "DOH!", NULL, settings::STORAGE_TYPE_U16 };
 
 void ENVGEN_menu_preview() {
   auto const &env = envgen.selected();
 
-  weegfx::coord_t y = menu::CalcLineY(0);
-  graphics.setPrintPos(2, y + 1);
-  graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[env.get_type()]);
-  y += menu::kMenuLineH;
-
-  uint32_t current_phase = 0;
-  weegfx::coord_t x = 0;
-  size_t w = env.render_preview(preview_values, preview_segments, preview_loops, current_phase);
-  int16_t *data = preview_values;
-  while (w--) {
-    graphics.setPixel(x++, 58 - (*data++ >> 10));
-  }
-
-  uint32_t *segments = preview_segments;
-  while (*segments != 0xffffffff) {
-    weegfx::coord_t x = *segments++;
-    weegfx::coord_t value = preview_values[x] >> 10;
-    graphics.drawVLine(x, 58 - value, value);
-  }
-
-  uint32_t *loops = preview_loops;
-  if (*loops != 0xffffffff) {
-    weegfx::coord_t start = *loops++;
-    weegfx::coord_t end = *loops++;
-    graphics.setPixel(start, 60);
-    graphics.setPixel(end, 60);
-    graphics.drawHLine(start, 61, end - start + 1);
-  }
-
+  menu::SettingsListItem list_item;
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX>::AbsoluteLine(0, list_item);
+  list_item.selected = false;
+  list_item.editing = envgen.ui.segment_editing;
   const int selected_segment = envgen.ui.selected_segment;
-  graphics.setPrintPos(2 + preview_segments[selected_segment], y);
-  graphics.print(env.get_segment_value(selected_segment));
 
-  graphics.drawHLine(0, 63, current_phase);
+  segment_editing_attr.name = segment_names[selected_segment];
+  list_item.DrawDefault(env.get_segment_value(selected_segment), segment_editing_attr);
+
+  // Current envelope shape
+  uint16_t current_phase = 0;
+  weegfx::coord_t x = 0;
+  weegfx::coord_t w = env.RenderPreview(preview_values, preview_segment_starts, preview_loop_points, current_phase);
+  const int16_t *data = preview_values;
+  while (x <= static_cast<weegfx::coord_t>(current_phase)) {
+    const int16_t value = *data++ >> 10;
+    graphics.drawVLine(x++, kPreviewBottomY - value, value);
+  }
+
+  while (x < w) {
+    const int16_t value = *data++ >> 10;
+    graphics.setPixel(x++, kPreviewBottomY - value);
+  }
+
+  if (x < menu::kDisplayWidth)
+    graphics.drawHLine(x, kPreviewBottomY, menu::kDisplayWidth - x);
+
+  // Minimal cursor thang (x is end of preview)
+  weegfx::coord_t start = preview_segment_starts[selected_segment];
+  weegfx::coord_t end = preview_segment_starts[selected_segment + 1];
+  w = kPreviewTerminator == end ? x - start + 1 : end - start + 1;
+  if (w < 4) w = 4;
+  graphics.drawRect(start, kCurrentSegmentCursorY, w, 2);
+
+  // Current types only loop over full envelope, so just pixel dust
+  uint16_t *loop_points = preview_loop_points;
+  uint_fast8_t i = 0;
+  while (*loop_points != kPreviewTerminator) {
+    // odd: end marker, even: start marker
+    if (i++ & 1)
+      graphics.drawBitmap8(*loop_points++ - 1, kLoopMarkerY, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
+    else
+      graphics.drawBitmap8(*loop_points++, kLoopMarkerY, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8);
+  }
+
+  // Brute-force way of handling "pathological" cases where A/D has no visible
+  // pixels instead of line-drawing between points
+  uint16_t *segment_start = preview_segment_starts;
+  while (*segment_start != kPreviewTerminator) {
+    weegfx::coord_t x = *segment_start++;
+    weegfx::coord_t value = preview_values[x] >> 10;
+    graphics.drawVLine(x, kPreviewBottomY - value, value);
+  }
 }
 
 void ENVGEN_menu_settings() {
@@ -417,14 +452,13 @@ void ENVGEN_menu() {
     menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
   }
+  // If settings mode, draw level in title bar?
   menu::QuadTitleBar::Selected(envgen.ui.selected_channel);
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode)
     ENVGEN_menu_preview();
   else
     ENVGEN_menu_settings();
-
-  // TODO Draw phase anyway?
 }
 
 void ENVGEN_topButton() {
@@ -440,13 +474,7 @@ void ENVGEN_lowerButton() {
 void ENVGEN_rightButton() {
 
   if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
-    auto const &selected_env = envgen.selected();
-    int segment = envgen.ui.selected_segment + 1;
-    if (segment > selected_env.active_segments() - 1)
-      segment = 0;
-    if (segment != envgen.ui.selected_segment) {
-      envgen.ui.selected_segment = segment;
-    }
+    envgen.ui.segment_editing = !envgen.ui.segment_editing;
   } else {
     envgen.ui.cursor.toggle_editing();
   }
@@ -460,6 +488,7 @@ void ENVGEN_leftButton() {
   } else {
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
+    CONSTRAIN(envgen.ui.selected_segment, 0, envgen.selected().num_editable_segments() - 1);
   }
 }
 
@@ -489,9 +518,17 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
       int left_value = envgen.ui.selected_channel + event.value;
       CONSTRAIN(left_value, 0, 3);
       envgen.ui.selected_channel = left_value;
+      auto &selected_env = envgen.selected();
+      CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
     } else if (OC::CONTROL_ENCODER_R == event.control) {
       auto &selected_env = envgen.selected();
-      selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, event.value);
+      if (envgen.ui.segment_editing) {
+        selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, event.value);
+      } else {
+        int selected_segment = envgen.ui.selected_segment + event.value;
+        CONSTRAIN(selected_segment, 0, selected_env.num_editable_segments() - 1);
+        envgen.ui.selected_segment = selected_segment;
+      }
     }
   } else {
     if (OC::CONTROL_ENCODER_L == event.control) {

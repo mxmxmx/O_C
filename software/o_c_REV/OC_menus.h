@@ -50,6 +50,7 @@ static constexpr weegfx::coord_t kDefaultMenuStartX = 0;
 static constexpr weegfx::coord_t kDefaultValueX = 96;
 static constexpr weegfx::coord_t kDefaultMenuEndX = kDisplayWidth - 2;
 static constexpr weegfx::coord_t kIndentDx = 2;
+static constexpr weegfx::coord_t kTextDy = 2;
 
 static constexpr int kScreenLines = 4;
 
@@ -223,14 +224,14 @@ struct SettingsListItem {
   ~SettingsListItem() { }
 
   inline void DrawName(const settings::value_attr &attr) const {
-    graphics.setPrintPos(x + 2, y + 2);
+    graphics.setPrintPos(x + kIndentDx, y + kTextDy);
     graphics.print(attr.name);
   }
 
   inline void DrawDefault(int value, const settings::value_attr &attr) const {
     DrawName(attr);
 
-    graphics.setPrintPos(endx, y + 2);
+    graphics.setPrintPos(endx, y + kTextDy);
     if(attr.value_names)
       graphics.print_right(attr.value_names[value]);
     else
@@ -245,7 +246,7 @@ struct SettingsListItem {
   inline void DrawDefault(const char *str, int value, const settings::value_attr &attr) const {
     DrawName(attr);
 
-    graphics.setPrintPos(endx, y + 2);
+    graphics.setPrintPos(endx, y + kTextDy);
     graphics.print_right(str);
 
     if (editing)
@@ -270,7 +271,7 @@ struct SettingsListItem {
   }
 
   inline void SetPrintPos() const {
-    graphics.setPrintPos(x + 2, y + 2);
+    graphics.setPrintPos(x + kIndentDx, y + kTextDy);
   }
 
   DISALLOW_COPY_AND_ASSIGN(SettingsListItem);

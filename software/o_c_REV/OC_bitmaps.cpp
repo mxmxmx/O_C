@@ -51,6 +51,11 @@ const uint8_t bitmap_gate_indicators_8[] = {
   0xff, 0xff, 0xff, 0xff
 };
 
+const uint8_t bitmap_loop_markers_8[kBitmapLoopMarkerW * 2] = {
+  0x07, 0x02,
+  0x02, 0x07
+};
+
 const uint8_t circle_disk_bitmap_8x8[] = {
   0, 0x18, 0x3c, 0x7e, 0x7e, 0x3c, 0x18, 0
 };

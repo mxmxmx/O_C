@@ -51,6 +51,7 @@ enum EnvelopeShape {
 };
 
 const uint16_t kMaxNumSegments = 8;
+const uint32_t kPreviewWidth = 128;
 
 class MultistageEnvelope {
  public:
@@ -96,6 +97,7 @@ class MultistageEnvelope {
       uint16_t release) {
     num_segments_ = 3;
     sustain_point_ = 2;
+    sustain_index_ = 2;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -116,6 +118,7 @@ class MultistageEnvelope {
   inline void set_ad(uint16_t attack, uint16_t decay) {
     num_segments_ = 2;
     sustain_point_ = 0;
+    sustain_index_ = 0;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -137,6 +140,7 @@ class MultistageEnvelope {
       uint16_t release) {
     num_segments_ = 3;
     sustain_point_ = 0;
+    sustain_index_ = 2;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -154,16 +158,17 @@ class MultistageEnvelope {
     loop_start_ = loop_end_ = 0;
   }
   
-  inline void set_ar(uint16_t attack, uint16_t decay) {
+  inline void set_ar(uint16_t attack, uint16_t release) {
     num_segments_ = 2;
     sustain_point_ = 1;
+    sustain_index_ = 0;
 
     level_[0] = 0;
     level_[1] = 32767;
     level_[2] = 0;
 
     time_[0] = attack;
-    time_[1] = decay;
+    time_[1] = release;
     
     shape_[0] = attack_shape_;
     shape_[1] = release_shape_;
@@ -178,6 +183,7 @@ class MultistageEnvelope {
       uint16_t release) {
     num_segments_ = 4;
     sustain_point_ = 2;
+    sustain_index_ = 2;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -205,6 +211,7 @@ class MultistageEnvelope {
       uint16_t release) {
     num_segments_ = 4;
     sustain_point_ = 0;
+    sustain_index_ = 2;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -228,6 +235,7 @@ class MultistageEnvelope {
   inline void set_ad_loop(uint16_t attack, uint16_t decay) {
     num_segments_ = 2;
     sustain_point_ = 0;
+    sustain_index_ = 0;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -250,6 +258,7 @@ class MultistageEnvelope {
       uint16_t release) {
     num_segments_ = 3;
     sustain_point_ = 0;
+    sustain_index_ = 2;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -275,6 +284,7 @@ class MultistageEnvelope {
       uint16_t release) {
     num_segments_ = 4;
     sustain_point_ = 0;
+    sustain_index_ = 2;
 
     level_[0] = 0;
     level_[1] = 32767;
@@ -320,8 +330,9 @@ class MultistageEnvelope {
     release_shape_ = shape;
   }
 
-  // Render preview, max 128 px
-  size_t render_preview(int16_t *values, uint32_t *segment_starts, uint32_t *loops, uint32_t &current_phase) const;
+  // Render preview, normalized to kPreviewWidth pixels width
+  // NOTE Lives dangerously and uses live values that might be updated by ISR
+  uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const;
 
  private:
   int16_t level_[kMaxNumSegments];
@@ -341,9 +352,10 @@ class MultistageEnvelope {
   uint16_t loop_end_;
   
   bool hard_reset_;
-  EnvelopeShape attack_shape_ ;
-  EnvelopeShape decay_shape_ ;
-  EnvelopeShape release_shape_ ;
+  EnvelopeShape attack_shape_;
+  EnvelopeShape decay_shape_;
+  EnvelopeShape release_shape_;
+  uint16_t sustain_index_;
   
   DISALLOW_COPY_AND_ASSIGN(MultistageEnvelope);
 };
