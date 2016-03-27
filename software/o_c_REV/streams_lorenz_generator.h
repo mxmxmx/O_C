@@ -5,6 +5,9 @@
 // Modifications for use of this code in firmare for the Ornament and Crime module:
 // Tim Churches (tim.churches@gmail.com)
 //
+// Idea for using Rössler generator attributable to Hotlblack Desiato
+// (see http://forbinthesynthesizer.blogspot.com.au/2015/11/rossler-barrow.html)
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -27,7 +30,7 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Lorenz system.
+// Lorenz and Rössler systems.
 
 #ifndef STREAMS_LORENZ_GENERATOR_H_
 #define STREAMS_LORENZ_GENERATOR_H_

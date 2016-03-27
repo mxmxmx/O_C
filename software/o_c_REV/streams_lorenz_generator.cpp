@@ -1,8 +1,12 @@
 // Copyright 2014 Olivier Gillet.
-// Copyright 2016 Tim Churches.
+// Copyright 2016 Tim Churches
 //
 // Original Author: Olivier Gillet (ol.gillet@gmail.com)
-// Modifications for use in Ornament + Crime: Tim Churches (tim.churches@gmail.com)
+// Modifications for use of this code in firmare for the Ornament and Crime module:
+// Tim Churches (tim.churches@gmail.com)
+//
+// Idea for using Rössler generator attributable to Hotlblack Desiato
+// (see http://forbinthesynthesizer.blogspot.com.au/2015/11/rossler-barrow.html)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +31,7 @@
 // -----------------------------------------------------------------------------
 //
 // Lorenz and Rössler systems.
+
 
 #include "streams_lorenz_generator.h"
 
@@ -78,6 +83,7 @@ void LorenzGenerator::Process(
   if (reset1) Init(0) ;
   if (reset2) Init(1) ; 
 
+  // yes, yes, these should be functions...
   // Lorenz 1
   int64_t Ldt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
   int32_t Lx1 = Lx1_ + (Ldt1 * ((sigma * (Ly1_ - Lx1_)) >> 24) >> 24);

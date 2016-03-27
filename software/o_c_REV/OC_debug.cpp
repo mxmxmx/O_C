@@ -10,6 +10,7 @@
 
 extern void POLYLFO_debug();
 extern void BBGEN_debug();
+extern void BYTEBEATGEN_debug();
 
 namespace OC {
 
@@ -96,6 +97,7 @@ static const DebugMenu debug_menus[] = {
   { " ADC", debug_menu_adc },
   { " POLYLFO", POLYLFO_debug },
   { " BBGEN", BBGEN_debug },
+  { " BYTEBEATGEN", BYTEBEATGEN_debug },
   { nullptr, nullptr }
 };
 
