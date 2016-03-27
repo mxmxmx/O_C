@@ -117,49 +117,99 @@ public:
   }
 
   int32_t get_s(uint8_t param) {
-    return s_[param] ; 
+    return s_[param]; 
   }
 
   uint32_t get_t() {
-    return static_cast<uint32_t>(bytebeat_.get_t()) ; 
+    return static_cast<uint32_t>(bytebeat_.get_t()); 
   }
 
   uint32_t get_phase() {
-    return static_cast<uint32_t>(bytebeat_.get_phase()) ; 
+    return static_cast<uint32_t>(bytebeat_.get_phase()); 
   }
 
   uint32_t get_instance_loop_start() {
-    return static_cast<uint32_t>(bytebeat_.get_loop_start()) ; 
+    return static_cast<uint32_t>(bytebeat_.get_loop_start()); 
   }
 
   uint32_t get_instance_loop_end() {
-    return static_cast<uint32_t>(bytebeat_.get_loop_end()) ; 
+    return static_cast<uint32_t>(bytebeat_.get_loop_end()); 
   }
 
   uint16_t get_bytepitch() {
-    return static_cast<uint16_t>(bytebeat_.get_bytepitch()) ; 
+    return static_cast<uint16_t>(bytebeat_.get_bytepitch()); 
   }
+
+  // Begin conditional menu items infrastructure
+  // Maintain an internal list of currently available settings, since some are
+  // dependent on others. It's kind of brute force, but eh, works :) If other
+  // apps have a similar need, it can be moved to a common wrapper
+
+  int num_enabled_settings() const {
+    return num_enabled_settings_;
+  }
+
+  ByteBeatSettings enabled_setting_at(int index) const {
+    return enabled_settings_[index];
+  }
+
+  void update_enabled_settings() {
+    ByteBeatSettings *settings = enabled_settings_;
+    *settings++ = BYTEBEAT_SETTING_EQUATION;
+    *settings++ = BYTEBEAT_SETTING_SPEED;
+    *settings++ = BYTEBEAT_SETTING_P0;
+    *settings++ = BYTEBEAT_SETTING_P1;
+    *settings++ = BYTEBEAT_SETTING_P2;
+    *settings++ = BYTEBEAT_SETTING_LOOP_MODE;
+    if (get_loop_mode()) {
+      *settings++ = BYTEBEAT_SETTING_LOOP_START;
+      *settings++ = BYTEBEAT_SETTING_LOOP_START_FINE;
+      *settings++ = BYTEBEAT_SETTING_LOOP_END;
+      *settings++ = BYTEBEAT_SETTING_LOOP_END_FINE;
+    }
+    *settings++ = BYTEBEAT_SETTING_TRIGGER_INPUT;
+    *settings++ = BYTEBEAT_SETTING_STEP_MODE;
+    *settings++ = BYTEBEAT_SETTING_CV1;
+    *settings++ = BYTEBEAT_SETTING_CV2;
+    *settings++ = BYTEBEAT_SETTING_CV3;
+    *settings++ = BYTEBEAT_SETTING_CV4;
+
+    num_enabled_settings_ = settings - enabled_settings_;
+  }
+
+  static bool indentSetting(ByteBeatSettings s) {
+    switch (s) {
+      case BYTEBEAT_SETTING_LOOP_START:
+      case BYTEBEAT_SETTING_LOOP_START_FINE:
+      case BYTEBEAT_SETTING_LOOP_END:
+      case BYTEBEAT_SETTING_LOOP_END_FINE:
+        return true;
+      default: break;
+    }
+    return false;
+  }
+  // end conditional menu items infrastructure
 
   inline void apply_cv_mapping(ByteBeatSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxByteBeatParameters]) {
     int mapping = values_[cv_setting];
-    uint8_t bytebeat_cv_rshift = 12 ;
+    uint8_t bytebeat_cv_rshift = 12;
     switch (mapping) {
       case BYTEBEAT_CV_MAPPING_EQUATION:
       case BYTEBEAT_CV_MAPPING_SPEED:
       case BYTEBEAT_CV_MAPPING_P0:
       case BYTEBEAT_CV_MAPPING_P1:
       case BYTEBEAT_CV_MAPPING_P2:
-        bytebeat_cv_rshift = 12 ;
+        bytebeat_cv_rshift = 12;
         break;
       case BYTEBEAT_CV_MAPPING_LOOP_START:
       case BYTEBEAT_CV_MAPPING_LOOP_START_FINE:
       case BYTEBEAT_CV_MAPPING_LOOP_END:
       case BYTEBEAT_CV_MAPPING_LOOP_END_FINE:
-        bytebeat_cv_rshift = 12 ;
+        bytebeat_cv_rshift = 12;
       default:
         break;
     }
-    segments[mapping - BYTEBEAT_CV_MAPPING_FIRST] += (cvs[cv_setting - BYTEBEAT_SETTING_CV1] * 65536) >> bytebeat_cv_rshift ;
+    segments[mapping - BYTEBEAT_CV_MAPPING_FIRST] += (cvs[cv_setting - BYTEBEAT_SETTING_CV1] * 65536) >> bytebeat_cv_rshift;
   }
 
   template <DAC_CHANNEL dac_channel>
@@ -181,26 +231,11 @@ public:
     apply_cv_mapping(BYTEBEAT_SETTING_CV3, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV4, cvs, s);
 
-    s[0] = USAT16(s[0]);
-    s[1] = USAT16(s[1]);
-    s[2] = USAT16(s[2]);
-    s[3] = USAT16(s[3]);
-    s[4] = USAT16(s[4]);
-    s[5] = USAT16(s[5]);
-    s[6] = USAT16(s[6]);
-    s[7] = USAT16(s[7]);
-    s[8] = USAT16(s[8]);
-
-    s_[0] = s[0] ;
-    s_[1] = s[1] ;
-    s_[2] = s[2] ;
-    s_[3] = s[3] ;
-    s_[4] = s[4] ;
-    s_[5] = s[5] ;
-    s_[6] = s[6] ;
-    s_[7] = s[7] ;
-    s_[8] = s[8] ;
-        
+    for (uint_fast8_t i = 0; i < 9; ++i) {
+      s[i] = USAT16(s[i]) ;
+      s_[i] = s[i] ;
+    }
+       
     bytebeat_.Configure(s, get_step_mode(), get_loop_mode()) ; 
 
     OC::DigitalInput trigger_input = get_trigger_input();
@@ -225,6 +260,10 @@ private:
   peaks::ByteBeat bytebeat_;
   bool gate_raised_;
   int32_t s_[kMaxByteBeatParameters];
+
+  int num_enabled_settings_;
+  ByteBeatSettings enabled_settings_[BYTEBEAT_SETTING_LAST];
+
 };
 
 void ByteBeat::Init(OC::DigitalInput default_trigger) {
@@ -232,6 +271,7 @@ void ByteBeat::Init(OC::DigitalInput default_trigger) {
   apply_value(BYTEBEAT_SETTING_TRIGGER_INPUT, default_trigger);
   bytebeat_.Init();
   gate_raised_ = false;
+  update_enabled_settings();
 }
 
 const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
@@ -277,10 +317,11 @@ public:
 
     ui.left_encoder_value = 0;
     ui.left_edit_mode = MODE_EDIT_SETTINGS;
-    // ui.editing = false;
+
     ui.selected_channel = 0;
     ui.selected_segment = 0;
     ui.cursor.Init(BYTEBEAT_SETTING_EQUATION, BYTEBEAT_SETTING_LAST - 1);
+    ui.cursor.AdjustEnd(bytebeats_[0].num_enabled_settings() - 1);
   }
 
   void ISR() {
@@ -344,8 +385,11 @@ size_t BYTEBEATGEN_save(void *storage) {
 
 size_t BYTEBEATGEN_restore(const void *storage) {
   size_t s = 0;
-  for (auto &bytebeat : bytebeatgen.bytebeats_)
+  for (auto &bytebeat : bytebeatgen.bytebeats_) {
     s += bytebeat.Restore(static_cast<const byte *>(storage) + s);
+    bytebeat.update_enabled_settings();
+  }
+  bytebeatgen.ui.cursor.AdjustEnd(bytebeatgen.bytebeats_[0].num_enabled_settings() - 1);
   return s;
 }
 
@@ -378,8 +422,12 @@ void BYTEBEATGEN_menu() {
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(bytebeatgen.ui.cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {
-    const int current = settings_list.Next(list_item);
-    list_item.DrawDefault(bytebeat.get_value(current), ByteBeat::value_attr(current));
+    const int setting = bytebeat.enabled_setting_at(settings_list.Next(list_item));
+    const int value = bytebeat.get_value(setting);
+    const settings::value_attr &attr = ByteBeat::value_attr(setting);
+    if (ByteBeat::indentSetting(static_cast<ByteBeatSettings>(setting)))
+      list_item.x += menu::kIndentDx;
+    list_item.DrawDefault(value, attr);
   }
 }
 
@@ -417,10 +465,20 @@ void BYTEBEATGEN_handleEncoderEvent(const UI::Event &event) {
     int left_value = bytebeatgen.ui.selected_channel + event.value;
     CONSTRAIN(left_value, 0, 3);
     bytebeatgen.ui.selected_channel = left_value;
+    auto &selected = bytebeatgen.selected();
+    bytebeatgen.ui.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (bytebeatgen.ui.cursor.editing()) {
       auto &selected = bytebeatgen.selected();
-      selected.change_value(bytebeatgen.ui.cursor.cursor_pos(), event.value);
+      ByteBeatSettings setting = selected.enabled_setting_at(bytebeatgen.ui.cursor.cursor_pos());
+      selected.change_value(setting, event.value);
+      switch (setting) {
+        case BYTEBEAT_SETTING_LOOP_MODE:
+          selected.update_enabled_settings();
+          bytebeatgen.ui.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
+          break;
+        default: break;
+      }
     } else {
       bytebeatgen.ui.cursor.Scroll(event.value);
     }
@@ -454,5 +512,3 @@ void BYTEBEATGEN_screensaver() {
 void FASTRUN BYTEBEATGEN_isr() {
   bytebeatgen.ISR();
 }
-
-

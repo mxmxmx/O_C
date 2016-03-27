@@ -81,7 +81,9 @@ int16_t ByteBeat::ProcessSingleSample(uint8_t control) {
   }
 
   if (!stepmode_ && (phase_ % bytepitch_ == 0)) ++t_; 
-
+// These equations push the boundaries of precedence comprehension.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wparentheses"
     switch (equation_index_) {
         case 0:
           // from http://royal-paw.com/2012/01/bytebeats-in-c-and-python-generative-symphonies-from-extremely-small-programs/
@@ -156,6 +158,7 @@ int16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           // sample = ( (((t_ >> p0) & t_) * (t_ >> p1)) & p2) << 8 ;
           break;      
   }
+#pragma GCC diagnostic pop
   return sample ;
 }
 
