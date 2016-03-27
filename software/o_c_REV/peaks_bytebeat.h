@@ -1,6 +1,7 @@
-// Copyright 2015 Tim Churches
+// Copyright 2015, 2013 Tim Churches, Olivier Gillet
 //
 // Author: Tim Churches (tim.churches@gmail.com)
+// Based on Peaks unbuffered processor header code by: Olivier Gillet (Mutable Instruments)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +25,7 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Byte beats.
+// Byte beats headers.
 
 #ifndef PEAKS_BYTEBEATS_BYTEBEAT_H_
 #define PEAKS_BYTEBEATS_BYTEBEAT_H_
@@ -67,7 +68,7 @@ class ByteBeat {
       if (bytepitch_ < 1) {
         bytepitch_ = 1;
       }
-      equation_index_ = equation_ >> 14 ;
+      equation_index_ = equation_ >> 13 ;
   }
 
    inline void set_equation(int32_t equation) {
@@ -83,15 +84,15 @@ class ByteBeat {
   }
   
   inline void set_p0(int32_t parameter) {
-    p0_ = parameter;
+    p0_ = parameter >> 8;
   }
 
   inline void set_p1(int32_t parameter) {
-    p1_ = parameter;
+    p1_ = parameter >> 8;
   }
 
   inline void set_p2(int32_t parameter) {
-    p2_ = parameter;
+    p2_ = parameter >> 8;
   }
 
   inline void set_loop_mode(bool loopmode) {
@@ -99,14 +100,10 @@ class ByteBeat {
   }
 
   inline void set_loop_start(int32_t start, int32_t start_fine) {
-    // loop_start_ = static_cast<uint32_t>(parameter << 16) ;
-    // loop_start_ = 15000;
     loop_start_ = static_cast<uint32_t>((start << 8) + start_fine) ;
   }
 
   inline void set_loop_end(int32_t end, int32_t end_fine) {
-    // loop_end_ = static_cast<uint32_t>(parameter << 16) ;
-    // loop_end_ = 54000;
     loop_end_ = static_cast<uint32_t>((end << 8) + end_fine) ;
   }
 
@@ -137,9 +134,9 @@ class ByteBeat {
  private:
   uint16_t equation_ ;
   uint16_t speed_;
-  uint16_t p0_;
-  uint16_t p1_;
-  uint16_t p2_;
+  uint8_t p0_;
+  uint8_t p1_;
+  uint8_t p2_;
   uint32_t t_; 
   uint32_t phase_;
   uint32_t loop_start_ ;

@@ -1,3 +1,28 @@
+// Copyright (c)  2015, 2016 Patrick Dowling, Max Stadler, Tim Churches
+//
+// Author of original O+C firmware: Max Stadler (mxmlnstdlr@gmail.com)
+// Author of app scaffolding: Patrick Dowling (pld@gurkenkiste.com)
+// Modified for byte beats: Tim Churches (tim.churches@gmail.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+// Byte beats app
 
 #include "OC_apps.h"
 #include "OC_bitmaps.h"
@@ -216,7 +241,7 @@ public:
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
     int32_t s[kMaxByteBeatParameters];
-    s[0] = SCALE8_16(static_cast<int32_t>(get_equation() << 6));
+    s[0] = SCALE8_16(static_cast<int32_t>(get_equation() << 5));
     s[1] = SCALE8_16(static_cast<int32_t>(get_speed()));
     s[2] = SCALE8_16(static_cast<int32_t>(get_p0()));
     s[3] = SCALE8_16(static_cast<int32_t>(get_p1()));
@@ -279,15 +304,15 @@ const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
 };
 
 const char* const bytebeat_equation_names[] = {
-  "hope", "love", "life", "pain" 
+  "hope", "love", "life", "age", "clysm", "monk", "nerve", "trurl"  
 };
 
 SETTINGS_DECLARE(ByteBeat, BYTEBEAT_SETTING_LAST) {
-  { 0, 0, 3, "Equation", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 7, "Equation", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "Speed", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "Parameter 0", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 128, 0, 255, "Parameter 1", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 128, 0, 255, "Parameter 2", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 126, 0, 255, "Parameter 0", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 126, 0, 255, "Parameter 1", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 127, 0, 255, "Parameter 2", NULL, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 1, "Loop mode", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 255, "Loop begin ++", NULL, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Loop begin", NULL, settings::STORAGE_TYPE_U8 }, 
@@ -486,23 +511,15 @@ void BYTEBEATGEN_handleEncoderEvent(const UI::Event &event) {
 }
 
 void BYTEBEATGEN_debug() {
-  graphics.setPrintPos(2, 12);
-  graphics.print(bytebeatgen.bytebeats_[0].get_phase(), 12);
-  // graphics.print(bytebeatgen.bytebeats_[0].get_s(0));
-
-  graphics.setPrintPos(2, 22);
-  graphics.print(bytebeatgen.bytebeats_[0].get_t(), 12);
-  
-  graphics.setPrintPos(2, 32);
-  // graphics.print(bytebeatgen.bytebeats_[0].get_bytepitch());
-  // graphics.print(bytebeatgen.bytebeats_[0].get_loop_start(), 16);
-  // graphics.setPrintPos(66, 32);
-  graphics.print(bytebeatgen.bytebeats_[0].get_s(5));
-
-  graphics.setPrintPos(2, 42);
-  // graphics.print(bytebeatgen.bytebeats_[0].get_speed());
-  // graphics.setPrintPos(66, 42);
-  graphics.print(bytebeatgen.bytebeats_[0].get_s(6));
+  for (int i = 0; i < 4; ++i) { 
+    uint8_t ypos = 10*(i + 1) + 2 ; 
+    graphics.setPrintPos(2, ypos);
+    graphics.print(i) ;
+    graphics.setPrintPos(12, ypos);
+    graphics.print("t=") ;
+    graphics.setPrintPos(40, ypos);
+    graphics.print(bytebeatgen.bytebeats_[i].get_t(), 12);
+  }
 }
 
 void BYTEBEATGEN_screensaver() {

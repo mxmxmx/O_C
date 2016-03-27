@@ -1,6 +1,10 @@
-// Copyright 2015 Tim Churches.
+// Copyright 2015, 2013 Tim Churches, Olivier Gillet
 //
 // Author: Tim Churches (tim.churches@gmail.com)
+// Loosely based on Peaks unbuffered processor code by: Olivier Gillet (Mutable Instruments)
+// Byte beat equations: as indicated in the body of the code below.
+// BitWiz equations used with permission of Jonatan Liljedahl <lijon@kymatica.com> (BitWiz author)
+// Equation Composer equations from Microbe Modular Equation Composer - see https://github.com/clone45/EquationComposer
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +28,7 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Byte beats
+// Byte beats algorithms.
 
 #include "peaks_bytebeat.h"
 
@@ -41,21 +45,20 @@ const uint8_t kMaxEquationIndex = 1;
 void ByteBeat::Init() {
   equation_ = 0;
   speed_ = 32678;
+  loopmode_ = false ;
   loop_start_ = 0 ;
   loop_end_ = 255 << 24 ;
   phase_ = 0 ;
   t_ = 0 ;
-  p0_ = 32678;
-  p1_ = 32678;
-  p2_ = 32678;
+  p0_ = 127;
+  p1_ = 127;
+  p2_ = 127;
   stepmode_ = false ;
 
 }
 
 int16_t ByteBeat::ProcessSingleSample(uint8_t control) {
-  uint32_t p0 = 0;
-  uint32_t p1 = 0;
-  uint32_t p2 = 0;
+
   uint16_t sample = 0;
    
   if (control & CONTROL_GATE_RISING) {
@@ -84,78 +87,42 @@ int16_t ByteBeat::ProcessSingleSample(uint8_t control) {
 // These equations push the boundaries of precedence comprehension.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wparentheses"
+  uint8_t p0 = p0_ ;
+  uint8_t p1 = p1_ ;
+  uint8_t p2 = p2_ ;
     switch (equation_index_) {
         case 0:
           // from http://royal-paw.com/2012/01/bytebeats-in-c-and-python-generative-symphonies-from-extremely-small-programs/
           // (atmospheric, hopeful)
-          p0 = p0_ >> 8; // was 9
-          p1 = p1_ >> 8; // was 9
-          p2 = p2_ >> 8; // was 9
-          // sample = ( ( ((t_*3) & (t_>>10)) | ((t_*p0) & (t_>>10)) | ((t_*10) & ((t_>>8)*p1) & 128) ) & 0xFF) << 8;
           sample = ( ( ((t_*3) & (t_>>10)) | ((t_*p0) & (t_>>10)) | ((t_*10) & ((t_>>8)*p1) & p2) ) & 0xFF) << 8;
           break;
         case 1:
-          p0 = p0_ >> 8; // was 11
-          p1 = p1_ >> 8; // was 11
-          p2 = p2_ >> 8; // was 11
           // equation by stephth via https://www.youtube.com/watch?v=tCRPUv8V22o at 3:38
-          // sample = ((((t_*p0) & (t_>>4)) | ((t_*5) & (t_>>7)) | ((t_*p1) & (t_>>10))) & 0xFF) << 8;
           sample = ((((t_*p0) & (t_>>4)) | ((t_*p2) & (t_>>7)) | ((t_*p1) & (t_>>10))) & 0xFF) << 8;
           break;
         case 2: 
-          p0 = p0_ >> 8; // was 11
-          p1 = p1_ >> 8;  // was 9
-          p2 = p2_ >> 8 ; // was 12
           // This one is the second one listed at from http://xifeng.weebly.com/bytebeats.html
           sample = ((( (((((t_ >> p0) | t_) | (t_ >> p0)) * p2) & ((5 * t_) | (t_ >> p2)) ) | (t_ ^ (t_ % p1)) ) & 0xFF)) << 8 ;
           break;
        case 3:
-          p0 = p0_ >> 8;
-          p1 = p1_ >> 8;
-          p2 = p2_ >> 8 ;
-          // Question/answer (equation 9 from Equation Composer Ptah bank)
-          sample = ((t_*(t_>>8|t_>>p2)&p1&t_>>8))^(t_&t_>>p0|t_>>6);
+          // Arp rotator (equation 9 from Equation Composer Ptah bank)
+          sample = ((t_>>(p2>>4))&(t_<<3)/(t_*p1*(t_>>11)%(3+((t_>>(16-(p0>>4)))%22))));
           break ;
-        /*  
-        case 3: 
-          p0 = p0_ >> 9;
-          p1 = t_ % p1_ ;
-          p2 = p2_ >> 13 ;
-          // Warping overtone echo drone, from BitWiz
-          // sample = ((t_&p0)-(t_%p1))^(t_>>7);  
-          // sample = ((t_&p0)-(t_%p1))^(t_>>p2);  
-          sample = t_*(((t_>>p0)^((t_>>p1)-1)^1)%p2) ; 
-          break;
-        */
         case 4: 
-          p0 = p0_ >> 9; // was 9
-          p1 = p1_ >> 10; // was 11
-          p2 = p2_ >> 10; // was 11
-          //  Mobius loop (eqn 4) from Equation Composer Sobek bank 
-          sample = ((sample&p0)|(69*p1)|(p2^t_))+((sample%(4333-p0))>>2); 
+          //  BitWiz Transplant via Equation Composer Ptah bank 
+          sample = (t_-((t_&p0)*p1-1668899)*((t_>>15)%15*t_))>>((t_>>12)%16)>>(p2%15);
           break ;
         case 5:
-          p0 = p0_ >> 12;
-          p1 = p1_ >> 12;
-          p2 = p2_ >> 12;
-          //  Hannah (eqn 3) from Equation Composer Sobek bank  
-          sample = (((t_<<t_)+(t_%(sample>>2)-t_+p0))>>p2) + p1; 
+          // Vocaliser from Equation Composer Khepri bank         
+          sample = ((t_%p0>>2)&p1)*(t_>>(p2>>5));
           break;
         case 6:
-          p0 = p0_ >> 9;
-          p1 = p1_ >> 10; // was 9
-          p2 = p2_ >> 4 ;
-          // The Smoker from Equation Composer Khepri bank
-          // sample = sample ^ (t_>>(p1>>4)) >> ((t_/6988*t_%(p0+1))+(t_<<t_/(p1 * 4)));
-          sample = sample ^ (t_>>(p1>>4)) >> ((t_/p2*t_%(p0+1))+(t_<<t_/(p1 * 4)));
+          // Chewie from Equation Composer Khepri bank         
+          sample = (p0-(((p2+1)/t_)^p0|t_^922+p0))*(p2+1)/p0*((t_+p1)>>p1%19);
           break;
         default:
-          p0 = p0_ >> 12;
-          p1 = p1_ >> 12;
-          p2 = p2_ >> 8 ;
-          // This one is from http://www.reddit.com/r/bytebeat/comments/20km9l/cool_equations/ (t>>13&t)*(t>>8)
-          sample = ( (((t_ >> p0) & t_) * (t_ >> p1)) & 0xFF) << 8 ;
-          // sample = ( (((t_ >> p0) & t_) * (t_ >> p1)) & p2) << 8 ;
+          // Tinbot from Equation Composer Sobek bank   
+          sample = (t_/(40+p0)*(t_+t_|4-(p1+20)))+(t_*(p2>>5));
           break;      
   }
 #pragma GCC diagnostic pop
