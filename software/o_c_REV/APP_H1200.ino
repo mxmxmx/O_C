@@ -20,7 +20,11 @@ enum OutputMode {
 
 enum TransformPriority {
   TRANSFORM_PRIO_XPLR,
+  TRANSFORM_PRIO_XLRP,
   TRANSFORM_PRIO_XRPL,
+  TRANSFORM_PRIO_XPRL,
+  TRANSFORM_PRIO_XRLP,
+  TRANSFORM_PRIO_XLPR,
   TRANSFORM_PRIO_LAST
 };
 
@@ -68,7 +72,11 @@ const char * const output_mode_names[] = {
 
 const char * const trigger_mode_names[] = {
   "P>L>R",
+  "L>R>P",
   "R>P>L",
+  "P>R>L",
+  "R>L>P",
+  "L>P>R",
 };
 
 const char * const mode_names[] = {
@@ -151,10 +159,34 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
       break;
 
+    case TRANSFORM_PRIO_XLRP:
+      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      break;
+
     case TRANSFORM_PRIO_XRPL:
       if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
       if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
       if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      break;
+
+    case TRANSFORM_PRIO_XPRL:
+      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      break;
+
+    case TRANSFORM_PRIO_XRLP:
+      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      break;
+
+    case TRANSFORM_PRIO_XLPR:
+      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
       break;
 
     default: break;
