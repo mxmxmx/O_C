@@ -323,16 +323,18 @@ void H1200_menu() {
 
   menu::DefaultTitleBar::Draw();
   graphics.print(note_name(outputs[0]));
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(mode_names[current_mode]);
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
 
   if (h1200_state.display_notes) {
     for (size_t i=1; i < 4; ++i) {
-      graphics.movePrintPos(weegfx::Graphics::kFixedFontW/2, 0);
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
       graphics.print(note_name(outputs[i]));
     }
   } else {
     for (size_t i=1; i < 4; ++i) {
-      graphics.movePrintPos(weegfx::Graphics::kFixedFontW/2, 0);
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
       graphics.pretty_print(outputs[i]);
     }
   }
