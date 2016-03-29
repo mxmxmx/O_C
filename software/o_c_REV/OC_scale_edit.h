@@ -53,6 +53,8 @@ public:
     BeginEditing();
   }
 
+  void Close();
+
   void Draw();
   void HandleButtonEvent(const UI::Event &event);
   void HandleEncoderEvent(const UI::Event &event);
@@ -69,7 +71,6 @@ private:
   size_t num_notes_;
 
   void BeginEditing();
-  void Close();
 
   void move_cursor(int offset);
 

@@ -454,6 +454,8 @@ size_t QQ_restore(const void *storage) {
 void QQ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
+      qq_state.cursor.set_editing(false);
+      qq_state.scale_editor.Close();
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:

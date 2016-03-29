@@ -342,6 +342,7 @@ void ASR_handleAppEvent(OC::AppEvent event) {
     case OC::APP_EVENT_RESUME:
       asr_state.left_encoder_value = asr.get_scale();
       asr_state.cursor.set_editing(false);
+      asr_state.scale_editor.Close();
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:

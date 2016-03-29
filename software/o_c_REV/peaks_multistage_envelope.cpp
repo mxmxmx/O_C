@@ -124,7 +124,7 @@ uint16_t MultistageEnvelope::RenderPreview(
     uint32_t w = time_[segment] * segment_width >> 16;
     if (w < 1) w = 1;
     if (segment == current_segment)
-      current_phase = current_pos + (((phase_ >> 24) * w) / 256);
+      current_phase = current_pos + (((phase >> 24) * w) / 256);
     current_pos += w;
 
     uint32_t phase = 0, phase_increment = (0xff << 24) / w;
