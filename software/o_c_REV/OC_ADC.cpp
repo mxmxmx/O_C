@@ -1,16 +1,34 @@
 #include "OC_ADC.h"
+#include "OC_gpio.h"
+
 #include <algorithm>
 
-/*static*/ ADC OC::ADC::adc_;
-/*static*/ size_t OC::ADC::scan_channel_;
-/*static*/ OC::ADC::CalibrationData *OC::ADC::calibration_data_;
-/*static*/ int32_t OC::ADC::values_[ADC_CHANNEL_LAST];
-/*static*/ uint32_t OC::ADC::raw_values_[ADC_CHANNEL_LAST];
+namespace OC {
+
+template <ADC_CHANNEL> struct ChannelDesc { };
+template <> struct ChannelDesc<ADC_CHANNEL_1> {
+  static const int PIN = CV1;
+};
+template <> struct ChannelDesc<ADC_CHANNEL_2> {
+  static const int PIN = CV2;
+};
+template <> struct ChannelDesc<ADC_CHANNEL_3> {
+  static const int PIN = CV3;
+};
+template <> struct ChannelDesc<ADC_CHANNEL_4> {
+  static const int PIN = CV4;
+};
+
+/*static*/ ::ADC ADC::adc_;
+/*static*/ size_t ADC::scan_channel_;
+/*static*/ ADC::CalibrationData *ADC::calibration_data_;
+/*static*/ uint32_t ADC::raw_values_[ADC_CHANNEL_LAST];
+/*static*/ int32_t ADC::values_[ADC_CHANNEL_LAST];
 #ifdef ENABLE_ADC_DEBUG
-/*static*/ volatile uint32_t OC::ADC::busy_waits_;
+/*static*/ volatile uint32_t ADC::busy_waits_;
 #endif
 
-/*static*/ void OC::ADC::Init(CalibrationData *calibration_data) {
+/*static*/ void ADC::Init(CalibrationData *calibration_data) {
 
   pinMode(ChannelDesc<ADC_CHANNEL_1>::PIN, INPUT);
   pinMode(ChannelDesc<ADC_CHANNEL_2>::PIN, INPUT);
@@ -30,8 +48,8 @@
   adc_.startSingleRead(ChannelDesc<ADC_CHANNEL_1>::PIN);
 
   calibration_data_ = calibration_data;
-  std::fill(values_, values_ + ADC_CHANNEL_LAST, 0);
   std::fill(raw_values_, raw_values_ + ADC_CHANNEL_LAST, 0);
+  std::fill(values_, values_ + ADC_CHANNEL_LAST, 0);
 #ifdef ENABLE_ADC_DEBUG
   busy_waits_ = 0;
 #endif
@@ -41,7 +59,7 @@
 // use ADC::startSynchronizedSingleRead, which would allow reading two channels
 // simultaneously
 
-/*static*/ void FASTRUN OC::ADC::Scan() {
+/*static*/ void FASTRUN ADC::Scan() {
 
 #ifdef ENABLE_ADC_DEBUG
   if (!adc_.isComplete(ADC_0)) {
@@ -79,3 +97,16 @@
   }
   scan_channel_ = channel;
 }
+
+/*static*/ void ADC::CalibratePitch(int32_t c2, int32_t c4) {
+  // This is the method used by the Mutable Instruments calibration and
+  // extrapolates from two octaves. I guess an alternative would be to get the
+  // lowest (-3v) and highest (+6v) and interpolate between them
+  // *vague handwaving*
+  if (c2 < c4) {
+    int32_t scale = (24 * 128 * 4096L) / (c4 - c2);
+    calibration_data_->pitch_cv_scale = scale;
+  }
+}
+
+}; // namespace OC

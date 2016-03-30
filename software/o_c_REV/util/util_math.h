@@ -59,6 +59,10 @@ struct SmoothedValue {
   void push(T value) {
     value_ = (value_ * (smoothing - 1) + value) / smoothing;
   }
+
+  void set(T value) {
+    value_ = value;
+  }
 };
 
 

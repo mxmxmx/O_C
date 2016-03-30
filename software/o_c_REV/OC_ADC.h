@@ -3,10 +3,10 @@
 
 #include <Arduino.h>
 #include <ADC.h>
+#include "OC_config.h"
 
 #include <stdint.h>
 #include <string.h>
-#include "OC_gpio.h"
 
 //#define ENABLE_ADC_DEBUG
 
@@ -20,26 +20,14 @@ enum ADC_CHANNEL {
 
 namespace OC {
 
-template <ADC_CHANNEL> struct ChannelDesc { };
-template <> struct ChannelDesc<ADC_CHANNEL_1> {
-  static const int PIN = CV1;
-};
-template <> struct ChannelDesc<ADC_CHANNEL_2> {
-  static const int PIN = CV2;
-};
-template <> struct ChannelDesc<ADC_CHANNEL_3> {
-  static const int PIN = CV3;
-};
-template <> struct ChannelDesc<ADC_CHANNEL_4> {
-  static const int PIN = CV4;
-};
-
 class ADC {
 public:
 
   static constexpr uint8_t kAdcResolution = 12;
   static constexpr uint32_t kAdcSmoothing = 4;
   static constexpr uint32_t kAdcSmoothBits = 8; // fractional bits for smoothing
+
+  static constexpr uint16_t kDefaultPitchCVScale = SEMITONES << 7;
 
   // These values should be tweaked so startSingleRead/readSingle run in main ISR update time
   // 16 bit has best-case 13 bits useable, but we only want 12 so we discard 4 anyway
@@ -53,7 +41,7 @@ public:
   struct CalibrationData {
     uint16_t offset[ADC_CHANNEL_LAST];
     uint16_t pitch_cv_scale;
-    uint16_t pitch_cv_offset;
+    int16_t pitch_cv_offset;
   };
 
   static void Init(CalibrationData *calibration_data);
@@ -79,7 +67,7 @@ public:
   }
 
   static int32_t pitch_value(ADC_CHANNEL channel) {
-    return (values_[channel] * 120 << 7) >> 12;
+    return (values_[channel] * calibration_data_->pitch_cv_scale) >> 12;
   }
 
 #ifdef ENABLE_ADC_DEBUG
@@ -96,6 +84,8 @@ public:
     return busy_waits_;
   }
 #endif
+
+  static void CalibratePitch(int32_t c2, int32_t c4);
 
 private:
 

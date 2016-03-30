@@ -24,7 +24,10 @@ const OC::CalibrationData kCalibrationDefaults = {
   { {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
     {0, 0, 0, 0 } },
   // ADC
-  { { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET }, 0, 0 },
+  { { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET },
+    0,  // pitch_cv_scale
+    0   // pitch_cv_offset : unused
+  },
   // display_offset
   SH1106_128x64_Driver::kDefaultOffset,
   0, // flags
@@ -53,6 +56,12 @@ void calibration_load() {
   } else {
     SERIAL_PRINTLN("Calibration data loaded...");
   }
+
+  // Fix-up left-overs from development
+  if (!OC::calibration_data.adc.pitch_cv_scale) {
+    SERIAL_PRINTLN("NOTE: Pitch CV scale not set, using default...");
+    OC::calibration_data.adc.pitch_cv_scale = OC::ADC::kDefaultPitchCVScale;
+  }
 }
 
 void calibration_save() {
@@ -69,10 +78,10 @@ enum CALIBRATION_STEP {
   DAC_FINE_A, DAC_FINE_B, DAC_FINE_C, DAC_FINE_D,
   CV_OFFSET,
   CV_OFFSET_0, CV_OFFSET_1, CV_OFFSET_2, CV_OFFSET_3,
-  CV_SCALE_1V, CV_SCALE_3V,
+  ADC_PITCH_C2, ADC_PITCH_C4,
   CALIBRATION_EXIT,
   CALIBRATION_STEP_LAST,
-  CALIBRARION_STEP_FINAL = CV_SCALE_3V
+  CALIBRARION_STEP_FINAL = ADC_PITCH_C4
 };  
 
 enum CALIBRATION_TYPE {
@@ -81,6 +90,8 @@ enum CALIBRATION_TYPE {
   CALIBRATE_DAC_FINE,
   CALIBRATE_ADC_TRIMMER,
   CALIBRATE_ADC_OFFSET,
+  CALIBRATE_ADC_1V,
+  CALIBRATE_ADC_3V,
   CALIBRATE_DISPLAY
 };
 
@@ -102,7 +113,12 @@ struct CalibrationState {
   CALIBRATION_STEP step;
   const CalibrationStep *current_step;
   int encoder_value;
-  uint32_t CV;
+
+  SmoothedValue<uint32_t, 32> adc_sum;
+  SmoothedValue<uint32_t, kCalibrationAdcSmoothing> adc_value;
+
+  uint16_t adc_1v;
+  uint16_t adc_3v;
 };
 
 OC::DigitalInputDisplay digital_input_displays[4];
@@ -140,8 +156,8 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { CV_OFFSET_2, "CV3 (notes/scale)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
   { CV_OFFSET_3, "CV4 (transpose)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
 
-  { CV_SCALE_1V, "CV Scaling 1V", "TODO", "Lorem ipsum", default_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 },
-  { CV_SCALE_3V, "CV Scaling 3V", "TODO", "Lorem ipsum", default_footer, CALIBRATE_NONE, 0, nullptr, 0, 0 },
+  { ADC_PITCH_C2, "CV Scaling 1V", "CV1: Input 1V (C2)", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
+  { ADC_PITCH_C4, "CV Scaling 3V", "CV1: Input 3V (C4)", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
 
   { CALIBRATION_EXIT, "Calibration complete", "Save values? ", select_help, end_footer, CALIBRATE_NONE, 0, OC::Strings::no_yes, 0, 1 }
 };
@@ -195,8 +211,9 @@ void OC::Ui::Calibrate() {
     HELLO,
     &calibration_steps[HELLO],
     1,
-    0
   };
+  calibration_state.adc_sum.set(_ADC_OFFSET);
+
   for (auto &did : digital_input_displays)
     did.Init();
 
@@ -223,6 +240,18 @@ void OC::Ui::Calibrate() {
             calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step - 1);
           break;
         case CONTROL_BUTTON_R:
+          // Special case these values to read, before moving to next step
+          if (UI::EVENT_BUTTON_LONG_PRESS == event.type) {
+            switch (calibration_state.current_step->step) {
+              case ADC_PITCH_C2:
+                calibration_state.adc_1v = OC::calibration_data.adc.offset[ADC_CHANNEL_1] - calibration_state.adc_value.value();
+                break;
+              case ADC_PITCH_C4:
+                calibration_state.adc_3v = OC::calibration_data.adc.offset[ADC_CHANNEL_1] - calibration_state.adc_value.value();
+                break;
+              default: break;
+            }
+          }
           if (calibration_state.step < CALIBRATION_EXIT)
             calibration_state.step = static_cast<CALIBRATION_STEP>(calibration_state.step + 1);
           else
@@ -253,6 +282,13 @@ void OC::Ui::Calibrate() {
             calibration_reset();
           }
           break;
+        case ADC_PITCH_C4:
+          if (calibration_state.adc_1v && calibration_state.adc_3v) {
+            SERIAL_PRINTLN("ADC SCALE 1V=%d, 3V=%d", calibration_state.adc_1v, calibration_state.adc_3v);
+            OC::ADC::CalibratePitch(calibration_state.adc_1v, calibration_state.adc_3v);
+          }
+          break;
+
         default: break;
       }
 
@@ -271,6 +307,10 @@ void OC::Ui::Calibrate() {
         break;
       case CALIBRATE_DISPLAY:
         calibration_state.encoder_value = OC::calibration_data.display_offset;
+        break;
+
+      case CALIBRATE_ADC_1V:
+      case CALIBRATE_ADC_3V:
         break;
 
       case CALIBRATE_NONE:
@@ -325,12 +365,12 @@ void calibration_draw(const CalibrationState &state) {
     case CALIBRATE_ADC_TRIMMER:
       graphics.print(_ADC_OFFSET, 4);
       graphics.print(" == ");
-      graphics.print((int)state.CV, 4);
+      graphics.print((int)state.adc_sum.value() >> 2, 4);
       break;
 
     case CALIBRATE_ADC_OFFSET:
       graphics.print("0 => ");
-      graphics.pretty_print(state.encoder_value - state.CV, 4);
+      graphics.pretty_print(state.encoder_value - state.adc_value.value(), 4);
       break;
 
     case CALIBRATE_DISPLAY:
@@ -339,6 +379,15 @@ void calibration_draw(const CalibrationState &state) {
       graphics.pretty_print((int)state.encoder_value, 2);
       menu::DrawEditIcon(kValueX, y, state.encoder_value, step->min, step->max);
       graphics.drawFrame(0, 0, 128, 64);
+      break;
+
+    case CALIBRATE_ADC_1V:
+    case CALIBRATE_ADC_3V:
+      graphics.setPrintPos(menu::kIndentDx, y + 2);
+      graphics.print(step->message);
+      y += menu::kMenuLineH;
+      graphics.setPrintPos(menu::kIndentDx, y + 2);
+      graphics.pretty_print(OC::calibration_data.adc.offset[ADC_CHANNEL_1] - state.adc_value.value(), 4);
       break;
 
     case CALIBRATE_NONE:
@@ -392,13 +441,21 @@ void calibration_update(CalibrationState &state) {
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 1]);
       break;
     case CALIBRATE_ADC_TRIMMER:
-      state.CV = _average();
+      state.adc_sum.push(adc_average());
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_ADC_OFFSET:
-      state.CV = (state.CV * (kCalibrationAdcSmoothing - 1) + OC::ADC::raw_value(static_cast<ADC_CHANNEL>(step->type_index))) / kCalibrationAdcSmoothing;
+      state.adc_value.push(OC::ADC::raw_value(static_cast<ADC_CHANNEL>(step->type_index)));
       OC::calibration_data.adc.offset[step->type_index] = state.encoder_value;
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
+      break;
+    case CALIBRATE_ADC_1V:
+      state.adc_value.push(OC::ADC::raw_value(ADC_CHANNEL_1));
+      DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 1]);
+      break;
+    case CALIBRATE_ADC_3V:
+      state.adc_value.push(OC::ADC::raw_value(ADC_CHANNEL_1));
+      DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 3]);
       break;
     case CALIBRATE_DISPLAY:
       OC::calibration_data.display_offset = state.encoder_value;
@@ -409,34 +466,12 @@ void calibration_update(CalibrationState &state) {
 
 /* misc */ 
 
-uint16_t _average() {
-#if 0
-  float average = 0.0f;
-  
-  for (int i = 0; i < 50; i++) {
-   
-           average +=  OC::ADC::raw_value(ADC_CHANNEL_1);
-           delay(1);
-           average +=  OC::ADC::raw_value(ADC_CHANNEL_2);
-           delay(1);
-           average +=  OC::ADC::raw_value(ADC_CHANNEL_3);
-           delay(1);
-           average +=  OC::ADC::raw_value(ADC_CHANNEL_4);
-           delay(1);
-      }
-      
-  return average / 200.0f;
-#endif
-  uint32_t sum = 0;
-  size_t count = 64;
-  while (count--) {
-    sum += OC::ADC::raw_value(ADC_CHANNEL_1) + OC::ADC::raw_value(ADC_CHANNEL_2);
-    delay(1);
-    sum += OC::ADC::raw_value(ADC_CHANNEL_3) + OC::ADC::raw_value(ADC_CHANNEL_4);
-    delay(1);
-  }
+uint16_t adc_average() {
+  delay(OC_CORE_TIMER_RATE + 1);
 
-  return sum >> 8;
+  return
+    OC::ADC::raw_value(ADC_CHANNEL_1) + OC::ADC::raw_value(ADC_CHANNEL_2) +
+    OC::ADC::raw_value(ADC_CHANNEL_3) + OC::ADC::raw_value(ADC_CHANNEL_4);
 }
 
 /* read settings from original O&C */
