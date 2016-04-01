@@ -36,6 +36,7 @@
 #include "OC_digital_inputs.h"
 #include "OC_menus.h"
 #include "OC_ui.h"
+#include "OC_version.h"
 #include "DAC.h"
 #include "drivers/display.h"
 #include "util/util_debugpins.h"
@@ -103,6 +104,7 @@ void setup() {
   Serial.begin(9600);
   delay(500);
   SERIAL_PRINTLN("* O&C BOOTING...");
+  SERIAL_PRINTLN("* %s", OC_VERSION);
 
   OC::DEBUG::Init();
   OC::DigitalInputs::Init();

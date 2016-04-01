@@ -8,6 +8,7 @@
 #include "OC_gpio.h"
 #include "OC_menus.h"
 #include "OC_ui.h"
+#include "OC_version.h"
 #include "drivers/display.h"
 
 extern uint_fast8_t MENU_REDRAW;
@@ -130,23 +131,27 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
     menu::DefaultTitleBar::Draw();
     graphics.print("Ornaments & Crimes");
  
-    weegfx::coord_t y = menu::CalcLineY(0) + menu::kMenuLineH / 2;
+    weegfx::coord_t y = menu::CalcLineY(0);
 
-    graphics.setPrintPos(menu::kIndentDx, y + 2);
-    graphics.print("[L] => calibration");
+    graphics.setPrintPos(menu::kIndentDx, y + menu::kTextDy);
+    graphics.print("[L] => Calibration");
     if (UI_MODE_CALIBRATE == mode)
       graphics.invertRect(menu::kIndentDx, y, 128, menu::kMenuLineH);
 
     y += menu::kMenuLineH;
-    graphics.setPrintPos(menu::kIndentDx, y + 2);
-    graphics.print("[R] => select app");
+    graphics.setPrintPos(menu::kIndentDx, y + menu::kTextDy);
+    graphics.print("[R] => Select app");
     if (UI_MODE_APP_SETTINGS == mode)
       graphics.invertRect(menu::kIndentDx, y, 128, menu::kMenuLineH);
 
     y += menu::kMenuLineH;
-    graphics.setPrintPos(menu::kIndentDx, y + 1);
+    graphics.setPrintPos(menu::kIndentDx, y + menu::kTextDy);
     if (use_defaults)
-      graphics.print("Reset EEPROM!");
+      graphics.print("!RESET EEPROM!");
+
+    y += menu::kMenuLineH;
+    graphics.setPrintPos(menu::kIndentDx, y + menu::kTextDy);
+    graphics.print(OC_VERSION);
 
     weegfx::coord_t w;
     if (now - start < SPLASHSCREEN_DELAY_MS)
