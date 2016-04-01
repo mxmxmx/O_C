@@ -26,6 +26,7 @@ enum EnvelopeSettings {
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
   ENV_SETTING_HARD_RESET,
+  ENV_SETTING_GATE_HIGH,
   ENV_SETTING_ATTACK_SHAPE,
   ENV_SETTING_DECAY_SHAPE,
   ENV_SETTING_RELEASE_SHAPE,
@@ -87,6 +88,10 @@ public:
 
   bool get_hard_reset() const {
     return values_[ENV_SETTING_HARD_RESET];
+  }
+
+  bool get_gate_high() const {
+    return values_[ENV_SETTING_GATE_HIGH];
   }
 
   peaks::EnvelopeShape get_attack_shape() const {
@@ -191,7 +196,7 @@ public:
       gate_state |= peaks::CONTROL_GATE_RISING;
 
     bool gate_raised = OC::DigitalInputs::read_immediate(trigger_input);
-    if (gate_raised)
+    if (gate_raised || get_gate_high())
       gate_state |= peaks::CONTROL_GATE;
     else if (gate_raised_)
       gate_state |= peaks::CONTROL_GATE_FALLING;
@@ -248,6 +253,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
