@@ -41,8 +41,10 @@ enum ByteBeatSettings {
   BYTEBEAT_SETTING_P2,
   BYTEBEAT_SETTING_LOOP_MODE,
   BYTEBEAT_SETTING_LOOP_START,
+  BYTEBEAT_SETTING_LOOP_START_MED,
   BYTEBEAT_SETTING_LOOP_START_FINE,
   BYTEBEAT_SETTING_LOOP_END,
+  BYTEBEAT_SETTING_LOOP_END_MED,
   BYTEBEAT_SETTING_LOOP_END_FINE,
   BYTEBEAT_SETTING_TRIGGER_INPUT,
   BYTEBEAT_SETTING_STEP_MODE,
@@ -62,8 +64,10 @@ enum ByteBeatCVMapping {
   BYTEBEAT_CV_MAPPING_P1,
   BYTEBEAT_CV_MAPPING_P2,
   BYTEBEAT_CV_MAPPING_LOOP_START,
+  BYTEBEAT_CV_MAPPING_LOOP_START_MED,
   BYTEBEAT_CV_MAPPING_LOOP_START_FINE,
   BYTEBEAT_CV_MAPPING_LOOP_END,
+  BYTEBEAT_CV_MAPPING_LOOP_END_MED,
   BYTEBEAT_CV_MAPPING_LOOP_END_FINE,
   BYTEBEAT_CV_MAPPING_LAST,
   BYTEBEAT_CV_MAPPING_FIRST=BYTEBEAT_CV_MAPPING_EQUATION
@@ -73,7 +77,7 @@ enum ByteBeatCVMapping {
 class ByteBeat : public settings::SettingsBase<ByteBeat, BYTEBEAT_SETTING_LAST> {
 public:
 
-  static constexpr int kMaxByteBeatParameters = 9;
+  static constexpr int kMaxByteBeatParameters = 11;
 
   void Init(OC::DigitalInput default_trigger);
 
@@ -129,12 +133,20 @@ public:
     return values_[BYTEBEAT_SETTING_LOOP_START];
   }
 
+  uint8_t get_loop_start_med() const {
+    return values_[BYTEBEAT_SETTING_LOOP_START_MED];
+  }
+
   uint8_t get_loop_start_fine() const {
     return values_[BYTEBEAT_SETTING_LOOP_START_FINE];
   }
 
   uint8_t get_loop_end() const {
     return values_[BYTEBEAT_SETTING_LOOP_END];
+  }
+
+  uint8_t get_loop_end_med() const {
+    return values_[BYTEBEAT_SETTING_LOOP_END_MED];
   }
 
   uint8_t get_loop_end_fine() const {
@@ -188,8 +200,10 @@ public:
     *settings++ = BYTEBEAT_SETTING_LOOP_MODE;
     if (get_loop_mode()) {
       *settings++ = BYTEBEAT_SETTING_LOOP_START;
+      *settings++ = BYTEBEAT_SETTING_LOOP_START_MED;
       *settings++ = BYTEBEAT_SETTING_LOOP_START_FINE;
       *settings++ = BYTEBEAT_SETTING_LOOP_END;
+      *settings++ = BYTEBEAT_SETTING_LOOP_END_MED;
       *settings++ = BYTEBEAT_SETTING_LOOP_END_FINE;
     }
     *settings++ = BYTEBEAT_SETTING_TRIGGER_INPUT;
@@ -205,8 +219,10 @@ public:
   static bool indentSetting(ByteBeatSettings s) {
     switch (s) {
       case BYTEBEAT_SETTING_LOOP_START:
+      case BYTEBEAT_SETTING_LOOP_START_MED:
       case BYTEBEAT_SETTING_LOOP_START_FINE:
       case BYTEBEAT_SETTING_LOOP_END:
+      case BYTEBEAT_SETTING_LOOP_END_MED:
       case BYTEBEAT_SETTING_LOOP_END_FINE:
         return true;
       default: break;
@@ -227,8 +243,10 @@ public:
         bytebeat_cv_rshift = 12;
         break;
       case BYTEBEAT_CV_MAPPING_LOOP_START:
+      case BYTEBEAT_CV_MAPPING_LOOP_START_MED:
       case BYTEBEAT_CV_MAPPING_LOOP_START_FINE:
       case BYTEBEAT_CV_MAPPING_LOOP_END:
+      case BYTEBEAT_CV_MAPPING_LOOP_END_MED:
       case BYTEBEAT_CV_MAPPING_LOOP_END_FINE:
         bytebeat_cv_rshift = 12;
       default:
@@ -247,16 +265,18 @@ public:
     s[3] = SCALE8_16(static_cast<int32_t>(get_p1()));
     s[4] = SCALE8_16(static_cast<int32_t>(get_p2()));
     s[5] = SCALE8_16(static_cast<int32_t>(get_loop_start()));
-    s[6] = SCALE8_16(static_cast<int32_t>(get_loop_start_fine()));
-    s[7] = SCALE8_16(static_cast<int32_t>(get_loop_end()));
-    s[8] = SCALE8_16(static_cast<int32_t>(get_loop_end_fine()));
+    s[6] = SCALE8_16(static_cast<int32_t>(get_loop_start_med()));
+    s[7] = SCALE8_16(static_cast<int32_t>(get_loop_start_fine()));
+    s[8] = SCALE8_16(static_cast<int32_t>(get_loop_end()));
+    s[9] = SCALE8_16(static_cast<int32_t>(get_loop_end_med()));
+    s[10] = SCALE8_16(static_cast<int32_t>(get_loop_end_fine()));
 
     apply_cv_mapping(BYTEBEAT_SETTING_CV1, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV2, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV3, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV4, cvs, s);
 
-    for (uint_fast8_t i = 0; i < 9; ++i) {
+    for (uint_fast8_t i = 0; i < 11; ++i) {
       s[i] = USAT16(s[i]) ;
       s_[i] = s[i] ;
     }
@@ -300,7 +320,7 @@ void ByteBeat::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
-  "off", "equ", "spd", "p0", "p1", "p2", "beg+", "beg", "end+", "end"  
+  "off", "equ", "spd", "p0", "p1", "p2", "beg++", "beg+", "beg", "end++", "end+", "end"  
 };
 
 const char* const bytebeat_equation_names[] = {
@@ -315,8 +335,10 @@ SETTINGS_DECLARE(ByteBeat, BYTEBEAT_SETTING_LAST) {
   { 127, 0, 255, "Parameter 2", NULL, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 1, "Loop mode", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 255, "Loop begin ++", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 255, "Loop begin +", NULL, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Loop begin", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 1, 0, 255, "Loop end ++", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 255, "Loop end ++", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 1, 0, 255, "Loop end +", NULL, settings::STORAGE_TYPE_U8 }, 
   { 255, 0, 255, "Loop end", NULL, settings::STORAGE_TYPE_U8 }, 
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Step mode", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
