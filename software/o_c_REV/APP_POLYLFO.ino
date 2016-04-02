@@ -19,6 +19,7 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_A_XOR_B,
   POLYLFO_SETTING_B_XOR_C,
   POLYLFO_SETTING_C_XOR_D,
+  POLYLFO_SETTING_XOR_DEPTH,
   POLYLFO_SETTING_LAST
 };
 
@@ -74,6 +75,10 @@ public:
   bool get_c_xor_d() const {
     return values_[POLYLFO_SETTING_C_XOR_D];
   }
+
+  uint16_t get_xor_depth() const {
+    return values_[POLYLFO_SETTING_XOR_DEPTH];
+  }
   
   void Init();
 
@@ -124,7 +129,8 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 1, "B XOR A", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "C XOR B", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "D XOR C", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 }, 
-};
+  { 8, 7, 18, "XOR bit depth", NULL, settings::STORAGE_TYPE_U4 }, 
+ };
 
 PolyLfo poly_lfo;
 struct {
@@ -168,6 +174,8 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_a_xor_b(poly_lfo.get_a_xor_b());
   poly_lfo.lfo.set_b_xor_c(poly_lfo.get_b_xor_c());
   poly_lfo.lfo.set_c_xor_d(poly_lfo.get_c_xor_d());
+
+  poly_lfo.lfo.set_xor_depth(poly_lfo.get_xor_depth());
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);

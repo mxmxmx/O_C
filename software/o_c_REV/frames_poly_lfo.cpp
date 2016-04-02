@@ -1,6 +1,8 @@
-// Copyright 2013 Olivier Gillet.
+// Copyright 2013 Olivier Gillet, 2015, 2016 Patrick Dowling and Tim Churches
 //
-// Author: Olivier Gillet (ol.gillet@gmail.com)
+// Original author: Olivier Gillet (ol.gillet@gmail.com)
+// Adapted and modified for use in the Ornament + Crime module by:
+// Patrick Dowling (pld@gurkenkiste.com) and Tim Churches (tim.churches@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -122,8 +124,9 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     int16_t value = Crossfade(a, b, phase, wavetable_index << 4);
     value_[i] = Interpolate824(sine, phase);
     level_[i] = (value + 32768) >> 8;
+    // add bit-XOR 
     if (xor_flags[i]) {
-      dac_code_[i] = (value + 32768) ^ dac_code_[i - 1] ; 
+      dac_code_[i] = (value + 32768) ^ ((dac_code_[i - 1] >> xor_depth_) << xor_depth_) ; 
     } else {
       dac_code_[i] = value + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }

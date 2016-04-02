@@ -1,6 +1,8 @@
-// Copyright 2013 Olivier Gillet.
+// Copyright 2013 Olivier Gillet, 2015, 2016 Patrick Dowling and Tim Churches
 //
-// Author: Olivier Gillet (ol.gillet@gmail.com)
+// Original author: Olivier Gillet (ol.gillet@gmail.com)
+// Adapted and modified for use in the Ornament + Crime module by:
+// Patrick Dowling (pld@gurkenkiste.com) and Tim Churches (tim.churches@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -153,6 +155,10 @@ class PolyLfo {
     c_xor_d_ = xor_value ;
   }
 
+  inline void set_xor_depth(uint16_t xor_depth) {
+    xor_depth_ = static_cast<uint8_t>(xor_depth) ;
+  }
+
   inline uint8_t level(uint8_t index) const {
     return level_[index];
   }
@@ -175,6 +181,7 @@ class PolyLfo {
   bool a_xor_b_ ;
   bool b_xor_c_ ;
   bool c_xor_d_ ;
+  uint8_t xor_depth_ ;
   bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];
