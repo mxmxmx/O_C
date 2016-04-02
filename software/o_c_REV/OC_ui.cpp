@@ -133,10 +133,6 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
     weegfx::coord_t y = menu::CalcLineY(0) + menu::kMenuLineH / 2;
 
     graphics.setPrintPos(menu::kIndentDx, y + 2);
-    graphics.print("      v0.9.1      ");
-    y += menu::kMenuLineH;
-
-    graphics.setPrintPos(menu::kIndentDx, y + 2);
     graphics.print("[L] => calibration");
     if (UI_MODE_CALIBRATE == mode)
       graphics.invertRect(menu::kIndentDx, y, 128, menu::kMenuLineH);
