@@ -57,8 +57,8 @@ class ByteBeat {
       set_p0(parameter[2]);
       set_p1(parameter[3]);
       set_p2(parameter[4]);
-      set_loop_start(parameter[5], parameter[6]);
-      set_loop_end(parameter[7], parameter[8]);
+      set_loop_start(parameter[5], parameter[6], parameter[7]);
+      set_loop_end(parameter[8], parameter[9] , parameter[10]);
       set_step_mode(stepmode) ;
       set_loop_mode(loopmode) ;
       // Quick and dirty log scaling sans LUT
@@ -99,12 +99,12 @@ class ByteBeat {
     loopmode_ = loopmode ;
   }
 
-  inline void set_loop_start(int32_t start, int32_t start_fine) {
-    loop_start_ = static_cast<uint32_t>((start << 8) + start_fine) ;
+  inline void set_loop_start(int32_t start, int32_t start_med, int32_t start_fine) {
+    loop_start_ = static_cast<uint32_t>((start << 16) + (start_med << 8) + start_fine) ;
   }
 
-  inline void set_loop_end(int32_t end, int32_t end_fine) {
-    loop_end_ = static_cast<uint32_t>((end << 8) + end_fine) ;
+  inline void set_loop_end(int32_t end,  int32_t end_med, int32_t end_fine) {
+    loop_end_ = static_cast<uint32_t>((end << 16) + (end_med << 8) + end_fine) ;
   }
 
   inline bool FillBuffer() const {
