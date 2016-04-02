@@ -37,6 +37,7 @@ void visualize_pitch_classes(uint8_t *normalized, weegfx::coord_t centerx, weegf
 
 void screensaver();
 void scope_render();
+void vectorscope_render();
 
 namespace menu {
 
