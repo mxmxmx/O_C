@@ -19,6 +19,7 @@ CalibrationData calibration_data;
 uint16_t semitones[SEMITONES];          // DAC output LUT
 
 static constexpr unsigned kCalibrationAdcSmoothing = 4;
+
 const OC::CalibrationData kCalibrationDefaults = {
   // DAC
   { {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
@@ -114,8 +115,7 @@ struct CalibrationState {
   const CalibrationStep *current_step;
   int encoder_value;
 
-  SmoothedValue<uint32_t, 32> adc_sum;
-  SmoothedValue<uint32_t, kCalibrationAdcSmoothing> adc_value;
+  SmoothedValue<uint32_t, kCalibrationAdcSmoothing> adc_sum;
 
   uint16_t adc_1v;
   uint16_t adc_3v;
@@ -151,10 +151,10 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { DAC_FINE_D, "DAC D fine", "->  1.000v ", default_help_r, default_footer, CALIBRATE_DAC_FINE, DAC_CHANNEL_D, nullptr, -128, 127 },
 
   { CV_OFFSET, "CV offset", "", "Adjust CV trimpot", default_footer, CALIBRATE_ADC_TRIMMER, 0, nullptr, 0, 4095 },
-  { CV_OFFSET_0, "CV1 (sample)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
-  { CV_OFFSET_1, "CV2 (index)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_2, nullptr, 0, 4095 },
-  { CV_OFFSET_2, "CV3 (notes/scale)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
-  { CV_OFFSET_3, "CV4 (transpose)", "", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
+  { CV_OFFSET_0, "ADC CV1", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
+  { CV_OFFSET_1, "ADC CV2", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_2, nullptr, 0, 4095 },
+  { CV_OFFSET_2, "ADC CV3", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
+  { CV_OFFSET_3, "ADC CV4", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
 
   { ADC_PITCH_C2, "CV Scaling 1V", "CV1: Input 1V (C2)", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
   { ADC_PITCH_C4, "CV Scaling 3V", "CV1: Input 3V (C4)", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
@@ -244,10 +244,10 @@ void OC::Ui::Calibrate() {
           if (UI::EVENT_BUTTON_LONG_PRESS == event.type) {
             switch (calibration_state.current_step->step) {
               case ADC_PITCH_C2:
-                calibration_state.adc_1v = OC::calibration_data.adc.offset[ADC_CHANNEL_1] - calibration_state.adc_value.value();
+                calibration_state.adc_1v = OC::ADC::value(ADC_CHANNEL_1);
                 break;
               case ADC_PITCH_C4:
-                calibration_state.adc_3v = OC::calibration_data.adc.offset[ADC_CHANNEL_1] - calibration_state.adc_value.value();
+                calibration_state.adc_3v = OC::ADC::value(ADC_CHANNEL_1);
                 break;
               default: break;
             }
@@ -284,8 +284,10 @@ void OC::Ui::Calibrate() {
           break;
         case ADC_PITCH_C4:
           if (calibration_state.adc_1v && calibration_state.adc_3v) {
-            SERIAL_PRINTLN("ADC SCALE 1V=%d, 3V=%d", calibration_state.adc_1v, calibration_state.adc_3v);
             OC::ADC::CalibratePitch(calibration_state.adc_1v, calibration_state.adc_3v);
+            SERIAL_PRINTLN("ADC SCALE 1V=%d, 3V=%d -> %d",
+                           calibration_state.adc_1v, calibration_state.adc_3v,
+                           OC::calibration_data.adc.pitch_cv_scale);
           }
           break;
 
@@ -301,6 +303,7 @@ void OC::Ui::Calibrate() {
         calibration_state.encoder_value = OC::calibration_data.dac.fine[next_step->type_index];
         break;
       case CALIBRATE_ADC_TRIMMER:
+        calibration_state.adc_sum.set(adc_average());
         break;
       case CALIBRATE_ADC_OFFSET:
         calibration_state.encoder_value = OC::calibration_data.adc.offset[next_step->type_index];
@@ -311,6 +314,7 @@ void OC::Ui::Calibrate() {
 
       case CALIBRATE_ADC_1V:
       case CALIBRATE_ADC_3V:
+        SERIAL_PRINTLN("offset=%d", OC::calibration_data.adc.offset[ADC_CHANNEL_1]);
         break;
 
       case CALIBRATE_NONE:
@@ -365,12 +369,14 @@ void calibration_draw(const CalibrationState &state) {
     case CALIBRATE_ADC_TRIMMER:
       graphics.print(_ADC_OFFSET, 4);
       graphics.print(" == ");
-      graphics.print((int)state.adc_sum.value() >> 2, 4);
+      graphics.print(state.adc_sum.value() >> 2, 4);
       break;
 
     case CALIBRATE_ADC_OFFSET:
-      graphics.print("0 => ");
-      graphics.pretty_print(state.encoder_value - state.adc_value.value(), 4);
+      graphics.print(step->message);
+      graphics.setPrintPos(kValueX, y + 2);
+      graphics.print((int)OC::ADC::value(static_cast<ADC_CHANNEL>(step->type_index)), 5);
+      menu::DrawEditIcon(kValueX, y, state.encoder_value, step->min, step->max);
       break;
 
     case CALIBRATE_DISPLAY:
@@ -387,7 +393,7 @@ void calibration_draw(const CalibrationState &state) {
       graphics.print(step->message);
       y += menu::kMenuLineH;
       graphics.setPrintPos(menu::kIndentDx, y + 2);
-      graphics.pretty_print(OC::calibration_data.adc.offset[ADC_CHANNEL_1] - state.adc_value.value(), 4);
+      graphics.print((int)OC::ADC::value(ADC_CHANNEL_1), 2);
       break;
 
     case CALIBRATE_NONE:
@@ -445,16 +451,13 @@ void calibration_update(CalibrationState &state) {
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_ADC_OFFSET:
-      state.adc_value.push(OC::ADC::raw_value(static_cast<ADC_CHANNEL>(step->type_index)));
       OC::calibration_data.adc.offset[step->type_index] = state.encoder_value;
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO]);
       break;
     case CALIBRATE_ADC_1V:
-      state.adc_value.push(OC::ADC::raw_value(ADC_CHANNEL_1));
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 1]);
       break;
     case CALIBRATE_ADC_3V:
-      state.adc_value.push(OC::ADC::raw_value(ADC_CHANNEL_1));
       DAC::set_all(OC::calibration_data.dac.octaves[_ZERO + 3]);
       break;
     case CALIBRATE_DISPLAY:
@@ -466,12 +469,12 @@ void calibration_update(CalibrationState &state) {
 
 /* misc */ 
 
-uint16_t adc_average() {
+uint32_t adc_average() {
   delay(OC_CORE_TIMER_RATE + 1);
 
   return
-    OC::ADC::raw_value(ADC_CHANNEL_1) + OC::ADC::raw_value(ADC_CHANNEL_2) +
-    OC::ADC::raw_value(ADC_CHANNEL_3) + OC::ADC::raw_value(ADC_CHANNEL_4);
+    OC::ADC::smoothed_raw_value(ADC_CHANNEL_1) + OC::ADC::smoothed_raw_value(ADC_CHANNEL_2) +
+    OC::ADC::smoothed_raw_value(ADC_CHANNEL_3) + OC::ADC::smoothed_raw_value(ADC_CHANNEL_4);
 }
 
 /* read settings from original O&C */
