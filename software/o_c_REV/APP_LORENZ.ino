@@ -256,7 +256,7 @@ void LORENZ_menu() {
 }
 
 void LORENZ_screensaver() {
-  OC::scope_render();
+  OC::vectorscope_render();
 }
 
 void LORENZ_handleAppEvent(OC::AppEvent event) {
