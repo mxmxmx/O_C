@@ -114,6 +114,8 @@ public:
   void Init() {
     cursor.Init(H1200_SETTING_ROOT_OFFSET, H1200_SETTING_LAST - 1);
     display_notes = true;
+
+    quantizer.Init();
     tonnetz_state.init();
   }
 
@@ -128,6 +130,7 @@ public:
   menu::ScreenCursor<menu::kScreenLines> cursor;
   bool display_notes;
 
+  OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
   util::RingBuffer<H1200::UiAction, 4> ui_actions;
 };
@@ -193,8 +196,10 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   }
 
   // Skip the quantizer since we just want semitones
-  int32_t root = (OC::ADC::pitch_value(ADC_CHANNEL_1) >> 7) + h1200_settings.root_offset();
-  
+  int32_t root =
+      h1200_state.quantizer.Process(OC::ADC::pitch_value(ADC_CHANNEL_1))
+      + h1200_settings.root_offset();
+
   int inversion = h1200_settings.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9);
   CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
 

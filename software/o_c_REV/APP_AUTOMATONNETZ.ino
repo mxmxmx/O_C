@@ -165,6 +165,10 @@ public:
     InitDefaults();
     memset(cells_, 0, sizeof(cells_));
     grid.Init(cells_);
+
+    quantizer.Init();
+    tonnetz_state.init();
+
     memset(&ui, 0, sizeof(ui));
     ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
     ui.grid_cursor.Init(GRID_SETTING_DX, GRID_SETTING_LAST - 1);
@@ -243,6 +247,8 @@ public:
 
   TransformCell cells_[GRID_CELLS];
   CellGrid<TransformCell, GRID_DIMENSION, FRACTIONAL_BITS, GRID_EPSILON> grid;
+
+  OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
 
   struct {
@@ -401,7 +407,8 @@ do { \
 
 void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int inversion) {
 
-  int32_t root = (OC::ADC::pitch_value(ADC_CHANNEL_1) >> 7) + transpose;
+  int32_t root =
+      quantizer.Process(OC::ADC::pitch_value(ADC_CHANNEL_1)) + transpose;
 
   inversion += (OC::ADC::value<ADC_CHANNEL_4>() >> 9);
   CONSTRAIN(inversion, CELL_MIN_INVERSION * 2, CELL_MAX_INVERSION * 2);

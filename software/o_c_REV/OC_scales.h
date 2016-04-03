@@ -30,6 +30,32 @@ public:
   static const Scale &GetScale(int index);
 };
 
+// H1200/A11Z are semitone based, so don't need to go "full quanty" for now.
+// They still need some hysteresis though
+class SemitoneQuantizer {
+public:
+  static constexpr int32_t kHysteresis = 16;
+
+  SemitoneQuantizer() { }
+  ~SemitoneQuantizer() { }
+
+  void Init() {
+    last_pitch_ = 0;
+  }
+
+  int32_t Process(int32_t pitch) {
+    if ((pitch > last_pitch_ + kHysteresis) || (pitch < last_pitch_ - kHysteresis)) {
+      last_pitch_ = pitch;
+    } else {
+      pitch = last_pitch_;
+    }
+    return (pitch + 63) >> 7;
+  }
+
+private:
+  int32_t last_pitch_;
+};
+
 extern const char *const scale_names[];
 extern const char *const scale_names_short[];
 extern Scale user_scales[OC::Scales::SCALE_USER_LAST];
