@@ -119,7 +119,7 @@ void save_app_data() {
     if (app.Save) {
       if (data + storage_size > data_end) {
         SERIAL_PRINTLN("*********************");
-        SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u AVAILABLE", app.name, data_end - data, AppData::kAppDataSize);
+        SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
         SERIAL_PRINTLN("*********************");
         continue;
       }
