@@ -19,7 +19,6 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_A_XOR_B,
   POLYLFO_SETTING_B_XOR_C,
   POLYLFO_SETTING_C_XOR_D,
-  POLYLFO_SETTING_XOR_DEPTH,
   POLYLFO_SETTING_LAST
 };
 
@@ -64,20 +63,16 @@ public:
     return static_cast<frames::PolyLfoFreqDivisions>(values_[POLYLFO_SETTING_FREQ_DIV_D]);
   }
 
-  bool get_a_xor_b() const {
+  uint8_t get_a_xor_b() const {
     return values_[POLYLFO_SETTING_A_XOR_B];
   }
 
-  bool get_b_xor_c() const {
+  uint8_t get_b_xor_c() const {
     return values_[POLYLFO_SETTING_B_XOR_C];
   }
 
-  bool get_c_xor_d() const {
+ uint8_t get_c_xor_d() const {
     return values_[POLYLFO_SETTING_C_XOR_D];
-  }
-
-  uint16_t get_xor_depth() const {
-    return values_[POLYLFO_SETTING_XOR_DEPTH];
   }
   
   void Init();
@@ -116,6 +111,10 @@ const char* const freq_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
   "unity", "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
 };
 
+const char* const xor_levels[9] = {
+  "off", "  1", "  2", "  3", "  4", "  5", "  6", "  7", "  8"
+};
+
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 64, 0, 255, "Coarse freq", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Fine freq", NULL, settings::STORAGE_TYPE_I16 },
@@ -126,10 +125,9 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "B XOR A", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "C XOR B", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "D XOR C", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 }, 
-  { 8, 7, 18, "XOR bit depth", NULL, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 8, "C XOR B", xor_levels, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 8, "D XOR C", xor_levels, settings::STORAGE_TYPE_U4 }, 
  };
 
 PolyLfo poly_lfo;
@@ -174,8 +172,6 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_a_xor_b(poly_lfo.get_a_xor_b());
   poly_lfo.lfo.set_b_xor_c(poly_lfo.get_b_xor_c());
   poly_lfo.lfo.set_c_xor_d(poly_lfo.get_c_xor_d());
-
-  poly_lfo.lfo.set_xor_depth(poly_lfo.get_xor_depth());
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);
