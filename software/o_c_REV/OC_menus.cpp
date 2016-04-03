@@ -79,7 +79,8 @@ inline uint16_t calc_average(const uint16_t *data) {
   return sum / size;
 }
 
-void scope_averaging(uint8_t rshift, uint8_t bitmask) {
+template <unsigned rshift, uint16_t bitmask>
+void scope_averaging() {
     switch (scope_update_channel) {
     case DAC_CHANNEL_A:
       DAC::getHistory<DAC_CHANNEL_A>(scope_history);
@@ -104,12 +105,10 @@ void scope_averaging(uint8_t rshift, uint8_t bitmask) {
       break;
     default: break;
   }
-
 }
 
-
 void scope_render() {
-  scope_averaging(11, 0x1f) ;
+  scope_averaging<11, 0x1f>();
 
   for (weegfx::coord_t x = 0; x < (weegfx::coord_t)kScopeDepth - 1; ++x) {
     size_t index = (x + averaged_scope_tail + 1) % kScopeDepth;
@@ -121,7 +120,7 @@ void scope_render() {
 }
 
 void vectorscope_render() {
-  scope_averaging(10, 0x3f) ;
+  scope_averaging<10, 0x3f>();
 
   for (weegfx::coord_t x = 0; x < (weegfx::coord_t)kScopeDepth - 1; ++x) {
     size_t index = (x + averaged_scope_tail + 1) % kScopeDepth;
