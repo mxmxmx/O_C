@@ -197,7 +197,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 
   // Skip the quantizer since we just want semitones
   int32_t root =
-      h1200_state.quantizer.Process(OC::ADC::pitch_value(ADC_CHANNEL_1))
+      h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1))
       + h1200_settings.root_offset();
 
   int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
