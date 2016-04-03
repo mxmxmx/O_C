@@ -21,6 +21,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_SOURCE,
   CHANNEL_SETTING_TRIGGER,
   CHANNEL_SETTING_CLKDIV,
+  CHANNEL_SETTING_DELAY,
   CHANNEL_SETTING_TRANSPOSE,
   CHANNEL_SETTING_OCTAVE,
   CHANNEL_SETTING_FINE,
@@ -90,6 +91,10 @@ public:
     return values_[CHANNEL_SETTING_CLKDIV];
   }
 
+  uint16_t get_trigger_delay() const {
+    return values_[CHANNEL_SETTING_DELAY];
+  }
+
   int get_transpose() const {
     return values_[CHANNEL_SETTING_TRANSPOSE];
   }
@@ -131,10 +136,11 @@ public:
     apply_value(CHANNEL_SETTING_SOURCE, source);
     apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
 
-    force_update_ = false;
+    force_update_ = true;
     last_scale_ = -1;
     last_mask_ = 0;
     last_output_ = 0;
+    trigger_delay_ = 0;
     clock_ = 0;
 
     turing_machine_.Init();
@@ -158,6 +164,12 @@ public:
     bool continous = CHANNEL_TRIGGER_CONTINUOUS == trigger_source;
     bool triggered = !continous &&
       (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
+
+    uint16_t trigger_delay = trigger_delay_ >> 1;
+    if (triggered)
+      trigger_delay |= 0x1 << get_trigger_delay();
+
+    triggered = trigger_delay & 0x1;
     if (triggered) {
       ++clock_;
       if (clock_ >= get_clkdiv()) {
@@ -166,6 +178,7 @@ public:
         triggered = false;
       }
     }
+    trigger_delay_ = trigger_delay;
 
     bool update = forced_update || continous || triggered;
     if (update_scale(forced_update))
@@ -313,8 +326,10 @@ public:
       break;
     }
     *settings++ = CHANNEL_SETTING_TRIGGER;
-    if (CHANNEL_TRIGGER_CONTINUOUS != get_trigger_source())
+    if (CHANNEL_TRIGGER_CONTINUOUS != get_trigger_source()) {
       *settings++ = CHANNEL_SETTING_CLKDIV;
+      *settings++ = CHANNEL_SETTING_DELAY;
+    }
 
     *settings++ = CHANNEL_SETTING_OCTAVE;
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
@@ -332,6 +347,7 @@ public:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE:
       case CHANNEL_SETTING_LOGISTIC_MAP_SEED:
       case CHANNEL_SETTING_CLKDIV:
+      case CHANNEL_SETTING_DELAY:
         return true;
       default: break;
     }
@@ -343,6 +359,7 @@ private:
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_output_;
+  uint16_t trigger_delay_;
   uint8_t clock_;
 
   util::TuringShiftRegister turing_machine_;
@@ -375,6 +392,11 @@ const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
   "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc"
 };
 
+// Save special-case drawing
+const char* const trigger_delays[] = {
+  "off", "60us", "120us", "180us", "240us", "300us", "360us", "420us", "480us"
+};
+
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "Root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
@@ -382,6 +404,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U4 },
   { CHANNEL_TRIGGER_CONTINUOUS, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U4 },
   { 1, 1, 16, "Clock div", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 8, "Trigger delay", trigger_delays, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "Transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "Octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -999, 999, "Fine", NULL, settings::STORAGE_TYPE_I16 },
