@@ -26,7 +26,6 @@ public:
   static constexpr uint8_t kAdcResolution = 12;
   static constexpr uint32_t kAdcSmoothing = 4;
   static constexpr uint32_t kAdcSmoothBits = 8; // fractional bits for smoothing
-
   static constexpr uint16_t kDefaultPitchCVScale = SEMITONES << 7;
 
   // These values should be tweaked so startSingleRead/readSingle run in main ISR update time
@@ -35,7 +34,8 @@ public:
   static constexpr uint8_t kAdcScanAverages = 16;
   static constexpr uint8_t kAdcSamplingSpeed = ADC_HIGH_SPEED_16BITS;
   static constexpr uint8_t kAdcConversionSpeed = ADC_HIGH_SPEED;
-  static constexpr uint32_t kAdcValueShift = kAdcSmoothBits + (kAdcScanResolution - kAdcResolution);
+
+  static constexpr uint32_t kAdcValueShift = kAdcSmoothBits;
 
 
   struct CalibrationData {
@@ -55,19 +55,28 @@ public:
 
   template <ADC_CHANNEL channel>
   static int32_t value() {
-    return values_[channel];
+    return calibration_data_->offset[channel] - (smoothed_[channel] >> kAdcValueShift);
   }
 
   static int32_t value(ADC_CHANNEL channel) {
-    return values_[channel];
+    return calibration_data_->offset[channel] - (smoothed_[channel] >> kAdcValueShift);
   }
 
   static uint32_t raw_value(ADC_CHANNEL channel) {
-    return raw_values_[channel] >> kAdcValueShift;
+    return raw_[channel] >> kAdcValueShift;
+  }
+
+  static uint32_t smoothed_raw_value(ADC_CHANNEL channel) {
+    return smoothed_[channel] >> kAdcValueShift;
   }
 
   static int32_t pitch_value(ADC_CHANNEL channel) {
-    return (values_[channel] * calibration_data_->pitch_cv_scale) >> 12;
+    return (value(channel) * calibration_data_->pitch_cv_scale) >> 12;
+  }
+
+  static int32_t raw_pitch_value(ADC_CHANNEL channel) {
+    int32_t value = calibration_data_->offset[channel] - raw_value(channel);
+    return (value * calibration_data_->pitch_cv_scale) >> 12;
   }
 
 #ifdef ENABLE_ADC_DEBUG
@@ -91,18 +100,19 @@ private:
 
   template <ADC_CHANNEL channel>
   static void update(uint32_t value) {
+    value = (value  >> (kAdcScanResolution - kAdcResolution)) << kAdcSmoothBits;
+    raw_[channel] = value;
     // division should be shift if kAdcSmoothing is power-of-two
-    value = (raw_values_[channel] * (kAdcSmoothing - 1) + (value << kAdcSmoothBits)) / kAdcSmoothing;
-    values_[channel] = calibration_data_->offset[channel] - (value >> kAdcValueShift);
-    raw_values_[channel] = value;
+    value = (smoothed_[channel] * (kAdcSmoothing - 1) + value) / kAdcSmoothing;
+    smoothed_[channel] = value;
   }
 
   static ::ADC adc_;
   static size_t scan_channel_;
   static CalibrationData *calibration_data_;
 
-  static uint32_t raw_values_[ADC_CHANNEL_LAST];
-  static int32_t values_[ADC_CHANNEL_LAST];
+  static uint32_t raw_[ADC_CHANNEL_LAST];
+  static uint32_t smoothed_[ADC_CHANNEL_LAST];
 
 #ifdef ENABLE_ADC_DEBUG
   static volatile uint32_t busy_waits_;

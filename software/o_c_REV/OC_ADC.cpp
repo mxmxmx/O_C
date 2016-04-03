@@ -22,8 +22,8 @@ template <> struct ChannelDesc<ADC_CHANNEL_4> {
 /*static*/ ::ADC ADC::adc_;
 /*static*/ size_t ADC::scan_channel_;
 /*static*/ ADC::CalibrationData *ADC::calibration_data_;
-/*static*/ uint32_t ADC::raw_values_[ADC_CHANNEL_LAST];
-/*static*/ int32_t ADC::values_[ADC_CHANNEL_LAST];
+/*static*/ uint32_t ADC::raw_[ADC_CHANNEL_LAST];
+/*static*/ uint32_t ADC::smoothed_[ADC_CHANNEL_LAST];
 #ifdef ENABLE_ADC_DEBUG
 /*static*/ volatile uint32_t ADC::busy_waits_;
 #endif
@@ -48,8 +48,8 @@ template <> struct ChannelDesc<ADC_CHANNEL_4> {
   adc_.startSingleRead(ChannelDesc<ADC_CHANNEL_1>::PIN);
 
   calibration_data_ = calibration_data;
-  std::fill(raw_values_, raw_values_ + ADC_CHANNEL_LAST, 0);
-  std::fill(values_, values_ + ADC_CHANNEL_LAST, 0);
+  std::fill(raw_, raw_ + ADC_CHANNEL_LAST, 0);
+  std::fill(smoothed_, smoothed_ + ADC_CHANNEL_LAST, 0);
 #ifdef ENABLE_ADC_DEBUG
   busy_waits_ = 0;
 #endif

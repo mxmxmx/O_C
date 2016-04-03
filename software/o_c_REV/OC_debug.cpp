@@ -70,16 +70,16 @@ static void debug_menu_gfx() {
 
 static void debug_menu_adc() {
   graphics.setPrintPos(2, 12);
-  graphics.print("CV1: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_1>(), 6);
+  graphics.printf("CV1 %5d %5u", ADC::value<ADC_CHANNEL_1>(), ADC::raw_value(ADC_CHANNEL_1));
 
   graphics.setPrintPos(2, 22);
-  graphics.print("CV2: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_2>(), 6);
+  graphics.printf("CV2 %5d %5u", ADC::value<ADC_CHANNEL_2>(), ADC::raw_value(ADC_CHANNEL_2));
 
   graphics.setPrintPos(2, 32);
-  graphics.print("CV3: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_3>(), 6);
+  graphics.printf("CV3 %5d %5u", ADC::value<ADC_CHANNEL_3>(), ADC::raw_value(ADC_CHANNEL_3));
 
   graphics.setPrintPos(2, 42);
-  graphics.print("CV4: "); graphics.pretty_print(ADC::value<ADC_CHANNEL_4>(), 6);
+  graphics.printf("CV4 %5d %5u", ADC::value<ADC_CHANNEL_4>(), ADC::raw_value(ADC_CHANNEL_4));
 
 //      graphics.setPrintPos(2, 42);
 //      graphics.print((long)ADC::busy_waits());
