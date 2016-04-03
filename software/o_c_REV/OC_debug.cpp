@@ -11,6 +11,7 @@
 extern void POLYLFO_debug();
 extern void BBGEN_debug();
 extern void BYTEBEATGEN_debug();
+extern void H1200_debug();
 
 namespace OC {
 
@@ -98,6 +99,7 @@ static const DebugMenu debug_menus[] = {
   { " POLYLFO", POLYLFO_debug },
   { " BBGEN", BBGEN_debug },
   { " BYTEBEATGEN", BYTEBEATGEN_debug },
+  { " H1200", H1200_debug },
   { nullptr, nullptr }
 };
 

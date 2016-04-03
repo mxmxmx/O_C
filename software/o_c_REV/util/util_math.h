@@ -65,8 +65,6 @@ struct SmoothedValue {
   }
 };
 
-
 #define SCALE8_16(x) ((((x + 1) << 16) >> 8) - 1)
-
 
 #endif // UTIL_MATH_H_

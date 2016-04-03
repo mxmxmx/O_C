@@ -200,7 +200,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       h1200_state.quantizer.Process(OC::ADC::pitch_value(ADC_CHANNEL_1))
       + h1200_settings.root_offset();
 
-  int inversion = h1200_settings.inversion() + (OC::ADC::value<ADC_CHANNEL_4>() >> 9);
+  int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
   CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
 
   h1200_state.tonnetz_state.render(root, inversion);
@@ -390,4 +390,12 @@ void H1200_screensaver() {
   }
 
   OC::visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
+}
+
+void H1200_debug() {
+  int cv = OC::ADC::value<ADC_CHANNEL_4>();
+  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+
+  graphics.setPrintPos(2, 12);
+  graphics.printf("I: %4d %4d", cv, scaled);
 }
