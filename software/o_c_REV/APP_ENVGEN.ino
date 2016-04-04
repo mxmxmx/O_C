@@ -23,6 +23,7 @@ enum EnvelopeSettings {
   ENV_SETTING_TRIGGER_INPUT,
   ENV_SETTING_TRIGGER_DELAY_MILLISECONDS,
   ENV_SETTING_TRIGGER_DELAY_SECONDS,
+  ENV_SETTING_TRIGGER_DELAY_IGNORE_NEW_TRIGGERS,
   ENV_SETTING_CV1,
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
@@ -74,6 +75,10 @@ public:
 
   uint16_t get_trigger_delay() const {
     return (1000 * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS]) + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
+  }
+
+  bool get_trigger_delay_ignore_new_triggers() const {
+    return values_[ENV_SETTING_TRIGGER_DELAY_IGNORE_NEW_TRIGGERS];
   }
 
   CVMapping get_cv1_mapping() const {
@@ -201,7 +206,9 @@ public:
 
     bool triggered = triggered_;
     if (triggers & DIGITAL_INPUT_MASK(trigger_input)) {
-      sinceTrigger_ = 0;
+      if (!get_trigger_delay_ignore_new_triggers() || (!triggered && get_trigger_delay_ignore_new_triggers())) {
+        sinceTrigger_ = 0;
+      }
       triggered=true;
     }
     uint16_t trigger_delay = get_trigger_delay();
@@ -270,6 +277,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "Tr ignore", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
