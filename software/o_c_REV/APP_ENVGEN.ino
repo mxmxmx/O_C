@@ -281,6 +281,9 @@ public:
 
     OC::DigitalInput trigger_input = get_trigger_input();
     bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
+
+    trigger_display_.Update(1, triggered || gate_raised_);
+
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
       uint32_t delay = get_trigger_delay_ms() * 1000U;
@@ -322,6 +325,10 @@ public:
     return env_.RenderPreview(values, segment_start_points, loop_points, current_phase);
   }
 
+  uint8_t getTriggerState() const {
+    return trigger_display_.getState();
+  }
+
 private:
   peaks::MultistageEnvelope env_;
   EnvelopeType last_type_;
@@ -332,6 +339,8 @@ private:
 
   int num_enabled_settings_;
   EnvelopeSettings enabled_settings_[ENV_SETTING_LAST];
+
+  OC::DigitalInputDisplay trigger_display_;
 
   bool DelayedTriggers() {
     bool triggered = false;
@@ -361,6 +370,8 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
 
   memset(delayed_triggers_, 0, sizeof(delayed_triggers_));
   delayed_triggers_tail_ = 0;
+
+  trigger_display_.Init();
 
   update_enabled_settings();
 }
@@ -611,6 +622,7 @@ void ENVGEN_menu() {
   for (uint_fast8_t i = 0; i < 4; ++i) {
     menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
+    menu::QuadTitleBar::DrawGateIndicator(i, envgen.envelopes_[i].getTriggerState());
   }
   // If settings mode, draw level in title bar?
   menu::QuadTitleBar::Selected(envgen.ui.selected_channel);

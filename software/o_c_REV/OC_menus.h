@@ -203,6 +203,12 @@ public:
   inline static void Selected(int column) {
     graphics.invertRect(start_x + kColumnWidth * column, 0, kColumnWidth, kMenuLineH - 1);
   }
+
+  inline static void DrawGateIndicator(int column, uint8_t state) {
+    state = (state + 3) >> 2;
+    if (state)
+      graphics.drawBitmap8(start_x + kColumnWidth * column + 1, 2, 4, OC::bitmap_gate_indicators_8 + (state << 2));
+  }
 };
 
 // Common, default types

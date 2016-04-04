@@ -510,9 +510,7 @@ void QQ_menu() {
     if (octave)
       graphics.pretty_print(octave);
 
-    const uint8_t trigger_state = (channel.getTriggerState() + 3) >> 2;
-    if (trigger_state)
-      graphics.drawBitmap8(x + 1, 2, 4, OC::bitmap_gate_indicators_8 + (trigger_state << 2));
+    menu::QuadTitleBar::DrawGateIndicator(i, channel.getTriggerState());
   }
   menu::QuadTitleBar::Selected(qq_state.selected_channel);
 
