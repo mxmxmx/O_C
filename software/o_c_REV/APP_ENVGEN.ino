@@ -1,3 +1,29 @@
+// Copyright (c) 2016 Patrick Dowling, Tim Churches
+//
+// Initial app implementation: Patrick Dowling (pld@gurkenkiste.com)
+// Modifications by: Tim Churches (tim.churches@gmail.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// Quad enevelope generator app, based on the multistage envelope implementation
+// from Peaks by Olivier Gillet (see peaks_multistage_envelope.h/cpp)
+
 #include "OC_apps.h"
 #include "OC_bitmaps.h"
 #include "OC_digital_inputs.h"
@@ -21,6 +47,9 @@ enum EnvelopeSettings {
   ENV_SETTING_SEG3_VALUE,
   ENV_SETTING_SEG4_VALUE,
   ENV_SETTING_TRIGGER_INPUT,
+  ENV_SETTING_TRIGGER_DELAY_MODE,
+  ENV_SETTING_TRIGGER_DELAY_MILLISECONDS,
+  ENV_SETTING_TRIGGER_DELAY_SECONDS,
   ENV_SETTING_CV1,
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
@@ -55,10 +84,33 @@ enum EnvelopeType {
   ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
 
+enum TriggerDelayMode {
+  TRIGGER_DELAY_OFF,
+  TRIGGER_DELAY_FIRST, // Delay single trigger, additional triggers within delay time ignored
+  TRIGGER_DELAY_LASTT, // Delay single trigger, further triggers within delay reset delay
+  TRIGGER_DELAY_QUEUE, // Queue up to kMaxDelayedTriggers delays, additional triggers ignored
+  TRIGGER_DELAY_RING,  // Queue up to kMaxDelayedTriggers delays, additional triggers overwrite oldest
+  TRIGGER_DELAY_LAST
+};
+
 class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
 public:
 
   static constexpr int kMaxSegments = 4;
+  static constexpr size_t kMaxDelayedTriggers = 4;
+
+  struct DelayedTrigger {
+    uint32_t delay;
+    uint32_t time_left;
+
+    inline void Activate(uint32_t t) {
+      delay = time_left = t;
+    }
+
+    inline void Reset() {
+      delay = time_left = 0;
+    }
+  };
 
   void Init(OC::DigitalInput default_trigger);
 
@@ -68,6 +120,14 @@ public:
 
   OC::DigitalInput get_trigger_input() const {
     return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
+  }
+
+  uint32_t get_trigger_delay_ms() const {
+    return 1000U * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS] + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
+  }
+
+  TriggerDelayMode get_trigger_delay_mode() const {
+    return static_cast<TriggerDelayMode>(values_[ENV_SETTING_TRIGGER_DELAY_MODE]);
   }
 
   CVMapping get_cv1_mapping() const {
@@ -143,6 +203,49 @@ public:
     }
   }
 
+  int num_enabled_settings() const {
+    return num_enabled_settings_;
+  }
+
+  EnvelopeSettings enabled_setting_at(int index) const {
+    return enabled_settings_[index];
+  }
+
+  void update_enabled_settings() {
+    EnvelopeSettings *settings = enabled_settings_;
+
+    *settings++ = ENV_SETTING_TRIGGER_INPUT;
+    *settings++ = ENV_SETTING_TRIGGER_DELAY_MODE;
+    if (get_trigger_delay_mode()) {
+      *settings++ = ENV_SETTING_TRIGGER_DELAY_MILLISECONDS;
+      *settings++ = ENV_SETTING_TRIGGER_DELAY_SECONDS;
+    }
+
+    *settings++ = ENV_SETTING_ATTACK_SHAPE;
+    *settings++ = ENV_SETTING_DECAY_SHAPE;
+    *settings++ = ENV_SETTING_RELEASE_SHAPE;
+
+    *settings++ = ENV_SETTING_CV1;
+    *settings++ = ENV_SETTING_CV2;
+    *settings++ = ENV_SETTING_CV3;
+    *settings++ = ENV_SETTING_CV4;
+    *settings++ = ENV_SETTING_HARD_RESET;
+    *settings++ = ENV_SETTING_GATE_HIGH;
+
+    num_enabled_settings_ = settings - enabled_settings_;
+  }
+
+  static bool indentSetting(EnvelopeSettings setting) {
+    switch (setting) {
+      case ENV_SETTING_TRIGGER_DELAY_SECONDS:
+      case ENV_SETTING_TRIGGER_DELAY_MILLISECONDS:
+        return true;
+      default:
+      break;
+    }
+    return false;
+  }
+
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
@@ -191,10 +294,46 @@ public:
     env_.set_release_shape(get_release_shape());
 
     OC::DigitalInput trigger_input = get_trigger_input();
-    uint8_t gate_state = 0;
-    if (triggers & DIGITAL_INPUT_MASK(trigger_input))
-      gate_state |= peaks::CONTROL_GATE_RISING;
+    bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
 
+    trigger_display_.Update(1, triggered || gate_raised_);
+
+    if (triggered) {
+      TriggerDelayMode delay_mode = get_trigger_delay_mode();
+      uint32_t delay = get_trigger_delay_ms() * 1000U;
+      if (delay_mode && delay) {
+        switch (delay_mode) {
+        case TRIGGER_DELAY_FIRST:
+          if (!delayed_triggers_[0].time_left)
+            delayed_triggers_[0].Activate(delay);
+          break;
+        case TRIGGER_DELAY_LASTT:
+          delayed_triggers_[0].Activate(delay);
+          break;
+        case TRIGGER_DELAY_QUEUE:
+          if (delayed_triggers_free_ < kMaxDelayedTriggers)
+            delayed_triggers_[delayed_triggers_free_].Activate(delay);
+          break;
+        case TRIGGER_DELAY_RING:
+          // Assume these are mostly in order, so the "next" is also the oldest
+          if (delayed_triggers_free_ < kMaxDelayedTriggers)
+            delayed_triggers_[delayed_triggers_free_].Activate(delay);
+          else
+            delayed_triggers_[delayed_triggers_next_].Activate(delay);
+          break;
+        default: break;
+        }
+        triggered = false;
+      }
+    }
+
+    if (DelayedTriggers())
+      triggered = true;
+
+    uint8_t gate_state = 0;
+    if (triggered)
+      gate_state |= peaks::CONTROL_GATE_RISING;
+ 
     bool gate_raised = OC::DigitalInputs::read_immediate(trigger_input);
     if (gate_raised || get_gate_high())
       gate_state |= peaks::CONTROL_GATE;
@@ -211,10 +350,59 @@ public:
     return env_.RenderPreview(values, segment_start_points, loop_points, current_phase);
   }
 
+  uint8_t getTriggerState() const {
+    return trigger_display_.getState();
+  }
+
+  inline void get_next_trigger(DelayedTrigger &trigger) const {
+    trigger = delayed_triggers_[delayed_triggers_next_];
+  }
+
 private:
+
   peaks::MultistageEnvelope env_;
   EnvelopeType last_type_;
   bool gate_raised_;
+
+  DelayedTrigger delayed_triggers_[kMaxDelayedTriggers];
+  size_t delayed_triggers_free_;
+  size_t delayed_triggers_next_;
+
+  int num_enabled_settings_;
+  EnvelopeSettings enabled_settings_[ENV_SETTING_LAST];
+
+  OC::DigitalInputDisplay trigger_display_;
+
+  bool DelayedTriggers() {
+    bool triggered = false;
+
+    delayed_triggers_free_ = kMaxDelayedTriggers;
+    delayed_triggers_next_ = 0;
+    uint32_t min_time_left = -1;
+
+    for (size_t i = 0; i < kMaxDelayedTriggers; ++i) {
+      DelayedTrigger &trigger = delayed_triggers_[i];
+      uint32_t time_left = trigger.time_left;
+      if (time_left) {
+        if (time_left > OC_CORE_TIMER_RATE) {
+          time_left -= OC_CORE_TIMER_RATE;
+          if (time_left < min_time_left) {
+            min_time_left = time_left;
+            delayed_triggers_next_ = i;
+          }
+          trigger.time_left = time_left;
+        } else {
+          trigger.Reset();
+          delayed_triggers_free_ = i;
+          triggered = true;
+        }
+      } else {
+        delayed_triggers_free_ = i;
+      }
+    }
+
+    return triggered;
+  }
 };
 
 void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
@@ -223,6 +411,13 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   env_.Init();
   last_type_ = ENV_TYPE_LAST;
   gate_raised_ = false;
+
+  memset(delayed_triggers_, 0, sizeof(delayed_triggers_));
+  delayed_triggers_free_ = delayed_triggers_next_ = 0;
+
+  trigger_display_.Init();
+
+  update_enabled_settings();
 }
 
 const char* const envelope_types[ENV_TYPE_LAST] = {
@@ -241,13 +436,20 @@ const char* const cv_mapping_names[CV_MAPPING_LAST] = {
   "None", "Att", "Dec", "Sus", "Rel"
 };
 
+const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
+  "Off", "First", "Last", "Queue", "Ring"
+};
+
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
   { 128, 0, 255, "S2", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
-  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
+  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
+  { TRIGGER_DELAY_OFF, TRIGGER_DELAY_OFF, TRIGGER_DELAY_LAST - 1, "Tr delay mode", trigger_delay_modes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
+  { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
@@ -275,8 +477,7 @@ public:
     ui.selected_channel = 0;
     ui.selected_segment = 0;
     ui.segment_editing = false;
-
-    ui.cursor.Init(ENV_SETTING_TRIGGER_INPUT, ENV_SETTING_LAST - 1);
+    ui.cursor.Init(0, envelopes_[0].num_enabled_settings() - 1);
   }
 
   void ISR() {
@@ -341,8 +542,12 @@ size_t ENVGEN_save(void *storage) {
 
 size_t ENVGEN_restore(const void *storage) {
   size_t s = 0;
-  for (auto &env : envgen.envelopes_)
+  for (auto &env : envgen.envelopes_) {
     s += env.Restore(static_cast<const byte *>(storage) + s);
+    env.update_enabled_settings();
+  }
+
+  envgen.ui.cursor.AdjustEnd(envgen.envelopes_[0].num_enabled_settings() - 1);
   return s;
 }
 
@@ -393,7 +598,7 @@ void ENVGEN_menu_preview() {
   const int16_t *data = preview_values;
   while (x <= static_cast<weegfx::coord_t>(current_phase)) {
     const int16_t value = *data++ >> 10;
-    graphics.drawVLine(x++, kPreviewBottomY - value, value);
+    graphics.drawVLine(x++, kPreviewBottomY - value, value + 1);
   }
 
   while (x < w) {
@@ -446,8 +651,12 @@ void ENVGEN_menu_settings() {
   graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
 
   while (settings_list.available()) {
-    const int current = settings_list.Next(list_item);
-    list_item.DrawDefault(env.get_value(current), EnvelopeGenerator::value_attr(current));
+    const int setting = 
+      env.enabled_setting_at(settings_list.Next(list_item));
+
+    if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
+      list_item.x += menu::kIndentDx;
+    list_item.DrawDefault(env.get_value(setting), EnvelopeGenerator::value_attr(setting));
   }
 }
 
@@ -457,6 +666,16 @@ void ENVGEN_menu() {
   for (uint_fast8_t i = 0; i < 4; ++i) {
     menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
+    menu::QuadTitleBar::DrawGateIndicator(i, envgen.envelopes_[i].getTriggerState());
+
+
+    EnvelopeGenerator::DelayedTrigger trigger;
+    envgen.envelopes_[i].get_next_trigger(trigger);
+    if (trigger.delay) {
+      weegfx::coord_t x = menu::QuadTitleBar::ColumnStartX(i) + 28;
+      weegfx::coord_t h = (trigger.time_left * 8) / trigger.delay;
+      graphics.drawRect(x, menu::QuadTitleBar::kTextY + 7 - h, 2, 1 + h);
+    }
   }
   // If settings mode, draw level in title bar?
   menu::QuadTitleBar::Selected(envgen.ui.selected_channel);
@@ -495,6 +714,7 @@ void ENVGEN_leftButton() {
     envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.left_encoder_value = envgen.selected().get_type();
     CONSTRAIN(envgen.ui.selected_segment, 0, envgen.selected().num_editable_segments() - 1);
+    envgen.ui.cursor.AdjustEnd(envgen.selected().num_enabled_settings() - 1);
   }
 }
 
@@ -526,6 +746,7 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
       envgen.ui.selected_channel = left_value;
       auto &selected_env = envgen.selected();
       CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
+      envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
     } else if (OC::CONTROL_ENCODER_R == event.control) {
       auto &selected_env = envgen.selected();
       if (envgen.ui.segment_editing) {
@@ -544,7 +765,10 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
     } else if (OC::CONTROL_ENCODER_R == event.control) {
       if (envgen.ui.cursor.editing()) {
         auto &selected_env = envgen.selected();
-        selected_env.change_value(envgen.ui.cursor.cursor_pos(), event.value);
+        EnvelopeSettings setting = selected_env.enabled_setting_at(envgen.ui.cursor.cursor_pos());
+        selected_env.change_value(setting, event.value);
+        if (ENV_SETTING_TRIGGER_DELAY_MODE == setting)
+          selected_env.update_enabled_settings();
       } else {
         envgen.ui.cursor.Scroll(event.value);
       }
