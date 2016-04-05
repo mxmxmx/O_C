@@ -86,10 +86,10 @@ enum EnvelopeType {
 
 enum TriggerDelayMode {
   TRIGGER_DELAY_OFF,
-  TRIGGER_DELAY_FIRST,  // Delay trigger, additional triggers within delay time ignored
-  TRIGGER_DELAY_SINGLE, // Delay trigger, further triggers within delay reset delay
-  TRIGGER_DELAY_QUEUE,  // "Queue" up to kMaxDelayedTriggers triggers
-  TRIGGER_DELAY_MULTI,  // Overwrite existing queued triggers
+  TRIGGER_DELAY_FIRST, // Delay single trigger, additional triggers within delay time ignored
+  TRIGGER_DELAY_LASTT, // Delay single trigger, further triggers within delay reset delay
+  TRIGGER_DELAY_QUEUE, // Queue up to kMaxDelayedTriggers delays, additional triggers ignored
+  TRIGGER_DELAY_RING,  // Queue up to kMaxDelayedTriggers delays, additional triggers overwrite oldest
   TRIGGER_DELAY_LAST
 };
 
@@ -303,18 +303,18 @@ public:
       uint32_t delay = get_trigger_delay_ms() * 1000U;
       if (delay_mode && delay) {
         switch (delay_mode) {
-        case TRIGGER_DELAY_SINGLE:
-          delayed_triggers_[0].Activate(delay);
-          break;
         case TRIGGER_DELAY_FIRST:
           if (!delayed_triggers_[0].time_left)
             delayed_triggers_[0].Activate(delay);
+          break;
+        case TRIGGER_DELAY_LASTT:
+          delayed_triggers_[0].Activate(delay);
           break;
         case TRIGGER_DELAY_QUEUE:
           if (delayed_triggers_free_ < kMaxDelayedTriggers)
             delayed_triggers_[delayed_triggers_free_].Activate(delay);
           break;
-        case TRIGGER_DELAY_MULTI:
+        case TRIGGER_DELAY_RING:
           // Assume these are mostly in order, so the "next" is also the oldest
           if (delayed_triggers_free_ < kMaxDelayedTriggers)
             delayed_triggers_[delayed_triggers_free_].Activate(delay);
@@ -386,11 +386,11 @@ private:
       if (time_left) {
         if (time_left > OC_CORE_TIMER_RATE) {
           time_left -= OC_CORE_TIMER_RATE;
-          trigger.time_left = time_left;
           if (time_left < min_time_left) {
             min_time_left = time_left;
             delayed_triggers_next_ = i;
           }
+          trigger.time_left = time_left;
         } else {
           trigger.Reset();
           delayed_triggers_free_ = i;
@@ -437,7 +437,7 @@ const char* const cv_mapping_names[CV_MAPPING_LAST] = {
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
-  "Off", "First", "Singl", "Queue", "Multi"
+  "Off", "First", "Last", "Queue", "Ring"
 };
 
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
