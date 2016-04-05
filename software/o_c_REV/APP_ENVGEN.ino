@@ -88,7 +88,8 @@ enum TriggerDelayMode {
   TRIGGER_DELAY_OFF,
   TRIGGER_DELAY_FIRST,  // Delay trigger, additional triggers within delay time ignored
   TRIGGER_DELAY_SINGLE, // Delay trigger, further triggers within delay reset delay
-  TRIGGER_DELAY_MULTI,  // "Queue" up to kMaxDelayedTriggers triggers
+  TRIGGER_DELAY_QUEUE,  // "Queue" up to kMaxDelayedTriggers triggers
+  TRIGGER_DELAY_MULTI,  // Overwrite existing queued triggers
   TRIGGER_DELAY_LAST
 };
 
@@ -97,6 +98,19 @@ public:
 
   static constexpr int kMaxSegments = 4;
   static constexpr size_t kMaxDelayedTriggers = 4;
+
+  struct DelayedTrigger {
+    uint32_t delay;
+    uint32_t time_left;
+
+    inline void Activate(uint32_t t) {
+      delay = time_left = t;
+    }
+
+    inline void Reset() {
+      delay = time_left = 0;
+    }
+  };
 
   void Init(OC::DigitalInput default_trigger);
 
@@ -109,7 +123,7 @@ public:
   }
 
   uint32_t get_trigger_delay_ms() const {
-    return (1000 * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS]) + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
+    return 1000U * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS] + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
   }
 
   TriggerDelayMode get_trigger_delay_mode() const {
@@ -288,15 +302,26 @@ public:
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
       uint32_t delay = get_trigger_delay_ms() * 1000U;
       if (delay_mode && delay) {
-        size_t tail = delayed_triggers_tail_;
-        if (TRIGGER_DELAY_SINGLE == delay_mode) {
-          delayed_triggers_[tail] = delay;
-        } else if (TRIGGER_DELAY_FIRST == delay_mode) {
-          if (!delayed_triggers_[tail])
-            delayed_triggers_[tail] = delay;
-        } else {
-          delayed_triggers_[tail] = delay;
-          delayed_triggers_tail_ = (tail + 1) % kMaxDelayedTriggers;
+        switch (delay_mode) {
+        case TRIGGER_DELAY_SINGLE:
+          delayed_triggers_[0].Activate(delay);
+          break;
+        case TRIGGER_DELAY_FIRST:
+          if (!delayed_triggers_[0].time_left)
+            delayed_triggers_[0].Activate(delay);
+          break;
+        case TRIGGER_DELAY_QUEUE:
+          if (delayed_triggers_free_ < kMaxDelayedTriggers)
+            delayed_triggers_[delayed_triggers_free_].Activate(delay);
+          break;
+        case TRIGGER_DELAY_MULTI:
+          // Assume these are mostly in order, so the "next" is also the oldest
+          if (delayed_triggers_free_ < kMaxDelayedTriggers)
+            delayed_triggers_[delayed_triggers_free_].Activate(delay);
+          else
+            delayed_triggers_[delayed_triggers_next_].Activate(delay);
+          break;
+        default: break;
         }
         triggered = false;
       }
@@ -329,13 +354,19 @@ public:
     return trigger_display_.getState();
   }
 
+  inline void get_next_trigger(DelayedTrigger &trigger) const {
+    trigger = delayed_triggers_[delayed_triggers_next_];
+  }
+
 private:
+
   peaks::MultistageEnvelope env_;
   EnvelopeType last_type_;
   bool gate_raised_;
 
-  uint32_t delayed_triggers_[kMaxDelayedTriggers];
-  size_t delayed_triggers_tail_;
+  DelayedTrigger delayed_triggers_[kMaxDelayedTriggers];
+  size_t delayed_triggers_free_;
+  size_t delayed_triggers_next_;
 
   int num_enabled_settings_;
   EnvelopeSettings enabled_settings_[ENV_SETTING_LAST];
@@ -344,16 +375,29 @@ private:
 
   bool DelayedTriggers() {
     bool triggered = false;
+
+    delayed_triggers_free_ = kMaxDelayedTriggers;
+    delayed_triggers_next_ = 0;
+    uint32_t min_time_left = -1;
+
     for (size_t i = 0; i < kMaxDelayedTriggers; ++i) {
-      uint32_t delay = delayed_triggers_[i];
-      if (delay) {
-        if (delay > OC_CORE_TIMER_RATE) {
-          delay -= OC_CORE_TIMER_RATE;
+      DelayedTrigger &trigger = delayed_triggers_[i];
+      uint32_t time_left = trigger.time_left;
+      if (time_left) {
+        if (time_left > OC_CORE_TIMER_RATE) {
+          time_left -= OC_CORE_TIMER_RATE;
+          trigger.time_left = time_left;
+          if (time_left < min_time_left) {
+            min_time_left = time_left;
+            delayed_triggers_next_ = i;
+          }
         } else {
-          delay = 0;
+          trigger.Reset();
+          delayed_triggers_free_ = i;
           triggered = true;
         }
-        delayed_triggers_[i] = delay;
+      } else {
+        delayed_triggers_free_ = i;
       }
     }
 
@@ -369,7 +413,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   gate_raised_ = false;
 
   memset(delayed_triggers_, 0, sizeof(delayed_triggers_));
-  delayed_triggers_tail_ = 0;
+  delayed_triggers_free_ = delayed_triggers_next_ = 0;
 
   trigger_display_.Init();
 
@@ -393,7 +437,7 @@ const char* const cv_mapping_names[CV_MAPPING_LAST] = {
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
-  "Off", "First", "Singl", "Multi"
+  "Off", "First", "Singl", "Queue", "Multi"
 };
 
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
@@ -623,6 +667,15 @@ void ENVGEN_menu() {
     menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
     menu::QuadTitleBar::DrawGateIndicator(i, envgen.envelopes_[i].getTriggerState());
+
+
+    EnvelopeGenerator::DelayedTrigger trigger;
+    envgen.envelopes_[i].get_next_trigger(trigger);
+    if (trigger.delay) {
+      weegfx::coord_t x = menu::QuadTitleBar::ColumnStartX(i) + 28;
+      weegfx::coord_t h = (trigger.time_left * 8) / trigger.delay;
+      graphics.drawRect(x, menu::QuadTitleBar::kTextY + 7 - h, 2, 1 + h);
+    }
   }
   // If settings mode, draw level in title bar?
   menu::QuadTitleBar::Selected(envgen.ui.selected_channel);

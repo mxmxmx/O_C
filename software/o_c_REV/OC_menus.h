@@ -209,6 +209,10 @@ public:
     if (state)
       graphics.drawBitmap8(start_x + kColumnWidth * column + 1, 2, 4, OC::bitmap_gate_indicators_8 + (state << 2));
   }
+
+  inline static weegfx::coord_t ColumnStartX(int column) {
+    return start_x + kColumnWidth * column;
+  }
 };
 
 // Common, default types
