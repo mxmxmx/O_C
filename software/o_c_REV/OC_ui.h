@@ -47,7 +47,8 @@ public:
 
   void Init();
 
-  UiMode Splashscreen(bool &use_defaults);
+  UiMode Splashscreen(bool &reset_settings);
+  bool ConfirmReset();
   void DebugStats();
   void Calibrate();
   void AppSettings();

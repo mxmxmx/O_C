@@ -133,8 +133,8 @@ void setup() {
 #endif
 
   // Display splash screen and optional calibration
-  bool use_defaults = false;
-  ui_mode = OC::ui.Splashscreen(use_defaults);
+  bool reset_settings = false;
+  ui_mode = OC::ui.Splashscreen(reset_settings);
 
   if (ui_mode == OC::UI_MODE_CALIBRATE) {
     OC::ui.Calibrate();
@@ -142,7 +142,7 @@ void setup() {
   }
 
   // initialize apps
-  OC::apps::Init(use_defaults);
+  OC::apps::Init(reset_settings);
 }
 
 /*  ---------    main loop  --------  */

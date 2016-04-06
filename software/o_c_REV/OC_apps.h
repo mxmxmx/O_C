@@ -70,7 +70,7 @@ namespace apps {
 
   extern App *current_app;
 
-  void Init(bool use_defaults);
+  void Init(bool reset_settings);
 
   inline void ISR() __attribute__((always_inline));
   inline void ISR() {

@@ -206,7 +206,7 @@ int index_of(uint16_t id) {
   return i;
 }
 
-void Init(bool use_defaults) {
+void Init(bool reset_settings) {
 
   Scales::Init();
   for (auto &app : available_apps)
@@ -217,11 +217,23 @@ void Init(bool use_defaults) {
   global_settings.switch_encoders = false;
   global_settings.reverse_encoders = false;
 
-  if (use_defaults) {
-    SERIAL_PRINTLN("Skipping loading of global/app settings");
-    global_settings_storage.Init();
-    app_data_storage.Init();
-  } else {
+  if (reset_settings) {
+    if (ui.ConfirmReset()) {
+      SERIAL_PRINTLN("Erasing EEPROM settings...");
+      EEPtr d = EEPROM_GLOBALSETTINGS_START;
+      size_t len = EEPROMStorage::LENGTH - EEPROM_GLOBALSETTINGS_START;
+      while (len--)
+        *d++ = 0;
+      SERIAL_PRINTLN("...done");
+      SERIAL_PRINTLN("Skipping loading of global/app settings, using defaults...");
+      global_settings_storage.Init();
+      app_data_storage.Init();
+    } else {
+      reset_settings = false;
+    }
+  }
+
+  if (!reset_settings) {
     SERIAL_PRINTLN("Loading global settings: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
                   sizeof(GlobalSettings),
                   GlobalSettingsStorage::PAGESIZE,
@@ -345,6 +357,45 @@ void Ui::AppSettings() {
   // Restore state
   apps::current_app->HandleAppEvent(APP_EVENT_RESUME);
   CORE::app_isr_enabled = true;
+}
+
+bool Ui::ConfirmReset() {
+
+  SetButtonIgnoreMask();
+
+  bool done = false;
+  bool confirm = false;
+
+  do {
+    while (event_queue_.available()) {
+      UI::Event event = event_queue_.PullEvent();
+      if (IgnoreEvent(event))
+        continue;
+      if (CONTROL_BUTTON_R == event.control) {
+        confirm = true;
+        done = true;
+      } else if (CONTROL_BUTTON_L == event.control) {
+        confirm = false;
+        done = true;
+      }
+    }
+
+    GRAPHICS_BEGIN_FRAME(true);
+    weegfx::coord_t y = menu::CalcLineY(0);
+    graphics.setPrintPos(menu::kIndentDx, y);
+    graphics.print("[L] EXIT");
+    y += menu::kMenuLineH;
+
+    graphics.setPrintPos(menu::kIndentDx, y);
+    graphics.print("[R] RESET SETTINGS" );
+    y += menu::kMenuLineH;
+    graphics.setPrintPos(menu::kIndentDx, y);
+    graphics.print("    AND ERASE EEPROM");
+    GRAPHICS_END_FRAME();
+
+  } while (!done);
+
+  return confirm;
 }
 
 }; // namespace OC

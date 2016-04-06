@@ -107,7 +107,7 @@ UiMode Ui::DispatchEvents(App *app) {
   }
 }
 
-UiMode Ui::Splashscreen(bool &use_defaults) {
+UiMode Ui::Splashscreen(bool &reset_settings) {
 
   UiMode mode = UI_MODE_MENU;
 
@@ -121,7 +121,7 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
     if (read_immediate(CONTROL_BUTTON_R))
       mode = UI_MODE_APP_SETTINGS;
 
-    use_defaults = 
+    reset_settings = 
       read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN);
 
     now = millis();
@@ -146,8 +146,8 @@ UiMode Ui::Splashscreen(bool &use_defaults) {
 
     y += menu::kMenuLineH;
     graphics.setPrintPos(menu::kIndentDx, y + menu::kTextDy);
-    if (use_defaults)
-      graphics.print("!RESET EEPROM!");
+    if (reset_settings)
+      graphics.print("!! RESET EEPROM !!");
 
     y += menu::kMenuLineH;
     graphics.setPrintPos(menu::kIndentDx, y + menu::kTextDy);
