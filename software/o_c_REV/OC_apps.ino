@@ -76,7 +76,7 @@ struct AppChunkHeader {
 } __attribute__((packed));
 
 struct AppData {
-  static constexpr uint32_t FOURCC = FOURCC<'O','C','A',3>::value;
+  static constexpr uint32_t FOURCC = FOURCC<'O','C','A',4>::value;
 
   static constexpr size_t kAppDataSize = EEPROM_APPDATA_BINARY_SIZE;
   char data[kAppDataSize];

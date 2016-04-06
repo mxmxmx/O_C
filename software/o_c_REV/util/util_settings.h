@@ -121,6 +121,9 @@ public:
         case STORAGE_TYPE_U32: write_ptr = write_setting<uint32_t>(write_ptr, s); break;
       }
     }
+    if (nibbles_)
+      write_ptr = flush_nibbles(write_ptr);
+
     return (size_t)(write_ptr - static_cast<uint8_t *>(storage));
   }
 
@@ -151,7 +154,7 @@ protected:
   static const settings::value_attr value_attr_[];
   static const size_t storage_size_;
 
-  mutable uint32_t nibbles_;
+  mutable uint16_t nibbles_;
 
   uint8_t *flush_nibbles(uint8_t *dest) const {
     *dest++ = (nibbles_ & 0xff);
@@ -161,10 +164,10 @@ protected:
 
   uint8_t *write_nibble(uint8_t *dest, size_t index) const {
     nibbles_ = (nibbles_ << 4) | (values_[index] & 0x0f);
-    if (nibbles_ & 0xf0000000) {
+    if (nibbles_ & 0xf000) {
       dest = flush_nibbles(dest);
     } else {
-      nibbles_ |= 0x0f0000000;
+      nibbles_ |= 0x0f00;
     }
     return dest;
   }
@@ -186,10 +189,9 @@ protected:
     } else {
       nibbles_ = *src++;
       value = (nibbles_ & 0xf0) >> 4;
-      nibbles_ = nibbles_ | 0xf0000000;
+      nibbles_ = nibbles_ | 0xf000;
     }
     apply_value(index, value);
-
     return src;
   }
 
