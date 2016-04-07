@@ -143,27 +143,27 @@ class PolyLfo {
     }
   }
 
-  inline void set_a_xor_b(uint8_t xor_value) {
+  inline void set_b_xor_a(uint8_t xor_value) {
     if (xor_value) {
-      a_xor_b_ = 16 - xor_value ;
+      b_xor_a_ = 16 - xor_value ;
     } else {
-      a_xor_b_ = 0;
+      b_xor_a_ = 0;
     }
   }
 
-  inline void set_b_xor_c(uint8_t xor_value) {
+  inline void set_c_xor_a(uint8_t xor_value) {
     if (xor_value) {
-      b_xor_c_ = 16 - xor_value ;
+      c_xor_a_ = 16 - xor_value ;
     } else {
-      b_xor_c_ = 0;
+      c_xor_a_ = 0;
     }
   }
 
-  inline void set_c_xor_d(uint8_t xor_value) {
+  inline void set_d_xor_a(uint8_t xor_value) {
     if (xor_value) {
-      c_xor_d_ = 16 - xor_value ;
+      d_xor_a_ = 16 - xor_value ;
     } else {
-      c_xor_d_ = 0;
+      d_xor_a_ = 0;
     }
   }
 
@@ -186,9 +186,9 @@ class PolyLfo {
   PolyLfoFreqDivisions freq_div_b_;
   PolyLfoFreqDivisions freq_div_c_;
   PolyLfoFreqDivisions freq_div_d_;
-  uint8_t a_xor_b_ ;
-  uint8_t b_xor_c_ ;
-  uint8_t c_xor_d_ ;
+  uint8_t b_xor_a_ ;
+  uint8_t c_xor_a_ ;
+  uint8_t d_xor_a_ ;
   bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];

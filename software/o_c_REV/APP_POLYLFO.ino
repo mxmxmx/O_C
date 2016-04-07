@@ -16,9 +16,9 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_FREQ_DIV_B,
   POLYLFO_SETTING_FREQ_DIV_C,
   POLYLFO_SETTING_FREQ_DIV_D,
-  POLYLFO_SETTING_A_XOR_B,
-  POLYLFO_SETTING_B_XOR_C,
-  POLYLFO_SETTING_C_XOR_D,
+  POLYLFO_SETTING_B_XOR_A,
+  POLYLFO_SETTING_C_XOR_A,
+  POLYLFO_SETTING_D_XOR_A,
   POLYLFO_SETTING_LAST
 };
 
@@ -63,16 +63,16 @@ public:
     return static_cast<frames::PolyLfoFreqDivisions>(values_[POLYLFO_SETTING_FREQ_DIV_D]);
   }
 
-  uint8_t get_a_xor_b() const {
-    return values_[POLYLFO_SETTING_A_XOR_B];
+  uint8_t get_b_xor_a() const {
+    return values_[POLYLFO_SETTING_B_XOR_A];
   }
 
-  uint8_t get_b_xor_c() const {
-    return values_[POLYLFO_SETTING_B_XOR_C];
+  uint8_t get_c_xor_a() const {
+    return values_[POLYLFO_SETTING_C_XOR_A];
   }
 
- uint8_t get_c_xor_d() const {
-    return values_[POLYLFO_SETTING_C_XOR_D];
+ uint8_t get_d_xor_a() const {
+    return values_[POLYLFO_SETTING_D_XOR_A];
   }
   
   void Init();
@@ -126,8 +126,8 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 8, "C XOR B", xor_levels, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 8, "D XOR C", xor_levels, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U4 }, 
  };
 
 PolyLfo poly_lfo;
@@ -169,9 +169,9 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_freq_div_c(poly_lfo.get_freq_div_c());
   poly_lfo.lfo.set_freq_div_d(poly_lfo.get_freq_div_d());
 
-  poly_lfo.lfo.set_a_xor_b(poly_lfo.get_a_xor_b());
-  poly_lfo.lfo.set_b_xor_c(poly_lfo.get_b_xor_c());
-  poly_lfo.lfo.set_c_xor_d(poly_lfo.get_c_xor_d());
+  poly_lfo.lfo.set_b_xor_a(poly_lfo.get_b_xor_a());
+  poly_lfo.lfo.set_c_xor_a(poly_lfo.get_c_xor_a());
+  poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);
