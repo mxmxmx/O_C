@@ -30,6 +30,7 @@ enum TransformPriority {
 
 enum H1200Setting {
   H1200_SETTING_ROOT_OFFSET,
+  H1200_SETTING_OCTAVE,
   H1200_SETTING_MODE,
   H1200_SETTING_INVERSION,
   H1200_SETTING_TRANFORM_PRIO,
@@ -42,6 +43,10 @@ public:
 
   int root_offset() const {
     return values_[H1200_SETTING_ROOT_OFFSET];
+  }
+
+  int octave() const {
+    return values_[H1200_SETTING_OCTAVE];
   }
 
   EMode mode() const {
@@ -84,7 +89,8 @@ const char * const mode_names[] = {
 };
 
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
-  {12, -24, 36, "Transpose", NULL, settings::STORAGE_TYPE_I8},
+  {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
+  {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
   {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "Priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
@@ -210,9 +216,14 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   }
 
   // Skip the quantizer since we just want semitones
+  int transpose = h1200_settings.root_offset() + ((OC::ADC::value<ADC_CHANNEL_3>() + 63) >> 7);
+  CONSTRAIN(transpose, -24, 24);
   int32_t root =
       h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1))
-      + h1200_settings.root_offset();
+      + (transpose << 7);
+
+  int octave = h1200_settings.octave() + ((OC::ADC::value<ADC_CHANNEL_2>() + 511) >> 10);
+  CONSTRAIN(octave, -3, 3);
 
   int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
   CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
