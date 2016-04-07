@@ -260,9 +260,8 @@ public:
              }
              
              _pitch = (_pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
-             _pitch += 3 * 12 << 7; // offset for LUT range
     
-             int32_t _quantized = quantizer_.Process(_pitch, (_root + 60) << 7, TRANSPOSE_FIXED);
+             int32_t _quantized = quantizer_.Process(_pitch, _root << 7, TRANSPOSE_FIXED);
 
              if (!digitalReadFast(TR3)) _octave++;
              else if (!digitalReadFast(TR4)) _octave--;

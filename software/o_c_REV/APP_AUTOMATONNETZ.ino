@@ -397,14 +397,6 @@ void AutomatonnetzState::Reset() {
   update_outputs(true, cell_transpose_, cell_inversion_);
 }
 
-// TODO Essentially shared with H1200 
-#define AT_OUTPUT_NOTE(i,dac) \
-do { \
-  int32_t note = tonnetz_state.outputs(i) << 7; \
-  note += 3 * 12 << 7; \
-  DAC::set<dac>(DAC::pitch_to_dac(note, octave())); \
-} while (0)
-
 void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int inversion) {
 
   int32_t root =
@@ -417,7 +409,7 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
 
   switch (output_mode()) {
     case OUTPUTA_MODE_ROOT:
-      AT_OUTPUT_NOTE(0,DAC_CHANNEL_A);
+      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave()));
       break;
     case OUTPUTA_MODE_TRIG:
       if (chord_changed) {
@@ -427,16 +419,16 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
       break;
     case OUTPUTA_MODE_ARP:
     case OUTPUTA_MODE_STRUM:
-      AT_OUTPUT_NOTE(arp_index_ + 1,DAC_CHANNEL_A);
+      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(arp_index_ + 1), octave()));
       break;
     case OUTPUTA_MODE_LAST:
     default:
       break;
   }
 
-  AT_OUTPUT_NOTE(1,DAC_CHANNEL_B);
-  AT_OUTPUT_NOTE(2,DAC_CHANNEL_C);
-  AT_OUTPUT_NOTE(3,DAC_CHANNEL_D);
+  DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(1), octave()));
+  DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(2), octave()));
+  DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(3), octave()));
 }
 
 void AutomatonnetzState::update_trigger_out() {

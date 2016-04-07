@@ -202,12 +202,11 @@ public:
               // Since our range is limited anyway, just grab the last byte
               uint32_t scaled = ((shift_register & 0xff) * range) >> 8;
     
-              // TODO This is just a bodge to get things working;
-              // I think we can convert the quantizer codebook to work in a better range
-              // The same things happen in all apps that use it, so can be simplified/unified.
-              int32_t pitch = quantizer_.Lookup(64 + range / 2 - scaled);
-              pitch += (get_root() + 60) << 7;
-              //pitch += 3 * 12 << 7; // offset for LUT range
+              // The quantizer uses a lookup codebook with 128 entries centered
+              // about 0, so we use the range/scaled output to lookup a note
+              // directly instead of changing to pitch first.
+              int32_t pitch =
+                  quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
               sample = DAC::pitch_to_dac(pitch, get_octave());
             } else {
               // We dont' need a calibrated value here, really
@@ -233,9 +232,8 @@ public:
               uint32_t logistic_scaled = (logistic_map_x * range) >> 24;
 
               // See above, may need tweaking    
-              int32_t pitch = quantizer_.Lookup(64 + range / 2 - logistic_scaled);
-              pitch += (get_root() + 60) << 7;
-              //pitch += 3 * 12 << 7; // offset for LUT range
+              int32_t pitch =
+                  quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
               sample = DAC::pitch_to_dac(pitch, get_octave());
             } else {
               int octave = get_octave() + 3;
@@ -250,13 +248,14 @@ public:
       default: {
           if (update) {
             int32_t transpose = get_transpose();
-            int32_t pitch = OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
+            int32_t pitch = quantizer_.enabled()
+                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(source))
+                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
             if (index != source) {
-              transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12) >> 12;
+              transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
             }
             CONSTRAIN(transpose, -12, 12); 
-            pitch += 3 * 12 << 7; // offset for LUT range
-            sample = DAC::pitch_to_dac(quantizer_.Process(pitch, (get_root() + 60) << 7, transpose), get_octave());
+            sample = DAC::pitch_to_dac(quantizer_.Process(pitch, get_root() << 7, transpose), get_octave());
           }
         }
     } // end switch  

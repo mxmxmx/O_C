@@ -127,6 +127,28 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
+  void Render(int32_t root, int inversion, int octave, OutputMode output_mode) {
+    tonnetz_state.render(root, inversion);
+
+    switch (output_mode) {
+    case OUTPUT_CHORD_VOICING: {
+      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
+      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(1), octave));
+      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(2), octave));
+      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(3), octave));
+    }
+    break;
+    case OUTPUT_TUNE: {
+      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
+      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
+      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
+      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
+    }
+    break;
+    default: break;
+    }
+  }
+
   menu::ScreenCursor<menu::kScreenLines> cursor;
   bool display_notes;
 
@@ -137,14 +159,6 @@ public:
 
 H1200Settings h1200_settings;
 H1200State h1200_state;
-
-#define H1200_OUTPUT_NOTE(i,dac) \
-do { \
-  int32_t note = h1200_state.tonnetz_state.outputs(i); \
-  note += 3 * 12; \
-  note <<= 7; \
-  DAC::set<dac>(DAC::pitch_to_dac(note, 0)); \
-} while (0)
 
 void FASTRUN H1200_clock(uint32_t triggers) {
   // Reset has priority
@@ -203,25 +217,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
   CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
 
-  h1200_state.tonnetz_state.render(root, inversion);
-
-  switch (h1200_settings.output_mode()) {
-    case OUTPUT_CHORD_VOICING: {
-      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_A);
-      H1200_OUTPUT_NOTE(1,DAC_CHANNEL_B);
-      H1200_OUTPUT_NOTE(2,DAC_CHANNEL_C);
-      H1200_OUTPUT_NOTE(3,DAC_CHANNEL_D);
-    }
-    break;
-    case OUTPUT_TUNE: {
-      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_A);
-      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_B);
-      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_C);
-      H1200_OUTPUT_NOTE(0,DAC_CHANNEL_D);
-    }
-    break;
-    default: break;
-  }
+  h1200_state.Render(root, inversion, 0, h1200_settings.output_mode());
 
   if (triggers)
     MENU_REDRAW = 1;

@@ -47,8 +47,20 @@ public:
     return values_[index];
   }
 
+  // Calculate DAC value from semitone, where 0 = C1 = 0V, C2 = 12 = 1V
+  // Expected semitone resolution is 12 bit.
+  //
+  // @return DAC output value
+  static int32_t semitone_to_dac(int32_t semi, int32_t octave_offset) {
+    return pitch_to_dac(semi << 7, _ZERO + octave_offset);
+  }
+
+  // Calculate DAC value from pitch value with 12 * 128 bit per octave.
+  // 0 = C1 = 0V, C2 = 12 = 1V etc. Automatically shifts for LUT range.
+  //
+  // @return DAC output value
   static int32_t pitch_to_dac(int32_t pitch, int32_t octave_offset) {
-    pitch += octave_offset * 12 << 7;
+    pitch += (_ZERO + octave_offset) * 12 << 7;
     CONSTRAIN(pitch, 0, (120 << 7));
 
     const int32_t octave = pitch / (12 << 7);
