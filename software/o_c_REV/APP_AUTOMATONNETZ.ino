@@ -1,11 +1,27 @@
-#include "util/util_grid.h"
-#include "util/util_ringbuffer.h"
-#include "util/util_settings.h"
-#include "util/util_sync.h"
-#include "tonnetz/tonnetz_state.h"
-#include "OC_bitmaps.h"
-#include "OC_menus.h"
-
+// Copyright (c) 2015, 2016 Patrick Dowling, Tim Churches
+//
+// Initial app implementation: Patrick Dowling (pld@gurkenkiste.com)
+// Modifications by: Tim Churches (tim.churches@gmail.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+//
 // Drive the tonnetz transformations from a grid of cells that contain the type
 // of transformation and other goodies. Instead of stepping through the grid
 // linearly on each clock, at vector (dx, dy) is used to determine the next
@@ -38,6 +54,15 @@
 // seems acceptable there.
 //
 // TODO With fast clocking, trigger out mode might not provide a rising edge
+
+
+#include "util/util_grid.h"
+#include "util/util_ringbuffer.h"
+#include "util/util_settings.h"
+#include "util/util_sync.h"
+#include "tonnetz/tonnetz_state.h"
+#include "OC_bitmaps.h"
+#include "OC_menus.h"
 
 #define FRACTIONAL_BITS 24
 #define CLOCK_STEP_RES (0x1 << FRACTIONAL_BITS)
