@@ -192,6 +192,7 @@ class PolyLfo {
   bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];
+  int16_t wt_value_[kNumChannels];
   uint32_t phase_[kNumChannels];
   uint32_t phase_increment_ch1_;
   uint8_t level_[kNumChannels];

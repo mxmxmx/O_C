@@ -50,6 +50,7 @@ void PolyLfo::Init() {
   freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_DIV_NONE ;
   phase_reset_flag_ = false;
   std::fill(&value_[0], &value_[kNumChannels], 0);
+  std::fill(&wt_value_[0], &wt_value_[kNumChannels], 0);
   std::fill(&phase_[0], &phase_[kNumChannels], 0);
 }
 
@@ -121,15 +122,15 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     }
     const uint8_t* a = &wt_lfo_waveforms[(wavetable_index >> 12) * 257];
     const uint8_t* b = a + 257;
-    int16_t value = Crossfade(a, b, phase, wavetable_index << 4);
+    wt_value_[i] = Crossfade(a, b, phase, wavetable_index << 4);
     value_[i] = Interpolate824(sine, phase);
-    level_[i] = (value + 32768) >> 8;
+    level_[i] = (wt_value_[i] + 32768) >> 8; 
     // add bit-XOR 
     uint8_t depth_xor = xor_depths[i];
     if (depth_xor) {
-      dac_code_[i] = (value + 32768) ^ ((dac_code_[i - 1] >> depth_xor) << depth_xor) ; 
+      dac_code_[i] = (wt_value_[i] + 32768) ^ (((wt_value_[i-1] + 32768) >> depth_xor) << depth_xor) ; 
     } else {
-      dac_code_[i] = value + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
+      dac_code_[i] = wt_value_[i] + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }
     wavetable_index += shape_spread_;
   }
