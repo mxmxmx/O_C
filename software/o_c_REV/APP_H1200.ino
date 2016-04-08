@@ -245,7 +245,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   CONSTRAIN(transpose, -24, 24);
   int32_t root =
       h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1))
-      + (transpose << 7);
+      + transpose;
 
   int octave = h1200_settings.octave() + ((OC::ADC::value<ADC_CHANNEL_2>() + 511) >> 10);
   CONSTRAIN(octave, -3, 3);
