@@ -214,6 +214,7 @@ public:
   void update_enabled_settings() {
     EnvelopeSettings *settings = enabled_settings_;
 
+    *settings++ = ENV_SETTING_TYPE;
     *settings++ = ENV_SETTING_TRIGGER_INPUT;
     *settings++ = ENV_SETTING_TRIGGER_DELAY_MODE;
     if (get_trigger_delay_mode()) {
@@ -472,8 +473,7 @@ public:
       ++input;
     }
 
-    ui.left_encoder_value = 0;
-    ui.left_edit_mode = MODE_SELECT_CHANNEL;
+    ui.edit_mode = MODE_EDIT_SEGMENTS;
     ui.selected_channel = 0;
     ui.selected_segment = 0;
     ui.segment_editing = false;
@@ -495,20 +495,19 @@ public:
     envelopes_[3].Update<DAC_CHANNEL_D>(triggers, cvs);
   }
 
-  enum LeftEditMode {
-    MODE_SELECT_CHANNEL,
+  enum EnvEditMode {
+    MODE_EDIT_SEGMENTS,
     MODE_EDIT_SETTINGS
   };
 
   struct {
-    LeftEditMode left_edit_mode;
-    int left_encoder_value;
+    EnvEditMode edit_mode;
 
     int selected_channel;
     int selected_segment;
     bool segment_editing;
 
-    menu::ScreenCursor<3> cursor;
+    menu::ScreenCursor<menu::kScreenLines> cursor;
   } ui;
 
   EnvelopeGenerator &selected() {
@@ -640,23 +639,31 @@ void ENVGEN_menu_preview() {
 void ENVGEN_menu_settings() {
   auto const &env = envgen.selected();
 
-  menu::SettingsList<menu::kScreenLines - 1, 0, menu::kDefaultValueX> settings_list(envgen.ui.cursor);
+  menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(envgen.ui.cursor);
   menu::SettingsListItem list_item;
-
-  settings_list.AbsoluteLine(0, list_item);
-  list_item.SetPrintPos();
-  if (env.get_type() == envgen.ui.left_encoder_value)
-    graphics.drawBitmap8(2, list_item.y, 4, OC::bitmap_indicator_4x8);
-  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-  graphics.print(EnvelopeGenerator::value_attr(ENV_SETTING_TYPE).value_names[envgen.ui.left_encoder_value]);
 
   while (settings_list.available()) {
     const int setting = 
       env.enabled_setting_at(settings_list.Next(list_item));
+    const int value = env.get_value(setting);
+    const settings::value_attr &attr = EnvelopeGenerator::value_attr(setting);
 
-    if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
-      list_item.x += menu::kIndentDx;
-    list_item.DrawDefault(env.get_value(setting), EnvelopeGenerator::value_attr(setting));
+    switch (setting) {
+      case ENV_SETTING_TYPE:
+        list_item.SetPrintPos();
+        if (list_item.editing) {
+          menu::DrawEditIcon(6, list_item.y, value, attr);
+          graphics.movePrintPos(6, 0);
+        }
+        graphics.print(attr.value_names[value]);
+        list_item.DrawCustom();
+      break;
+      default:
+        if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
+          list_item.x += menu::kIndentDx;
+        list_item.DrawDefault(value, attr);
+      break;
+    }
   }
 }
 
@@ -680,7 +687,7 @@ void ENVGEN_menu() {
   // If settings mode, draw level in title bar?
   menu::QuadTitleBar::Selected(envgen.ui.selected_channel);
 
-  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode)
+  if (QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS == envgen.ui.edit_mode)
     ENVGEN_menu_preview();
   else
     ENVGEN_menu_settings();
@@ -698,7 +705,7 @@ void ENVGEN_lowerButton() {
 
 void ENVGEN_rightButton() {
 
-  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
+  if (QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS == envgen.ui.edit_mode) {
     envgen.ui.segment_editing = !envgen.ui.segment_editing;
   } else {
     envgen.ui.cursor.toggle_editing();
@@ -706,15 +713,12 @@ void ENVGEN_rightButton() {
 }
 
 void ENVGEN_leftButton() {
-  if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.left_edit_mode) {
-    envgen.selected().apply_value(ENV_SETTING_TYPE, envgen.ui.left_encoder_value);
-    envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_SELECT_CHANNEL;
+  if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.edit_mode) {
+    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS;
     envgen.ui.cursor.set_editing(false);
   } else {
-    envgen.ui.left_edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
-    envgen.ui.left_encoder_value = envgen.selected().get_type();
-    CONSTRAIN(envgen.ui.selected_segment, 0, envgen.selected().num_editable_segments() - 1);
-    envgen.ui.cursor.AdjustEnd(envgen.selected().num_enabled_settings() - 1);
+    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
+    envgen.ui.segment_editing = false;
   }
 }
 
@@ -739,15 +743,15 @@ void ENVGEN_handleButtonEvent(const UI::Event &event) {
 
 void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
-  if (QuadEnvelopeGenerator::MODE_SELECT_CHANNEL == envgen.ui.left_edit_mode) {
-    if (OC::CONTROL_ENCODER_L == event.control) {
-      int left_value = envgen.ui.selected_channel + event.value;
-      CONSTRAIN(left_value, 0, 3);
-      envgen.ui.selected_channel = left_value;
-      auto &selected_env = envgen.selected();
-      CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
-      envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
-    } else if (OC::CONTROL_ENCODER_R == event.control) {
+  if (OC::CONTROL_ENCODER_L == event.control) {
+    int left_value = envgen.ui.selected_channel + event.value;
+    CONSTRAIN(left_value, 0, 3);
+    envgen.ui.selected_channel = left_value;
+    auto &selected_env = envgen.selected();
+    CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
+    envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
+  } else if (OC::CONTROL_ENCODER_R == event.control) {
+    if (QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS == envgen.ui.edit_mode) {
       auto &selected_env = envgen.selected();
       if (envgen.ui.segment_editing) {
         selected_env.change_value(ENV_SETTING_SEG1_VALUE + envgen.ui.selected_segment, event.value);
@@ -756,13 +760,7 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
         CONSTRAIN(selected_segment, 0, selected_env.num_editable_segments() - 1);
         envgen.ui.selected_segment = selected_segment;
       }
-    }
-  } else {
-    if (OC::CONTROL_ENCODER_L == event.control) {
-      int left_value = envgen.ui.left_encoder_value + event.value;
-      CONSTRAIN(left_value, ENV_TYPE_FIRST, ENV_TYPE_LAST - 1);
-      envgen.ui.left_encoder_value = left_value;
-    } else if (OC::CONTROL_ENCODER_R == event.control) {
+    } else {
       if (envgen.ui.cursor.editing()) {
         auto &selected_env = envgen.selected();
         EnvelopeSettings setting = selected_env.enabled_setting_at(envgen.ui.cursor.cursor_pos());
