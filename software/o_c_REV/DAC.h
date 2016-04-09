@@ -52,7 +52,7 @@ public:
   //
   // @return DAC output value
   static int32_t semitone_to_dac(int32_t semi, int32_t octave_offset) {
-    return pitch_to_dac(semi << 7, _ZERO + octave_offset);
+    return pitch_to_dac(semi << 7, octave_offset);
   }
 
   // Calculate DAC value from pitch value with 12 * 128 bit per octave.
