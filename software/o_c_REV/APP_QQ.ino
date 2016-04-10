@@ -26,7 +26,6 @@
 // grown a little bit...
 
 #include "OC_apps.h"
-#include "OC_strings.h"
 #include "util/util_settings.h"
 #include "util/util_turing.h"
 #include "util/util_logistic_map.h"
@@ -287,9 +286,9 @@ public:
     if (changed) {
       MENU_REDRAW = 1;
       last_output_ = sample;
-      DAC::set(dac_channel, sample + get_fine());
     }
     trigger_display_.Update(1, continous ? changed : triggered);
+    DAC::set(dac_channel, sample + get_fine());
   }
 
   // Wrappers for ScaleEdit
