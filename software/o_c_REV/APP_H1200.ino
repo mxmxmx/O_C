@@ -159,21 +159,21 @@ public:
   }
 
   void Render(int32_t root, int inversion, int octave, OutputMode output_mode) {
-    tonnetz_state.render(root, inversion);
+    tonnetz_state.render(root + octave * 12, inversion);
 
     switch (output_mode) {
     case OUTPUT_CHORD_VOICING: {
-      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
-      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(1), octave));
-      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(2), octave));
-      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(3), octave));
+      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
+      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(1), 0));
+      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(2), 0));
+      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(3), 0));
     }
     break;
     case OUTPUT_TUNE: {
-      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
-      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
-      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
-      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(0), octave));
+      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
+      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
+      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
+      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
     }
     break;
     default: break;
@@ -253,7 +253,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
   CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
 
-  h1200_state.Render(root, inversion, 0, h1200_settings.output_mode());
+  h1200_state.Render(root, inversion, octave, h1200_settings.output_mode());
 
   if (triggers)
     MENU_REDRAW = 1;
@@ -388,7 +388,6 @@ void H1200_screensaver() {
   uint8_t y = 0;
   static const uint8_t x_col_0 = 66;
   static const uint8_t x_col_1 = 66 + 24;
-  static const uint8_t x_col_2 = 66 + 38;
   static const uint8_t line_h = 16;
   static const weegfx::coord_t note_circle_x = 32;
   static const weegfx::coord_t note_circle_y = 32;
@@ -400,15 +399,14 @@ void H1200_screensaver() {
   uint8_t normalized[3];
   y = 8;
   for (size_t i=0; i < 3; ++i, y += line_h) {
-    int value = outputs[i + 1];
+    int note = outputs[i + 1];
+    int octave = note / 12;
+    note = (note + 120) % 12;
+    normalized[i] = note;
 
     graphics.setPrintPos(x_col_1, y);
-    graphics.print(value / 12);
-
-    value = (value + 120) % 12;
-    graphics.setPrintPos(x_col_2, y);
-    graphics.print(OC::Strings::note_names[value]);
-    normalized[i] = value;
+    graphics.print(OC::Strings::note_names_unpadded[note]);
+    graphics.print(octave + 1);
   }
   y = 0;
 
