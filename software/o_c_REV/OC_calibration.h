@@ -14,6 +14,8 @@
 #define LUT_PRINTF(x, ...) do {} while (0)
 #endif
 
+//#define CALIBRATION_LOAD_LEGACY
+
 namespace OC {
 
 enum CalibrationFlags {

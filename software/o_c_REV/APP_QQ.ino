@@ -229,12 +229,12 @@ public:
               // directly instead of changing to pitch first.
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-              sample = DAC::pitch_to_dac(pitch, get_octave());
+              sample = DAC::pitch_to_dac(dac_channel, pitch, get_octave());
             } else {
               // We dont' need a calibrated value here, really
-              int octave = get_octave() + 3;
+              int octave = get_octave();
               CONSTRAIN(octave, 0, 6);
-              sample = OC::calibration_data.dac.octaves[octave] + (get_transpose() << 7); 
+              sample = DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
               // range is actually 120 (10 oct) but 65535 / 128 is close enough
               sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, shift_register << (32 - get_turing_length()));
               sample = USAT16(sample);
@@ -256,11 +256,11 @@ public:
               // See above, may need tweaking    
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
-              sample = DAC::pitch_to_dac(pitch, get_octave());
+              sample = DAC::pitch_to_dac(dac_channel, pitch, get_octave());
             } else {
-              int octave = get_octave() + 3;
+              int octave = get_octave();
               CONSTRAIN(octave, 0, 6);
-              sample = OC::calibration_data.dac.octaves[octave] + (get_transpose() << 7);
+              sample = DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7);
               sample += multiply_u32xu32_rshift24((static_cast<uint32_t>(range) * 65535U) >> 7, logistic_map_x);
               sample = USAT16(sample);
             }
@@ -277,7 +277,7 @@ public:
               transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
             }
             CONSTRAIN(transpose, -12, 12); 
-            sample = DAC::pitch_to_dac(quantizer_.Process(pitch, get_root() << 7, transpose), get_octave());
+            sample = DAC::pitch_to_dac(dac_channel, quantizer_.Process(pitch, get_root() << 7, transpose), get_octave());
           }
         }
     } // end switch  

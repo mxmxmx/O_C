@@ -204,18 +204,9 @@ public:
           _offset--;
 
         if (_offset) {
-
-           uint8_t _octave;
-           uint32_t _pitch;
-           for (int i = 0; i < 4; i++) {
-                // imprecise, but good enough ... ? 
-                _pitch = asr_outputs[i];
-                if (_pitch > CALIBRATION_DEFAULT_OFFSET)  {
-                    _octave = (_pitch - CALIBRATION_DEFAULT_OFFSET) / CALIBRATION_DEFAULT_STEP;
-                    if (_octave > 0 && _octave < 9) 
-                        asr_outputs[i] += OC::calibration_data.dac.octaves[_octave + _offset] - OC::calibration_data.dac.octaves[_octave];
-                }
-           } 
+          _offset = _offset * 12 << 7;
+          for (int i = 0; i < 4; i++)
+            asr_outputs[i] += _offset;
         }       
     }  
 
@@ -266,15 +257,13 @@ public:
              if (!digitalReadFast(TR3)) _octave++;
              else if (!digitalReadFast(TR4)) _octave--;
 
-             int32_t sample = DAC::pitch_to_dac(_quantized, _octave);
-
-            updateASR_indexed(_ASR, sample, _index); 
+            updateASR_indexed(_ASR, _quantized + (_octave * 12 << 7), _index); 
          }
         // write to DAC:
-        DAC::set<DAC_CHANNEL_A>(asr_outputs[0]); //  >> out 1 
-        DAC::set<DAC_CHANNEL_B>(asr_outputs[1]); //  >> out 2 
-        DAC::set<DAC_CHANNEL_C>(asr_outputs[2]); //  >> out 3  
-        DAC::set<DAC_CHANNEL_D>(asr_outputs[3]); //  >> out 4 
+        DAC::set_pitch<DAC_CHANNEL_A>(asr_outputs[0], 0); //  >> out 1 
+        DAC::set_pitch<DAC_CHANNEL_B>(asr_outputs[1], 0); //  >> out 2 
+        DAC::set_pitch<DAC_CHANNEL_C>(asr_outputs[2], 0); //  >> out 3  
+        DAC::set_pitch<DAC_CHANNEL_D>(asr_outputs[3], 0); //  >> out 4 
         MENU_REDRAW = 1;
       }
   }

@@ -16,7 +16,6 @@ static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 25000; // time out menu (in ms)
 
 #define OCTAVES 10      // # octaves
-static constexpr uint16_t _ZERO = 0x3;                                     // "zero" code < > octave 4
 #define SEMITONES (OCTAVES * 12)
 
 static constexpr unsigned long SPLASHSCREEN_DELAY_MS = 1000;
@@ -25,7 +24,7 @@ static constexpr unsigned long SPLASHSCREEN_TIMEOUT_MS = 2048;
 static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
 
 #define EEPROM_CALIBRATIONDATA_START 0
-#define EEPROM_CALIBRATIONDATA_END 64 // calibrate.ino: OCTAVES*uint16_t + ADC_CHANNEL_LAST*unit16_t = 14 * 2 = 28 -> leaves space
+#define EEPROM_CALIBRATIONDATA_END 128
 
 #define EEPROM_GLOBALSETTINGS_START EEPROM_CALIBRATIONDATA_END
 #define EEPROM_GLOBALSETTINGS_END 512

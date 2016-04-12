@@ -163,17 +163,17 @@ public:
 
     switch (output_mode) {
     case OUTPUT_CHORD_VOICING: {
-      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
-      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(1), 0));
-      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(2), 0));
-      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(3), 0));
+      DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0);
+      DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), 0);
+      DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), 0);
+      DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), 0);
     }
     break;
     case OUTPUT_TUNE: {
-      DAC::set<DAC_CHANNEL_A>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
-      DAC::set<DAC_CHANNEL_B>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
-      DAC::set<DAC_CHANNEL_C>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
-      DAC::set<DAC_CHANNEL_D>(DAC::semitone_to_dac(tonnetz_state.outputs(0), 0));
+      DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0);
+      DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(0), 0);
+      DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(0), 0);
+      DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(0), 0);
     }
     break;
     default: break;
