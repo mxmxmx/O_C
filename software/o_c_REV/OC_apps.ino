@@ -32,7 +32,6 @@
   isr \
 }
 
-#define ASR_screensaver OC::screensaver
 #define QQ_screensaver OC::screensaver
 // #define ENVGEN_screensaver screensaver
 

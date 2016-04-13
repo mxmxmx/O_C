@@ -3,6 +3,7 @@
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
+#include "OC_visualfx.h"
 #include "extern/dspinst.h"
 
 namespace menu = OC::menu; // Ugh. This works for all .ino files
@@ -41,6 +42,7 @@ typedef struct ASRbuf
 
 class ASR : public settings::SettingsBase<ASR, ASR_SETTING_LAST> {
 public:
+  static constexpr size_t kHistoryDepth = 5;
 
   int get_scale() const {
     return values_[ASR_SETTING_SCALE];
@@ -110,6 +112,8 @@ public:
     }
 
     clock_display_.Init();
+    for (auto &sh : scrolling_history_)
+      sh.Init();
   }
 
   bool update_scale(bool force, int32_t mask_rotate) {
@@ -277,17 +281,26 @@ public:
 
              updateASR_indexed(_ASR, _quantized, _index); 
          }
-        // write to DAC:
-        DAC::set_pitch<DAC_CHANNEL_A>(asr_outputs[0], 0); //  >> out 1 
-        DAC::set_pitch<DAC_CHANNEL_B>(asr_outputs[1], 0); //  >> out 2 
-        DAC::set_pitch<DAC_CHANNEL_C>(asr_outputs[2], 0); //  >> out 3  
-        DAC::set_pitch<DAC_CHANNEL_D>(asr_outputs[3], 0); //  >> out 4 
+
+        for (int i = 0; i < 4; ++i) {
+          int32_t sample = DAC::pitch_to_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0);
+          scrolling_history_[i].Push(sample);
+          DAC::set(static_cast<DAC_CHANNEL>(i), sample);
+        }
+
         MENU_REDRAW = 1;
       }
+
+      for (auto &sh : scrolling_history_)
+        sh.Update();
   }
 
   uint8_t clockState() const {
     return clock_display_.getState();
+  }
+
+  const OC::vfx::ScrollingHistory<kHistoryDepth> &history(int i) const {
+    return scrolling_history_[i];
   }
 
 private:
@@ -300,6 +313,8 @@ private:
   int32_t asr_outputs[4];  
   ASRbuf *_ASR;
   OC::DigitalInputDisplay clock_display_;
+
+  OC::vfx::ScrollingHistory<kHistoryDepth> scrolling_history_[4];
 };
 
 const char* const mult[20] = {
@@ -485,4 +500,56 @@ void ASR_menu() {
 
   if (asr_state.scale_editor.active())  
     asr_state.scale_editor.Draw();
+}
+
+uint16_t channel_history[ASR::kHistoryDepth];
+
+void ASR_screensaver() {
+
+// Possible variants (w x h)
+// 4 x 32x64 px
+// 4 x 64x32 px
+// "Somehow" overlapping?
+// Normalize history to within one octave? That would make steps more visisble for small ranges
+// "Zoomed view" to fit range of history...
+
+  for (int i = 0; i < 4; ++i) {
+    asr.history(i).Read(channel_history);
+    uint32_t scroll_pos = asr.history(i).get_scroll_pos() >> 5;
+    
+    int pos = 0;
+    weegfx::coord_t x = i * 32, y;
+
+    y = 63 - ((channel_history[pos++] >> 10) & 0x3f);
+    graphics.drawHLine(x, y, scroll_pos);
+    x += scroll_pos;
+    graphics.drawVLine(x, y, 3);
+
+    weegfx::coord_t last_y = y;
+    for (int c = 0; c < 3; ++c) {
+      y = 63 - ((channel_history[pos++] >> 10) & 0x3f);
+      graphics.drawHLine(x, y, 8);
+      if (y == last_y)
+        graphics.drawVLine(x, y, 2);
+      else if (y < last_y)
+        graphics.drawVLine(x, y, last_y - y + 1);
+      else
+        graphics.drawVLine(x, last_y, y - last_y + 1);
+      x += 8;
+      last_y = y;
+//      graphics.drawVLine(x, y, 3);
+    }
+
+    y = 63 - ((channel_history[pos++] >> 10) & 0x3f);
+//    graphics.drawHLine(x, y, 8 - scroll_pos);
+    graphics.drawRect(x, y, 8 - scroll_pos, 2);
+    if (y == last_y)
+      graphics.drawVLine(x, y, 3);
+    else if (y < last_y)
+      graphics.drawVLine(x, y, last_y - y + 1);
+    else
+      graphics.drawVLine(x, last_y, y - last_y + 1);
+//    x += 8 - scroll_pos;
+//    graphics.drawVLine(x, y, 3);
+  }
 }

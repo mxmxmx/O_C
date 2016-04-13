@@ -78,9 +78,8 @@ public:
   }
 
   // Set channel to pitch value
-  template <DAC_CHANNEL channel>
-  static void set_pitch(int32_t pitch, int32_t octave_offset) {
-    set<channel>(pitch_to_dac(channel, pitch, octave_offset));
+  static void set_pitch(DAC_CHANNEL channel, int32_t pitch, int32_t octave_offset) {
+    set(channel, pitch_to_dac(channel, pitch, octave_offset));
   }
 
   // Set integer voltage value, where 0 = 0V, 1 = 1V
