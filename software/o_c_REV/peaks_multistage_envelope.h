@@ -52,6 +52,7 @@ enum EnvelopeShape {
 
 const uint16_t kMaxNumSegments = 8;
 const uint32_t kPreviewWidth = 128;
+const uint32_t kFastPreviewWidth = 64;
 
 class MultistageEnvelope {
  public:
@@ -333,6 +334,11 @@ class MultistageEnvelope {
   // Render preview, normalized to kPreviewWidth pixels width
   // NOTE Lives dangerously and uses live values that might be updated by ISR
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const;
+
+  // Render fast preview, normalized to kFastPreviewWidth, and only includes
+  // points up to the current phase.
+  // Also likes to live dangerously
+  uint16_t RenderFastPreview(int16_t *values) const;
 
  private:
   int16_t level_[kMaxNumSegments];

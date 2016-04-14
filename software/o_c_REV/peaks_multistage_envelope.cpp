@@ -148,4 +148,56 @@ uint16_t MultistageEnvelope::RenderPreview(
   return current_pos;
 }
 
+uint16_t MultistageEnvelope::RenderFastPreview(int16_t *values) const {
+
+  const uint16_t num_segments = num_segments_;
+  const uint16_t current_segment = segment_;
+  const uint16_t sustain_point = sustain_point_;
+  const uint16_t sustain_index = sustain_index_;
+  const uint32_t phase = phase_;
+  int32_t start_value = level_[0];
+
+  const uint16_t segment_width = sustain_point
+    ? (2 * kFastPreviewWidth) / (2 * num_segments + 1)
+    : kFastPreviewWidth / num_segments;
+
+  int16_t *current_pos = values;
+  if (current_segment != num_segments) {
+    for (uint16_t segment = 0; segment <= current_segment; ++segment) {
+
+      if (sustain_point && segment == sustain_point) {
+        // Sustain points are half as wide as normal segments
+        uint16_t w = segment_width / 2;
+        while (w--)
+          *current_pos++ = start_value;
+      }
+
+      uint32_t segment_w = time_[segment] * segment_width >> 16; // segment_width
+      if (segment_w < 1) segment_w = 1;
+
+      const bool phase_in_segment = segment == current_segment;
+      uint16_t w = segment_w;
+      if (phase_in_segment)
+        w = (((phase >> 24) * segment_w) / 256);
+
+      uint32_t phase = 0, phase_increment = (0xff << 24) / segment_w;
+      int32_t a = start_value;
+      int32_t b = level_[segment + 1];
+      while (w--) {
+        uint16_t t = Interpolate824(
+            lookup_table_table[LUT_ENV_LINEAR + shape_[segment]], phase);
+        *current_pos++ = a + ((b - a) * (t >> 1) >> 15);
+        phase += phase_increment;
+      }
+      start_value = b;
+
+      if (phase_in_segment)
+        break;
+    }
+  }
+
+  return current_pos - values;
+}
+
+
 }  // namespace peaks

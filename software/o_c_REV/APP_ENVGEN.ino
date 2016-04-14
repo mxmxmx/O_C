@@ -375,6 +375,10 @@ public:
     return env_.RenderPreview(values, segment_start_points, loop_points, current_phase);
   }
 
+  uint16_t RenderFastPreview(int16_t *values) const {
+    return env_.RenderFastPreview(values);
+  }
+
   uint8_t getTriggerState() const {
     return trigger_display_.getState();
   }
@@ -812,8 +816,36 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
+int16_t fast_preview_values[peaks::kFastPreviewWidth];
+
+template <int index, weegfx::coord_t startx, weegfx::coord_t y>
+void RenderFastPreview() {
+  uint16_t w = envgen.envelopes_[index].RenderFastPreview(fast_preview_values);
+  weegfx::coord_t x = startx;
+  const int16_t *values = fast_preview_values;
+  while (w--) {
+    const int16_t value = *values++ >> 10;
+    graphics.drawVLine(x++, y - value, value + 1);
+  }
+}
+
 void ENVGEN_screensaver() {
+#ifdef ENVGEN_DEBUG_SCREENSAVER
+  debug::CycleMeasurement render_cycles;
+#endif
+
+  RenderFastPreview<0, 0, 31>();
+  RenderFastPreview<1, 64, 31>();
+  RenderFastPreview<2, 0, 63>();
+  RenderFastPreview<3, 64, 63>();
+
   OC::scope_render();
+
+#ifdef ENVGEN_DEBUG_SCREENSAVER
+  uint32_t us = debug::cycles_to_us(render_cycles.read());
+  graphics.setPrintPos(2, 56);
+  graphics.printf("%u",  us);
+#endif
 }
 
 void FASTRUN ENVGEN_isr() {
