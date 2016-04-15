@@ -49,6 +49,7 @@ enum EnvelopeSettings {
   ENV_SETTING_SEG4_VALUE,
   ENV_SETTING_TRIGGER_INPUT,
   ENV_SETTING_TRIGGER_DELAY_MODE,
+  ENV_SETTING_TRIGGER_DELAY_COUNT,
   ENV_SETTING_TRIGGER_DELAY_MILLISECONDS,
   ENV_SETTING_TRIGGER_DELAY_SECONDS,
   ENV_SETTING_EUCLIDEAN_LENGTH,
@@ -90,8 +91,6 @@ enum EnvelopeType {
 
 enum TriggerDelayMode {
   TRIGGER_DELAY_OFF,
-  TRIGGER_DELAY_FIRST, // Delay single trigger, additional triggers within delay time ignored
-  TRIGGER_DELAY_LASTT, // Delay single trigger, further triggers within delay reset delay
   TRIGGER_DELAY_QUEUE, // Queue up to kMaxDelayedTriggers delays, additional triggers ignored
   TRIGGER_DELAY_RING,  // Queue up to kMaxDelayedTriggers delays, additional triggers overwrite oldest
   TRIGGER_DELAY_LAST
@@ -144,6 +143,10 @@ public:
 
   uint8_t get_euclidean_offset() const {
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
+  }
+
+  int get_trigger_delay_count() const {
+    return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
   }
 
   CVMapping get_cv1_mapping() const {
@@ -234,6 +237,7 @@ public:
     *settings++ = ENV_SETTING_TRIGGER_INPUT;
     *settings++ = ENV_SETTING_TRIGGER_DELAY_MODE;
     if (get_trigger_delay_mode()) {
+      *settings++ = ENV_SETTING_TRIGGER_DELAY_COUNT;
       *settings++ = ENV_SETTING_TRIGGER_DELAY_MILLISECONDS;
       *settings++ = ENV_SETTING_TRIGGER_DELAY_SECONDS;
     }
@@ -260,6 +264,7 @@ public:
 
   static bool indentSetting(EnvelopeSettings setting) {
     switch (setting) {
+      case ENV_SETTING_TRIGGER_DELAY_COUNT:
       case ENV_SETTING_TRIGGER_DELAY_SECONDS:
       case ENV_SETTING_TRIGGER_DELAY_MILLISECONDS:
       case ENV_SETTING_EUCLIDEAN_FILL:
@@ -333,28 +338,17 @@ public:
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
       uint32_t delay = get_trigger_delay_ms() * 1000U;
       if (delay_mode && delay) {
-        switch (delay_mode) {
-        case TRIGGER_DELAY_FIRST:
-          if (!delayed_triggers_[0].time_left)
-            delayed_triggers_[0].Activate(delay);
-          break;
-        case TRIGGER_DELAY_LASTT: // sic
-          delayed_triggers_[0].Activate(delay);
-          break;
-        case TRIGGER_DELAY_QUEUE:
-          if (delayed_triggers_free_ < kMaxDelayedTriggers)
+        triggered = false;
+        if (TRIGGER_DELAY_QUEUE == delay_mode) {
+          if (delayed_triggers_free_ < get_trigger_delay_count())
             delayed_triggers_[delayed_triggers_free_].Activate(delay);
-          break;
-        case TRIGGER_DELAY_RING:
+        } else { // TRIGGER_DELAY_RING
           // Assume these are mostly in order, so the "next" is also the oldest
-          if (delayed_triggers_free_ < kMaxDelayedTriggers)
+          if (delayed_triggers_free_ < get_trigger_delay_count())
             delayed_triggers_[delayed_triggers_free_].Activate(delay);
           else
             delayed_triggers_[delayed_triggers_next_].Activate(delay);
-          break;
-        default: break;
         }
-        triggered = false;
       }
     }
 
@@ -412,7 +406,8 @@ private:
     delayed_triggers_next_ = 0;
     uint32_t min_time_left = -1;
 
-    for (size_t i = 0; i < kMaxDelayedTriggers; ++i) {
+    size_t i = kMaxDelayedTriggers;
+    while (i--) {
       DelayedTrigger &trigger = delayed_triggers_[i];
       uint32_t time_left = trigger.time_left;
       if (time_left) {
@@ -470,7 +465,7 @@ const char* const cv_mapping_names[CV_MAPPING_LAST] = {
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
-  "Off", "First", "Last", "Queue", "Ring"
+  "Off", "Queue", "Ring"
 };
 
 const char* const euclidean_lengths[] = {
@@ -488,6 +483,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
   { TRIGGER_DELAY_OFF, TRIGGER_DELAY_OFF, TRIGGER_DELAY_LAST - 1, "Tr delay mode", trigger_delay_modes, settings::STORAGE_TYPE_U4 },
+  { 1, 1, EnvelopeGenerator::kMaxDelayedTriggers, "Tr delay count", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
