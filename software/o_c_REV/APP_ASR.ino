@@ -251,13 +251,20 @@ public:
              }
              
              _pitch = (_pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
-    
+            
              int32_t _quantized = quantizer_.Process(_pitch, _root << 7, TRANSPOSE_FIXED);
 
              if (!digitalReadFast(TR3)) _octave++;
              else if (!digitalReadFast(TR4)) _octave--;
 
-            updateASR_indexed(_ASR, _quantized + (_octave * 12 << 7), _index); 
+             _quantized += (_octave * 12 << 7);
+             // limit: 
+             while (_quantized < 0) 
+             {
+                _quantized += 12 << 7;
+             }
+
+             updateASR_indexed(_ASR, _quantized, _index); 
          }
         // write to DAC:
         DAC::set_pitch<DAC_CHANNEL_A>(asr_outputs[0], 0); //  >> out 1 
