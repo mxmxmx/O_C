@@ -32,6 +32,7 @@
 #include "util/util_math.h"
 #include "util/util_settings.h"
 #include "peaks_multistage_envelope.h"
+#include "bjorklund.h"
 
 // peaks::MultistageEnvelope allow setting of more parameters per stage, but
 // that will involve more editing code, so keeping things simple for now
@@ -50,6 +51,9 @@ enum EnvelopeSettings {
   ENV_SETTING_TRIGGER_DELAY_MODE,
   ENV_SETTING_TRIGGER_DELAY_MILLISECONDS,
   ENV_SETTING_TRIGGER_DELAY_SECONDS,
+  ENV_SETTING_EUCLIDEAN_LENGTH,
+  ENV_SETTING_EUCLIDEAN_FILL,
+  ENV_SETTING_EUCLIDEAN_OFFSET,
   ENV_SETTING_CV1,
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
@@ -97,7 +101,7 @@ class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_S
 public:
 
   static constexpr int kMaxSegments = 4;
-  static constexpr size_t kMaxDelayedTriggers = 4;
+  static constexpr size_t kMaxDelayedTriggers = 32;
 
   struct DelayedTrigger {
     uint32_t delay;
@@ -128,6 +132,18 @@ public:
 
   TriggerDelayMode get_trigger_delay_mode() const {
     return static_cast<TriggerDelayMode>(values_[ENV_SETTING_TRIGGER_DELAY_MODE]);
+  }
+
+  uint8_t get_euclidean_length() const {
+    return values_[ENV_SETTING_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_euclidean_fill() const {
+    return values_[ENV_SETTING_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_euclidean_offset() const {
+    return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
   }
 
   CVMapping get_cv1_mapping() const {
@@ -221,6 +237,12 @@ public:
       *settings++ = ENV_SETTING_TRIGGER_DELAY_MILLISECONDS;
       *settings++ = ENV_SETTING_TRIGGER_DELAY_SECONDS;
     }
+    
+    *settings++ = ENV_SETTING_EUCLIDEAN_LENGTH;
+    if (get_euclidean_length()) {
+      *settings++ = ENV_SETTING_EUCLIDEAN_FILL;
+      *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
+    }
 
     *settings++ = ENV_SETTING_ATTACK_SHAPE;
     *settings++ = ENV_SETTING_DECAY_SHAPE;
@@ -240,6 +262,8 @@ public:
     switch (setting) {
       case ENV_SETTING_TRIGGER_DELAY_SECONDS:
       case ENV_SETTING_TRIGGER_DELAY_MILLISECONDS:
+      case ENV_SETTING_EUCLIDEAN_FILL:
+      case ENV_SETTING_EUCLIDEAN_OFFSET:
         return true;
       default:
       break;
@@ -299,6 +323,12 @@ public:
 
     trigger_display_.Update(1, triggered || gate_raised_);
 
+    if (triggered) ++euclidean_counter_;
+    uint8_t euclidean_length = get_euclidean_length();
+    if (euclidean_length && !EuclideanFilter(euclidean_length, get_euclidean_fill(), get_euclidean_offset(), euclidean_counter_)) {
+      triggered = false;
+    }
+      
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
       uint32_t delay = get_trigger_delay_ms() * 1000U;
@@ -308,7 +338,7 @@ public:
           if (!delayed_triggers_[0].time_left)
             delayed_triggers_[0].Activate(delay);
           break;
-        case TRIGGER_DELAY_LASTT:
+        case TRIGGER_DELAY_LASTT: // sic
           delayed_triggers_[0].Activate(delay);
           break;
         case TRIGGER_DELAY_QUEUE:
@@ -364,7 +394,8 @@ private:
   peaks::MultistageEnvelope env_;
   EnvelopeType last_type_;
   bool gate_raised_;
-
+  uint32_t euclidean_counter_;
+  
   DelayedTrigger delayed_triggers_[kMaxDelayedTriggers];
   size_t delayed_triggers_free_;
   size_t delayed_triggers_next_;
@@ -412,6 +443,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   env_.Init();
   last_type_ = ENV_TYPE_LAST;
   gate_raised_ = false;
+  euclidean_counter_ = 0;
 
   memset(delayed_triggers_, 0, sizeof(delayed_triggers_));
   delayed_triggers_free_ = delayed_triggers_next_ = 0;
@@ -441,6 +473,13 @@ const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
   "Off", "First", "Last", "Queue", "Ring"
 };
 
+const char* const euclidean_lengths[] = {
+  "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
+  " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
+  " 21", " 12", " 23", " 24", " 25", " 26", " 27", " 28", " 29", " 30",
+  " 31", " 32",
+};
+
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
@@ -451,6 +490,9 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { TRIGGER_DELAY_OFF, TRIGGER_DELAY_OFF, TRIGGER_DELAY_LAST - 1, "Tr delay mode", trigger_delay_modes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
@@ -765,7 +807,7 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
         auto &selected_env = envgen.selected();
         EnvelopeSettings setting = selected_env.enabled_setting_at(envgen.ui.cursor.cursor_pos());
         selected_env.change_value(setting, event.value);
-        if (ENV_SETTING_TRIGGER_DELAY_MODE == setting)
+        if (ENV_SETTING_TRIGGER_DELAY_MODE == setting || ENV_SETTING_EUCLIDEAN_LENGTH == setting)
           selected_env.update_enabled_settings();
       } else {
         envgen.ui.cursor.Scroll(event.value);
