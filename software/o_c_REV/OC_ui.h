@@ -77,6 +77,11 @@ public:
     }
   }
 
+  inline void reverse_encoders(bool reverse) {
+    encoder_left_.reverse(reverse);
+    encoder_right_.reverse(reverse);
+  }
+
   inline uint32_t idle_time() const {
     return event_queue_.idle_time();
   }

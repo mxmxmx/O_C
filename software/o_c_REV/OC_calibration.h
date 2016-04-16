@@ -19,6 +19,7 @@
 namespace OC {
 
 enum CalibrationFlags {
+  CALIBRATION_FLAG_ENCODERS_REVERSED = (0x1 << 0)
 };
 
 struct CalibrationData {
@@ -31,6 +32,17 @@ struct CalibrationData {
   uint32_t flags;
   uint32_t reserved0;
   uint32_t reserved1;
+
+  bool encoders_reversed() const {
+  	return flags & CALIBRATION_FLAG_ENCODERS_REVERSED;
+  }
+
+  void reverse_encoders() {
+    if (flags & CALIBRATION_FLAG_ENCODERS_REVERSED)
+      flags &= ~flags & CALIBRATION_FLAG_ENCODERS_REVERSED;
+    else
+      flags |= CALIBRATION_FLAG_ENCODERS_REVERSED;
+  }
 };
 
 typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_END, CalibrationData> CalibrationStorage;

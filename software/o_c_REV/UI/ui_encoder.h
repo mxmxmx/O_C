@@ -47,6 +47,7 @@ public:
     pinMode(PINB, pin_mode);
 
     acceleration_enabled_ = acceleration_enabled;
+    reversed_ = false;
     last_dir_ = 0;
     acceleration_ = 0;
     pin_state_[0] = pin_state_[1] = 0xff;
@@ -62,6 +63,10 @@ public:
       acceleration_enabled_ = b;
       acceleration_ = 0;
     }
+  }
+
+  void reverse(bool reversed) {
+    reversed_ = reversed;
   }
 
   inline int32_t Read() {
@@ -87,6 +92,8 @@ public:
     }
 
     if (i) {
+      if (reversed_)
+        i = -i;
       if (acceleration_enabled_) {
         if (i != last_dir_) {
           // We've stored the pre-acceleration value so don't need to actually check the signs.
@@ -111,6 +118,7 @@ public:
 
 private:
   bool acceleration_enabled_;
+  bool reversed_;
   int32_t last_dir_;
   int32_t acceleration_;
   uint8_t pin_state_[2];

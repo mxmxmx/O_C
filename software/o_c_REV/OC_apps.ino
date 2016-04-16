@@ -58,8 +58,8 @@ struct GlobalSettings {
   static constexpr uint32_t FOURCC = FOURCC<'O','C','S',2>::value;
 
   bool encoders_enable_acceleration;
-  bool reverse_encoders;
-  bool switch_encoders;
+  bool reserved0;
+  bool reserved1;
 
   uint16_t current_app_id;
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
@@ -214,8 +214,8 @@ void Init(bool reset_settings) {
 
   global_settings.current_app_id = DEFAULT_APP_ID;
   global_settings.encoders_enable_acceleration = OC_ENCODERS_ENABLE_ACCELERATION_DEFAULT;
-  global_settings.switch_encoders = false;
-  global_settings.reverse_encoders = false;
+  global_settings.reserved0 = false;
+  global_settings.reserved1 = false;
 
   if (reset_settings) {
     if (ui.ConfirmReset()) {

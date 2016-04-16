@@ -33,7 +33,7 @@ const OC::CalibrationData kCalibrationDefaults = {
   },
   // display_offset
   SH1106_128x64_Driver::kDefaultOffset,
-  0, // flags
+  OC_CALIBRATION_DEFAULT_FLAGS,
   0, 0 // reserved
 };
 //const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
@@ -275,6 +275,10 @@ void OC::Ui::Calibrate() {
         case CONTROL_ENCODER_R:
           calibration_state.encoder_value += event.value;
           break;
+        case CONTROL_BUTTON_DOWN:
+          SERIAL_PRINTLN("Reversing encoders...");
+          calibration_data.reverse_encoders();
+          reverse_encoders(calibration_data.encoders_reversed());
         default:
           break;
       }
