@@ -122,15 +122,16 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     }
     const uint8_t* a = &wt_lfo_waveforms[(wavetable_index >> 12) * 257];
     const uint8_t* b = a + 257;
-    wt_value_[i] = Crossfade(a, b, phase, wavetable_index << 4);
+    int32_t unscaled_wt_value = Crossfade(a, b, phase, wavetable_index << 4) + 32768;
+    wt_value_[i] = (unscaled_wt_value * amplitude_scalings_[i]) >> 16;
     value_[i] = Interpolate824(sine, phase);
-    level_[i] = (wt_value_[i] + 32768) >> 8; 
+    level_[i] = unscaled_wt_value >> 8; 
     // add bit-XOR 
     uint8_t depth_xor = xor_depths[i];
     if (depth_xor) {
-      dac_code_[i] = (wt_value_[i] + 32768) ^ (((wt_value_[0] + 32768) >> depth_xor) << depth_xor) ; 
+      dac_code_[i] = wt_value_[i] ^ ((wt_value_[0] >> depth_xor) << depth_xor) ; 
     } else {
-      dac_code_[i] = wt_value_[i] + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
+      dac_code_[i] = wt_value_[i]; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }
     wavetable_index += shape_spread_;
   }

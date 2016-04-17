@@ -170,7 +170,14 @@ class PolyLfo {
   inline uint8_t level(uint8_t index) const {
     return level_[index];
   }
- 
+
+  inline void set_amplitude_scalings(uint16_t amp_scaling_a, uint16_t amp_scaling_b, uint16_t amp_scaling_c, uint16_t amp_scaling_d) {
+    amplitude_scalings_[0] = amp_scaling_a;
+    amplitude_scalings_[1] = amp_scaling_b;
+    amplitude_scalings_[2] = amp_scaling_c;
+    amplitude_scalings_[3] = amp_scaling_d;
+  }
+
   inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
@@ -186,13 +193,14 @@ class PolyLfo {
   PolyLfoFreqDivisions freq_div_b_;
   PolyLfoFreqDivisions freq_div_c_;
   PolyLfoFreqDivisions freq_div_d_;
+  uint16_t amplitude_scalings_[kNumChannels];
   uint8_t b_xor_a_ ;
   uint8_t c_xor_a_ ;
   uint8_t d_xor_a_ ;
   bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];
-  int16_t wt_value_[kNumChannels];
+  int32_t wt_value_[kNumChannels];
   uint32_t phase_[kNumChannels];
   uint32_t phase_increment_ch1_;
   uint8_t level_[kNumChannels];
