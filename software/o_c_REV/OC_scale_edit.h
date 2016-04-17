@@ -59,6 +59,8 @@ public:
   void HandleButtonEvent(const UI::Event &event);
   void HandleEncoderEvent(const UI::Event &event);
 
+  static uint16_t RotateMask(uint16_t mask, int num_notes, int amount);
+
 private:
 
   Owner *owner_;
@@ -76,9 +78,6 @@ private:
 
   void toggle_mask();
   void invert_mask(); 
-
-  uint16_t rol_mask(int count);
-  uint16_t ror_mask(int count);
 
   void apply_mask(uint16_t mask) {
     if (mask_ != mask) {
@@ -210,10 +209,7 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     }
 
     if (!handled) {
-      if (event.value < 0)
-        mask = ror_mask(-event.value);
-      else
-        mask = rol_mask(event.value);
+      mask = RotateMask(mask_, num_notes_, event.value);
     }
   }
 
@@ -284,23 +280,18 @@ void ScaleEditor<Owner>::invert_mask() {
 }
 
 template <typename Owner>
-uint16_t ScaleEditor<Owner>::rol_mask(int count) {
-  uint16_t m = ~(0xffffU << num_notes_);
-  uint16_t mask = mask_ & m;
-  while (count--)
-    mask = (mask << 1) | ((mask >> (num_notes_ - 1)) & 0x1);
-  mask |= ~m;
-  return mask;
-}
+/*static*/ uint16_t ScaleEditor<Owner>::RotateMask(uint16_t mask, int num_notes, int amount) {
+  uint16_t used_bits = ~(0xffffU << num_notes);
+  mask &= used_bits;
 
-template <typename Owner>
-uint16_t ScaleEditor<Owner>::ror_mask(int count) {
-  uint16_t m = ~(0xffffU << num_notes_);
-  uint16_t mask = mask_ & m;
-  while (count--)
-    mask = (mask >> 1) | ((mask & 0x1) << (num_notes_ - 1));
-  mask |= ~m;
-  return mask;
+  if (amount < 0) {
+    amount = -amount % num_notes;
+    mask = (mask >> amount) | (mask << (num_notes - amount));
+  } else {
+    amount = amount % num_notes;
+    mask = (mask << amount) | (mask >> (num_notes - amount));
+  }
+  return mask | ~used_bits; // fill upper bits
 }
 
 template <typename Owner>
