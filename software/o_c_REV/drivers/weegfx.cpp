@@ -226,6 +226,42 @@ void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
   }
 }
 
+void Graphics::drawVLinePattern(coord_t x, coord_t y, coord_t h, uint8_t pattern) {
+
+  CLIPY(y, h);
+  uint8_t *buf = get_frame_ptr(x, y);
+
+  // unaligned start
+  coord_t remainder = y & 0x7;
+  if (remainder) {
+    remainder = 8 - remainder;
+    uint8_t mask = ~(0xff >> remainder);
+    if (h < remainder) {
+      mask &= (pattern >> (remainder - h));
+      h = 0;
+    } else {
+      h -= remainder;
+    }
+
+    *buf |= (mask & pattern);
+    buf += kWidth;
+  }
+
+  // aligned loop
+  remainder = h & 0x7;
+  h >>= 3;
+  while (h--) {
+    *buf = pattern; // FIXME this is probably not aligned right
+    buf += kWidth;
+  }
+
+  // unaligned remainder
+  if (remainder) {
+    *buf |= ~(pattern << remainder);
+  }
+}
+
+
 void Graphics::drawBitmap8(coord_t x, coord_t y, coord_t w, const uint8_t *data) {
 
   if (x + w > kWidth) w = kWidth - x;

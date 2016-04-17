@@ -161,7 +161,7 @@ public:
     force_update_ = true;
     last_scale_ = -1;
     last_mask_ = 0;
-    last_output_ = 0;
+    last_sample_ = 0;
     trigger_delay_ = 0;
     clock_ = 0;
 
@@ -171,6 +171,8 @@ public:
     update_scale(true);
     trigger_display_.Init();
     update_enabled_settings();
+
+    scrolling_history_.Init(DAC::kOctaveZero * 12 << 7);
   }
 
   void force_update() {
@@ -202,11 +204,12 @@ public:
     }
     trigger_delay_ = trigger_delay;
 
-    bool update = forced_update || continous || triggered;
+    bool update = continous || triggered;
     if (update_scale(forced_update))
       update = true;
 
-    int32_t sample = last_output_;
+    int32_t sample = last_sample_;
+    int32_t history_sample = 0;
 
     switch (source) {
       case CHANNEL_SOURCE_TURING: {
@@ -230,6 +233,7 @@ public:
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
               sample = DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              history_sample = pitch + ((DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               // We dont' need a calibrated value here, really
               int octave = get_octave();
@@ -238,7 +242,8 @@ public:
               // range is actually 120 (10 oct) but 65535 / 128 is close enough
               sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, shift_register << (32 - get_turing_length()));
               sample = USAT16(sample);
-            }  
+              history_sample = sample;
+            }
           }
         }
         break;
@@ -257,12 +262,14 @@ public:
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
               sample = DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              history_sample = pitch + ((DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               int octave = get_octave();
               CONSTRAIN(octave, 0, 6);
               sample = DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7);
               sample += multiply_u32xu32_rshift24((static_cast<uint32_t>(range) * 65535U) >> 7, logistic_map_x);
               sample = USAT16(sample);
+              history_sample = sample;
             }
           }
         }
@@ -277,18 +284,27 @@ public:
               transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
             }
             CONSTRAIN(transpose, -12, 12); 
-            sample = DAC::pitch_to_dac(dac_channel, quantizer_.Process(pitch, get_root() << 7, transpose), get_octave());
+            const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
+            sample = DAC::pitch_to_dac(dac_channel, quantized, get_octave());
+            history_sample = quantized + ((DAC::kOctaveZero + get_octave()) * 12 << 7);
           }
         }
     } // end switch  
 
-    bool changed = last_output_ != sample;
+    bool changed = last_sample_ != sample;
     if (changed) {
       MENU_REDRAW = 1;
-      last_output_ = sample;
+      last_sample_ = sample;
     }
-    trigger_display_.Update(1, continous ? changed : triggered);
     DAC::set(dac_channel, sample + get_fine());
+
+    if (triggered || (continous && changed)) {
+      scrolling_history_.Push(history_sample);
+      trigger_display_.Update(1, true);
+    } else {
+      trigger_display_.Update(1, false);
+    }
+    scrolling_history_.Update();
   }
 
   // Wrappers for ScaleEdit
@@ -311,6 +327,10 @@ public:
 
   uint32_t get_shift_register() const {
     return turing_machine_.get_shift_register();
+  }
+
+  uint32_t get_logistic_map_register() const {
+    return logistic_map_.get_register();
   }
 
   // Maintain an internal list of currently available settings, since some are
@@ -375,11 +395,15 @@ public:
     return false;
   }
 
+  //
+
+  void RenderScreensaver(weegfx::coord_t x) const;
+
 private:
   bool force_update_;
   int last_scale_;
   uint16_t last_mask_;
-  int32_t last_output_;
+  int32_t last_sample_;
   uint16_t trigger_delay_;
   uint8_t clock_;
 
@@ -390,6 +414,8 @@ private:
 
   int num_enabled_settings_;
   ChannelSetting enabled_settings_[CHANNEL_SETTING_LAST];
+
+  OC::vfx::ScrollingHistory<int32_t, 5> scrolling_history_;
 
   bool update_scale(bool force) {
     const int scale = get_scale();
@@ -557,7 +583,7 @@ void QQ_menu() {
         list_item.DrawCustom();
         break;
       case CHANNEL_SETTING_MASK:
-        menu::DrawMask<false, 16>(list_item.y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+        menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHANNEL_SETTING_SOURCE:
@@ -565,7 +591,7 @@ void QQ_menu() {
           int turing_length = channel.get_turing_length();
           int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
 
-          menu::DrawMask<true, 16>(list_item.y, channel.get_shift_register(), turing_length);
+          menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_shift_register(), turing_length);
           list_item.valuex = menu::kDisplayWidth - w - 1;
           list_item.DrawNoValue<true>(value, attr);
           break;
@@ -693,4 +719,83 @@ void QQ_leftButtonLong() {
       quantizer_channels[i].set_scale(scale);
     }
   }
+}
+
+int32_t history[5];
+static const weegfx::coord_t kBottom = 60;
+
+inline int32_t render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coord_t width) {
+  CONSTRAIN(pitch, 0, 120 << 7);
+  int32_t octave = pitch / (12 << 7);
+  pitch -= (octave * 12 << 7);
+  graphics.drawHLine(x, kBottom - ((pitch * 4) >> 7), width);
+  return octave;
+}
+
+void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
+
+  // History
+  scrolling_history_.Read(history);
+  weegfx::coord_t scroll_pos = (scrolling_history_.get_scroll_pos() * 6) >> 8;
+
+  // Top: Show gate & CV (or register bits)
+  menu::DrawGateIndicator(start_x + 1, 2, getTriggerState());
+  const ChannelSource source = get_source();
+  switch (source) {
+    case CHANNEL_SOURCE_TURING:
+      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_shift_register(), get_turing_length());
+      break;
+    case CHANNEL_SOURCE_LOGISTIC_MAP:
+      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_logistic_map_register(), 32);
+      break;
+    default: {
+      graphics.setPixel(start_x + 31 - 16, 4);
+      int32_t cv = OC::ADC::value(static_cast<ADC_CHANNEL>(source));
+      cv = (cv * 24 + 2047) >> 12;
+      if (cv < 0)
+        graphics.drawRect(start_x + 31 - 16 + cv, 6, -cv, 2);
+      else if (cv > 0)
+        graphics.drawRect(start_x + 31 - 16, 6, cv, 2);
+      else
+        graphics.drawRect(start_x + 31 - 16, 6, 1, 2);
+    }
+    break;
+  }
+
+#ifdef QQ_DEBUG_SCREENSAVER
+  graphics.drawVLinePattern(start_x + 31, 0, 64, 0x55);
+#endif
+
+  // Draw semitone intervals, 4px apart
+  weegfx::coord_t x = start_x + 26;
+  weegfx::coord_t y = kBottom;
+  for (int i = 0; i < 12; ++i, y -= 4)
+    graphics.setPixel(x, y);
+
+  x = start_x + 1;
+  render_pitch(history[0], x, scroll_pos); x += scroll_pos;
+  render_pitch(history[1], x, 6); x += 6;
+  render_pitch(history[2], x, 6); x += 6;
+  render_pitch(history[3], x, 6); x += 6;
+
+  int32_t octave = render_pitch(history[4], x, 6 - scroll_pos);
+  graphics.drawBitmap8(start_x + 28, kBottom - octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
+}
+
+void QQ_screensaver() {
+#ifdef QQ_DEBUG_SCREENSAVER
+  debug::CycleMeasurement render_cycles;
+#endif
+
+  quantizer_channels[0].RenderScreensaver(0);
+  quantizer_channels[1].RenderScreensaver(32);
+  quantizer_channels[2].RenderScreensaver(64);
+  quantizer_channels[3].RenderScreensaver(96);
+
+#ifdef QQ_DEBUG_SCREENSAVER
+  graphics.drawHLine(0, menu::kMenuLineH, menu::kDisplayWidth);
+  uint32_t us = debug::cycles_to_us(render_cycles.read());
+  graphics.setPrintPos(0, 32);
+  graphics.printf("%u",  us);
+#endif
 }

@@ -299,7 +299,7 @@ public:
     return clock_display_.getState();
   }
 
-  const OC::vfx::ScrollingHistory<kHistoryDepth> &history(int i) const {
+  const OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> &history(int i) const {
     return scrolling_history_[i];
   }
 
@@ -314,7 +314,7 @@ private:
   ASRbuf *_ASR;
   OC::DigitalInputDisplay clock_display_;
 
-  OC::vfx::ScrollingHistory<kHistoryDepth> scrolling_history_[4];
+  OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 };
 
 const char* const mult[20] = {
@@ -493,7 +493,7 @@ void ASR_menu() {
     if (ASR_SETTING_MASK != current) {
       list_item.DrawDefault(asr.get_value(current), ASR::value_attr(current));
     } else {
-      menu::DrawMask<false, 16>(list_item.y, asr.get_rotated_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
+      menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_rotated_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
       list_item.DrawNoValue<false>(asr.get_value(current), ASR::value_attr(current));
     }
   }

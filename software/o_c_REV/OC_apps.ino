@@ -32,9 +32,6 @@
   isr \
 }
 
-#define QQ_screensaver OC::screensaver
-// #define ENVGEN_screensaver screensaver
-
 OC::App available_apps[] = {
   DECLARE_APP('A','S', "CopierMaschine", ASR, ASR_isr),
   DECLARE_APP('H','A', "Harrington 1200", H1200, H1200_isr),

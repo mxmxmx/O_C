@@ -56,6 +56,10 @@ public:
     r_ = ((3 << 8) + r) << 16;  // r needs to be between 3.0 and < 4.0
   }
 
+  uint32_t get_register() const {
+    return x_;
+  }
+
 private:
   int64_t seed_;
   int64_t r_;

@@ -163,24 +163,30 @@ inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, const 
   graphics.drawBitmap8(x - 5, y + 1, OC::kBitmapEditIndicatorW, src);
 }
 
-template <bool rtl, size_t max_bits>
-void DrawMask(weegfx::coord_t y, uint32_t mask, size_t count) {
-  weegfx::coord_t x, dx;
+template <bool rtl, size_t max_bits, weegfx::coord_t height, weegfx::coord_t padding>
+void DrawMask(weegfx::coord_t x, weegfx::coord_t y, uint32_t mask, size_t count) {
+  weegfx::coord_t dx;
   if (count > max_bits) count = max_bits;
   if (rtl) {
-    x = kDisplayWidth - 3;
-    dx = -3;
+    x -= 3;
+    dx = -(2 + padding);
   } else {
-    x = kDisplayWidth - count * 3;
-    dx = 3;
+    x -= count * 3;
+    dx = (2 + padding );
   }
 
   for (size_t i = 0; i < count; ++i, mask >>= 1, x += dx) {
     if (mask & 0x1)
-      graphics.drawRect(x, y + 1, 2, 8);
+      graphics.drawRect(x, y + 1, 2, height);
     else
-      graphics.drawRect(x, y + 8, 2, 1);
+      graphics.drawRect(x, y + height, 2, 1);
   }
+}
+
+inline static void DrawGateIndicator(weegfx::coord_t x, weegfx::coord_t y, uint8_t state) {
+  state = (state + 3) >> 2;
+  if (state)
+    graphics.drawBitmap8(x, y, 4, OC::bitmap_gate_indicators_8 + (state << 2));
 }
 
 // Templated title bar that can have multiple columns
@@ -205,9 +211,7 @@ public:
   }
 
   inline static void DrawGateIndicator(int column, uint8_t state) {
-    state = (state + 3) >> 2;
-    if (state)
-      graphics.drawBitmap8(start_x + kColumnWidth * column + 1, 2, 4, OC::bitmap_gate_indicators_8 + (state << 2));
+    menu::DrawGateIndicator(start_x + kColumnWidth * column + 1, 2, state);
   }
 
   inline static weegfx::coord_t ColumnStartX(int column) {

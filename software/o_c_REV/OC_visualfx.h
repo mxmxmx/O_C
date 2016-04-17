@@ -34,7 +34,7 @@ namespace vfx {
 // - Optional start delay after Push
 // - Non-linear scrolling, e.g. using easing LUTs from Frames
 // - Variable scroll rate depending on time between Push calls
-template <size_t depth>
+template <typename T, size_t depth>
 class ScrollingHistory {
 public:
   ScrollingHistory() { }
@@ -42,13 +42,13 @@ public:
   static constexpr size_t kDepth = depth;
   static constexpr uint32_t kScrollRate = (1ULL << 32) / (OC_CORE_ISR_FREQ / 8);
 
-  void Init() {
+  void Init(T initial_value = 0) {
     scroll_pos_ = 0;
-    memset(history_, 0, sizeof(history_));
+    memset(history_, initial_value, sizeof(history_));
     tail_ = 0;
   }
 
-  void Push(uint16_t value) {
+  void Push(T value) {
     size_t tail = tail_;
     history_[tail] = value;
     ++tail;
@@ -70,7 +70,7 @@ public:
     return scroll_pos_ >> 24;
   }
 
-  void Read(uint16_t *dest) const {
+  void Read(T *dest) const {
     size_t count = kDepth;
     size_t pos = tail_;
     while (count--) {
@@ -83,7 +83,7 @@ public:
 private:
   uint32_t scroll_pos_;
 
-  uint16_t history_[kDepth];
+  T history_[kDepth];
   volatile size_t tail_;
 };
 

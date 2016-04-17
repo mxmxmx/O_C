@@ -153,7 +153,6 @@ uint16_t MultistageEnvelope::RenderFastPreview(int16_t *values) const {
   const uint16_t num_segments = num_segments_;
   const uint16_t current_segment = segment_;
   const uint16_t sustain_point = sustain_point_;
-  const uint16_t sustain_index = sustain_index_;
   const uint32_t phase = phase_;
   int32_t start_value = level_[0];
 
