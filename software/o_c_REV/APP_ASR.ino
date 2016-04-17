@@ -97,7 +97,7 @@ public:
     last_root_ = 0;
     last_mask_ = 0;
     quantizer_.Init();
-    update_scale(true);
+    update_scale(true, 0);
 
     _ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
 
@@ -112,9 +112,12 @@ public:
     clock_display_.Init();
   }
 
-  bool update_scale(bool force) {
+  bool update_scale(bool force, int32_t mask_rotate) {
     const int scale = get_scale();
-    const uint16_t mask = get_mask();
+    uint16_t mask = get_mask();
+    if (mask_rotate)
+      mask = OC::ScaleEditor<ASR>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
+
     if (force || (last_scale_ != scale || last_mask_ != mask)) {
       last_scale_ = scale;
       last_mask_ = mask;
@@ -143,7 +146,11 @@ public:
     apply_value(ASR_SETTING_MASK, mask); // Should automatically be updated
   }
   //
-  
+
+  uint16_t get_rotated_mask() const {
+    return last_mask_;
+  }
+
   void updateASR_indexed(struct ASRbuf* _ASR, int32_t _s, int16_t _index) {
 
         uint8_t out;
@@ -214,7 +221,7 @@ public:
 
      bool forced_update = force_update_;
      force_update_ = false;
-     update_scale(forced_update);
+     update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
 
      bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
      clock_display_.Update(1, update);
@@ -237,7 +244,7 @@ public:
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
              int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
-             int8_t _mult    =  get_mult() + (SCALED_ADC(ADC_CHANNEL_3, 8) - 1);  // when no signal, ADC should default to zero
+             int8_t _mult    =  get_mult();
 
              if (_mult < 0)
                 _mult = 0;
@@ -467,7 +474,7 @@ void ASR_menu() {
     if (ASR_SETTING_MASK != current) {
       list_item.DrawDefault(asr.get_value(current), ASR::value_attr(current));
     } else {
-      menu::DrawMask<false, 16>(list_item.y, asr.get_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
+      menu::DrawMask<false, 16>(list_item.y, asr.get_rotated_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
       list_item.DrawNoValue<false>(asr.get_value(current), ASR::value_attr(current));
     }
   }
