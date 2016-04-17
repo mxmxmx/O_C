@@ -6,10 +6,13 @@
 // - This could be specialized for frames == 2 (i.e. double-buffer)
 // - Takes some short-cuts so assumes correct order of calls
 
-// Since this is essentially a standard ring buffer implementation, it uses
-// only (frames - 1) element to be able to distinguish between empty/full.
-// To have frames useable items see:
-// https://gist.github.com/patrickdowling/0029f58fb20e63d7db9d
+// Initial version used a different ring-buffer implementation that used
+// frames - 1 elements to be able to distinguish between empty/full, but
+// which also meant that it wasn't properly double-buffering.
+// This uses an alternate approach that relies on unsigned integer wrap,
+// but allows a new frame to be written while the old one is being
+// transferred.
+// See https://gist.github.com/patrickdowling/0029f58fb20e63d7db9d
 
 template <size_t frame_size, size_t frames>
 class FrameBuffer {
@@ -27,29 +30,29 @@ public:
   }
 
   size_t writeable() const {
-    return (read_ptr_ - write_ptr_ - 1) % frames;
+    return frames - readable();
   }
 
   size_t readable() const {
-    return (write_ptr_ - read_ptr_) % frames;
+    return write_ptr_ - read_ptr_;
   }
 
   // @return readable frame (assumes one exists)
   const uint8_t *readable_frame() const {
-    return frame_buffers_[read_ptr_];
+    return frame_buffers_[read_ptr_ % frames];
   }
 
   // @return next writeable frame (assumes one exists)
   uint8_t *writeable_frame() {
-    return frame_buffers_[write_ptr_];
+    return frame_buffers_[write_ptr_ % frames];
   }
 
   void read() {
-    read_ptr_ = (read_ptr_ + 1) % frames;
+    ++read_ptr_;
   }
 
   void written() {
-    write_ptr_ = (write_ptr_ + 1) % frames;
+    ++write_ptr_;
   }
 
 private:
