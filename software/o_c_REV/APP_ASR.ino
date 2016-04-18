@@ -119,9 +119,13 @@ public:
       mask = OC::ScaleEditor<ASR>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
 
     if (force || (last_scale_ != scale || last_mask_ != mask)) {
+
+      // Change of scale resets clock, but changing mask doesn't have to
+      if (force || last_scale_ != scale)
+        clocks_cnt_ = 0;
+
       last_scale_ = scale;
       last_mask_ = mask;
-      clocks_cnt_ = 0; // prevent ring buffer
       quantizer_.Configure(OC::Scales::GetScale(scale), mask);
       return true;
     } else {
