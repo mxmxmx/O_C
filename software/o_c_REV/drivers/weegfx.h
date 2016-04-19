@@ -100,6 +100,8 @@ public:
   // Might be time-consuming
   void printf(const char *fmt, ...);
 
+  inline void drawAlignedByte(coord_t x, coord_t y, uint8_t byte) __attribute__((always_inline));
+
 private:
   uint8_t *frame_;
 
@@ -113,6 +115,11 @@ private:
 inline void Graphics::setPixel(coord_t x, coord_t y) {
   *(get_frame_ptr(x, y)) |= (0x1 << (y & 0x7));
 }
+
+inline void Graphics::drawAlignedByte(coord_t x, coord_t y, uint8_t byte) {
+  *get_frame_ptr(x, y) = byte;
+}
+
 
 inline void Graphics::setPrintPos(coord_t x, coord_t y) {
   text_x_ = x;

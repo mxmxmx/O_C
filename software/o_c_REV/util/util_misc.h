@@ -20,4 +20,14 @@ void serial_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 #define SERIAL_PRINTLN(msg, ...) \
 	serial_printf(msg "\n", ##__VA_ARGS__)
 
+
+namespace util {
+inline uint8_t reverse_byte(uint8_t b) {
+  return ((b & 0x1)  << 7) | ((b & 0x2)  << 5) |
+         ((b & 0x4)  << 3) | ((b & 0x8)  << 1) |
+         ((b & 0x10) >> 1) | ((b & 0x20) >> 3) |
+         ((b & 0x40) >> 5) | ((b & 0x80)  >> 7);
+}
+};
+
 #endif // UTIL_MISC_H

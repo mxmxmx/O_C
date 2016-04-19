@@ -77,6 +77,7 @@ enum ByteBeatCVMapping {
 class ByteBeat : public settings::SettingsBase<ByteBeat, BYTEBEAT_SETTING_LAST> {
 public:
 
+  static constexpr size_t kHistoryDepth = 64;
   static constexpr int kMaxByteBeatParameters = 11;
 
   void Init(OC::DigitalInput default_trigger);
@@ -296,10 +297,19 @@ public:
     gate_raised_ = gate_raised;
 
     // TODO Scale range or offset?
-    uint32_t value = DAC::get_zero_offset(dac_channel) + bytebeat_.ProcessSingleSample(gate_state);
+    uint16_t b = bytebeat_.ProcessSingleSample(gate_state);
+    uint32_t value = DAC::get_zero_offset(dac_channel) + (int16_t)b;
     DAC::set<dac_channel>(value);
+
+
+    b >>= 8;
+//    if (b != history_.last()) // This make the effect a bit different
+      history_.Push(b);
   }
 
+  inline void ReadHistory(uint8_t *history) const {
+    history_.Read(history);
+  }
 
 private:
   peaks::ByteBeat bytebeat_;
@@ -309,6 +319,7 @@ private:
   int num_enabled_settings_;
   ByteBeatSettings enabled_settings_[BYTEBEAT_SETTING_LAST];
 
+  util::History<uint8_t, kHistoryDepth> history_;
 };
 
 void ByteBeat::Init(OC::DigitalInput default_trigger) {
@@ -317,6 +328,7 @@ void ByteBeat::Init(OC::DigitalInput default_trigger) {
   bytebeat_.Init();
   gate_raised_ = false;
   update_enabled_settings();
+  history_.Init(0);
 }
 
 const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
@@ -544,8 +556,27 @@ void BYTEBEATGEN_debug() {
   }
 }
 
+uint8_t bb_history[ByteBeat::kHistoryDepth];
+
 void BYTEBEATGEN_screensaver() {
-  OC::scope_render();
+
+  // Display raw history values "radiating" from center point by mirroring
+  // on x and y. Oldest value is at start of buffer after reading history.
+
+  weegfx::coord_t y = 0;
+  for (const auto & bb : bytebeatgen.bytebeats_) {
+    bb.ReadHistory(bb_history);
+    const uint8_t *history = bb_history + ByteBeat::kHistoryDepth - 1;
+    for (int i = 0; i < 64; ++i) {
+      uint8_t b = *history--;
+      graphics.drawAlignedByte(64 + i, y + 8, b);
+      graphics.drawAlignedByte(64 - i -1, y + 8, b);
+      b = util::reverse_byte(b);
+      graphics.drawAlignedByte(64 + i, y, b);
+      graphics.drawAlignedByte(64 - i -1, y, b);
+    }
+    y += 16;
+  }
 }
 
 void FASTRUN BYTEBEATGEN_isr() {

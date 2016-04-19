@@ -57,7 +57,7 @@ void ByteBeat::Init() {
 
 }
 
-int16_t ByteBeat::ProcessSingleSample(uint8_t control) {
+uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
 
   uint16_t sample = 0;
    

@@ -20,62 +20,65 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef OC_VISUALFX_H_
-#define OC_VISUALFX_H_
+#ifndef UTIL_HISTORY_H_
+#define UTIL_HISTORY_H_
 
-#include "util/util_history.h"
+namespace util {
 
-namespace OC {
-
-namespace vfx {
-
-// Ultra simple history that maintains a scroll position. The history depth is
-// allowed to be non pow2 to allow keeping an additonal item to scroll in.
-//
-// Exercises for the reader:
-// - Optional start delay after Push
-// - Non-linear scrolling, e.g. using easing LUTs from Frames
-// - Variable scroll rate depending on time between Push calls
+// Simple history tracking; somewhat like a ringbuffer, but more restricted
+// The value at tail_ is the oldest value, but also the most likely to change
+// during read.
 template <typename T, size_t depth>
-class ScrollingHistory {
+class History {
 public:
-  ScrollingHistory() { }
+  History() { }
+  ~History() { }
 
   static constexpr size_t kDepth = depth;
-  static constexpr uint32_t kScrollRate = (1ULL << 32) / (OC_CORE_ISR_FREQ / 8);
 
-  void Init(T initial_value = 0) {
-    scroll_pos_ = 0;
-    history_.Init(initial_value);
+  void Init(T initial_value) {
+    memset(buffer_, initial_value, sizeof(buffer_));
+    last_ = initial_value;
+    tail_ = 0;
   }
 
-  void Push(T value) {
-    history_.Push(value);
-    scroll_pos_ = 0xffffffff;
+  // Get values from oldest to newest
+  inline void Read(T *dst) const {
+    size_t head = tail_;
+    size_t count = kDepth - head;
+    const T *src = buffer_ + head;
+    while (count--)
+      *dst++ = *src++;
+
+    src = buffer_;
+    count = head;
+    while (count--)
+      *dst++ = *src++;
   }
 
-  void Update() {
-    if (scroll_pos_ >= kScrollRate)
-      scroll_pos_ -= kScrollRate;
+  inline void Push(T value) {
+    size_t tail = tail_;
+    buffer_[tail++] = value;
+    if (tail >= kDepth)
+      tail_ = 0;
     else
-      scroll_pos_ = 0;
+      tail_ = tail;
+    last_ = value;
   }
 
-  uint32_t get_scroll_pos() const {
-    return scroll_pos_ >> 24;
-  }
-
-  void Read(T *dest) const {
-    return history_.Read(dest);
+  T last() const {
+    return last_;
   }
 
 private:
 
-  uint32_t scroll_pos_;
-  util::History<T, kDepth> history_;
+  T last_;
+  volatile size_t tail_;
+  T buffer_[kDepth] __attribute__((aligned (4)));
+
+  DISALLOW_COPY_AND_ASSIGN(History);
 };
 
-}; // namespace vfx
-}; // namespace OC
+}; // namespace util
 
-#endif // OC_VISUALFX_H_
+#endif // UTIL_HISTORY_H_

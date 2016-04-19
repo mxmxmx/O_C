@@ -49,7 +49,7 @@ class ByteBeat {
   ~ByteBeat() { }
   
   void Init();
-  int16_t ProcessSingleSample(uint8_t control);
+  uint16_t ProcessSingleSample(uint8_t control);
  
   void Configure(int32_t* parameter, bool stepmode, bool loopmode) {
       set_equation(parameter[0]);
