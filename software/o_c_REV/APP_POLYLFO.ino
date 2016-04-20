@@ -227,10 +227,10 @@ void FASTRUN POLYLFO_isr() {
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);
 
-  DAC::set<DAC_CHANNEL_A>(poly_lfo.lfo.dac_code(0));
-  DAC::set<DAC_CHANNEL_B>(poly_lfo.lfo.dac_code(1));
-  DAC::set<DAC_CHANNEL_C>(poly_lfo.lfo.dac_code(2));
-  DAC::set<DAC_CHANNEL_D>(poly_lfo.lfo.dac_code(3));
+  OC::DAC::set<DAC_CHANNEL_A>(poly_lfo.lfo.dac_code(0));
+  OC::DAC::set<DAC_CHANNEL_B>(poly_lfo.lfo.dac_code(1));
+  OC::DAC::set<DAC_CHANNEL_C>(poly_lfo.lfo.dac_code(2));
+  OC::DAC::set<DAC_CHANNEL_D>(poly_lfo.lfo.dac_code(3));
 }
 
 void POLYLFO_init() {

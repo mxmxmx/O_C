@@ -1,4 +1,5 @@
 #include "util/util_settings.h"
+#include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
@@ -283,9 +284,9 @@ public:
          }
 
         for (int i = 0; i < 4; ++i) {
-          int32_t sample = DAC::pitch_to_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0);
+          int32_t sample = OC::DAC::pitch_to_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0);
           scrolling_history_[i].Push(sample);
-          DAC::set(static_cast<DAC_CHANNEL>(i), sample);
+          OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
         }
 
         MENU_REDRAW = 1;

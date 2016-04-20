@@ -204,10 +204,10 @@ void FASTRUN LORENZ_isr() {
   if (!freeze && !lorenz_generator.frozen())
     lorenz_generator.lorenz.Process(freq1, freq2, reset1_phase, reset2_phase);
 
-  DAC::set<DAC_CHANNEL_A>(lorenz_generator.lorenz.dac_code(0));
-  DAC::set<DAC_CHANNEL_B>(lorenz_generator.lorenz.dac_code(1));
-  DAC::set<DAC_CHANNEL_C>(lorenz_generator.lorenz.dac_code(2));
-  DAC::set<DAC_CHANNEL_D>(lorenz_generator.lorenz.dac_code(3));
+  OC::DAC::set<DAC_CHANNEL_A>(lorenz_generator.lorenz.dac_code(0));
+  OC::DAC::set<DAC_CHANNEL_B>(lorenz_generator.lorenz.dac_code(1));
+  OC::DAC::set<DAC_CHANNEL_C>(lorenz_generator.lorenz.dac_code(2));
+  OC::DAC::set<DAC_CHANNEL_D>(lorenz_generator.lorenz.dac_code(3));
 }
 
 void LORENZ_init() {

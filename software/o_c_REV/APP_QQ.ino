@@ -172,7 +172,7 @@ public:
     trigger_display_.Init();
     update_enabled_settings();
 
-    scrolling_history_.Init(DAC::kOctaveZero * 12 << 7);
+    scrolling_history_.Init(OC::DAC::kOctaveZero * 12 << 7);
   }
 
   void force_update() {
@@ -232,13 +232,13 @@ public:
               // directly instead of changing to pitch first.
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-              sample = DAC::pitch_to_dac(dac_channel, pitch, get_octave());
-              history_sample = pitch + ((DAC::kOctaveZero + get_octave()) * 12 << 7);
+              sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               // We dont' need a calibrated value here, really
               int octave = get_octave();
               CONSTRAIN(octave, 0, 6);
-              sample = DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
+              sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
               // range is actually 120 (10 oct) but 65535 / 128 is close enough
               sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, shift_register << (32 - get_turing_length()));
               sample = USAT16(sample);
@@ -261,12 +261,12 @@ public:
               // See above, may need tweaking    
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
-              sample = DAC::pitch_to_dac(dac_channel, pitch, get_octave());
-              history_sample = pitch + ((DAC::kOctaveZero + get_octave()) * 12 << 7);
+              sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               int octave = get_octave();
               CONSTRAIN(octave, 0, 6);
-              sample = DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7);
+              sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7);
               sample += multiply_u32xu32_rshift24((static_cast<uint32_t>(range) * 65535U) >> 7, logistic_map_x);
               sample = USAT16(sample);
               history_sample = sample;
@@ -285,8 +285,8 @@ public:
             }
             CONSTRAIN(transpose, -12, 12); 
             const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
-            sample = DAC::pitch_to_dac(dac_channel, quantized, get_octave());
-            history_sample = quantized + ((DAC::kOctaveZero + get_octave()) * 12 << 7);
+            sample = OC::DAC::pitch_to_dac(dac_channel, quantized, get_octave());
+            history_sample = quantized + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
           }
         }
     } // end switch  
@@ -296,7 +296,7 @@ public:
       MENU_REDRAW = 1;
       last_sample_ = sample;
     }
-    DAC::set(dac_channel, sample + get_fine());
+    OC::DAC::set(dac_channel, sample + get_fine());
 
     if (triggered || (continous && changed)) {
       scrolling_history_.Push(history_sample);

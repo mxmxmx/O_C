@@ -434,26 +434,26 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
 
   switch (output_mode()) {
     case OUTPUTA_MODE_ROOT:
-      DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), octave());
+      OC::DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), octave());
       break;
     case OUTPUTA_MODE_TRIG:
       if (chord_changed) {
         trigger_out_ticks_ = kTriggerOutTicks;
-        DAC::set_octave(DAC_CHANNEL_A, 5);
+        OC::DAC::set_octave(DAC_CHANNEL_A, 5);
       }
       break;
     case OUTPUTA_MODE_ARP:
     case OUTPUTA_MODE_STRUM:
-      DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave());
+      OC::DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave());
       break;
     case OUTPUTA_MODE_LAST:
     default:
       break;
   }
 
-  DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), octave());
-  DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), octave());
-  DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), octave());
+  OC::DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), octave());
+  OC::DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), octave());
+  OC::DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), octave());
 }
 
 void AutomatonnetzState::update_trigger_out() {
@@ -461,7 +461,7 @@ void AutomatonnetzState::update_trigger_out() {
     uint32_t ticks = trigger_out_ticks_;
     --ticks;
     if (!ticks)
-      DAC::set_octave(DAC_CHANNEL_A, 0);
+      OC::DAC::set_octave(DAC_CHANNEL_A, 0);
     trigger_out_ticks_ = ticks;
   }
 }

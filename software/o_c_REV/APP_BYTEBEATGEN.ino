@@ -298,8 +298,8 @@ public:
 
     // TODO Scale range or offset?
     uint16_t b = bytebeat_.ProcessSingleSample(gate_state);
-    uint32_t value = DAC::get_zero_offset(dac_channel) + (int16_t)b;
-    DAC::set<dac_channel>(value);
+    uint32_t value = OC::DAC::get_zero_offset(dac_channel) + (int16_t)b;
+    OC::DAC::set<dac_channel>(value);
 
 
     b >>= 8;

@@ -20,8 +20,12 @@
 */
 
 #include <spififo.h>
+#include "OC_DAC.h"
+#include "OC_gpio.h"
 
 #define SPICLOCK_30MHz   (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR) //(60 / 2) * ((1+1)/2) = 30 MHz (= 24MHz, when F_BUS == 48000000)
+
+namespace OC {
 
 /*static*/
 void DAC::Init(CalibrationData *calibration_data) {
@@ -52,37 +56,39 @@ uint16_t DAC::history_[DAC_CHANNEL_LAST][DAC::kHistoryDepth];
 /*static*/ 
 volatile size_t DAC::history_tail_;
 
-void set8565_CHA(uint32_t data) {
-  uint32_t _data = DAC::MAX_VALUE - data;
+}; // namespace OC
 
-  SPIFIFO.write(B00010000, SPI_CONTINUE);
+void set8565_CHA(uint32_t data) {
+  uint32_t _data = OC::DAC::MAX_VALUE - data;
+
+  SPIFIFO.write(0b00010000, SPI_CONTINUE);
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();
 }
 
 void set8565_CHB(uint32_t data) {
-  uint32_t _data = DAC::MAX_VALUE - data;
+  uint32_t _data = OC::DAC::MAX_VALUE - data;
 
-  SPIFIFO.write(B00010010, SPI_CONTINUE);
+  SPIFIFO.write(0b00010010, SPI_CONTINUE);
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();
 }
 
 void set8565_CHC(uint32_t data) {
-  uint32_t _data = DAC::MAX_VALUE - data;
+  uint32_t _data = OC::DAC::MAX_VALUE - data;
 
-  SPIFIFO.write(B00010100, SPI_CONTINUE);
+  SPIFIFO.write(0b00010100, SPI_CONTINUE);
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read(); 
 }
 
 void set8565_CHD(uint32_t data) {
-  uint32_t _data = DAC::MAX_VALUE - data;
+  uint32_t _data = OC::DAC::MAX_VALUE - data;
 
-  SPIFIFO.write(B00010110, SPI_CONTINUE);
+  SPIFIFO.write(0b00010110, SPI_CONTINUE);
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();

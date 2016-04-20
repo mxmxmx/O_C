@@ -3,7 +3,7 @@
 
 #include "OC_ADC.h"
 #include "OC_config.h"
-#include "DAC.h"
+#include "OC_DAC.h"
 #include "util/util_pagestorage.h"
 #include "util/EEPROMStorage.h"
 

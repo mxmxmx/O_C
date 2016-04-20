@@ -29,6 +29,7 @@
 
 #include "OC_apps.h"
 #include "OC_core.h"
+#include "OC_DAC.h"
 #include "OC_debug.h"
 #include "OC_gpio.h"
 #include "OC_ADC.h"
@@ -37,7 +38,6 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 #include "OC_version.h"
-#include "DAC.h"
 #include "drivers/display.h"
 #include "util/util_debugpins.h"
 
@@ -70,7 +70,7 @@ void FASTRUN CORE_timer_ISR() {
   // next ISR, the display transfer is finalized (CS update).
 
   display::Flush();
-  DAC::Update();
+  OC::DAC::Update();
   display::Update();
 
   // The ADC scan uses async startSingleRead/readSingle and single channel each
@@ -109,7 +109,7 @@ void setup() {
   OC::DEBUG::Init();
   OC::DigitalInputs::Init();
   OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
-  DAC::Init(&OC::calibration_data.dac);
+  OC::DAC::Init(&OC::calibration_data.dac);
 
   display::Init();
 
