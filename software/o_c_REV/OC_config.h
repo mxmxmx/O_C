@@ -1,6 +1,10 @@
 #ifndef OC_CONFIG_H_
 #define OC_CONFIG_H_
 
+#if F_CPU != 120000000
+#error "Please compile O&C firmware with CPU speed 120MHz"
+#endif
+
 // 60us = 16.666...kHz : Works, SPI transfer ends 2uS before next ISR
 // 66us = 15.1515...kHz
 // 72us = 13.888...kHz
