@@ -8,17 +8,17 @@
 
 
 ### SMD resistors (0805):
-| value | #| note |
-| ---: | ---: | :---: |
-| 100R | 4x | - |
-| 220R | 4x | - |
-| 510R | 2x | - |
-| 2k   | 1x | - |
-| 10k  | 1x | - |
-| **24k9**  | 4x | **0.1%** (**if** building **with** trimpots, use 24k (1%) rather than 24k9 (0.1%))|
-| 33k | 8x | - |
-| 49k9 | 6x | silkscreen says 2x 47k, 4x 49k9: you can use 49k9 throughout |
-| **100k** | 12x | **4 of which should be 0.1%** |
+| value | #| part | note |
+| ---: | ---: | --- | --- |
+| 100R | 4x | - | - |
+| 220R | 4x | - | - |
+| 510R | 2x | - | - |
+| 2k   | 1x | - | - |
+| 10k  | 1x | - | - |
+| **24k9**  | 4x |  **0.1%** , e.g. mouser 756-PCF0805R-24K9BT1 | (**if** building **with** trimpots, use 24k (1%) rather than 24k9 (0.1%))|
+| 33k | 8x | - | - |
+| 49k9 | 6x |  | silkscreen says 2x 47k, 4x 49k9: you can use 49k9 throughout |
+| **100k** | 12x | **4 of which should be 0.1%** (e.g mouser # 279-CPF0805B100KE) | - |
 
 
 
@@ -34,13 +34,13 @@
 | 10n | 6x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
 
 ### SMD caps (0805) (25V or better):
-| value | #| type|
-| --- | ---: | :---: |
-| 18p-22p | 4x | **C0G/NP0** (!) |
-| 100n  | 12x | ceramic | 
-| 470n  | 1x  | ceramic |
-| 1u    | 1x | ceramic |
-| 10u   | 4x | ceramic (or tantal) |
+| value | #| type | note |
+| --- | ---: | :---: | --- |
+| 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
+| 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
+| 470n  | 2x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
+| 1u    | 1x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
+| 10u   | 4x | ceramic (or tantal) | e.g. mouser # 81-GRM21BR6YA106KE3L |
 
 ## ICs/semis:
 
@@ -50,15 +50,15 @@
 | OPA2172 | 2x | (SOIC-8) | mouser # 595-OPA2172IDR, and see note (†) below |
 | DAC8565 |  1x | (TSSOP-16) | mouser # 595-DAC8565IAPW |
 | MMBT3904 (NPN) | 4x | (SOT-23) |  mouser # 512-MMBT3904 |
-| 1N5817 (diode) | 2x | (DO-41) | reverse voltage protection |
-| LM4040 5.0 | 1x |(SOT-23) |  shunt prec. reference (5v0), e.g. mouser # 926-LM4040DIM350NOPB |
+| 1N5817 (diode) | 2x | (DO-41) | e.g. mouser # 621-1N5817 |
+| LM4040 5.0 | 1x | (SOT-23) |shunt prec. reference (5v0), e.g. mouser # 926-LM4040DIM350NOPB |
 | ADP150-3v3 | 1x |(TSOT) |  mouser # 584-ADP150AUJZ-3.3R7 |
 | LM1117-50 | 1x | (SOT-223) |  mouser # 511-LD1117S50 |
 
 ## misc through-hole:
 
 | what | # | note | part | 
-| --- | ---: | --- | ---: | 
+| --- | ---: | --- | --- | 
 | 470nF cap | 1x | RM5 (16V)| e.g. WIMA MKS2 | 
 | 22uF cap | 2x | electrolytic (35V or better) | - | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
