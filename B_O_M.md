@@ -33,7 +33,7 @@
 ### SMD caps (0603) (16V) :
 | value | #| type| note |
 | --- | ---: | :---: | --- |
-| 10n | 6x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
+| 10n | 4x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
 
 ### SMD caps (0805) (25V or better):
 | value | #| type | note |
