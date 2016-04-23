@@ -53,7 +53,7 @@
 | DAC8565 |  1x | (TSSOP-16) | mouser # 595-DAC8565IAPW, 595-DAC8565ICPW |
 | MMBT3904 (NPN) | 4x | (SOT-23) |  mouser # 512-MMBT3904 |
 | 1N5817 (diode) | 2x | (DO-41) | e.g. mouser # 621-1N5817 |
-| LM4040 5.0 | 1x | (SOT-23) | e.g. mouser # 926-LM4040DIM350NOPB |
+| LM4040 5v0 | 1x | (SOT-23) | e.g. mouser # 926-LM4040DIM350NOPB |
 | ADP150-3v3 | 1x |(TSOT) |  mouser # 584-ADP150AUJZ-3.3R7 |
 | LM1117-50 | 1x | (SOT-223) |  mouser # 511-LD1117S50 |
 
@@ -63,8 +63,8 @@
 
 | what | # | note | part | 
 | --- | ---: | --- | --- | 
-| 470nF cap | 1x | RM5 (16V)| e.g. WIMA MKS2 | 
-| 22uF cap | 2x | also ok: 33uF, 47uF | electrolytic (35V or better) | 
+| 470nF cap | 1x | RM5 (16V)| e.g. mouser 80-R82DC3470AA60K | 
+| 22uF cap | 2x | RM2.5 (35V or better) | e.g. mouser # 647-UPM1V220MDD1TD | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
 | jacks |  12x | 'thonkiconn' (or kobiconn) | [PJ301M-12](https://www.thonk.co.uk/shop/3-5mm-jacks/) |
 | encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†) | 
