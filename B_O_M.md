@@ -46,14 +46,14 @@
 
 | name | package| #| note |
 | --- | --- | ---: | --- |
-| MCP6004 | (SOIC-8) | 1x  | - |
+| MCP6004 | (SOIC-14) | 1x  | mouser # 579-MCP6004T-I/SL |
 | OPA2172 | (SOIC-8) | 2x  | see note (†) below |
 | DAC8565 | (TSSOP-16) | 1x | mouser # 595-DAC8565IAPW |
-| MMBT3904 (NPN) | (SOT-23) | 4x | - |
+| MMBT3904 (NPN) | (SOT-23) | 4x | mouser # 512-MMBT3904 |
 | 1N5817 (diode) | (DO-41) | 2x | reverse voltage protection |
 | LM4040-5.0 | (SOT-23) | 1x | 5v0 reference |
 | ADP150-3v3 | (TSOT) | 1x | mouser # 584-ADP150AUJZ-3.3R7 |
-| LM1117-50 | (SOT-223) | 1x | 5v0 LDO |
+| LM1117-50 | (SOT-223) | 1x | mouser # 511-LD1117S50 |
 
 ## misc through-hole:
 
