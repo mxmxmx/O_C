@@ -9,7 +9,7 @@
 
 ### SMD resistors (0805):
 | value | #| note |
-| --- | ---: | :---: |
+| ---: | ---: | :---: |
 | 100R | 4x | - |
 | 220R | 4x | - |
 | 510R | 2x | - |
@@ -23,15 +23,15 @@
 
 
 ### trimpots (throughhole): 
-| value | type | #| note |
+| value | # | type | note |
 | --- | --- | ---: | :---: |
-| trimpot 100k | (inline / 9.5mm) | 1x | ADC/CV offset trim |
-| **optional:** trimpot 2k | (inline / 9.5mm) | 4x | DAC output trim (**omit: use 0.1% resistors instead**) |
+| trimpot 50k-100k | 1x | cermet / inline / 9.5mm |  ADC/CV offset trim, [for example](http://www.taydaelectronics.com/50k-ohm-trimmer-potentiometer-cermet-25-turns-3296w.html) |
+| **optional:** trimpot 2k | 4x | cermet / inline / 9.5mm | DAC output trim (**omit: use 0.1% resistors instead**) |
 
 ### SMD caps (0603) (16V) :
-| value | #| type|
-| --- | ---: | :---: |
-| 10n | 6x | C0G/NP0 |
+| value | #| type| note |
+| --- | ---: | :---: | --- |
+| 10n | 6x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
 
 ### SMD caps (0805) (25V or better):
 | value | #| type|
@@ -44,39 +44,39 @@
 
 ## ICs/semis:
 
-| name | package| #| note |
+| what | # | package | note |
 | --- | --- | ---: | --- |
-| MCP6004 | (SOIC-14) | 1x  | mouser # 579-MCP6004T-I/SL |
-| OPA2172 | (SOIC-8) | 2x  | see note (†) below |
-| DAC8565 | (TSSOP-16) | 1x | mouser # 595-DAC8565IAPW |
-| MMBT3904 (NPN) | (SOT-23) | 4x | mouser # 512-MMBT3904 |
-| 1N5817 (diode) | (DO-41) | 2x | reverse voltage protection |
-| LM4040-5.0 | (SOT-23) | 1x | 5v0 reference |
-| ADP150-3v3 | (TSOT) | 1x | mouser # 584-ADP150AUJZ-3.3R7 |
-| LM1117-50 | (SOT-223) | 1x | mouser # 511-LD1117S50 |
+| MCP6004 | 1x | (SOIC-14) | mouser # 579-MCP6004T-I/SL |
+| OPA2172 | 2x | (SOIC-8) | mouser # 595-OPA2172IDR, and see note (†) below |
+| DAC8565 |  1x | (TSSOP-16) | mouser # 595-DAC8565IAPW |
+| MMBT3904 (NPN) | 4x | (SOT-23) |  mouser # 512-MMBT3904 |
+| 1N5817 (diode) | 2x | (DO-41) | reverse voltage protection |
+| LM4040 5.0 | 1x |(SOT-23) |  shunt prec. reference (5v0), e.g. mouser # 926-LM4040DIM350NOPB |
+| ADP150-3v3 | 1x |(TSOT) |  mouser # 584-ADP150AUJZ-3.3R7 |
+| LM1117-50 | 1x | (SOT-223) |  mouser # 511-LD1117S50 |
 
 ## misc through-hole:
 
-| what | note | part | # | 
-| --- | :--- | --- | ---: | 
-| 470nF cap | RM5, 16V+ | e.g. WIMA MKS2 | 1x |
-| 22uF cap | electrolytic (35V or better) | - | 2x |
-| inductor | 10uH | e.g. mouser # 542-78F100-RC | 1x |
-| jacks | 'thonkiconn' (or kobiconn) | PJ301M-12 | 12x |
-| encoders | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†††) | 2x  |
-| 2x5 pin header | 2.54mm (euro power connector) | - | 1x |
-| 1x7 socket | 2.54mm (OLED socket) | **(low profile)** !! | 1x |
-| 1x14 socket | 2.54mm, socket for teensy 3.x | see note (††††) | 2x | 
-| 1x14 pin header (to match) | 2.54mm, header for teensy 3.x | - | 2x |
-| tact switches | multimecs 5E/5G | mouser #: 642-5GTH935 | 2x |
-| + caps | multimecs 1SS09-15.0 or -16.0 | mouser #: 642-1SS09-15.0, or -16.0 | 2x |
+| what | # | note | part | 
+| --- | ---: | --- | ---: | 
+| 470nF cap | 1x | RM5 (16V)| e.g. WIMA MKS2 | 
+| 22uF cap | 2x | electrolytic (35V or better) | - | 
+| inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
+| jacks |  12x | 'thonkiconn' (or kobiconn) | PJ301M-12 |
+| encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†††) | 
+| 2x5 pin header | 1x | 2.54mm (euro power connector) | - | 
+| 1x7 socket | 1x | 2.54mm (OLED socket) | **(low profile)** !! | 
+| 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | see note (††††) | 
+| 1x14 pin header (to match) |  2x | 2.54mm, header for teensy 3.x | - |
+| tact switches | 2x | multimecs 5E/5G | mouser #: 642-5GTH935 | 
+| + caps | 2x | multimecs 1SS09-15.0 or -16.0 | mouser #: 642-1SS09-15.0, or -16.0 | 
 
 ## MCU/display:
 
-| name | note | # |
+| name | # | note | 
 | --- | --- | ---: |
-| teensy 3.2 / 3.1| **(cut the V_usb/power trace!)** | 1x |
-| OLED | SH1106/SSD1306 1.3" 128x64 (†††) | 1x  |
+| teensy 3.2 / 3.1| 1x | [oshpark](http://store.oshpark.com/products/teensy-3-1) / **(cut the V_usb/power trace!)** | 
+| OLED | 1x | SH1106/SSD1306 1.3" 128x64 (†††) | 
 
 
 ## Notes:
