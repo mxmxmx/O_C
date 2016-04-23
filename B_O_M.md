@@ -2,9 +2,9 @@
 
 - if your board is is labelled rev.2c (on top of the board, underneath the 'ornament and crime' label), that's rev 2c. previous versions differ only slightly.
 
-- the footprint for passives is **0805 throughout**, except for the four 10n caps (0603). using 0603 everywhere will work just as fine, of course.
+- the footprint for passives is **0805 throughout**, except the four 10n caps (0603). using 0603 everywhere will work just as fine, of course.
 
-- there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four jumper wires instead and, ideally, 0.1% resistors for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
+- there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four **jumper wires** instead and, ideally, 0.1% resistors for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
 
 
 ### SMD resistors (0805):
@@ -17,7 +17,7 @@
 | 10k  | 1x | e.g. mouser # 660-RK73H2ATTD1002F | 1-5% |
 | **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (‡)|
 | 33k | 8x | e.g. mouser # 660-RK73H2ATTD3302F | 1% |
-| 49k9 | 6x | e.g. mouser # 660-RK73H2ATTD4992F | 1% / silkscreen says 2x 47k, 4x 49k9: ignore |
+| 49k9 | 6x | e.g. mouser # 660-RK73H2ATTD4992F | 1% / silkscreen says 2x 47k, 4x 49k9: **ignore** |
 | **100k** | 4x | e.g. mouser # 279-CPF0805B100KE | **0.1%** |
 | 100k | 8x | e.g. mouser # 660-RK73H2ATTD1003F| 1% (or simply get 12 x 0.1%) |
 
@@ -57,14 +57,14 @@
 | ADP150-3v3 | 1x |(TSOT) |  mouser # 584-ADP150AUJZ-3.3R7 |
 | LM1117-50 | 1x | (SOT-223) |  mouser # 511-LD1117S50 |
 
-- (†) something fancier (more suitable, $$) than TL072 should be used for the DAC output stage; using TL072 will be ok, but ideally, you want something with (very) low offset/noise/drift. for example: OPA2172, OPA2277 
+- (†) something fancier (= more suitable, $$) than TL072 should be used for the DAC output stage; using TL072 will be ok, but ideally, you want something with (very) low offset/noise/drift. for example: OPA2172, OPA2277 
 
 ## misc through-hole:
 
 | what | # | note | part | 
 | --- | ---: | --- | --- | 
 | 470nF cap | 1x | RM5 (16V)| e.g. WIMA MKS2 | 
-| 22uF cap | 2x | electrolytic (35V or better) | also ok: 33uF, 47uF | 
+| 22uF cap | 2x | also ok: 33uF, 47uF | electrolytic (35V or better) | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
 | jacks |  12x | 'thonkiconn' (or kobiconn) | [PJ301M-12](https://www.thonk.co.uk/shop/3-5mm-jacks/) |
 | encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†) | 
@@ -88,5 +88,5 @@
 | OLED | 1x | SH1106 or SSD1306 / 1.3" / 128x64 (†) | 
 
 - (†) you can find these 1.3" displays on ebay or aliexpress for < 10$. as long as the description claims that they are `SH1106` or `SSD1306` and the pinout is: `GND - VCC - D0 - D1 - RST - DC - CS`, they should work (or `GND - VCC - CLK - MOSI - RES - DC - CS`, which is the same). **make sure you get the right size**: 1.3" (not 0.96")! 
-- alternatively, the hardware/gerbers folder has .brd/.sch files for a/the OLED carrier board. in that case, you'd need to get the bare OLED. [for example here](http://www.buydisplay.com/default/serial-spi-1-3-inch-128x64-oled-display-module-ssd1306-white-on-black), though there's cheaper options for getting bare OLEDs.
+- alternatively, the hardware/gerbers folder has **.brd/.sch** files for a/the OLED carrier board. in that case, you'd need to get the bare OLED. [for example here](http://www.buydisplay.com/default/serial-spi-1-3-inch-128x64-oled-display-module-ssd1306-white-on-black) (though there's cheaper options for getting bare OLEDs).
 
