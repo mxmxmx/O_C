@@ -4,7 +4,7 @@
 
 - the footprint for passives is **0805 throughout**, except the four 10n caps (0603). using 0603 everywhere will work just as fine, of course.
 
-- there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four **jumper wires** instead and, ideally, 0.1% resistors for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
+- there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
 
 
 ### SMD resistors (0805):
@@ -46,7 +46,7 @@
 
 ## ICs/semis:
 
-| what | # | package | note |
+| what | # | package | part |
 | --- | --- | ---: | --- |
 | MCP6004 | 1x | (SOIC-14) | mouser # 579-MCP6004T-I/SL |
 | OPA2172 | 2x | (SOIC-8) | mouser # 595-OPA2172IDR, and see note (†) below |
@@ -57,7 +57,7 @@
 | ADP150-3v3 | 1x |(TSOT) |  mouser # 584-ADP150AUJZ-3.3R7 |
 | LM1117-50 | 1x | (SOT-223) |  mouser # 511-LD1117S50 |
 
-- (†) something fancier (= more suitable, $$) than TL072 should be used for the DAC output stage; using TL072 will be ok, but ideally, you want something with (very) low offset/noise/drift. for example: OPA2172, OPA2277 
+- (†) something fancier (= more suitable, $$) than TL072 should be used for the DAC output stage; using TL072 will be ok, but ideally, you want something with (very) **low offset/noise/drift**. for example: OPA2172, OPA2277 
 
 ## misc through-hole:
 
@@ -83,7 +83,7 @@
 
 ## MCU/display:
 
-| name | # | note | 
+| what | # | note | 
 | --- | --- | ---: |
 | teensy 3.2 / 3.1| 1x | [oshpark](http://store.oshpark.com/products/teensy-3-1) / **cut the V_usb/power trace!** | 
 | OLED | 1x | SH1106 or SSD1306 / 1.3" / 128x64 (†) | 
