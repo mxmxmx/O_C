@@ -69,7 +69,7 @@
 | jacks |  12x | 'thonkiconn' (or kobiconn) | [PJ301M-12](https://www.thonk.co.uk/shop/3-5mm-jacks/) |
 | encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†) | 
 | 2x5 pin header | 1x | 2.54mm (euro power connector) | - | 
-| 1x7 (1x8) socket | 1x | 2.54mm (OLED socket) | **low profile** ! / e.g mouser # 517-929870-01-08-RA | 
+| 1x7 (1x8) OLED socket | 1x | 2.54mm, **low profile** ! | e.g mouser # 517-929870-01-08-RA | 
 | 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | see note (††) | 
 | 1x14 pin header (to match) |  2x | 2.54mm, header for teensy 3.x | - |
 | tact switches | 2x | multimecs 5E/5G | mouser #: 642-5GTH935 (†††) | 
