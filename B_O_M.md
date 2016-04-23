@@ -57,6 +57,8 @@
 | ADP150-3v3 | 1x |(TSOT) |  mouser # 584-ADP150AUJZ-3.3R7 |
 | LM1117-50 | 1x | (SOT-223) |  mouser # 511-LD1117S50 |
 
+- (†) something fancier (more suitable, $$) than TL072 should be used for the DAC output stage; using TL072 will be ok, but ideally, you want something with (very) low offset/noise/drift. for example: OPA2172, OPA2277 
+
 ## misc through-hole:
 
 | what | # | note | part | 
@@ -65,29 +67,25 @@
 | 22uF cap | 2x | electrolytic (35V or better) | - | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
 | jacks |  12x | 'thonkiconn' (or kobiconn) | PJ301M-12 |
-| encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†††) | 
+| encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†) | 
 | 2x5 pin header | 1x | 2.54mm (euro power connector) | - | 
 | 1x7 socket | 1x | 2.54mm (OLED socket) | **(low profile)** !! | 
-| 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | see note (††††) | 
+| 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | see note (††) | 
 | 1x14 pin header (to match) |  2x | 2.54mm, header for teensy 3.x | - |
 | tact switches | 2x | multimecs 5E/5G | mouser #: 642-5GTH935 | 
 | + caps | 2x | multimecs 1SS09-15.0 or -16.0 | mouser #: 642-1SS09-15.0, or -16.0 | 
+
+- (†)  rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc).
+- (††) best to **use "machined pin" ones** (also called "round" or "precision"), the pcb holes are small).
+
+
 
 ## MCU/display:
 
 | name | # | note | 
 | --- | --- | ---: |
 | teensy 3.2 / 3.1| 1x | [oshpark](http://store.oshpark.com/products/teensy-3-1) / **(cut the V_usb/power trace!)** | 
-| OLED | 1x | SH1106/SSD1306 1.3" 128x64 (†††) | 
+| OLED | 1x | SH1106/SSD1306 1.3" 128x64 (†) | 
 
+- (†) you can find these 1.3" displays on ebay or aliexpress for < 10$. as long as the description claims that they are `SH1106` or `SSD1306` and the pinout is: `GND - VCC - D0 - D1 - RST - DC - CS`, they should work (or `GND - VCC - CLK - MOSI - RES - DC - CS`, which is the same). make sure you get the right size --  1.3" (not 0.96")! alternatively, the hardware/gerbers folder has .brd/.sch files for a/the OLED carrier board. in that case, you'd need to get the bare OLED. [for example here](http://www.buydisplay.com/default/serial-spi-1-3-inch-128x64-oled-display-module-ssd1306-white-on-black), though there's cheaper options for getting bare OLEDs.
 
-## Notes:
-
-
-(†) something fancier (more suitable, $$) than TL072 should be used for the DAC output stage; using TL072 will be ok, but ideally, you want something with (very) low offset/noise/drift. for example: OPA2172, OPA2277 
-
-(†††)  rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc)
-
-(†††) you can find these 1.3" displays on ebay or aliexpress for < 10$. as long as the description claims that they are `SH1106` or `SSD1306` and the pinout is: `GND - VCC - D0 - D1 - RST - DC - CS`, they should work (or `GND - VCC - CLK - MOSI - RES - DC - CS`, which is the same). make sure you get the right size --  1.3" (not 0.96")! alternatively, the hardware/gerbers folder has .brd/.sch files for a/the OLED carrier board. in that case, you'd need to get the bare OLED. [for example here](http://www.buydisplay.com/default/serial-spi-1-3-inch-128x64-oled-display-module-ssd1306-white-on-black), though there's cheaper options for getting bare OLEDs.
-
-(††††) best to **use "machined pin" ones (also called "round" or "precision"), the pcb holes are small**)
