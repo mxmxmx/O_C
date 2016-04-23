@@ -15,7 +15,7 @@
 | 510R | 2x | - | 1% |
 | 2k   | 1x | - | 1% |
 | 10k  | 1x | - | 1% |
-| **24k9**  | 4x | mouser 756-PCF0805R-24K9BT1 | **0.1%**  (**if** building **with** trimpots, use 24k (1%) rather than 24k9)|
+| **24k9**  | 4x | mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (**if** building **with** trimpots, use 24k (1%) rather than 24k9)|
 | 33k | 8x | - | 1% |
 | 49k9 | 6x | - | 1% / silkscreen says 2x 47k, 4x 49k9: ignore |
 | **100k** | 4x | mouser # 279-CPF0805B100KE | **0.1%** |
