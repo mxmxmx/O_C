@@ -10,16 +10,16 @@
 ### SMD resistors (0805):
 | value | #| part | note |
 | ---: | ---: | --- | --- |
-| 100R | 4x | - | 1% |
-| 220R | 4x | - | 1% |
-| 510R | 2x | - | 1% |
-| 2k   | 1x | - | 1% |
-| 10k  | 1x | - | 1% |
-| **24k9**  | 4x | mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (**if** building **with** trimpots, use 24k (1%) rather than 24k9)|
-| 33k | 8x | - | 1% |
-| 49k9 | 6x | - | 1% / silkscreen says 2x 47k, 4x 49k9: ignore |
-| **100k** | 4x | mouser # 279-CPF0805B100KE | **0.1%** |
-| 100k | 8x |  - | 1% (or simply get 12 x 0.1%) |
+| 100R | 4x | e.g. mouser # 279-1623096-1 | 1% |
+| 220R | 4x | e.g. mouser # 279-CPF0805B220RE1 | 1% |
+| 510R | 2x | e.g. mouser # 603-RC0805JR-07510RL | 1-5% |
+| 2k   | 1x | e.g. mouser # 660-RK73H2ATTE2001F | 1% |
+| 10k  | 1x | e.g. mouser # 660-RK73H2ATTD1002F | 1-5% |
+| **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (**if** building **with** trimpots, use 24k (1%) rather than 24k9)|
+| 33k | 8x | e.g. mouser # 660-RK73H2ATTD3302F | 1% |
+| 49k9 | 6x | e.g. mouser # 660-RK73H2ATTD4992F | 1% / silkscreen says 2x 47k, 4x 49k9: ignore |
+| **100k** | 4x | e.g. mouser # 279-CPF0805B100KE | **0.1%** |
+| 100k | 8x | e.g. mouser # 660-RK73H2ATTD1003F| 1% (or simply get 12 x 0.1%) |
 
 
 ### trimpots (throughhole): 
@@ -38,7 +38,7 @@
 | --- | ---: | :---: | --- |
 | 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
-| 470n  | 2x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
+| 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
 | 1u    | 1x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
 | 10u   | 4x | ceramic (or tantal) | e.g. mouser # 81-GRM21BR6YA106KE3L |
 
