@@ -41,7 +41,7 @@
 | 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
 | 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
-| 1u    | 1x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
+| 1u    | 2x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
 | 10u   | 4x | ceramic (or tantal) | e.g. mouser # 81-GRM21BR6YA106KE3L |
 
 ## ICs/semis:
@@ -85,7 +85,7 @@
 
 | what | # | note | 
 | --- | --- | ---: |
-| teensy 3.2 / 3.1| 1x | [oshpark](http://store.oshpark.com/products/teensy-3-1) / **cut the V_usb/power trace!** | 
+| teensy 3.2 / 3.1| 1x | [oshpark](http://store.oshpark.com/products/teensy-3-1), mouser # 485-2756 / **cut the V_usb/power trace!** | 
 | OLED | 1x | SH1106 or SSD1306 / 1.3" / 128x64 (†) | 
 
 - (†) you can find these 1.3" displays on ebay or aliexpress for < 10$. as long as the description claims that they are `SH1106` or `SSD1306` and the pinout is: `GND - VCC - D0 - D1 - RST - DC - CS`, they should work (or `GND - VCC - CLK - MOSI - RES - DC - CS`, which is the same). **make sure you get the right size**: 1.3" (not 0.96")! 
