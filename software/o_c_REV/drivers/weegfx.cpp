@@ -193,6 +193,8 @@ void Graphics::drawHLine(coord_t x, coord_t y, coord_t w) {
 
 void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
 
+  coord_t w = 1;
+  CLIPX(x, w);
   CLIPY(y, h);
   uint8_t *buf = get_frame_ptr(x, y);
 
