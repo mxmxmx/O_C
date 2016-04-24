@@ -83,10 +83,10 @@
 
 ## MCU/display:
 
-| what | # | note | 
-| --- | --- | ---: |
-| teensy 3.2 / 3.1| 1x | [oshpark](http://store.oshpark.com/products/teensy-3-1), mouser # 485-2756 / **cut the V_usb/power trace!** | 
-| OLED | 1x | SH1106 or SSD1306 / 1.3" / 128x64 (†) | 
+| what | # | note | source |
+| --- | --- | ---: | --- |
+| teensy 3.2 / 3.1| 1x | **cut the V_usb/power trace!** | [oshpark](http://store.oshpark.com/products/teensy-3-1) / mouser # 485-2756 |
+| OLED | 1x | SH1106 or SSD1306 / 1.3" / 128x64 | see note (†) | 
 
 - (†) you can find these 1.3" displays on ebay or aliexpress for < 10$. as long as the description claims that they are `SH1106` or `SSD1306` and the pinout is: `GND - VCC - D0 - D1 - RST - DC - CS`, they should work (or `GND - VCC - CLK - MOSI - RES - DC - CS`, which is the same). **make sure you get the right size**: 1.3" (not 0.96")! 
 - alternatively, the hardware/gerbers folder has **.brd/.sch** files for a/the OLED carrier board. in that case, you'd need to get the bare OLED. [for example here](http://www.buydisplay.com/default/serial-spi-1-3-inch-128x64-oled-display-module-ssd1306-white-on-black) (though there's cheaper options for getting bare OLEDs).
