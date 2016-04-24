@@ -42,6 +42,7 @@ OC::App available_apps[] = {
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
   DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('R','F', "References", REFS, REFS_isr)
 };
 
 static constexpr int NUM_AVAILABLE_APPS = ARRAY_SIZE(available_apps);
@@ -112,7 +113,7 @@ void save_app_data() {
     const auto &app = available_apps[(start_app + i) % NUM_AVAILABLE_APPS];
     size_t storage_size = app.storageSize() + sizeof(AppChunkHeader);
     if (storage_size & 1) ++storage_size; // Align chunks on 2-byte boundaries
-    if (app.Save) {
+    if (storage_size && app.Save) {
       if (data + storage_size > data_end) {
         SERIAL_PRINTLN("*********************");
         SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
