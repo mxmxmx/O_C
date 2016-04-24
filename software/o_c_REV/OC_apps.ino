@@ -113,7 +113,7 @@ void save_app_data() {
     const auto &app = available_apps[(start_app + i) % NUM_AVAILABLE_APPS];
     size_t storage_size = app.storageSize() + sizeof(AppChunkHeader);
     if (storage_size & 1) ++storage_size; // Align chunks on 2-byte boundaries
-    if (storage_size && app.Save) {
+    if (storage_size > sizeof(AppChunkHeader) && app.Save) {
       if (data + storage_size > data_end) {
         SERIAL_PRINTLN("*********************");
         SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
