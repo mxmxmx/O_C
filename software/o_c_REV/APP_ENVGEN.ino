@@ -816,16 +816,17 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
-int16_t fast_preview_values[peaks::kFastPreviewWidth];
+int16_t fast_preview_values[peaks::kFastPreviewWidth + 32];
 
 template <int index, weegfx::coord_t startx, weegfx::coord_t y>
 void RenderFastPreview() {
   uint16_t w = envgen.envelopes_[index].RenderFastPreview(fast_preview_values);
+  CONSTRAIN(w, 0, peaks::kFastPreviewWidth); // Just-in-case
   weegfx::coord_t x = startx;
   const int16_t *values = fast_preview_values;
   while (w--) {
-    const int16_t value = *values++ >> 10;
-    graphics.drawVLine(x++, y - value, value + 1);
+    const int16_t value = 1 + ((*values++ >> 10) & 0x1f);
+    graphics.drawVLine(x++, y + 32 - value, value);
   }
 }
 
@@ -834,10 +835,10 @@ void ENVGEN_screensaver() {
   debug::CycleMeasurement render_cycles;
 #endif
 
-  RenderFastPreview<0, 0, 31>();
-  RenderFastPreview<1, 64, 31>();
-  RenderFastPreview<2, 0, 63>();
-  RenderFastPreview<3, 64, 63>();
+  RenderFastPreview<0, 0, 0>();
+  RenderFastPreview<1, 64, 0>();
+  RenderFastPreview<2, 0, 32>();
+  RenderFastPreview<3, 64, 32>();
 
   OC::scope_render();
 

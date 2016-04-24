@@ -172,7 +172,7 @@ uint16_t MultistageEnvelope::RenderFastPreview(int16_t *values) const {
       }
 
       uint32_t segment_w = time_[segment] * segment_width >> 16; // segment_width
-      if (segment_w < 1) segment_w = 1;
+      CONSTRAIN(segment_w, 1, segment_width);
 
       const bool phase_in_segment = segment == current_segment;
       uint16_t w = segment_w;
