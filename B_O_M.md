@@ -2,7 +2,7 @@
 
 - if your board is is labelled rev.2c (on top of the board, underneath the 'ornament and crime' label), that's rev 2c. previous versions differ only slightly.
 
-- the footprint for passives is **0805 throughout**, except the four 10n caps (0603). using 0603 everywhere will work just as fine, of course.
+- the footprint for passives is **0805 throughout**, except the four 10n caps (0603) in vicinity of the teensy. using 0603 everywhere will work just as fine, of course.
 
 - there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
 
@@ -33,14 +33,14 @@
 ### SMD caps (0603) (16V) :
 | value | #| type| note |
 | --- | ---: | :---: | --- |
-| 10n | 4x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
+| 10n | 5x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
 
 ### SMD caps (0805) (25V or better):
 | value | #| type | note |
 | --- | ---: | :---: | --- |
 | 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
-| 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
+| 470n  | 1x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
 | 1u    | 2x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
 | 10u   | 4x | ceramic (or tantal) | e.g. mouser # 81-GRM21BR6YA106KE3L |
 
