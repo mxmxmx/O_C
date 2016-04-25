@@ -216,6 +216,12 @@ void REFS_menu() {
   }
 }
 
+void print_voltage(int octave, int fraction) {
+  graphics.printf("%01d", octave);
+  graphics.movePrintPos(-1, 0); graphics.print('.');
+  graphics.movePrintPos(-2, 0); graphics.printf("%03d", fraction);
+}
+
 void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x) const {
 
   // Mostly borrowed from QQ
@@ -252,10 +258,13 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x) const {
   y = menu::kTextDy;
   graphics.setPrintPos(start_x + menu::kIndentDx, y);
   if (octave >= 0) {
-    graphics.printf("%01d.%03d", octave, semitone);
+    print_voltage(octave, semitone);
   } else {
-    graphics.drawHLine(start_x, y + 4, 2);
-    graphics.printf("%01d.%03d", -octave, semitone);
+    graphics.drawHLine(start_x, y + 3, 2);
+    if (semitone)
+      print_voltage(-octave - 1, 1000 - semitone);
+    else
+      print_voltage(-octave, 0);
   }
 }
 
