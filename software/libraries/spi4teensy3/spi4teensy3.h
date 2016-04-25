@@ -29,7 +29,7 @@ namespace spi4teensy3 {
         void init(uint8_t cpol, uint8_t cpha);
         void init(uint8_t speed, uint8_t cpol, uint8_t cpha);
         void send(uint8_t b);
-        void send(void *bufr, size_t n);
+        void send(const void *bufr, size_t n);
         uint8_t receive();
         void receive(void *bufr, size_t n);
 

@@ -1,200 +1,199 @@
-/*
-* ornament + crime // 4xCV DAC8565  // "ASR" 
-*
-* --------------------------------
-* TR 1 = clock
-* TR 2 = hold
-* TR 3 = oct +
-* TR 4 = oct -
-*
-* CV 1 = sample in
-* CV 2 = index CV
-* CV 3 = # notes (constrain)
-* CV 4 = octaves/offset
-*
-* left  encoder = scale select
-* right encoder = param. select
-* 
-* button 1 (top) =  oct +
-* button 2       =  oct -
-* --------------------------------
-*
-*/
+// Copyright (c) 2015, 2016 Max Stadler, Patrick Dowling
+//
+// Original Author : Max Stadler
+// Heavily modified: Patrick Dowling (pld@gurkenkiste.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
+// Main startup/loop for O&C firmware
+
+#include <ADC.h>
 #include <spi4teensy3.h>
-#include <u8g_teensy.h>
-#include <rotaryplus.h>
 #include <EEPROM.h>
 
-#define CS 10  // DAC CS 
-#define RST 9  // DAC RST
+#include "OC_apps.h"
+#include "OC_core.h"
+#include "OC_DAC.h"
+#include "OC_debug.h"
+#include "OC_gpio.h"
+#include "OC_ADC.h"
+#include "OC_calibration.h"
+#include "OC_digital_inputs.h"
+#include "OC_menus.h"
+#include "OC_ui.h"
+#include "OC_version.h"
+#include "drivers/display.h"
+#include "util/util_debugpins.h"
 
-#define CV1 19
-#define CV2 18
-#define CV3 20
-#define CV4 17
+unsigned long LAST_REDRAW_TIME = 0;
+uint_fast8_t MENU_REDRAW = true;
+OC::UiMode ui_mode = OC::UI_MODE_MENU;
 
-#define TR1 0
-#define TR2 1
-#define TR3 2
-#define TR4 3
+/*  --------------------- UI timer ISR -------------------------   */
 
-#define encR1 15
-#define encR2 16
-#define butR  14
+IntervalTimer UI_timer;
 
-#define encL1 22
-#define encL2 21
-#define butL  23
+void FASTRUN UI_timer_ISR() {
+  OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::UI_cycles);
+  OC::ui.Poll();
 
-#define but_top 5
-#define but_bot 4
-
-U8GLIB u8g(&u8g_dev_sh1106_128x64_2x_hw_spi, u8g_com_hw_spi_fn);
-
-Rotary encoder[2] =
-{
-  {encL1, encL2}, 
-  {encR1, encR2}
-}; 
-
-//  UI mode select
-extern uint8_t UI_MODE;
-
-/*  ------------------------ ASR ------------------------------------  */
-
-#define MAX_VALUE 65535 // DAC fullscale 
-#define MAX_ITEMS 256   // ASR ring buffer size
-#define OCTAVES 10      // # octaves
-uint16_t octaves[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in practice  
-const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
-extern const uint16_t _ZERO;
-
-typedef struct ASRbuf
-{
-    uint8_t     first;
-    uint8_t     last;
-    uint8_t     items;
-    uint16_t data[MAX_ITEMS];
-
-} ASRbuf;
-
-ASRbuf *ASR;
-
-/*  ---------------------  CV   stuff  --------------------------------- */
-
-#define _ADC_RATE 1000
-#define _ADC_RES  12
-#define numADC 4
-int16_t cvval[numADC];                        // store cv values
-
-// PIT timer : 
-IntervalTimer ADC_timer;
-volatile uint16_t _ADC = false;
-
-void ADC_callback()
-{ 
-  _ADC = true; 
+  OC_DEBUG_RESET_CYCLES(OC::ui.ticks(), 2048, OC::DEBUG::UI_cycles);
 }
 
-/*  --------------------- clk / buttons / ISR -------------------------   */
+/*  ------------------------ core timer ISR ---------------------------   */
+IntervalTimer CORE_timer;
+volatile bool OC::CORE::app_isr_enabled = false;
+volatile uint32_t OC::CORE::ticks = 0;
 
-uint32_t _CLK_TIMESTAMP = 0;
-uint32_t _BUTTONS_TIMESTAMP = 0;
-const uint16_t TRIG_LENGTH = 150;
-const uint16_t DEBOUNCE = 250;
+void FASTRUN CORE_timer_ISR() {
+  DEBUG_PIN_SCOPE(DEBUG_PIN_2);
+  OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::ISR_cycles);
 
-volatile uint16_t CLK_STATE1;
+  // DAC and display share SPI. By first updating the DAC values, then starting
+  // a DMA transfer to the display things are fairly nicely interleaved. In the
+  // next ISR, the display transfer is finalized (CS update).
 
-void FASTRUN clk_ISR()
-{  
-    CLK_STATE1 = true; 
-}  // main clock
+  display::Flush();
+  OC::DAC::Update();
+  display::Update();
 
-enum the_buttons 
-{  
-  BUTTON_TOP,
-  BUTTON_BOTTOM,
-  BUTTON_LEFT,
-  BUTTON_RIGHT
-};  
+  // The ADC scan uses async startSingleRead/readSingle and single channel each
+  // loop, so should be fast enough even at 60us (check ADC::busy_waits() == 0)
+  // to verify. Effectively, the scan rate is ISR / 4 / ADC::kAdcSmoothing
+  // 100us: 10kHz / 4 / 4 ~ .6kHz
+  // 60us: 16.666K / 4 / 4 ~ 1kHz
+  // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
+  OC::ADC::Scan();
 
-volatile boolean _ENC = false;
-const uint16_t _ENC_RATE = 15000;
+#ifndef OC_UI_SEPARATE_ISR
+  TODO needs a counter
+  UI_timer_ISR();
+#endif
 
-IntervalTimer ENC_timer;
-void ENC_callback() 
-{ 
-  _ENC = true; 
-} // encoder update 
+  ++OC::CORE::ticks;
+  if (OC::CORE::app_isr_enabled)
+    OC::apps::ISR();
 
+  OC_DEBUG_RESET_CYCLES(OC::CORE::ticks, 16384, OC::DEBUG::ISR_cycles);
+}
 
 /*       ---------------------------------------------------------         */
 
-void setup(){
+void setup() {
   
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
-  analogReadResolution(_ADC_RES);
-  analogReadAveraging(0x10);
   spi4teensy3::init();
   delay(10);
-  // pins 
-  pinMode(butL, INPUT_PULLUP);
-  pinMode(butR, INPUT_PULLUP);
-  pinMode(but_top, INPUT_PULLUP);
-  pinMode(but_bot, INPUT_PULLUP);
- 
-  pinMode(TR1, INPUT_PULLUP);
-  pinMode(TR2, INPUT_PULLUP);
-  pinMode(TR3, INPUT_PULLUP);
-  pinMode(TR4, INPUT_PULLUP);
-  
-  // clock ISR 
-  attachInterrupt(TR1, clk_ISR, FALLING);
-  // encoder ISR 
-  attachInterrupt(encL1, left_encoder_ISR, CHANGE);
-  attachInterrupt(encL2, left_encoder_ISR, CHANGE);
-  attachInterrupt(encR1, right_encoder_ISR, CHANGE);
-  attachInterrupt(encR2, right_encoder_ISR, CHANGE);
-  // ADC timer
-  ADC_timer.begin(ADC_callback, _ADC_RATE);
-  ENC_timer.begin(ENC_callback, _ENC_RATE);
-  // set up DAC pins 
-  pinMode(CS, OUTPUT);
-  pinMode(RST,OUTPUT);
-  // pull RST high 
-  digitalWrite(RST, HIGH); 
-  // set all outputs to zero 
-  set8565_CHA(_ZERO);
-  set8565_CHB(_ZERO);
-  set8565_CHC(_ZERO);
-  set8565_CHD(_ZERO);
-  // splash screen, sort of ... 
-  hello(); 
-  // calibrate? else use EEPROM; else use things in theory :
-  if (!digitalRead(butL))  calibrate_main();
-  else if (EEPROM.read(0x2) > 0) read_settings(); 
-  else in_theory(); // uncalibrated DAC code 
-  delay(1250);   
-  // initialize ASR 
-  init_DACtable();
-  ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
-  init_ASR(ASR);  
-}
 
+  Serial.begin(9600);
+  delay(500);
+  SERIAL_PRINTLN("* O&C BOOTING...");
+  SERIAL_PRINTLN("* %s", OC_VERSION);
+
+  OC::DEBUG::Init();
+  OC::DigitalInputs::Init();
+  OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
+  OC::DAC::Init(&OC::calibration_data.dac);
+
+  display::Init();
+
+  GRAPHICS_BEGIN_FRAME(true);
+  GRAPHICS_END_FRAME();
+
+  calibration_load();
+  display::AdjustOffset(OC::calibration_data.display_offset);
+
+  OC::menu::Init();
+  OC::ui.Init();
+  bool reversed = OC::calibration_data.encoders_reversed();
+  SERIAL_PRINTLN("* Encoders reversed: %s", reversed ? "true" : "false");
+  OC::ui.reverse_encoders(reversed);
+
+  SERIAL_PRINTLN("* Starting CORE ISR @%luus", OC_CORE_TIMER_RATE);
+  CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
+  CORE_timer.priority(OC_CORE_TIMER_PRIO);
+
+#ifdef OC_UI_SEPARATE_ISR
+  SERIAL_PRINTLN("* Starting UI ISR @%luus", OC_UI_TIMER_RATE);
+  UI_timer.begin(UI_timer_ISR, OC_UI_TIMER_RATE);
+  UI_timer.priority(OC_UI_TIMER_PRIO);
+#endif
+
+  // Display splash screen and optional calibration
+  bool reset_settings = false;
+  ui_mode = OC::ui.Splashscreen(reset_settings);
+
+  if (ui_mode == OC::UI_MODE_CALIBRATE) {
+    OC::ui.Calibrate();
+    ui_mode = OC::UI_MODE_MENU;
+  }
+
+  // initialize apps
+  OC::apps::Init(reset_settings);
+}
 
 /*  ---------    main loop  --------  */
 
-//uint32_t testclock;
+void FASTRUN loop() {
 
-void loop(){
- 
-   while(1) 
-   {
-     _loop();
-   }
+  OC::CORE::app_isr_enabled = true;
+  uint32_t menu_redraws = 0;
+  while (true) {
+
+    // don't change current_app while it's running
+    if (OC::UI_MODE_APP_SETTINGS == ui_mode) {
+      OC::ui.AppSettings();
+      ui_mode = OC::UI_MODE_MENU;
+    }
+
+    // Refresh display
+    if (MENU_REDRAW) {
+      GRAPHICS_BEGIN_FRAME(false); // Don't busy wait
+        if (OC::UI_MODE_MENU == ui_mode) {
+          OC_DEBUG_RESET_CYCLES(menu_redraws, 512, OC::DEBUG::MENU_draw_cycles);
+          OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::MENU_draw_cycles);
+          OC::apps::current_app->DrawMenu();
+          ++menu_redraws;
+        } else {
+          OC::apps::current_app->DrawScreensaver();
+        }
+        MENU_REDRAW = 0;
+        LAST_REDRAW_TIME = millis();
+      GRAPHICS_END_FRAME();
+    }
+
+    // Run current app
+    OC::apps::current_app->loop();
+
+    // UI events
+    OC::UiMode mode = OC::ui.DispatchEvents(OC::apps::current_app);
+
+    // State transition for app
+    if (mode != ui_mode) {
+      if (OC::UI_MODE_SCREENSAVER == mode)
+        OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
+      else if (OC::UI_MODE_SCREENSAVER == ui_mode)
+        OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
+      ui_mode = mode;
+    }
+
+    if (millis() - LAST_REDRAW_TIME > REDRAW_TIMEOUT_MS)
+      MENU_REDRAW = 1;
+  }
 }
-
-
-
-

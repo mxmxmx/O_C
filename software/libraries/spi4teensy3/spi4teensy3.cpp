@@ -116,10 +116,10 @@ namespace spi4teensy3 {
 
         // sends > 1 byte from an array
 
-        void send(void *bufr, size_t n) {
+        void send(const void *bufr, size_t n) {
                 int i;
                 int nf;
-                uint8_t *buf = (uint8_t *)bufr;
+                const uint8_t *buf = (const uint8_t *)bufr;
 
                 if (n & 1) {
                         send(*buf++);
@@ -130,7 +130,7 @@ namespace spi4teensy3 {
                 // initial number of words to push into TX FIFO
                 nf = n / 2 < 3 ? n / 2 : 3;
                 // limit for pushing data into TX fifo
-                uint8_t* limit = buf + n;
+                const uint8_t* limit = buf + n;
                 for (i = 0; i < nf; i++) {
                         uint16_t w = (*buf++) << 8;
                         w |= *buf++;
