@@ -1,8 +1,8 @@
 #/* BOM for O+C (rev 2c) */
 
-- if your board is is labelled rev.2c (on top of the board, underneath the 'ornament and crime' label), that's rev 2c. previous versions differ only slightly.
+- if your board is red / labelled rev.2d (on top of the board, underneath the 'ornament and crime' label), that's rev 2d. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
 
-- the footprint for passives is **0805 throughout**, except the four 10n caps (0603) in vicinity of the teensy. using 0603 everywhere will work just as fine, of course.
+- the footprint for passives is **0805 throughout**. using 0603 everywhere will work just as fine, of course.
 
 - there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
 
@@ -30,17 +30,13 @@
 | trimpot 50k-100k | 1x | cermet / inline / 9.5mm |  ADC/CV offset trim, [for example](http://www.taydaelectronics.com/50k-ohm-trimmer-potentiometer-cermet-25-turns-3296w.html) |
 | **optional:** trimpot 2k | 4x | cermet / inline / 9.5mm | DAC output trim (**omit: use 0.1% resistors instead**) |
 
-### SMD caps (0603) (16V) :
-| value | #| type| note |
-| --- | ---: | :---: | --- |
-| 10n | 5x | C0G/NP0 | e.g. mouser # 81-GRM1885C1H103JA1D |
-
 ### SMD caps (0805) (25V or better):
 | value | #| type | note |
 | --- | ---: | :---: | --- |
 | 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
+| 10n | 4x | C0G/NP0 | e.g. mouser # 603-CC805JRNPO9BN103 |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
-| 470n  | 1x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
+| 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
 | 1u    | 2x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
 | 10u   | 4x | ceramic (or tantal) | e.g. mouser # 81-GRM21BR6YA106KE3L |
 
@@ -63,7 +59,6 @@
 
 | what | # | note | part | 
 | --- | ---: | --- | --- | 
-| 470nF cap | 1x | RM5 (16V)| e.g. mouser # 80-R82DC3470AA60K | 
 | 22uF cap | 2x | RM2.5 (35V or better) | e.g. mouser # 647-UPM1V220MDD1TD | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
 | jacks |  12x | 'thonkiconn' (or kobiconn) | [PJ301M-12](https://www.thonk.co.uk/shop/3-5mm-jacks/) |
