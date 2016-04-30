@@ -1,6 +1,6 @@
-#/* BOM for O+C (rev 2c) */
+#/* BOM for O+C (rev 2d) */
 
-- if your board is red / labelled rev.2d (on top of the board, underneath the 'ornament and crime' label), that's rev 2d. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
+- if your board is **red** and labelled **rev.2d** (on top of the board, underneath the 'ornament and crime' label), that's rev 2d. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
 
 - the footprint for passives is **0805 throughout**. using 0603 everywhere will work just as fine, of course.
 
