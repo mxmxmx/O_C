@@ -10,6 +10,7 @@
 
 extern void POLYLFO_debug();
 extern void BBGEN_debug();
+// extern void ENVGEN_debug();
 extern void BYTEBEATGEN_debug();
 extern void H1200_debug();
 
@@ -97,6 +98,7 @@ static const DebugMenu debug_menus[] = {
   { " GFX", debug_menu_gfx },
   { " ADC", debug_menu_adc },
   { " POLYLFO", POLYLFO_debug },
+  // { " ENVGEN", ENVGEN_debug },
   { " BBGEN", BBGEN_debug },
   { " BYTEBEATGEN", BYTEBEATGEN_debug },
   { " H1200", H1200_debug },
