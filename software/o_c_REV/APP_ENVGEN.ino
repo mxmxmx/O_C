@@ -76,6 +76,7 @@ enum CVMapping {
   CV_MAPPING_EUCLIDEAN_LENGTH,
   CV_MAPPING_EUCLIDEAN_FILL,
   CV_MAPPING_EUCLIDEAN_OFFSET,
+  CV_MAPPING_DELAY_MSEC,
   CV_MAPPING_LAST
 };
 
@@ -104,6 +105,7 @@ public:
 
   static constexpr int kMaxSegments = 4;
   static constexpr int kEuclideanParams = 3;
+  static constexpr int kDelayParams = 1;
   static constexpr size_t kMaxDelayedTriggers = 32;
 
   struct DelayedTrigger {
@@ -129,7 +131,7 @@ public:
     return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
   }
 
-  uint32_t get_trigger_delay_ms() const {
+  int32_t get_trigger_delay_ms() const {
     return 1000U * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS] + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
   }
 
@@ -225,7 +227,7 @@ public:
     return 0;
   }
 
-  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams]) {
+  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams + kDelayParams]) {
     int mapping = values_[cv_setting];
     switch (mapping) {
       case CV_MAPPING_SEG1:
@@ -238,6 +240,9 @@ public:
       case CV_MAPPING_EUCLIDEAN_FILL:
       case CV_MAPPING_EUCLIDEAN_OFFSET:
         segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 6;
+        break;
+      case CV_MAPPING_DELAY_MSEC:
+        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 2;
         break;
        default:
         break;
@@ -301,7 +306,7 @@ public:
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
-    int32_t s[kMaxSegments + kEuclideanParams];
+    int32_t s[kMaxSegments + kEuclideanParams + kDelayParams];
     s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
     s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
     s[2] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
@@ -309,6 +314,7 @@ public:
     s[4] = static_cast<int32_t>(get_euclidean_length());
     s[5] = static_cast<int32_t>(get_euclidean_fill());
     s[6] = static_cast<int32_t>(get_euclidean_offset());
+    s[7] = get_trigger_delay_ms();
 
     apply_cv_mapping(ENV_SETTING_CV1, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV2, cvs, s);
@@ -322,6 +328,7 @@ public:
     CONSTRAIN(s[4], 0, 31);
     CONSTRAIN(s[5], 0, 32);
     CONSTRAIN(s[6], 0, 32);
+    CONSTRAIN(s[7], 0, 65535);
 
     // debug only
     // s_euclidean_length_ = s[4];
@@ -371,7 +378,8 @@ public:
       
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
-      uint32_t delay = get_trigger_delay_ms() * 1000U;
+      // uint32_t delay = get_trigger_delay_ms() * 1000U;
+      uint32_t delay = static_cast<uint32_t>(s[7] * 1000U);
       if (delay_mode && delay) {
         triggered = false;
         if (TRIGGER_DELAY_QUEUE == delay_mode) {
@@ -504,7 +512,7 @@ const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs"
+  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
