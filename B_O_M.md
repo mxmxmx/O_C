@@ -69,6 +69,7 @@
 | 1x14 pin header (to match) |  2x | 2.54mm, header for teensy 3.x | - |
 | tact switches | 2x | multimecs 5E/5G | mouser #: 642-5GTH935 (†††) | 
 | + caps | 2x | multimecs 1SS09-15.0 or -16.0 | mouser #: 642-1SS09-15.0, or -16.0 | 
+| 3mm spacer | 1x | ∅ 3M, 10mm | - | 
 
 - (†)  rotary encoder w/ switch: for instance: mouser # 652-PEC11R-4215F-S24 (15 mm, 'D' shaft); 652-PEC11R-4215K-S24 (15 mm shaft, knurled); 652-PEC11R-4220F-S24 (20 mm, 'D'), 652-PEC11R-4220K-S24 (20 mm, knurled), etc).
 - (††) best to **use "machined pin" ones** (also called "round" or "precision"): the pcb holes are small.
