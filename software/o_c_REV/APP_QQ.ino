@@ -276,12 +276,19 @@ public:
         break;
       case CHANNEL_SOURCE_LOGISTIC_MAP: {
           logistic_map_.set_seed(get_logistic_map_seed());
-          int32_t logistic_map_r = get_logistic_map_r() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
-          CONSTRAIN(logistic_map_r, 0, 255);
+          int32_t logistic_map_r = get_logistic_map_r();
+          if (get_logistic_map_r_cv_source()) {
+            logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) >> 4);
+            CONSTRAIN(logistic_map_r, 0, 255);
+          }
           logistic_map_.set_r(logistic_map_r);  
           if (triggered) {
             int64_t logistic_map_x = logistic_map_.Clock();
             uint8_t range = get_logistic_map_range();
+            if (get_logistic_map_range_cv_source()) {
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) >> 5);
+              CONSTRAIN(range, 1, 120);
+            }
             if (quantizer_.enabled()) {   
               uint32_t logistic_scaled = (logistic_map_x * range) >> 24;
 
@@ -392,6 +399,8 @@ public:
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_SEED;
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE;
       default:
       break;
     }
@@ -418,6 +427,8 @@ public:
       case CHANNEL_SETTING_LOGISTIC_MAP_R:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE:
       case CHANNEL_SETTING_LOGISTIC_MAP_SEED:
+      case CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE:
+      case CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -497,7 +508,9 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "LFSR rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
   { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
+  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Log r CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 }
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
