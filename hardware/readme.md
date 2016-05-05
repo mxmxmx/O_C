@@ -21,7 +21,7 @@ hardware files for o_C quad 16 bit CV generator/processor
 
 - as far as panel layouts go, we'd recommend keeping it 'generic'. using labels is unlikely to convey much useful information, because the role of the various in- and outputs (naturally) varies quite a bit across the various 'apps':
 
-<img src="https://c2.staticflickr.com/2/1692/25838880913_74aff9f004_k.jpg" width="50%">.
+<img src="https://c2.staticflickr.com/2/1692/25838880913_74aff9f004_k.jpg" width="35%">.
 
 - yellow: trigger/clock inputs; grey: CV inputs; black: CV outputs.
 
