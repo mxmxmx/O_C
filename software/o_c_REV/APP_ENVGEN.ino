@@ -73,6 +73,10 @@ enum CVMapping {
   CV_MAPPING_SEG2,
   CV_MAPPING_SEG3,
   CV_MAPPING_SEG4,
+  CV_MAPPING_EUCLIDEAN_LENGTH,
+  CV_MAPPING_EUCLIDEAN_FILL,
+  CV_MAPPING_EUCLIDEAN_OFFSET,
+  CV_MAPPING_DELAY_MSEC,
   CV_MAPPING_LAST
 };
 
@@ -100,6 +104,8 @@ class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_S
 public:
 
   static constexpr int kMaxSegments = 4;
+  static constexpr int kEuclideanParams = 3;
+  static constexpr int kDelayParams = 1;
   static constexpr size_t kMaxDelayedTriggers = 32;
 
   struct DelayedTrigger {
@@ -125,7 +131,7 @@ public:
     return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
   }
 
-  uint32_t get_trigger_delay_ms() const {
+  int32_t get_trigger_delay_ms() const {
     return 1000U * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS] + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
   }
 
@@ -144,6 +150,19 @@ public:
   uint8_t get_euclidean_offset() const {
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
   }
+
+  // Debug only
+  //  uint8_t get_s_euclidean_length() const {
+  //    return static_cast<uint8_t>(s_euclidean_length_);
+  //  }
+  //
+  //  uint8_t get_s_euclidean_fill() const {
+  //    return static_cast<uint8_t>(s_euclidean_fill_);
+  //  }
+  //
+  //  uint8_t get_s_euclidean_offset() const {
+  //    return static_cast<uint8_t>(s_euclidean_offset_);
+  //  }
 
   int get_trigger_delay_count() const {
     return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
@@ -208,7 +227,7 @@ public:
     return 0;
   }
 
-  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments]) {
+  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams + kDelayParams]) {
     int mapping = values_[cv_setting];
     switch (mapping) {
       case CV_MAPPING_SEG1:
@@ -217,7 +236,15 @@ public:
       case CV_MAPPING_SEG4:
         segments[mapping - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
         break;
-      default:
+      case CV_MAPPING_EUCLIDEAN_LENGTH:
+      case CV_MAPPING_EUCLIDEAN_FILL:
+      case CV_MAPPING_EUCLIDEAN_OFFSET:
+        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 6;
+        break;
+      case CV_MAPPING_DELAY_MSEC:
+        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 2;
+        break;
+       default:
         break;
     }
   }
@@ -279,11 +306,15 @@ public:
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
-    int32_t s[kMaxSegments];
+    int32_t s[kMaxSegments + kEuclideanParams + kDelayParams];
     s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
     s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
     s[2] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
     s[3] = SCALE8_16(static_cast<int32_t>(get_segment_value(3)));
+    s[4] = static_cast<int32_t>(get_euclidean_length());
+    s[5] = static_cast<int32_t>(get_euclidean_fill());
+    s[6] = static_cast<int32_t>(get_euclidean_offset());
+    s[7] = get_trigger_delay_ms();
 
     apply_cv_mapping(ENV_SETTING_CV1, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV2, cvs, s);
@@ -294,6 +325,15 @@ public:
     s[1] = USAT16(s[1]);
     s[2] = USAT16(s[2]);
     s[3] = USAT16(s[3]);
+    CONSTRAIN(s[4], 0, 31);
+    CONSTRAIN(s[5], 0, 32);
+    CONSTRAIN(s[6], 0, 32);
+    CONSTRAIN(s[7], 0, 65535);
+
+    // debug only
+    // s_euclidean_length_ = s[4];
+    // s_euclidean_fill_ = s[5];
+    // s_euclidean_offset_ = s[6];
 
     EnvelopeType type = get_type();
     switch (type) {
@@ -329,14 +369,17 @@ public:
     trigger_display_.Update(1, triggered || gate_raised_);
 
     if (triggered) ++euclidean_counter_;
-    uint8_t euclidean_length = get_euclidean_length();
-    if (euclidean_length && !EuclideanFilter(euclidean_length, get_euclidean_fill(), get_euclidean_offset(), euclidean_counter_)) {
+    uint8_t euclidean_length = static_cast<uint8_t>(s[4]);
+    uint8_t euclidean_fill = static_cast<uint8_t>(s[5]);
+    uint8_t euclidean_offset = static_cast<uint8_t>(s[6]);
+    if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
       triggered = false;
     }
       
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
-      uint32_t delay = get_trigger_delay_ms() * 1000U;
+      // uint32_t delay = get_trigger_delay_ms() * 1000U;
+      uint32_t delay = static_cast<uint32_t>(s[7] * 1000U);
       if (delay_mode && delay) {
         triggered = false;
         if (TRIGGER_DELAY_QUEUE == delay_mode) {
@@ -393,6 +436,10 @@ private:
   EnvelopeType last_type_;
   bool gate_raised_;
   uint32_t euclidean_counter_;
+  // debug only
+  //  int32_t s_euclidean_length_;  
+  //  int32_t s_euclidean_fill_;  
+  //  int32_t s_euclidean_offset_;  
   
   DelayedTrigger delayed_triggers_[kMaxDelayedTriggers];
   size_t delayed_triggers_free_;
@@ -461,11 +508,11 @@ const char* const segment_names[] = {
 };
 
 const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
-  "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "BgDip", "MeDip", "LtDip", "Wiggl"
+  "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "Gate", "BgDip", "MeDip", "LtDip", "Wiggl"
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel"
+  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
@@ -493,10 +540,10 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_SEG4, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
+  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
@@ -848,6 +895,18 @@ void ENVGEN_screensaver() {
   graphics.printf("%u",  us);
 #endif
 }
+
+//void ENVGEN_debug() {
+//  for (int i = 0; i < 4; ++i) { 
+//    uint8_t ypos = 10*(i + 1) + 2 ; 
+//    graphics.setPrintPos(2, ypos);
+//    graphics.print(envgen.envelopes_[i].get_s_euclidean_length()) ;
+//    graphics.setPrintPos(50, ypos);
+//    graphics.print(envgen.envelopes_[i].get_s_euclidean_fill()) ;
+//    graphics.setPrintPos(100, ypos);
+//    graphics.print(envgen.envelopes_[i].get_s_euclidean_offset()) ;
+//  }
+//}
 
 void FASTRUN ENVGEN_isr() {
   envgen.ISR();

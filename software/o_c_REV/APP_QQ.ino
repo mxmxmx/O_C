@@ -50,9 +50,13 @@ enum ChannelSetting {
   CHANNEL_SETTING_TURING_LENGTH,
   CHANNEL_SETTING_TURING_PROB,
   CHANNEL_SETTING_TURING_RANGE,
+  CHANNEL_SETTING_TURING_PROB_CV_SOURCE,
+  CHANNEL_SETTING_TURING_RANGE_CV_SOURCE,
   CHANNEL_SETTING_LOGISTIC_MAP_R,
   CHANNEL_SETTING_LOGISTIC_MAP_RANGE,
   CHANNEL_SETTING_LOGISTIC_MAP_SEED,
+  CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE,
+  CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE,
   CHANNEL_SETTING_LAST
 };
 
@@ -141,6 +145,14 @@ public:
     return values_[CHANNEL_SETTING_TURING_RANGE];
   }
 
+  uint8_t get_turing_prob_cv_source() const {
+    return values_[CHANNEL_SETTING_TURING_PROB_CV_SOURCE];
+  }
+
+  uint8_t get_turing_range_cv_source() const {
+    return values_[CHANNEL_SETTING_TURING_RANGE_CV_SOURCE];
+  }
+
   uint8_t get_logistic_map_r() const {
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_R];
   }
@@ -151,6 +163,14 @@ public:
 
   uint8_t get_logistic_map_seed() const {
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_SEED];
+  }
+
+  uint8_t get_logistic_map_r_cv_source() const {
+    return values_[CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE];
+  }
+
+  uint8_t get_logistic_map_range_cv_source() const {
+    return values_[CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE];
   }
 
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
@@ -214,12 +234,19 @@ public:
     switch (source) {
       case CHANNEL_SOURCE_TURING: {
           turing_machine_.set_length(get_turing_length());
-          int32_t probability = get_turing_prob() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
-          CONSTRAIN(probability, 0, 255);
+          int32_t probability = get_turing_prob();
+          if (get_turing_prob_cv_source()) {
+            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) >> 4);
+            CONSTRAIN(probability, 0, 255);
+          }
           turing_machine_.set_probability(probability);  
           if (triggered) {
             uint32_t shift_register = turing_machine_.Clock();
             uint8_t range = get_turing_range();
+            if (get_turing_range_cv_source()) {
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) >> 5);
+              CONSTRAIN(range, 1, 120);
+            }
             if (quantizer_.enabled()) {
     
               // To use full range of bits is something like:
@@ -249,12 +276,19 @@ public:
         break;
       case CHANNEL_SOURCE_LOGISTIC_MAP: {
           logistic_map_.set_seed(get_logistic_map_seed());
-          int32_t logistic_map_r = get_logistic_map_r() + (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) >> 4);
-          CONSTRAIN(logistic_map_r, 0, 255);
+          int32_t logistic_map_r = get_logistic_map_r();
+          if (get_logistic_map_r_cv_source()) {
+            logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) >> 4);
+            CONSTRAIN(logistic_map_r, 0, 255);
+          }
           logistic_map_.set_r(logistic_map_r);  
           if (triggered) {
             int64_t logistic_map_x = logistic_map_.Clock();
             uint8_t range = get_logistic_map_range();
+            if (get_logistic_map_range_cv_source()) {
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) >> 5);
+              CONSTRAIN(range, 1, 120);
+            }
             if (quantizer_.enabled()) {   
               uint32_t logistic_scaled = (logistic_map_x * range) >> 24;
 
@@ -358,11 +392,15 @@ public:
         *settings++ = CHANNEL_SETTING_TURING_LENGTH;
         *settings++ = CHANNEL_SETTING_TURING_RANGE;
         *settings++ = CHANNEL_SETTING_TURING_PROB;
+        *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_TURING_PROB_CV_SOURCE;
       break;
       case CHANNEL_SOURCE_LOGISTIC_MAP:
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_SEED;
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE;
       default:
       break;
     }
@@ -384,9 +422,13 @@ public:
       case CHANNEL_SETTING_TURING_LENGTH:
       case CHANNEL_SETTING_TURING_RANGE:
       case CHANNEL_SETTING_TURING_PROB:
+      case CHANNEL_SETTING_TURING_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_TURING_PROB_CV_SOURCE:
       case CHANNEL_SETTING_LOGISTIC_MAP_R:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE:
       case CHANNEL_SETTING_LOGISTIC_MAP_SEED:
+      case CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE:
+      case CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -439,6 +481,10 @@ const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
   "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc"
 };
 
+const char* const turing_logistic_cv_sources[5] = {
+  "None", "CV1", "CV2", "CV3", "CV4"
+};
+
 // Save special-case drawing
 const char* const trigger_delays[] = {
   "off", "60us", "120us", "180us", "240us", "300us", "360us", "420us", "480us"
@@ -458,9 +504,13 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 16, 1, 32, "LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "LFSR p", NULL, settings::STORAGE_TYPE_U8 },
   { 24, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "LFSR p CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
   { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 }
+  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Log r CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 }
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change

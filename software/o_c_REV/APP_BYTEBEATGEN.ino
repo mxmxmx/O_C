@@ -162,6 +162,10 @@ public:
     return static_cast<uint32_t>(bytebeat_.get_t()); 
   }
 
+  uint32_t get_eqn_num() {
+    return static_cast<uint32_t>(bytebeat_.get_eqn_num()); 
+  }
+
   uint32_t get_phase() {
     return static_cast<uint32_t>(bytebeat_.get_phase()); 
   }
@@ -260,7 +264,7 @@ public:
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
     int32_t s[kMaxByteBeatParameters];
-    s[0] = SCALE8_16(static_cast<int32_t>(get_equation() << 5));
+    s[0] = SCALE8_16(static_cast<int32_t>(get_equation() << 4));
     s[1] = SCALE8_16(static_cast<int32_t>(get_speed()));
     s[2] = SCALE8_16(static_cast<int32_t>(get_p0()));
     s[3] = SCALE8_16(static_cast<int32_t>(get_p1()));
@@ -336,11 +340,11 @@ const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
 };
 
 const char* const bytebeat_equation_names[] = {
-  "hope", "love", "life", "age", "clysm", "monk", "nerve", "trurl"  
+  "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
 };
 
 SETTINGS_DECLARE(ByteBeat, BYTEBEAT_SETTING_LAST) {
-  { 0, 0, 7, "Equation", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 15, "Equation", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "Speed", NULL, settings::STORAGE_TYPE_U8 },
   { 126, 0, 255, "Parameter 0", NULL, settings::STORAGE_TYPE_U8 }, 
   { 126, 0, 255, "Parameter 1", NULL, settings::STORAGE_TYPE_U8 }, 
@@ -552,7 +556,7 @@ void BYTEBEATGEN_debug() {
     graphics.setPrintPos(12, ypos);
     graphics.print("t=") ;
     graphics.setPrintPos(40, ypos);
-    graphics.print(bytebeatgen.bytebeats_[i].get_t(), 12);
+    graphics.print(bytebeatgen.bytebeats_[i].get_eqn_num(), 12);
   }
 }
 

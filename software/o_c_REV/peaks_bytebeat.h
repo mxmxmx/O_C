@@ -68,7 +68,7 @@ class ByteBeat {
       if (bytepitch_ < 1) {
         bytepitch_ = 1;
       }
-      equation_index_ = equation_ >> 13 ;
+      equation_index_ = equation_ >> 12 ;
   }
 
    inline void set_equation(int32_t equation) {
@@ -114,7 +114,11 @@ class ByteBeat {
   inline uint32_t get_t() {
     return t_ ;
   }
-  
+
+  inline uint32_t get_eqn_num() {
+    return equation_index_ ;
+  }
+
   inline uint32_t get_phase() {
     return phase_ ;
   }
@@ -144,7 +148,7 @@ class ByteBeat {
   bool stepmode_ ;
   bool loopmode_ ;
 
-  uint8_t equation_index_ ;
+  uint16_t equation_index_ ;
   uint16_t bytepitch_ ;
   
   DISALLOW_COPY_AND_ASSIGN(ByteBeat);
