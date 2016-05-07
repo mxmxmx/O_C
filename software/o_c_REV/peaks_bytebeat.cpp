@@ -125,35 +125,35 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           sample = (t_/(40+p0)*(t_+t_|4-(p1+20)))+(t_*(p2>>5));
           break;
         case 8: // Pirx  
-          // my loud friend, Ptah bank   
+          // My Loud Friend from Equation Composer Ptah bank   
           sample = (((t_>>((p0>>12)%12))%(t_>>((p1%12)+1))-(t_>>((t_>>(p2%10))%12)))/((t_>>((p0>>2)%15))%15))<<4;
           break;
         case 9: //Snaut
-          // GGT2, Ptah bank
+          // GGT2 from Equation Composer Ptah bank
           sample = ((p0|(t_>>(t_>>13)%14))*((t_>>(p0%12))-p1&249))>>((t_>>13)%6)>>((p2>>4)%12);
            break;
         case 10: // Hari
-          // burst thinking, Sobek bank
+          // Burst Thinking from Equation Composer Sobek bank
           sample = (1099991*t_&t_<<(p1-t_%p0)+t_)>>(p2>>6);;
           break;
         case 11: // Kelvin
-         // light reactor, Ptah bank
+         // Light Reactor from Equation Composer Ptah bank
           sample = ((t_>>3)*(p0-643|(325%t_|p1)&t_)-((t_>>6)*35/p2%t_))>>6;
           break;
         case 12: // Tichy
-          // alpha from Khepri bank
+          // Alpha from Equation Composer Khepri bank
           sample = (((t_^(p0>>3)-456)*(p1+1))/(((t_>>(p2>>3))%14)+1))+(t_*((182>>(t_>>15)%16))&1) ;
           break;
         case 13: // Bregg
-          // Triangle wiggler 2 from Khepri bank
+          // Triangle wiggler 2 from Equation Composer Khepri bank
           sample = ((t_>>(p0>>4))|t_|t_>>6)*p2+4*(t_&(t_>>(p1>>4))|t_>>(p0>>4));
           break;            
         case 14: // Avon
-          // Widerange from Khepri bank
+          // Widerange from Equation Composer Khepri bank
           sample = (((p0^(t_>>(p1>>3)))-(t_>>(p2>>2))-t_%(t_&p1)));
           break;        
         case 15: // Orac
-          // Timing master from Ptah bank
+          // Timing master from Equation Composer Ptah bank
           sample = (((t_>>(t_>>(p1%15))%16)/((t_>>((t_>>(p2%15))%15))%12)+p0)*((t_>>(p0%12))+15))<<4;
           break;
         default:
