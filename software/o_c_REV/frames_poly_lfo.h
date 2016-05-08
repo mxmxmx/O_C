@@ -35,6 +35,7 @@
 //#include "stmlib/stmlib.h"
 //#include "frames/keyframer.h"
 
+
 namespace frames {
 
 const size_t kNumChannels = 4;
@@ -95,6 +96,10 @@ class PolyLfo {
   void Render(int32_t frequency, bool reset_phase);
   void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
+  inline void set_freq_range(uint16_t freq_range) {
+   freq_range_ = freq_range;
+  }
+  
   inline void set_shape(uint16_t shape) {
     shape_ = shape;
   }
@@ -181,11 +186,11 @@ class PolyLfo {
   inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
-  static uint32_t FrequencyToPhaseIncrement(int32_t frequency);
+  static uint32_t FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng);
 
  private:
   // static const uint8_t rainbow_[17][3];
-
+  uint16_t freq_range_ ;
   uint16_t shape_;
   int16_t shape_spread_;
   int32_t spread_;
