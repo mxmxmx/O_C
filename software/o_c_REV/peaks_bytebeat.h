@@ -50,6 +50,7 @@ class ByteBeat {
   
   void Init();
   uint16_t ProcessSingleSample(uint8_t control);
+  uint16_t Clock();
  
   void Configure(int32_t* parameter, bool stepmode, bool loopmode) {
       set_equation(parameter[0]);

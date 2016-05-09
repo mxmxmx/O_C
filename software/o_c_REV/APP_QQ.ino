@@ -29,6 +29,7 @@
 #include "util/util_settings.h"
 #include "util/util_turing.h"
 #include "util/util_logistic_map.h"
+#include "peaks_bytebeat.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "OC_menus.h"
@@ -76,6 +77,7 @@ enum ChannelSource {
   CHANNEL_SOURCE_CV4,
   CHANNEL_SOURCE_TURING,
   CHANNEL_SOURCE_LOGISTIC_MAP,
+  CHANNEL_SOURCE_BYTEBEAT,
   CHANNEL_SOURCE_LAST
 };
 
@@ -187,6 +189,7 @@ public:
 
     turing_machine_.Init();
     logistic_map_.Init();
+    bytebeat_.Init();
     quantizer_.Init();
     update_scale(true);
     trigger_display_.Init();
@@ -274,6 +277,49 @@ public:
           }
         }
         break;
+      case CHANNEL_SOURCE_BYTEBEAT: {
+//          turing_machine_.set_length(get_turing_length());
+            bytebeat_.set_equation(6<<8);
+//          int32_t probability = get_turing_prob();
+//          if (get_turing_prob_cv_source()) {
+//            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) >> 4);
+//            CONSTRAIN(probability, 0, 255);
+//          }
+//          turing_machine_.set_probability(probability);  
+          if (triggered) {
+            uint32_t bb = bytebeat_.Clock();
+            uint8_t range = get_turing_range();
+//            if (get_turing_range_cv_source()) {
+//              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) >> 5);
+//              CONSTRAIN(range, 1, 120);
+//            }
+            if (quantizer_.enabled()) {
+    
+              // To use full range of bits is something like:
+              // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
+              // Since our range is limited anyway, just grab the last byte
+              uint32_t scaled = ((bb >> 8) * range) >> 8;
+    
+              // The quantizer uses a lookup codebook with 128 entries centered
+              // about 0, so we use the range/scaled output to lookup a note
+              // directly instead of changing to pitch first.
+              int32_t pitch =
+                  quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
+              sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
+            } else {
+              // We dont' need a calibrated value here, really
+              int octave = get_octave();
+              CONSTRAIN(octave, 0, 6);
+              sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
+              // range is actually 120 (10 oct) but 65535 / 128 is close enough
+              sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, bb << 16);
+              sample = USAT16(sample);
+              history_sample = sample;
+            }
+          }
+        }
+        break;        
       case CHANNEL_SOURCE_LOGISTIC_MAP: {
           logistic_map_.set_seed(get_logistic_map_seed());
           int32_t logistic_map_r = get_logistic_map_r();
@@ -451,6 +497,7 @@ private:
 
   util::TuringShiftRegister turing_machine_;
   util::LogisticMap logistic_map_;
+  peaks::ByteBeat bytebeat_ ;
   braids::Quantizer quantizer_;
   OC::DigitalInputDisplay trigger_display_;
 
@@ -478,7 +525,7 @@ const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
 };
 
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
-  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc"
+  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB"
 };
 
 const char* const turing_logistic_cv_sources[5] = {
