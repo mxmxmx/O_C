@@ -69,11 +69,11 @@ class ByteBeat {
       if (bytepitch_ < 1) {
         bytepitch_ = 1;
       }
-      equation_index_ = equation_ >> 12 ;
   }
 
    inline void set_equation(int32_t equation) {
     equation_ = equation ;
+    equation_index_ = equation_ >> 12 ;
   }
 
    inline void set_step_mode(bool stepmode) {

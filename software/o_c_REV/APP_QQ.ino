@@ -58,6 +58,16 @@ enum ChannelSetting {
   CHANNEL_SETTING_LOGISTIC_MAP_SEED,
   CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE,
   CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_BYTEBEAT_EQUATION,
+  CHANNEL_SETTING_BYTEBEAT_RANGE,
+  CHANNEL_SETTING_BYTEBEAT_P0,
+  CHANNEL_SETTING_BYTEBEAT_P1,
+  CHANNEL_SETTING_BYTEBEAT_P2,
+  CHANNEL_SETTING_BYTEBEAT_EQUATION_CV_SOURCE,
+  CHANNEL_SETTING_BYTEBEAT_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE,
+  CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE,
+  CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE, 
   CHANNEL_SETTING_LAST
 };
 
@@ -175,6 +185,46 @@ public:
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE];
   }
 
+  uint8_t get_bytebeat_equation() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_EQUATION];
+  }
+
+  uint8_t get_bytebeat_range() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_RANGE];
+  }
+
+  uint8_t get_bytebeat_p0() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_P0];
+  }
+
+  uint8_t get_bytebeat_p1() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_P1];
+  }
+
+  uint8_t get_bytebeat_p2() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_P2];
+  }
+
+  uint8_t get_bytebeat_equation_cv_source() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_EQUATION_CV_SOURCE];
+  }
+
+  uint8_t get_bytebeat_range_cv_source() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_RANGE_CV_SOURCE];
+  }
+
+  uint8_t get_bytebeat_p0_cv_source() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE];
+  }
+
+  uint8_t get_bytebeat_p1_cv_source() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE];
+  }
+
+  uint8_t get_bytebeat_p2_cv_source() const {
+    return values_[CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE];
+  }
+
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
     apply_value(CHANNEL_SETTING_SOURCE, source);
@@ -278,8 +328,10 @@ public:
         }
         break;
       case CHANNEL_SOURCE_BYTEBEAT: {
-//          turing_machine_.set_length(get_turing_length());
-            bytebeat_.set_equation(6<<8);
+            bytebeat_.set_equation(get_bytebeat_equation() << 12);
+            bytebeat_.set_p0(get_bytebeat_p0() << 8);
+            bytebeat_.set_p1(get_bytebeat_p1() << 8);
+            bytebeat_.set_p2(get_bytebeat_p2() << 8);
 //          int32_t probability = get_turing_prob();
 //          if (get_turing_prob_cv_source()) {
 //            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) >> 4);
@@ -288,15 +340,13 @@ public:
 //          turing_machine_.set_probability(probability);  
           if (triggered) {
             uint32_t bb = bytebeat_.Clock();
-            uint8_t range = get_turing_range();
-//            if (get_turing_range_cv_source()) {
-//              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) >> 5);
-//              CONSTRAIN(range, 1, 120);
-//            }
+            uint8_t range = get_bytebeat_range();
+            if (get_bytebeat_range_cv_source()) {
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) >> 5);
+              CONSTRAIN(range, 1, 120);
+            }
             if (quantizer_.enabled()) {
     
-              // To use full range of bits is something like:
-              // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
               // Since our range is limited anyway, just grab the last byte
               uint32_t scaled = ((bb >> 8) * range) >> 8;
     
@@ -447,6 +497,18 @@ public:
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_SEED;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE;
+      break;
+      case CHANNEL_SOURCE_BYTEBEAT:
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_EQUATION;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_RANGE;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_P0;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_P1;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_P2;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_EQUATION_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_RANGE_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE;
       default:
       break;
     }
@@ -475,6 +537,16 @@ public:
       case CHANNEL_SETTING_LOGISTIC_MAP_SEED:
       case CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_BYTEBEAT_EQUATION:
+      case CHANNEL_SETTING_BYTEBEAT_RANGE:
+      case CHANNEL_SETTING_BYTEBEAT_P0:
+      case CHANNEL_SETTING_BYTEBEAT_P1:
+      case CHANNEL_SETTING_BYTEBEAT_P2:
+      case CHANNEL_SETTING_BYTEBEAT_EQUATION_CV_SOURCE:
+      case CHANNEL_SETTING_BYTEBEAT_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE:
+      case CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE:
+      case CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE:      
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -557,7 +629,17 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "Log r CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 }
+  { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 15, "Bytebeat eqn", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 24, 1, 120, "Bytebeat range", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, "Bytebeat P0", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, "Bytebeat P1", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 1, 255, "Bytebeat P2", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Bb eqn CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
