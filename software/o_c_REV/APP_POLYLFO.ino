@@ -46,10 +46,6 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_B_XOR_A,
   POLYLFO_SETTING_C_XOR_A,
   POLYLFO_SETTING_D_XOR_A,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_A,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_B,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_C,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_D,
   POLYLFO_SETTING_LAST
 };
 
@@ -106,22 +102,6 @@ public:
 
   uint8_t get_d_xor_a() const {
     return values_[POLYLFO_SETTING_D_XOR_A];
-  }
-
-  uint16_t get_amplitude_scaling_a() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_A];
-  }
-
-  uint16_t get_amplitude_scaling_b() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_B];
-  }
-
-  uint16_t get_amplitude_scaling_c() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_C];
-  }
-  
-  uint16_t get_amplitude_scaling_d() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_D];
   }
 
   void Init();
@@ -182,10 +162,6 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U4 }, 
-  { 255, 0, 255, "Ampl scaling A", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 255, 0, 255, "Ampl scaling B", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 255, 0, 255, "Ampl scaling C", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 255, 0, 255, "Ampl scaling D", NULL, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -232,9 +208,6 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_b_xor_a(poly_lfo.get_b_xor_a());
   poly_lfo.lfo.set_c_xor_a(poly_lfo.get_c_xor_a());
   poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
-
-  poly_lfo.lfo.set_amplitude_scalings(SCALE8_16(poly_lfo.get_amplitude_scaling_a()), SCALE8_16(poly_lfo.get_amplitude_scaling_b()), 
-                              SCALE8_16(poly_lfo.get_amplitude_scaling_c()), SCALE8_16(poly_lfo.get_amplitude_scaling_d()));
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);

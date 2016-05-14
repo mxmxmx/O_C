@@ -150,7 +150,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     const uint8_t* a = &wt_lfo_waveforms[(wavetable_index >> 12) * 257];
     const uint8_t* b = a + 257;
     int32_t unscaled_wt_value = Crossfade(a, b, phase, wavetable_index << 4) + 32768;
-    wt_value_[i] = (unscaled_wt_value * amplitude_scalings_[i]) >> 16;
+    wt_value_[i] = unscaled_wt_value ;
     value_[i] = Interpolate824(sine, phase);
     level_[i] = unscaled_wt_value >> 8; 
     // add bit-XOR 
