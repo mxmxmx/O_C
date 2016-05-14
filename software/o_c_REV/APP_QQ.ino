@@ -55,7 +55,6 @@ enum ChannelSetting {
   CHANNEL_SETTING_TURING_RANGE_CV_SOURCE,
   CHANNEL_SETTING_LOGISTIC_MAP_R,
   CHANNEL_SETTING_LOGISTIC_MAP_RANGE,
-  CHANNEL_SETTING_LOGISTIC_MAP_SEED,
   CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE,
   CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE,
   CHANNEL_SETTING_BYTEBEAT_EQUATION,
@@ -173,9 +172,6 @@ public:
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_RANGE];
   }
 
-  uint8_t get_logistic_map_seed() const {
-    return values_[CHANNEL_SETTING_LOGISTIC_MAP_SEED];
-  }
 
   uint8_t get_logistic_map_r_cv_source() const {
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE];
@@ -328,50 +324,68 @@ public:
         }
         break;
       case CHANNEL_SOURCE_BYTEBEAT: {
-            bytebeat_.set_equation(get_bytebeat_equation() << 12);
-            bytebeat_.set_p0(get_bytebeat_p0() << 8);
-            bytebeat_.set_p1(get_bytebeat_p1() << 8);
-            bytebeat_.set_p2(get_bytebeat_p2() << 8);
-//          int32_t probability = get_turing_prob();
-//          if (get_turing_prob_cv_source()) {
-//            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) >> 4);
-//            CONSTRAIN(probability, 0, 255);
-//          }
-//          turing_machine_.set_probability(probability);  
-          if (triggered) {
-            uint32_t bb = bytebeat_.Clock();
-            uint8_t range = get_bytebeat_range();
-            if (get_bytebeat_range_cv_source()) {
-              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) >> 5);
-              CONSTRAIN(range, 1, 120);
+            int32_t bytebeat_eqn = get_bytebeat_equation() << 12;
+            if (get_bytebeat_equation_cv_source()) {
+              bytebeat_eqn += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_equation_cv_source() - 1)) << 4);
+              bytebeat_eqn = USAT16(bytebeat_eqn);
             }
-            if (quantizer_.enabled()) {
+            bytebeat_.set_equation(bytebeat_eqn);
+
+            int32_t bytebeat_p0 = get_bytebeat_p0() << 8;
+            if (get_bytebeat_p0_cv_source()) {
+              bytebeat_p0 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p0_cv_source() - 1)) << 4);
+              bytebeat_p0 = USAT16(bytebeat_p0);
+            }
+            bytebeat_.set_p0(bytebeat_p0);
+
+            int32_t bytebeat_p1 = get_bytebeat_p1() << 8;
+            if (get_bytebeat_p1_cv_source()) {
+              bytebeat_p1 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p1_cv_source() - 1)) << 4);
+              bytebeat_p1 = USAT16(bytebeat_p1);
+            }
+            bytebeat_.set_p1(bytebeat_p1);
+
+            int32_t bytebeat_p2 = get_bytebeat_p2() << 8;
+            if (get_bytebeat_p2_cv_source()) {
+              bytebeat_p2 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p2_cv_source() - 1)) << 4);
+              bytebeat_p2 = USAT16(bytebeat_p2);
+            }
+            bytebeat_.set_p2(bytebeat_p2);
+            
+            if (triggered) {
+              uint32_t bb = bytebeat_.Clock();
+              uint8_t range = get_bytebeat_range();
+              if (get_bytebeat_range_cv_source()) {
+                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) >> 5);
+                CONSTRAIN(range, 1, 120);
+              }
+              if (quantizer_.enabled()) {
     
-              // Since our range is limited anyway, just grab the last byte
-              uint32_t scaled = ((bb >> 8) * range) >> 8;
+                // Since our range is limited anyway, just grab the last byte
+                uint32_t scaled = ((bb >> 8) * range) >> 8;
     
-              // The quantizer uses a lookup codebook with 128 entries centered
-              // about 0, so we use the range/scaled output to lookup a note
-              // directly instead of changing to pitch first.
-              int32_t pitch =
+                // The quantizer uses a lookup codebook with 128 entries centered
+                // about 0, so we use the range/scaled output to lookup a note
+                // directly instead of changing to pitch first.
+                int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-              sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
-              history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
-            } else {
-              // We dont' need a calibrated value here, really
-              int octave = get_octave();
-              CONSTRAIN(octave, 0, 6);
-              sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
-              // range is actually 120 (10 oct) but 65535 / 128 is close enough
-              sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, bb << 16);
-              sample = USAT16(sample);
-              history_sample = sample;
+                sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+                history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
+              } else {
+                // We dont' need a calibrated value here, really
+                int octave = get_octave();
+                CONSTRAIN(octave, 0, 6);
+                sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
+                // range is actually 120 (10 oct) but 65535 / 128 is close enough
+                sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, bb << 16);
+                sample = USAT16(sample);
+                history_sample = sample;
+              }
             }
           }
-        }
-        break;        
+          break;        
       case CHANNEL_SOURCE_LOGISTIC_MAP: {
-          logistic_map_.set_seed(get_logistic_map_seed());
+          logistic_map_.set_seed(123);
           int32_t logistic_map_r = get_logistic_map_r();
           if (get_logistic_map_r_cv_source()) {
             logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) >> 4);
@@ -463,6 +477,10 @@ public:
     return logistic_map_.get_register();
   }
 
+  uint32_t get_bytebeat_register() {
+    return bytebeat_.get_last_sample();
+  }
+
   // Maintain an internal list of currently available settings, since some are
   // dependent on others. It's kind of brute force, but eh, works :) If other
   // apps have a similar need, it can be moved to a common wrapper
@@ -494,7 +512,6 @@ public:
       case CHANNEL_SOURCE_LOGISTIC_MAP:
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE;
-        *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_SEED;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE;
       break;
@@ -534,7 +551,6 @@ public:
       case CHANNEL_SETTING_TURING_PROB_CV_SOURCE:
       case CHANNEL_SETTING_LOGISTIC_MAP_R:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE:
-      case CHANNEL_SETTING_LOGISTIC_MAP_SEED:
       case CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_BYTEBEAT_EQUATION:
@@ -622,19 +638,18 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, -999, 999, "Fine", NULL, settings::STORAGE_TYPE_I16 },
   { 16, 1, 32, "LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "LFSR p CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "LFSR rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Logistic seed", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "Log r CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 15, "Bytebeat eqn", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
-  { 24, 1, 120, "Bytebeat range", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Bytebeat P0", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Bytebeat P1", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 1, 255, "Bytebeat P2", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 1, 120, "Bytebeat range", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 1, 255, "Bytebeat P0", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 1, 255, "Bytebeat P1", NULL, settings::STORAGE_TYPE_U8 },
+  { 14, 1, 255, "Bytebeat P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "Bb eqn CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
@@ -926,6 +941,8 @@ void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
       break;
     case CHANNEL_SOURCE_LOGISTIC_MAP:
       menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_logistic_map_register(), 32);
+      break;
+    case CHANNEL_SOURCE_BYTEBEAT:
       break;
     default: {
       graphics.setPixel(start_x + 31 - 16, 4);

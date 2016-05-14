@@ -54,6 +54,7 @@ void ByteBeat::Init() {
   p1_ = 127;
   p2_ = 127;
   stepmode_ = false ;
+  last_sample_ = 0 ;
 
 }
 
@@ -161,6 +162,7 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           break;          
   }
 #pragma GCC diagnostic pop
+  last_sample_ = sample;
   return sample ;
 }
 

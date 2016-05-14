@@ -135,6 +135,10 @@ class ByteBeat {
   inline uint16_t get_bytepitch() {
     return bytepitch_ ;
   }
+
+  uint32_t get_last_sample() {
+    return static_cast<uint32_t>(last_sample_) ;
+  }
   
  private:
   uint16_t equation_ ;
@@ -142,6 +146,7 @@ class ByteBeat {
   uint8_t p0_;
   uint8_t p1_;
   uint8_t p2_;
+  uint16_t last_sample_;
   uint32_t t_; 
   uint32_t phase_;
   uint32_t loop_start_ ;
