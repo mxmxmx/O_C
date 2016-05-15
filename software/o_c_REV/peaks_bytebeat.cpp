@@ -54,7 +54,7 @@ void ByteBeat::Init() {
   p1_ = 127;
   p2_ = 127;
   stepmode_ = false ;
-  last_sample_ = 0 ;
+  last_sample_ = 13 ;
 
 }
 
@@ -131,11 +131,13 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           break;
         case 9: //Snaut
           // GGT2 from Equation Composer Ptah bank
-          sample = ((p0|(t_>>(t_>>13)%14))*((t_>>(p0%12))-p1&249))>>((t_>>13)%6)>>((p2>>4)%12);
+          // sample = ((p0|(t_>>(t_>>13)%14))*((t_>>(p0%12))-p1&249))>>((t_>>13)%6)>>((p2>>4)%12);
+          // "A bit high-frequency, but keeper anyhow" from Equation Composer Khepri bank.
+          sample = (t_+last_sample_+p1/p0)%(p0|t_+p2);
            break;
         case 10: // Hari
-          // Burst Thinking from Equation Composer Sobek bank
-          sample = (1099991*t_&t_<<(p1-t_%p0)+t_)>>(p2>>6);;
+          // The Signs, from Equation Composer Ptah bank
+          sample = ((0&(251&(t_/(100+p0))))|((last_sample_/t_|(t_/(100*(p1+1))))*(t_|p2)));
           break;
         case 11: // Kelvin
          // Light Reactor from Equation Composer Ptah bank
@@ -146,16 +148,16 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           sample = (((t_^(p0>>3)-456)*(p1+1))/(((t_>>(p2>>3))%14)+1))+(t_*((182>>(t_>>15)%16))&1) ;
           break;
         case 13: // Bregg
-          // Triangle wiggler 2 from Equation Composer Khepri bank
-          sample = ((t_>>(p0>>4))|t_|t_>>6)*p2+4*(t_&(t_>>(p1>>4))|t_>>(p0>>4));
+          // Hooks, from Equation Composer Khepri bank.
+          sample = (t_&(p0+2))-(t_/p1)/last_sample_/p2;
           break;            
         case 14: // Avon
           // Widerange from Equation Composer Khepri bank
           sample = (((p0^(t_>>(p1>>3)))-(t_>>(p2>>2))-t_%(t_&p1)));
           break;        
         case 15: // Orac
-          // Timing master from Equation Composer Ptah bank
-          sample = (((t_>>(t_>>(p1%15))%16)/((t_>>((t_>>(p2%15))%15))%12)+p0)*((t_>>(p0%12))+15))<<4;
+          // Abducted, from Equation Composer Ptah bank
+          sample = (p0+t_>>p1%12)|((last_sample_%(p0+t_>>p0%4))+11+p2^t_)>>(p2>>12);
           break;
         default:
           sample = 0 ;
