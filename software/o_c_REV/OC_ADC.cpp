@@ -30,10 +30,10 @@ template <> struct ChannelDesc<ADC_CHANNEL_4> {
 
 /*static*/ void ADC::Init(CalibrationData *calibration_data) {
 
-  pinMode(ChannelDesc<ADC_CHANNEL_1>::PIN, INPUT);
-  pinMode(ChannelDesc<ADC_CHANNEL_2>::PIN, INPUT);
-  pinMode(ChannelDesc<ADC_CHANNEL_3>::PIN, INPUT);
-  pinMode(ChannelDesc<ADC_CHANNEL_4>::PIN, INPUT);
+  //pinMode(ChannelDesc<ADC_CHANNEL_1>::PIN, INPUT);
+  //pinMode(ChannelDesc<ADC_CHANNEL_2>::PIN, INPUT);
+  //pinMode(ChannelDesc<ADC_CHANNEL_3>::PIN, INPUT);
+  //pinMode(ChannelDesc<ADC_CHANNEL_4>::PIN, INPUT);
 
   adc_.setReference(ADC_REF_3V3);
   adc_.setResolution(kAdcScanResolution);
