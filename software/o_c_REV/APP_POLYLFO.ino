@@ -39,16 +39,13 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_SHAPE_SPREAD,
   POLYLFO_SETTING_SPREAD,
   POLYLFO_SETTING_COUPLING,
+  POLYLFO_SETTING_FREQ_RANGE,
   POLYLFO_SETTING_FREQ_DIV_B,
   POLYLFO_SETTING_FREQ_DIV_C,
   POLYLFO_SETTING_FREQ_DIV_D,
   POLYLFO_SETTING_B_XOR_A,
   POLYLFO_SETTING_C_XOR_A,
   POLYLFO_SETTING_D_XOR_A,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_A,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_B,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_C,
-  POLYLFO_SETTING_AMPLITUDE_SCALING_D,
   POLYLFO_SETTING_LAST
 };
 
@@ -61,6 +58,10 @@ public:
 
   int16_t get_fine() const {
     return values_[POLYLFO_SETTING_FINE];
+  }
+
+  uint16_t get_freq_range() const {
+    return values_[POLYLFO_SETTING_FREQ_RANGE];
   }
 
   uint16_t get_shape() const {
@@ -103,22 +104,6 @@ public:
     return values_[POLYLFO_SETTING_D_XOR_A];
   }
 
-  uint16_t get_amplitude_scaling_a() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_A];
-  }
-
-  uint16_t get_amplitude_scaling_b() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_B];
-  }
-
-  uint16_t get_amplitude_scaling_c() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_C];
-  }
-  
-  uint16_t get_amplitude_scaling_d() const {
-    return values_[POLYLFO_SETTING_AMPLITUDE_SCALING_D];
-  }
-
   void Init();
 
   void freeze() {
@@ -151,6 +136,10 @@ void PolyLfo::Init() {
   frozen_= false;
 }
 
+const char* const freq_range_names[5] = {
+  "vslow", "slow", "med", "fast", "vfast",
+};
+
 const char* const freq_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
   "unity", "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
 };
@@ -166,16 +155,13 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
   { -1, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Coupling", NULL, settings::STORAGE_TYPE_I8 },
+  { 2, 0, 4, "Freq range", freq_range_names, settings::STORAGE_TYPE_U4 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U4 }, 
-  { 255, 0, 255, "Ampl scaling A", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 255, 0, 255, "Ampl scaling B", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 255, 0, 255, "Ampl scaling C", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 255, 0, 255, "Ampl scaling D", NULL, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -202,6 +188,8 @@ void FASTRUN POLYLFO_isr() {
   int32_t freq = SCALE8_16(poly_lfo.get_coarse()) + (poly_lfo.cv_freq.value() * 16) + poly_lfo.get_fine() * 2;
   freq = USAT16(freq);
 
+  poly_lfo.lfo.set_freq_range(poly_lfo.get_freq_range());
+
   int32_t shape = SCALE8_16(poly_lfo.get_shape()) + (poly_lfo.cv_shape.value() * 16);
   poly_lfo.lfo.set_shape(USAT16(shape));
 
@@ -220,9 +208,6 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_b_xor_a(poly_lfo.get_b_xor_a());
   poly_lfo.lfo.set_c_xor_a(poly_lfo.get_c_xor_a());
   poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
-
-  poly_lfo.lfo.set_amplitude_scalings(SCALE8_16(poly_lfo.get_amplitude_scaling_a()), SCALE8_16(poly_lfo.get_amplitude_scaling_b()), 
-                              SCALE8_16(poly_lfo.get_amplitude_scaling_c()), SCALE8_16(poly_lfo.get_amplitude_scaling_d()));
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase);
@@ -274,7 +259,6 @@ void POLYLFO_menu() {
     if (POLYLFO_SETTING_SHAPE != current) {
       list_item.DrawDefault(value, PolyLfo::value_attr(current));
     } else {
-
       poly_lfo.lfo.RenderPreview(value << 8, preview_buffer, kSmallPreviewBufferSize);
       const uint16_t *preview = preview_buffer;
       uint16_t count = kSmallPreviewBufferSize;

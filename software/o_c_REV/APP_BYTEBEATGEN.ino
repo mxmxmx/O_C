@@ -307,7 +307,7 @@ public:
 
 
     b >>= 8;
-//    if (b != history_.last()) // This make the effect a bit different
+    if (b != history_.last()) // This make the effect a bit different
       history_.Push(b);
   }
 
