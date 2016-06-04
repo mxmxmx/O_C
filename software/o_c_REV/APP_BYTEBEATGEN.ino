@@ -572,7 +572,7 @@ void BYTEBEATGEN_screensaver() {
     bb.ReadHistory(bb_history);
     const uint8_t *history = bb_history + ByteBeat::kHistoryDepth - 1;
     for (int i = 0; i < 64; ++i) {
-      uint8_t b = *history--;
+      uint8_t b = *history-- ;
       graphics.drawAlignedByte(64 + i, y + 8, b);
       graphics.drawAlignedByte(64 - i -1, y + 8, b);
       b = util::reverse_byte(b);

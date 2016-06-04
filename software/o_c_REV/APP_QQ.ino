@@ -477,7 +477,7 @@ public:
     return logistic_map_.get_register();
   }
 
-  uint32_t get_bytebeat_register() {
+  uint32_t get_bytebeat_register() const {
     return bytebeat_.get_last_sample();
   }
 
@@ -943,6 +943,9 @@ void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
       menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_logistic_map_register(), 32);
       break;
     case CHANNEL_SOURCE_BYTEBEAT:
+      // graphics.movePrintPos(start_x, 1);
+      // graphics.print(bytebeat_equation_names[get_bytebeat_equation()]);
+      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_bytebeat_register(), 8);
       break;
     default: {
       graphics.setPixel(start_x + 31 - 16, 4);

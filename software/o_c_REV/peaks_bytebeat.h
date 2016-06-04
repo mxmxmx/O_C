@@ -136,7 +136,7 @@ class ByteBeat {
     return bytepitch_ ;
   }
 
-  uint32_t get_last_sample() {
+  uint32_t get_last_sample() const {
     return static_cast<uint32_t>(last_sample_) ;
   }
   

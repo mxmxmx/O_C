@@ -95,15 +95,15 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
         case 0: // hope
           // from http://royal-paw.com/2012/01/bytebeats-in-c-and-python-generative-symphonies-from-extremely-small-programs/
           // (atmospheric, hopeful)
-          sample = ( ( ((t_*3) & (t_>>10)) | ((t_*p0) & (t_>>10)) | ((t_*10) & ((t_>>8)*p1) & p2) ) & 0xFF) << 8;
+          sample = ( ( ((t_*3) & (t_>>10)) | ((t_*p0) & (t_>>10)) | ((t_*10) & ((t_>>8)*p1) & p2) ) & 0xFF);
           break;
         case 1: // love
           // equation by stephth via https://www.youtube.com/watch?v=tCRPUv8V22o at 3:38
-          sample = ((((t_*p0) & (t_>>4)) | ((t_*p2) & (t_>>7)) | ((t_*p1) & (t_>>10))) & 0xFF) << 8;
+          sample = ((((t_*p0) & (t_>>4)) | ((t_*p2) & (t_>>7)) | ((t_*p1) & (t_>>10))) & 0xFF);
           break;
         case 2: // life
           // This one is the second one listed at from http://xifeng.weebly.com/bytebeats.html
-          sample = ((( (((((t_ >> p0) | t_) | (t_ >> p0)) * p2) & ((5 * t_) | (t_ >> p2)) ) | (t_ ^ (t_ % p1)) ) & 0xFF)) << 8 ;
+          sample = ((( (((((t_ >> p0) | t_) | (t_ >> p0)) * p2) & ((5 * t_) | (t_ >> p2)) ) | (t_ ^ (t_ % p1)) ) & 0xFF));
           break;
        case 3:// age
           // Arp rotator (equation 9 from Equation Composer Ptah bank)
@@ -164,8 +164,8 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           break;          
   }
 #pragma GCC diagnostic pop
-  last_sample_ = sample;
-  return sample ;
+  last_sample_ = sample ;
+  return sample << 8 ;
 }
 
 // wrapper for use in QQ (Quantermain)
