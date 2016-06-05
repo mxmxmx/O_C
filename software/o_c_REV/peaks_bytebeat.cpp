@@ -139,7 +139,7 @@ uint16_t ByteBeat::ProcessSingleSample(uint8_t control) {
           // The Signs, from Equation Composer Ptah bank
           sample = ((0&(251&(t_/(100+p0))))|((last_sample_/t_|(t_/(100*(p1+1))))*(t_|p2)));
           break;
-        case 11: // Kelvin
+        case 11: // Kris
          // Light Reactor from Equation Composer Ptah bank
           sample = ((t_>>3)*(p0-643|(325%t_|p1)&t_)-((t_>>6)*35/p2%t_))>>6;
           break;
