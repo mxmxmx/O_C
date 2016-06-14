@@ -18,7 +18,7 @@
 
 namespace OC {
 
-enum CalibrationFlags {
+enum CalibrationFlags : uint32_t {
   CALIBRATION_FLAG_ENCODERS_REVERSED = (0x1 << 0)
 };
 
@@ -39,7 +39,7 @@ struct CalibrationData {
 
   void reverse_encoders() {
     if (flags & CALIBRATION_FLAG_ENCODERS_REVERSED)
-      flags &= ~flags & CALIBRATION_FLAG_ENCODERS_REVERSED;
+      flags &= ~CALIBRATION_FLAG_ENCODERS_REVERSED;
     else
       flags |= CALIBRATION_FLAG_ENCODERS_REVERSED;
   }
