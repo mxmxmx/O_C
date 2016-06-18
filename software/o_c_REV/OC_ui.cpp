@@ -3,10 +3,12 @@
 
 #include "OC_apps.h"
 #include "OC_bitmaps.h"
+#include "OC_calibration.h"
 #include "OC_config.h"
 #include "OC_core.h"
 #include "OC_gpio.h"
 #include "OC_menus.h"
+#include "OC_strings.h"
 #include "OC_ui.h"
 #include "OC_version.h"
 #include "drivers/display.h"
@@ -33,6 +35,13 @@ void Ui::Init() {
   encoder_left_.Init(OC_GPIO_ENC_PINMODE);
 
   event_queue_.Init();
+}
+
+void Ui::configure_encoders(EncoderConfig encoder_config) {
+  SERIAL_PRINTLN("Configuring encoders: %s (%x)", Strings::encoder_config_strings[encoder_config], encoder_config);
+
+  encoder_right_.reverse(encoder_config & ENCODER_CONFIG_R_REVERSED);
+  encoder_left_.reverse(encoder_config & ENCODER_CONFIG_L_REVERSED);
 }
 
 void FASTRUN Ui::Poll() {

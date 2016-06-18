@@ -50,6 +50,7 @@ class ByteBeat {
   
   void Init();
   uint16_t ProcessSingleSample(uint8_t control);
+  uint16_t Clock();
  
   void Configure(int32_t* parameter, bool stepmode, bool loopmode) {
       set_equation(parameter[0]);
@@ -68,11 +69,11 @@ class ByteBeat {
       if (bytepitch_ < 1) {
         bytepitch_ = 1;
       }
-      equation_index_ = equation_ >> 13 ;
   }
 
    inline void set_equation(int32_t equation) {
     equation_ = equation ;
+    equation_index_ = equation_ >> 12 ;
   }
 
    inline void set_step_mode(bool stepmode) {
@@ -114,7 +115,11 @@ class ByteBeat {
   inline uint32_t get_t() {
     return t_ ;
   }
-  
+
+  inline uint32_t get_eqn_num() {
+    return equation_index_ ;
+  }
+
   inline uint32_t get_phase() {
     return phase_ ;
   }
@@ -130,6 +135,10 @@ class ByteBeat {
   inline uint16_t get_bytepitch() {
     return bytepitch_ ;
   }
+
+  uint32_t get_last_sample() const {
+    return static_cast<uint32_t>(last_sample_) ;
+  }
   
  private:
   uint16_t equation_ ;
@@ -137,6 +146,7 @@ class ByteBeat {
   uint8_t p0_;
   uint8_t p1_;
   uint8_t p2_;
+  uint16_t last_sample_;
   uint32_t t_; 
   uint32_t phase_;
   uint32_t loop_start_ ;
@@ -144,7 +154,7 @@ class ByteBeat {
   bool stepmode_ ;
   bool loopmode_ ;
 
-  uint8_t equation_index_ ;
+  uint16_t equation_index_ ;
   uint16_t bytepitch_ ;
   
   DISALLOW_COPY_AND_ASSIGN(ByteBeat);

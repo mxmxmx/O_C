@@ -121,9 +121,7 @@ void setup() {
 
   OC::menu::Init();
   OC::ui.Init();
-  bool reversed = OC::calibration_data.encoders_reversed();
-  SERIAL_PRINTLN("* Encoders reversed: %s", reversed ? "true" : "false");
-  OC::ui.reverse_encoders(reversed);
+  OC::ui.configure_encoders(OC::calibration_data.encoder_config());
 
   SERIAL_PRINTLN("* Starting CORE ISR @%luus", OC_CORE_TIMER_RATE);
   CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);

@@ -57,7 +57,11 @@ extern const uint16_t lut_easing_in_out_bounce[];
 extern const uint16_t lut_response_balance[];
 extern const uint16_t lut_vca_linear[];
 extern const uint16_t lut_exponential[];
-extern const uint32_t lut_increments[];
+extern const uint32_t lut_increments_vslow[];
+extern const uint32_t lut_increments_slow[];
+extern const uint32_t lut_increments_med[];
+extern const uint32_t lut_increments_fast[];
+extern const uint32_t lut_increments_vfast[];
 extern const uint8_t wt_lfo_waveforms[];
 #define STR_DUMMY 0  // dummy
 #define LUT_EASING_IN_QUARTIC 0
@@ -74,8 +78,16 @@ extern const uint8_t wt_lfo_waveforms[];
 #define LUT_VCA_LINEAR_SIZE 1025
 #define LUT_EXPONENTIAL 6
 #define LUT_EXPONENTIAL_SIZE 256
-#define LUT_INCREMENTS 0
-#define LUT_INCREMENTS_SIZE 159
+#define LUT_INCREMENTS_VSLOW 0
+#define LUT_INCREMENTS_VSLOW_SIZE 159
+#define LUT_INCREMENTS_SLOW 1
+#define LUT_INCREMENTS_SLOW_SIZE 159
+#define LUT_INCREMENTS_MED 2
+#define LUT_INCREMENTS_MED_SIZE 159
+#define LUT_INCREMENTS_FAST 3
+#define LUT_INCREMENTS_FAST_SIZE 159
+#define LUT_INCREMENTS_VFAST 4
+#define LUT_INCREMENTS_VFAST_SIZE 159
 #define WT_LFO_WAVEFORMS 0
 #define WT_LFO_WAVEFORMS_SIZE 4626
 

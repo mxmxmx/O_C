@@ -43,6 +43,7 @@ using namespace std;
 using namespace stmlib;
 
 void PolyLfo::Init() {
+  freq_range_ = 2;
   spread_ = 0;
   shape_ = 0;
   shape_spread_ = 0;
@@ -55,11 +56,37 @@ void PolyLfo::Init() {
 }
 
 /* static */
-uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency) {
+uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng) {
   int32_t shifts = frequency / 5040;
   int32_t index = frequency - shifts * 5040;
-  uint32_t a = lut_increments[index >> 5];
-  uint32_t b = lut_increments[(index >> 5) + 1];
+  uint32_t a;
+  uint32_t b;
+  switch(frq_rng){
+    case 0:
+      a = lut_increments_vslow[index >> 5];
+      b = lut_increments_vslow[(index >> 5) + 1];
+      break;
+    case 1:
+      a = lut_increments_slow[index >> 5];
+      b = lut_increments_slow[(index >> 5) + 1];
+      break;
+    case 2:
+      a = lut_increments_med[index >> 5];
+      b = lut_increments_med[(index >> 5) + 1];
+      break;
+    case 3:
+      a = lut_increments_fast[index >> 5];
+      b = lut_increments_fast[(index >> 5) + 1];
+      break;
+    case 4:
+      a = lut_increments_vfast[index >> 5];
+      b = lut_increments_vfast[(index >> 5) + 1];
+      break;
+    default:
+      a = lut_increments_med[index >> 5];
+      b = lut_increments_med[(index >> 5) + 1];
+      break;
+  }
   return (a + ((b - a) * (index & 0x1f) >> 5)) << shifts;
 }
 
@@ -71,7 +98,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     phase_reset_flag_ = false ;
   } else {
     // increment freqs for each LFO
-    phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency);
+    phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
     phase_[0] += phase_increment_ch1_ ;
     PolyLfoFreqDivisions FreqDivs[] = {POLYLFO_FREQ_DIV_NONE, freq_div_b_, freq_div_c_ , freq_div_d_ } ;
     for (uint8_t i = 1; i < kNumChannels; ++i) {
@@ -86,14 +113,14 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     if (!(freq_div_b_ || freq_div_c_ || freq_div_c_)) {
       // original Frames behaviour
       if (spread_ >= 0) {
-        phase_[0] += FrequencyToPhaseIncrement(frequency);
+        phase_[0] += FrequencyToPhaseIncrement(frequency, freq_range_);
         uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
         phase_[1] = phase_[0] + phase_difference;
         phase_[2] = phase_[1] + phase_difference;
         phase_[3] = phase_[2] + phase_difference;
       } else {
         for (uint8_t i = 0; i < kNumChannels; ++i) {
-          phase_[i] += FrequencyToPhaseIncrement(frequency);
+          phase_[i] += FrequencyToPhaseIncrement(frequency, freq_range_);
           frequency -= 5040 * spread_ >> 15;
         }
       }
@@ -122,16 +149,15 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     }
     const uint8_t* a = &wt_lfo_waveforms[(wavetable_index >> 12) * 257];
     const uint8_t* b = a + 257;
-    int32_t unscaled_wt_value = Crossfade(a, b, phase, wavetable_index << 4) + 32768;
-    wt_value_[i] = (unscaled_wt_value * amplitude_scalings_[i]) >> 16;
+    wt_value_[i] = Crossfade(a, b, phase, wavetable_index << 4) ;
     value_[i] = Interpolate824(sine, phase);
-    level_[i] = unscaled_wt_value >> 8; 
+    level_[i] = (wt_value_[i] + 32768) >> 8; 
     // add bit-XOR 
     uint8_t depth_xor = xor_depths[i];
     if (depth_xor) {
-      dac_code_[i] = wt_value_[i] ^ ((wt_value_[0] >> depth_xor) << depth_xor) ; 
+      dac_code_[i] = (wt_value_[i] + 32768) ^ (((wt_value_[0] + 32768) >> depth_xor) << depth_xor) ; 
     } else {
-      dac_code_[i] = wt_value_[i]; //Keyframer::ConvertToDacCode(value + 32768, 0);
+      dac_code_[i] = wt_value_[i] + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }
     wavetable_index += shape_spread_;
   }

@@ -9,6 +9,7 @@
 
 namespace OC {
 
+enum EncoderConfig : uint32_t;
 struct App;
 
 // UI::Event::control is uint16_t, but we only have 6 controls anyway.
@@ -77,10 +78,7 @@ public:
     }
   }
 
-  inline void reverse_encoders(bool reverse) {
-    encoder_left_.reverse(reverse);
-    encoder_right_.reverse(reverse);
-  }
+  void configure_encoders(EncoderConfig encoder_config);
 
   inline uint32_t idle_time() const {
     return event_queue_.idle_time();

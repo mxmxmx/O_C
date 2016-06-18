@@ -277,10 +277,10 @@ void OC::Ui::Calibrate() {
         case CONTROL_ENCODER_R:
           calibration_state.encoder_value += event.value;
           break;
+        case CONTROL_BUTTON_UP:
         case CONTROL_BUTTON_DOWN:
-          SERIAL_PRINTLN("Reversing encoders...");
-          calibration_data.reverse_encoders();
-          reverse_encoders(calibration_data.encoders_reversed());
+          configure_encoders(calibration_data.next_encoder_config());
+          break;
         default:
           break;
       }

@@ -9,6 +9,7 @@ namespace OC {
     extern const char * const trigger_input_names[];
     extern const char * const cv_input_names[];
     extern const char * const no_yes[];
+    extern const char * const encoder_config_strings[];
   };
 };
 
