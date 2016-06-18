@@ -30,6 +30,8 @@ template <> struct ChannelDesc<ADC_CHANNEL_4> {
 
 /*static*/ void ADC::Init(CalibrationData *calibration_data) {
 
+  // According to Paul Stoffregen: You do NOT want to have the pin in digital mode when using it as analog input.
+  // https://forum.pjrc.com/threads/34319-Analog-input-impedance-and-pull-up?p=103543&viewfull=1#post103543
   //pinMode(ChannelDesc<ADC_CHANNEL_1>::PIN, INPUT);
   //pinMode(ChannelDesc<ADC_CHANNEL_2>::PIN, INPUT);
   //pinMode(ChannelDesc<ADC_CHANNEL_3>::PIN, INPUT);
