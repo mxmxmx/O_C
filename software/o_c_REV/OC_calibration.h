@@ -18,8 +18,20 @@
 
 namespace OC {
 
+// Originally, this was a single bit that would reverse both encoders.
+// With board revisisions >= 2c however, the pins of the right encoder are
+// swapped, so additional configurations were added, but existing data
+// calibration might have be updated.
+enum EncoderConfig : uint32_t {
+  ENCODER_CONFIG_NORMAL,
+  ENCODER_CONFIG_R_REVERSED,
+  ENCODER_CONFIG_L_REVERSED,
+  ENCODER_CONFIG_LR_REVERSED,
+  ENCODER_CONFIG_LAST
+};
+
 enum CalibrationFlags : uint32_t {
-  CALIBRATION_FLAG_ENCODERS_REVERSED = (0x1 << 0)
+  CALIBRATION_FLAG_ENCODER_MASK = 0x3
 };
 
 struct CalibrationData {
@@ -33,15 +45,14 @@ struct CalibrationData {
   uint32_t reserved0;
   uint32_t reserved1;
 
-  bool encoders_reversed() const {
-  	return flags & CALIBRATION_FLAG_ENCODERS_REVERSED;
+  EncoderConfig encoder_config() const {
+  	return static_cast<EncoderConfig>(flags & CALIBRATION_FLAG_ENCODER_MASK);
   }
 
-  void reverse_encoders() {
-    if (flags & CALIBRATION_FLAG_ENCODERS_REVERSED)
-      flags &= ~CALIBRATION_FLAG_ENCODERS_REVERSED;
-    else
-      flags |= CALIBRATION_FLAG_ENCODERS_REVERSED;
+  EncoderConfig next_encoder_config() {
+    uint32_t raw_config = ((flags & CALIBRATION_FLAG_ENCODER_MASK) + 1) % ENCODER_CONFIG_LAST;
+    flags = (flags & ~CALIBRATION_FLAG_ENCODER_MASK) | raw_config;
+    return static_cast<EncoderConfig>(raw_config);
   }
 };
 

@@ -25,8 +25,9 @@
 #define DAC_RST 9
 #define DAC_CS 10
 
-#define encR1 15
-#define encR2 16
+// NOTE: encoder pins R1/R2 changed for rev >= 2c
+#define encR1 16
+#define encR2 15
 #define butR  14
 
 #define encL1 22
