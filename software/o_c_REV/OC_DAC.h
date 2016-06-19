@@ -11,6 +11,7 @@ extern void set8565_CHA(uint32_t data);
 extern void set8565_CHB(uint32_t data);
 extern void set8565_CHC(uint32_t data);
 extern void set8565_CHD(uint32_t data);
+extern void SPI_init();
 
 enum DAC_CHANNEL {
   DAC_CHANNEL_A, DAC_CHANNEL_B, DAC_CHANNEL_C, DAC_CHANNEL_D, DAC_CHANNEL_LAST

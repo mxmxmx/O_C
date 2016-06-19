@@ -24,7 +24,6 @@
 // Main startup/loop for O&C firmware
 
 #include <ADC.h>
-#include <spi4teensy3.h>
 #include <EEPROM.h>
 
 #include "OC_apps.h"
@@ -96,12 +95,9 @@ void FASTRUN CORE_timer_ISR() {
 /*       ---------------------------------------------------------         */
 
 void setup() {
-  
-  NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
-  spi4teensy3::init();
   delay(10);
-
-  Serial.begin(9600);
+  NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
+  SPI_init();
   delay(500);
   SERIAL_PRINTLN("* O&C BOOTING...");
   SERIAL_PRINTLN("* %s", OC_VERSION);
