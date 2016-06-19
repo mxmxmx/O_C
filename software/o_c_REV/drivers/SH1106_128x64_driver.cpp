@@ -26,7 +26,6 @@
 // but adapted for use here
 
 #include <Arduino.h>
-#include <spi4teensy3.h>
 #include "SH1106_128x64_driver.h"
 #include "../OC_gpio.h"
 
@@ -34,6 +33,9 @@
 #ifdef DMA_PAGE_TRANSFER
 #include <DMAChannel.h>
 static DMAChannel page_dma;
+#endif
+#ifndef SPI_SR_RXCTR
+#define SPI_SR_RXCTR 0XF0
 #endif
 
 static uint8_t SH1106_data_start_seq[] = {
@@ -77,7 +79,7 @@ void SH1106_128x64_Driver::Init() {
   pinMode(OLED_CS, OUTPUT);
   pinMode(OLED_RST, OUTPUT);
   pinMode(OLED_DC, OUTPUT);
-  spi4teensy3::init();
+  //SPI_init(); 
 
   // u8g_teensy::U8G_COM_MSG_INIT
   digitalWriteFast(OLED_RST, HIGH);
@@ -97,7 +99,7 @@ void SH1106_128x64_Driver::Init() {
 
   digitalWriteFast(OLED_CS, OLED_CS_ACTIVE); // U8G_ESC_CS(1),             /* enable chip */
 
-  spi4teensy3::send(SH1106_init_seq, sizeof(SH1106_init_seq));
+  SPI_send(SH1106_init_seq, sizeof(SH1106_init_seq));
 
   digitalWriteFast(OLED_CS, OLED_CS_INACTIVE); // U8G_ESC_CS(0),             /* disable chip */
 
@@ -135,15 +137,15 @@ void SH1106_128x64_Driver::Clear() {
   SH1106_data_start_seq[2] = 0xb0 | 0;
   digitalWriteFast(OLED_DC, LOW);
   digitalWriteFast(OLED_CS, OLED_CS_ACTIVE);
-  spi4teensy3::send(SH1106_data_start_seq, sizeof(SH1106_data_start_seq));
+  SPI_send(SH1106_data_start_seq, sizeof(SH1106_data_start_seq));
   digitalWriteFast(OLED_DC, HIGH);
   for (size_t p = 0; p < kNumPages; ++p)
-    spi4teensy3::send(empty_page, kPageSize);
+    SPI_send(empty_page, kPageSize);
   digitalWriteFast(OLED_CS, OLED_CS_INACTIVE); // U8G_ESC_CS(0)
 
   digitalWriteFast(OLED_DC, LOW);
   digitalWriteFast(OLED_CS, OLED_CS_ACTIVE);
-  spi4teensy3::send(SH1106_display_on_seq, sizeof(SH1106_display_on_seq));
+  SPI_send(SH1106_display_on_seq, sizeof(SH1106_display_on_seq));
   digitalWriteFast(OLED_DC, HIGH);
 }
 
@@ -153,7 +155,7 @@ void SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
 
   digitalWriteFast(OLED_DC, LOW); // U8G_ESC_ADR(0),           /* instruction mode */
   digitalWriteFast(OLED_CS, OLED_CS_ACTIVE); // U8G_ESC_CS(1),             /* enable chip */
-  spi4teensy3::send(SH1106_data_start_seq, sizeof(SH1106_data_start_seq)); // u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_data_start);
+  SPI_send(SH1106_data_start_seq, sizeof(SH1106_data_start_seq)); // u8g_WriteEscSeqP(u8g, dev, u8g_dev_ssd1306_128x64_data_start);
   digitalWriteFast(OLED_DC, HIGH); // /* data mode */
 
 #ifdef DMA_PAGE_TRANSFER
@@ -164,9 +166,52 @@ void SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
   page_dma.sourceBuffer(data, kPageSize);
   page_dma.enable(); // go
 #else
-  spi4teensy3::send(data, kPageSize);
+  SPI_send(data, kPageSize);
   digitalWriteFast(OLED_CS, OLED_CS_INACTIVE); // U8G_ESC_CS(0)
 #endif
+}
+
+void SH1106_128x64_Driver::SPI_send(void *bufr, size_t n) {
+
+  // adapted from https://github.com/xxxajk/spi4teensy3
+  int i;
+  int nf;
+  uint8_t *buf = (uint8_t *)bufr;
+
+  if (n & 1) {
+    uint8_t b = *buf++;
+    // clear any data in RX/TX FIFOs, and be certain we are in master mode.
+    SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_CLR_RXF | SPI_MCR_CLR_TXF | SPI_MCR_PCSIS(0x1F);
+    SPI0_SR = SPI_SR_TCF;
+    SPI0_PUSHR = SPI_PUSHR_CONT | b;
+    while (!(SPI0_SR & SPI_SR_TCF));
+    n--;
+  }
+  // clear any data in RX/TX FIFOs, and be certain we are in master mode.
+  SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_CLR_RXF | SPI_MCR_CLR_TXF | SPI_MCR_PCSIS(0x1F);
+  // initial number of words to push into TX FIFO
+  nf = n / 2 < 3 ? n / 2 : 3;
+  // limit for pushing data into TX FIFO
+  uint8_t* limit = buf + n;
+  for (i = 0; i < nf; i++) {
+    uint16_t w = (*buf++) << 8;
+    w |= *buf++;
+    SPI0_PUSHR = SPI_PUSHR_CONT | SPI_PUSHR_CTAS(1) | w;
+  }
+  // write data to TX FIFO
+  while (buf < limit) {
+          uint16_t w = *buf++ << 8;
+          w |= *buf++;
+          while (!(SPI0_SR & SPI_SR_RXCTR));
+          SPI0_PUSHR = SPI_PUSHR_CONT | SPI_PUSHR_CTAS(1) | w;
+          SPI0_POPR;
+  }
+  // wait for data to be sent
+  while (nf) {
+          while (!(SPI0_SR & SPI_SR_RXCTR));
+          SPI0_POPR;
+          nf--;
+  }
 }
 
 /*static*/
