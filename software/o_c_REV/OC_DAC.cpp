@@ -1,21 +1,35 @@
 /*
+*   (C) Copyright 2013, Andrew Kroll (xxxajk)
+*   (C) Copyright 2015, 2016, Patrick Dowling, Max Stadler
 *
-* DAC8565
+*   This program is free software: you can redistribute it and/or modify
+*   it under the terms of version 3 of the GNU General Public License as
+*   published by the Free Software Foundation at http://www.gnu.org/licenses,
+*   with Additional Permissions under term 7(b) that the original copyright
+*   notice and author attibution must be preserved and under term 7(c) that
+*   modified versions be marked as different from the original.
 *
-* chip select/CS : 10
-* reset/RST : 9
+*   This program is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
 *
-* DB23 = 0 :: always 0
-* DB22 = 0 :: always 0
-* DB21 = 0 && DB20 = 1 :: single-channel update
-* DB19 = 0 :: always 0
-* DB18/17  :: DAC # select
-* DB16 = 0 :: power down mode
-* DB15-DB0 :: data
 *
-* jacks map to channels A-D as follows:
-* 
-* top left (B) - > top right (A) - > bottom left (D) - > bottom right (C) 
+*   DAC8565 basics.
+*
+*   chip select/CS : 10
+*   reset/RST : 9
+*
+*   DB23 = 0 :: always 0
+*   DB22 = 0 :: always 0
+*   DB21 = 0 && DB20 = 1 :: single-channel update
+*   DB19 = 0 :: always 0
+*   DB18/17  :: DAC # select
+*   DB16 = 0 :: power down mode
+*   DB15-DB0 :: data
+*
+*   jacks map to channels A-D as follows:
+*   top left (B) - > top right (A) - > bottom left (D) - > bottom right (C) 
 *
 */
 
@@ -96,7 +110,7 @@ void set8565_CHD(uint32_t data) {
   SPIFIFO.read();
 }
 
-// adapted from spi4teensy (MISO disabled) : 
+// adapted from https://github.com/xxxajk/spi4teensy3 (MISO disabled) : 
 
 void SPI_init() {
 
