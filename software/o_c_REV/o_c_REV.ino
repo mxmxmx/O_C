@@ -61,7 +61,7 @@ volatile bool OC::CORE::app_isr_enabled = false;
 volatile uint32_t OC::CORE::ticks = 0;
 
 void FASTRUN CORE_timer_ISR() {
-  DEBUG_PIN_SCOPE(DEBUG_PIN_2);
+  DEBUG_PIN_SCOPE(OC_GPIO_DEBUG_PIN2);
   OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::ISR_cycles);
 
   // DAC and display share SPI. By first updating the DAC values, then starting
