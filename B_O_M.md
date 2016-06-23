@@ -17,18 +17,10 @@
 | 10k  | 1x | e.g. mouser # 660-RK73H2ATTD1002F | 1-5% |
 | **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (‡)|
 | 33k | 8x | e.g. mouser # 660-RK73H2ATTD3302F | 1% |
-| 49k9 | 6x | e.g. mouser # 660-RK73H2ATTD4992F | 1% / silkscreen says 2x 47k, 4x 49k9: **ignore** |
+| 47k | 2x | e.g. mouser # 660-RK73H2ATTD4702F | 1% |
+| **75k** | 4x | e.g. mouser # 660-RK73H2ATTD7502F | 1% (silkscreen says 49k9: ignore) |
 | **100k** | 4x | e.g. mouser # 279-CPF0805B100KE | **0.1%** |
 | 100k | 8x | e.g. mouser # 660-RK73H2ATTD1003F| 1% (or simply get 12 x 0.1%) |
-
-- (‡) **if** building **with** trimpots, use 24k (1%) rather than 24k9.
-
-
-### trimpots (throughhole): 
-| value | # | type | note |
-| --- | --- | ---: | --- |
-| trimpot 50k-100k | 1x | cermet / inline / 9.5mm |  ADC/CV offset trim, [for example](http://www.taydaelectronics.com/50k-ohm-trimmer-potentiometer-cermet-25-turns-3296w.html) |
-| **optional:** trimpot 2k | 4x | cermet / inline / 9.5mm | DAC output trim (**omit: use 0.1% resistors instead**) |
 
 ### SMD caps (0805) (25V or better):
 | value | #| type | note |
