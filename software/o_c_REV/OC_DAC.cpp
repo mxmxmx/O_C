@@ -51,10 +51,10 @@ void DAC::Init(CalibrationData *calibration_data) {
   pinMode(DAC_CS, OUTPUT);
   pinMode(DAC_RST,OUTPUT);
   
-  #ifdef DAC8564
+  #ifdef DAC8564 // A0 = 0, A1 = 0
     digitalWrite(DAC_RST, LOW); 
   #else  // default to DAC8565 - pull RST high 
-    digitalWrite(DAC_RST,HIGH);
+    digitalWrite(DAC_RST, HIGH);
   #endif
 
   history_tail_ = 0;
