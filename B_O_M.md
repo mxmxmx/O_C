@@ -4,7 +4,7 @@
 
 - the footprint for passives is **0805 throughout**. using 0603 everywhere will work just as fine, of course.
 
-- there's four 3-pin pads for 2k trimpots (output calibration): **we recommend omitting the trimpots**, and doing the calibration entirely in software. use four **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier (and no less accurate).
+- there's five 3-pin pads for trimpots (input/output calibration): **simply omit the trimpots**; the calibration can be done entirely in software. use five **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier.
 
 
 ### SMD resistors (0805):
