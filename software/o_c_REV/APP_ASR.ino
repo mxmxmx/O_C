@@ -13,8 +13,6 @@ namespace menu = OC::menu; // Ugh. This works for all .ino files
 (((OC::ADC::value<channel>() + (0x1 << (shift - 1)) - 1) >> shift))
 
 #define TRANSPOSE_FIXED 0x0
-#define CALIBRATION_DEFAULT_STEP 6553
-#define CALIBRATION_DEFAULT_OFFSET 4890
 
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
@@ -80,7 +78,7 @@ public:
     return values_[ASR_SETTING_MULT];
   }
 
-  void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {
+  void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
         _ASR->data[_ASR->last] = _sample;
@@ -213,7 +211,7 @@ public:
        _ASR->data[_hold[3]] = asr_outputs[2];
 
         // octave up/down
-        int8_t _offset = 0;
+        int _offset = 0;
         if (!digitalReadFast(TR3)) 
           _offset++;
         else if (!digitalReadFast(TR4)) 
@@ -274,11 +272,6 @@ public:
              else if (!digitalReadFast(TR4)) _octave--;
 
              _quantized += (_octave * 12 << 7);
-             // limit: 
-             while (_quantized < 0) 
-             {
-                _quantized += 12 << 7;
-             }
 
              updateASR_indexed(_ASR, _quantized, _index); 
          }
