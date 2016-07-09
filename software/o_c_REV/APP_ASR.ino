@@ -10,7 +10,7 @@
 namespace menu = OC::menu; // Ugh. This works for all .ino files
 
 #define SCALED_ADC(channel, shift) \
-(0x1+(OC::ADC::value<channel>() >> shift))
+(((OC::ADC::value<channel>() + (0x1 << (shift - 1)) - 1) >> shift))
 
 #define TRANSPOSE_FIXED 0x0
 #define CALIBRATION_DEFAULT_STEP 6553
