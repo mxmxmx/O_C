@@ -1,4 +1,5 @@
 #include "util/util_settings.h"
+#include "util/util_trigger_delay.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
@@ -25,6 +26,7 @@ enum ASRSettings {
   ASR_SETTING_MASK,
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
+  ASR_SETTING_DELAY,
   ASR_SETTING_LAST
 };
 
@@ -78,6 +80,10 @@ public:
     return values_[ASR_SETTING_MULT];
   }
 
+  uint16_t get_trigger_delay() const {
+    return values_[ASR_SETTING_DELAY];
+  }
+
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
@@ -113,6 +119,8 @@ public:
     clock_display_.Init();
     for (auto &sh : scrolling_history_)
       sh.Init();
+
+    trigger_delay_.Init();
   }
 
   bool update_scale(bool force, int32_t mask_rotate) {
@@ -233,6 +241,11 @@ public:
      bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
      clock_display_.Update(1, update);
 
+    trigger_delay_.Update();
+    if (update)
+      trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+    update = trigger_delay_.triggered();
+
       if (update) {        
    
         int8_t _root  = get_root();
@@ -307,6 +320,7 @@ private:
   int32_t asr_outputs[4];  
   ASRbuf *_ASR;
   OC::DigitalInputDisplay clock_display_;
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
 
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 };
@@ -322,6 +336,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "Index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "Mult/att", mult, settings::STORAGE_TYPE_U8 },
+  { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
 };
 
 struct ASRState {
