@@ -263,7 +263,7 @@ public:
         else {
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
-             int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
+             int32_t _pitch  =  OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
              int8_t _mult    =  get_mult();
 
              if (_mult < 0)
@@ -276,8 +276,6 @@ public:
                _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
                _pitch = signed_saturate_rshift(_pitch, 16, 0);
              }
-             
-             _pitch = (_pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
             
              int32_t _quantized = quantizer_.Process(_pitch, _root << 7, TRANSPOSE_FIXED);
 
