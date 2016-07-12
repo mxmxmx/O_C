@@ -5,7 +5,7 @@
 
 namespace OC {
 
-  static const int kNumDelayTimes = 7;
+  static const int kNumDelayTimes = 8;
 
   namespace Strings {
     extern const char * const note_names[];
