@@ -19,6 +19,10 @@ static constexpr int OC_UI_TIMER_PRIO   = 132; // lower
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr unsigned long SCREENSAVER_TIMEOUT_MS = 25000; // time out menu (in ms)
 
+namespace OC {
+static constexpr size_t kMaxTriggerDelayTicks = 96;
+};
+
 #define OCTAVES 10      // # octaves
 #define SEMITONES (OCTAVES * 12)
 

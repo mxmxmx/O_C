@@ -1,4 +1,5 @@
 #include "util/util_settings.h"
+#include "util/util_trigger_delay.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
@@ -10,11 +11,9 @@
 namespace menu = OC::menu; // Ugh. This works for all .ino files
 
 #define SCALED_ADC(channel, shift) \
-(0x1+(OC::ADC::value<channel>() >> shift))
+(((OC::ADC::value<channel>() + (0x1 << (shift - 1)) - 1) >> shift))
 
 #define TRANSPOSE_FIXED 0x0
-#define CALIBRATION_DEFAULT_STEP 6553
-#define CALIBRATION_DEFAULT_OFFSET 4890
 
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
@@ -27,6 +26,7 @@ enum ASRSettings {
   ASR_SETTING_MASK,
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
+  ASR_SETTING_DELAY,
   ASR_SETTING_LAST
 };
 
@@ -80,7 +80,11 @@ public:
     return values_[ASR_SETTING_MULT];
   }
 
-  void pushASR(struct ASRbuf* _ASR, uint16_t _sample) {
+  uint16_t get_trigger_delay() const {
+    return values_[ASR_SETTING_DELAY];
+  }
+
+  void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
         _ASR->data[_ASR->last] = _sample;
@@ -115,6 +119,8 @@ public:
     clock_display_.Init();
     for (auto &sh : scrolling_history_)
       sh.Init();
+
+    trigger_delay_.Init();
   }
 
   bool update_scale(bool force, int32_t mask_rotate) {
@@ -213,7 +219,7 @@ public:
        _ASR->data[_hold[3]] = asr_outputs[2];
 
         // octave up/down
-        int8_t _offset = 0;
+        int _offset = 0;
         if (!digitalReadFast(TR3)) 
           _offset++;
         else if (!digitalReadFast(TR4)) 
@@ -235,6 +241,11 @@ public:
      bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
      clock_display_.Update(1, update);
 
+    trigger_delay_.Update();
+    if (update)
+      trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+    update = trigger_delay_.triggered();
+
       if (update) {        
    
         int8_t _root  = get_root();
@@ -252,7 +263,7 @@ public:
         else {
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
-             int32_t _pitch  =  OC::ADC::value<ADC_CHANNEL_1>();
+             int32_t _pitch  =  OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
              int8_t _mult    =  get_mult();
 
              if (_mult < 0)
@@ -265,8 +276,6 @@ public:
                _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
                _pitch = signed_saturate_rshift(_pitch, 16, 0);
              }
-             
-             _pitch = (_pitch * 120 << 7) >> 12; // Convert to range with 128 steps per semitone
             
              int32_t _quantized = quantizer_.Process(_pitch, _root << 7, TRANSPOSE_FIXED);
 
@@ -274,11 +283,6 @@ public:
              else if (!digitalReadFast(TR4)) _octave--;
 
              _quantized += (_octave * 12 << 7);
-             // limit: 
-             while (_quantized < 0) 
-             {
-                _quantized += 12 << 7;
-             }
 
              updateASR_indexed(_ASR, _quantized, _index); 
          }
@@ -314,6 +318,7 @@ private:
   int32_t asr_outputs[4];  
   ASRbuf *_ASR;
   OC::DigitalInputDisplay clock_display_;
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
 
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 };
@@ -329,6 +334,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "Index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "Mult/att", mult, settings::STORAGE_TYPE_U8 },
+  { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
 };
 
 struct ASRState {

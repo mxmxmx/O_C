@@ -26,9 +26,10 @@
 // grown a little bit...
 
 #include "OC_apps.h"
-#include "util/util_settings.h"
-#include "util/util_turing.h"
 #include "util/util_logistic_map.h"
+#include "util/util_settings.h"
+#include "util/util_trigger_delay.h"
+#include "util/util_turing.h"
 #include "peaks_bytebeat.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
@@ -230,9 +231,9 @@ public:
     last_scale_ = -1;
     last_mask_ = 0;
     last_sample_ = 0;
-    trigger_delay_ = 0;
     clock_ = 0;
 
+    trigger_delay_.Init();
     turing_machine_.Init();
     logistic_map_.Init();
     bytebeat_.Init();
@@ -258,11 +259,11 @@ public:
     bool triggered = !continous &&
       (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
 
-    uint16_t trigger_delay = trigger_delay_ >> 1;
+    trigger_delay_.Update();
     if (triggered)
-      trigger_delay |= 0x1 << get_trigger_delay();
+      trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+    triggered = trigger_delay_.triggered();
 
-    triggered = trigger_delay & 0x1;
     if (triggered) {
       ++clock_;
       if (clock_ >= get_clkdiv()) {
@@ -271,7 +272,6 @@ public:
         triggered = false;
       }
     }
-    trigger_delay_ = trigger_delay;
 
     bool update = continous || triggered;
     if (update_scale(forced_update))
@@ -580,9 +580,9 @@ private:
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_sample_;
-  uint16_t trigger_delay_;
   uint8_t clock_;
 
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
   util::LogisticMap logistic_map_;
   peaks::ByteBeat bytebeat_ ;
@@ -620,11 +620,6 @@ const char* const turing_logistic_cv_sources[5] = {
   "None", "CV1", "CV2", "CV3", "CV4"
 };
 
-// Save special-case drawing
-const char* const trigger_delays[] = {
-  "off", "60us", "120us", "180us", "240us", "300us", "360us", "420us", "480us"
-};
-
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "Root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
@@ -632,7 +627,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U4 },
   { CHANNEL_TRIGGER_CONTINUOUS, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U4 },
   { 1, 1, 16, "Clock div", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 8, "Trigger delay", trigger_delays, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "Transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "Octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -999, 999, "Fine", NULL, settings::STORAGE_TYPE_I16 },

@@ -38,7 +38,7 @@
 #include "OC_gpio.h"
 
 #define SPICLOCK_30MHz   (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR) //(60 / 2) * ((1+1)/2) = 30 MHz (= 24MHz, when F_BUS == 48000000)
-
+//#define DAC8564 // <-- uncomment, if using DAC8564
 
 namespace OC {
 
@@ -50,8 +50,12 @@ void DAC::Init(CalibrationData *calibration_data) {
   // set up DAC pins 
   pinMode(DAC_CS, OUTPUT);
   pinMode(DAC_RST,OUTPUT);
-  // pull RST high 
-  digitalWrite(DAC_RST, HIGH); 
+  
+  #ifdef DAC8564 // A0 = 0, A1 = 0
+    digitalWrite(DAC_RST, LOW); 
+  #else  // default to DAC8565 - pull RST high 
+    digitalWrite(DAC_RST, HIGH);
+  #endif
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
