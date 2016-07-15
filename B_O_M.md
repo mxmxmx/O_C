@@ -26,7 +26,7 @@
 | value | #| type | note |
 | --- | ---: | :---: | --- |
 | 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
-| 10n | 4x | C0G/NP0 | e.g. mouser # 603-CC805JRNPO9BN103 |
+| 560p | 4x | C0G/NP0 | e.g. mouser # 77-VJ0805A561JXAAC |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
 | 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
 | 1u    | 2x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
