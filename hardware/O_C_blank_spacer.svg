@@ -22,7 +22,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -41,7 +41,7 @@
      showgrid="false"
      width="120mm"
      inkscape:zoom="1.1083866"
-     inkscape:cx="125.39764"
+     inkscape:cx="-30.685084"
      inkscape:cy="227.4803"
      inkscape:window-x="0"
      inkscape:window-y="0"
@@ -207,17 +207,17 @@
     <circle
        cx="56.799999"
        cy="90.599998"
-       r="3.75"
+       r="3.3489792"
        vector-effect="non-scaling-stroke"
        id="circle50"
-       style="fill:#ffffff;stroke:#000000;stroke-width:0.28222222;stroke-miterlimit:4;stroke-dasharray:none" />
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.25204167;stroke-miterlimit:4;stroke-dasharray:none" />
     <circle
        cx="56.799999"
        cy="109.4"
-       r="3.75"
+       r="3.3489792"
        vector-effect="non-scaling-stroke"
        id="circle52"
-       style="fill:#ffffff;stroke:#000000;stroke-width:0.28222222;stroke-miterlimit:4;stroke-dasharray:none" />
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.25204167;stroke-miterlimit:4;stroke-dasharray:none" />
     <rect
        x="7.684"
        y="91.628998"
