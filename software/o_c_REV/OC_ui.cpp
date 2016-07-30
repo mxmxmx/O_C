@@ -21,6 +21,7 @@ Ui ui;
 
 void Ui::Init() {
   ticks_ = 0;
+  set_screensaver_timeout(SCREENSAVER_TIMEOUT_S);
 
   static const int button_pins[] = { but_top, but_bot, butL, butR };
   for (size_t i = 0; i < CONTROL_BUTTON_LAST; ++i) {
@@ -93,10 +94,12 @@ UiMode Ui::DispatchEvents(App *app) {
         app->HandleButtonEvent(event);
         break;
       case UI::EVENT_BUTTON_LONG_PRESS:
-        if (OC::CONTROL_BUTTON_R != event.control)
-          app->HandleButtonEvent(event);
-        else
+        if (OC::CONTROL_BUTTON_UP == event.control)
+          screensaver_ = true;
+        else if (OC::CONTROL_BUTTON_R == event.control)
           return UI_MODE_APP_SETTINGS;
+        else
+          app->HandleButtonEvent(event);
         break;
       case UI::EVENT_ENCODER:
         app->HandleEncoderEvent(event);
@@ -107,13 +110,13 @@ UiMode Ui::DispatchEvents(App *app) {
     MENU_REDRAW = 1;
   }
 
-  if (idle_time() > SCREENSAVER_TIMEOUT_MS) {
-    if (!screensaver_)
-      screensaver_ = true;
+  if (idle_time() > screensaver_timeout())
+    screensaver_ = true;
+
+  if (screensaver_)
     return UI_MODE_SCREENSAVER;
-  } else {
+  else
     return UI_MODE_MENU;
-  }
 }
 
 UiMode Ui::Splashscreen(bool &reset_settings) {
