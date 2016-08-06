@@ -1,10 +1,10 @@
-#/* BOM for O+C (rev 2d) */
+#/* BOM for O+C (rev 2d, 2e) */
 
-- if your board is **red** and labelled **rev.2d** (on top of the board, underneath the 'ornament and crime' label), that's rev 2d. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
+- if your board is **red** and labelled **rev.2e** (on top of the board, underneath the 'ornament and crime' label), that's rev 2e. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
 
 - the footprint for passives is **0805 throughout**. using 0603 everywhere will work just as fine, of course.
 
-- there's five 3-pin pads for trimpots (input/output calibration): **simply omit the trimpots**; the calibration can be done entirely in software. use five **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier.
+- versions prior to 2e: there's five 3-pin pads for trimpots (input/output calibration): **simply omit the trimpots**; the calibration can be done entirely in software. use five **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier.
 
 
 ### SMD resistors (0805):
@@ -15,7 +15,7 @@
 | 510R | 2x | e.g. mouser # 603-RC0805JR-07510RL | 1-5% |
 | 2k   | 1x | e.g. mouser # 660-RK73H2ATTE2001F | 1% |
 | 10k  | 1x | e.g. mouser # 660-RK73H2ATTD1002F | 1-5% |
-| **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (‡)|
+| **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%** |
 | 33k | 8x | e.g. mouser # 660-RK73H2ATTD3302F | 1% |
 | 47k | 2x | e.g. mouser # 660-RK73H2ATTD4702F | 1% |
 | **75k** | 4x | e.g. mouser # 660-RK73H2ATTD7502F | 1% (silkscreen says 49k9: ignore) |
