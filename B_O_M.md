@@ -25,7 +25,7 @@
 ### SMD caps (0805) (25V or better):
 | value | #| type | note |
 | --- | ---: | :---: | --- |
-| 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
+| 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A180GXACBC|
 | 560p | 4x | C0G/NP0 | e.g. mouser # 77-VJ0805A561JXAAC |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
 | 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
