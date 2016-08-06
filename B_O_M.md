@@ -18,7 +18,7 @@
 | **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%** |
 | 33k | 8x | e.g. mouser # 660-RK73H2ATTD3302F | 1% |
 | 47k | 2x | e.g. mouser # 660-RK73H2ATTD4702F | 1% |
-| **75k** | 4x | e.g. mouser # 660-RK73H2ATTD7502F | 1% (silkscreen says 49k9: ignore) |
+| 75k | 4x | e.g. mouser # 660-RK73H2ATTD7502F | 1% |
 | **100k** | 4x | e.g. mouser # 279-CPF0805B100KE | **0.1%** |
 | 100k | 8x | e.g. mouser # 660-RK73H2ATTD1003F| 1% (or simply get 12 x 0.1%) |
 
