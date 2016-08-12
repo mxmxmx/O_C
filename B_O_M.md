@@ -54,7 +54,7 @@
 | 22uF cap | 2x | RM2.5 (35V or better) | e.g. mouser # 647-UPM1V220MDD1TD | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
 | jacks |  12x | 'thonkiconn' (or kobiconn) | [PJ301M-12](https://www.thonk.co.uk/shop/3-5mm-jacks/) |
-| encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†) | 
+| encoders | 2x  | 24 steps w/ switch | e.g. mouser # 652-PEC11R-4220F-S24 (†) | 
 | 2x5 pin header | 1x | 2.54mm (euro power connector) | e.g. mouser # 649-67996-410HLF | 
 | 1x7 (1x8) OLED socket | 1x | 2.54mm, **low profile** ! | e.g mouser # 517-929870-01-08-RA | 
 | 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | see note (††) | 
