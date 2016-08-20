@@ -5,6 +5,7 @@ hardware files for o_C quad 16 bit CV generator/processor
 
 - .fpd (= front panel express).
 - .svg (= same thing, exported from frontDesign).
+- /fpd_nearlyghost: .fpd, w/ graphics by nearly_ghost 
 
 ###schematic 
 
