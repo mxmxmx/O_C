@@ -19,6 +19,7 @@ CalibrationData calibration_data;
 };
 
 static constexpr unsigned kCalibrationAdcSmoothing = 4;
+bool calibration_data_loaded = false;
 
 const OC::CalibrationData kCalibrationDefaults = {
   // DAC
@@ -55,7 +56,8 @@ void calibration_load() {
                  OC::CalibrationStorage::PAGESIZE, OC::CalibrationStorage::PAGES, OC::CalibrationStorage::LENGTH);
 
   calibration_reset();
-  if (!OC::calibration_storage.Load(OC::calibration_data)) {
+  calibration_data_loaded = OC::calibration_storage.Load(OC::calibration_data);
+  if (!calibration_data_loaded) {
 #ifdef CALIBRATION_LOAD_LEGACY
     if (EEPROM.read(0x2) > 0) {
       SERIAL_PRINTLN("Calibration not loaded, non-zero data found, trying to import...");
@@ -139,6 +141,8 @@ struct CalibrationState {
 
   uint16_t adc_1v;
   uint16_t adc_3v;
+
+  bool used_defaults;
 };
 
 OC::DigitalInputDisplay digital_input_displays[4];
@@ -198,7 +202,7 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { DAC_D_VOLT_5, "DAC D 5 volts", "->  5.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 5, nullptr, 0, DAC::MAX_VALUE },
   { DAC_D_VOLT_6, "DAC D 6 volts", "->  6.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 6, nullptr, 0, DAC::MAX_VALUE },
 
-  { CV_OFFSET, "CV offset", "", "Adjust CV trimpot", default_footer, CALIBRATE_ADC_TRIMMER, 0, nullptr, 0, 4095 },
+  { CV_OFFSET, "CV offset (optional)", "", "Use CV trimmer/skip", default_footer, CALIBRATE_ADC_TRIMMER, 0, nullptr, 0, 4095 },
   { CV_OFFSET_0, "ADC CV1", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
   { CV_OFFSET_1, "ADC CV2", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_2, nullptr, 0, 4095 },
   { CV_OFFSET_2, "ADC CV3", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
@@ -219,9 +223,10 @@ void OC::Ui::Calibrate() {
   CalibrationState calibration_state = {
     HELLO,
     &calibration_steps[HELLO],
-    1,
+    calibration_data_loaded ? 0 : 1, // "use defaults: no" if data loaded
   };
   calibration_state.adc_sum.set(_ADC_OFFSET);
+  calibration_state.used_defaults = false;
 
   for (auto &did : digital_input_displays)
     did.Init();
@@ -295,6 +300,7 @@ void OC::Ui::Calibrate() {
           if (calibration_state.encoder_value) {
             SERIAL_PRINTLN("Resetting to defaults...");
             calibration_reset();
+            calibration_state.used_defaults = true;
           }
           break;
         case ADC_PITCH_C4:
@@ -332,10 +338,17 @@ void OC::Ui::Calibrate() {
 
       case CALIBRATE_NONE:
       default:
-        if (CALIBRATION_EXIT != next_step->step)
+        if (CALIBRATION_EXIT != next_step->step) {
           calibration_state.encoder_value = 0;
-        else
-          calibration_state.encoder_value = 1;
+        } else {
+          // Make the default "Save: no" if the calibration data was reset
+          // manually, but only if calibration data was actually loaded from
+          // EEPROM
+          if (calibration_state.used_defaults && calibration_data_loaded)
+            calibration_state.encoder_value = 0;
+          else
+            calibration_state.encoder_value = 1;
+        }
       }
       calibration_state.current_step = next_step;
     }
@@ -404,10 +417,26 @@ void calibration_draw(const CalibrationState &state) {
 
     case CALIBRATE_NONE:
     default:
-      graphics.setPrintPos(menu::kIndentDx, y + 2);
-      graphics.print(step->message);
-      if (step->value_str)
-        graphics.print(step->value_str[state.encoder_value]);
+      if (CALIBRATION_EXIT != step->step) {
+        graphics.setPrintPos(menu::kIndentDx, y + 2);
+        graphics.print(step->message);
+        if (step->value_str)
+          graphics.print(step->value_str[state.encoder_value]);
+      } else {
+        graphics.setPrintPos(menu::kIndentDx, y + 2);
+        if (calibration_data_loaded && state.used_defaults)
+            graphics.print("Overwrite? ");
+        else
+          graphics.print("Save? ");
+        if (step->value_str)
+          graphics.print(step->value_str[state.encoder_value]);
+
+        if (state.used_defaults && calibration_data_loaded) {
+          y += menu::kMenuLineH;
+          graphics.setPrintPos(menu::kIndentDx, y + 2);
+          graphics.print("NB replaces existing!");
+        }
+      }
       break;
   }
 
