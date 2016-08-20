@@ -69,6 +69,7 @@ class Quantizer {
  private:
   void Configure(const int16_t* notes, int16_t span, size_t num_notes, uint16_t mask);
   bool enabled_;
+  int16_t enabled_notes_[16];
   int16_t codebook_[128];
   int32_t codeword_;
   int32_t transpose_;
