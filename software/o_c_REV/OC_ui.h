@@ -100,9 +100,7 @@ public:
     return screensaver_timeout_;
   }
 
-  void set_screensaver_timeout(uint32_t seconds) {
-    screensaver_timeout_ = seconds * 1000U;
-  }
+  void set_screensaver_timeout(uint32_t seconds);
 
 private:
 

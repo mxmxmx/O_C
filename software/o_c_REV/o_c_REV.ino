@@ -137,6 +137,7 @@ void setup() {
     OC::ui.Calibrate();
     ui_mode = OC::UI_MODE_MENU;
   }
+  OC::ui.set_screensaver_timeout(OC::calibration_data.screensaver_timeout);
 
   // initialize apps
   OC::apps::Init(reset_settings);

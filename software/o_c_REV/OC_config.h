@@ -18,6 +18,7 @@ static constexpr int OC_UI_TIMER_PRIO   = 132; // lower
 
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr uint32_t SCREENSAVER_TIMEOUT_S = 25; // default time out menu (in s)
+static constexpr uint32_t SCREENSAVER_TIMEOUT_MAX_S = 120;
 
 namespace OC {
 static constexpr size_t kMaxTriggerDelayTicks = 96;

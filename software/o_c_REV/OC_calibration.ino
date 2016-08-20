@@ -37,7 +37,8 @@ const OC::CalibrationData kCalibrationDefaults = {
   // display_offset
   SH1106_128x64_Driver::kDefaultOffset,
   OC_CALIBRATION_DEFAULT_FLAGS,
-  0, 0 // reserved
+  SCREENSAVER_TIMEOUT_S, { 0, 0, 0 },
+  0 // reserved
 };
 //const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
@@ -77,6 +78,9 @@ void calibration_load() {
     SERIAL_PRINTLN("NOTE: Pitch CV scale not set, using default...");
     OC::calibration_data.adc.pitch_cv_scale = OC::ADC::kDefaultPitchCVScale;
   }
+
+  if (!OC::calibration_data.screensaver_timeout)
+    OC::calibration_data.screensaver_timeout = SCREENSAVER_TIMEOUT_S;
 }
 
 void calibration_save() {
@@ -96,6 +100,7 @@ enum CALIBRATION_STEP {
   CV_OFFSET,
   CV_OFFSET_0, CV_OFFSET_1, CV_OFFSET_2, CV_OFFSET_3,
   ADC_PITCH_C2, ADC_PITCH_C4,
+  CALIBRATION_SCREENSAVER_TIMEOUT,
   CALIBRATION_EXIT,
   CALIBRATION_STEP_LAST,
   CALIBRATION_STEP_FINAL = ADC_PITCH_C4
@@ -108,7 +113,8 @@ enum CALIBRATION_TYPE {
   CALIBRATE_ADC_OFFSET,
   CALIBRATE_ADC_1V,
   CALIBRATE_ADC_3V,
-  CALIBRATE_DISPLAY
+  CALIBRATE_DISPLAY,
+  CALIBRATE_SCREENSAVER,
 };
 
 struct CalibrationStep {
@@ -210,6 +216,8 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
 
   { ADC_PITCH_C2, "CV Scaling 1V", "CV1: Input 1V (C2)", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
   { ADC_PITCH_C4, "CV Scaling 3V", "CV1: Input 3V (C4)", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
+
+  { CALIBRATION_SCREENSAVER_TIMEOUT, "Screensaver", "Timeout (s)", default_help_r, default_footer, CALIBRATE_SCREENSAVER, 0, nullptr, (OC::Ui::kLongPressTicks * 2 + 500) / 1000, SCREENSAVER_TIMEOUT_MAX_S },
 
   { CALIBRATION_EXIT, "Calibration complete", "Save values? ", select_help, end_footer, CALIBRATE_NONE, 0, OC::Strings::no_yes, 0, 1 }
 };
@@ -336,6 +344,11 @@ void OC::Ui::Calibrate() {
         SERIAL_PRINTLN("offset=%d", OC::calibration_data.adc.offset[ADC_CHANNEL_1]);
         break;
 
+      case CALIBRATE_SCREENSAVER:
+        calibration_state.encoder_value = OC::calibration_data.screensaver_timeout;
+        SERIAL_PRINTLN("timeout=%d", calibration_state.encoder_value);
+        break;
+
       case CALIBRATE_NONE:
       default:
         if (CALIBRATION_EXIT != next_step->step) {
@@ -379,6 +392,7 @@ void calibration_draw(const CalibrationState &state) {
   graphics.setPrintPos(menu::kIndentDx, y + 2);
   switch (step->calibration_type) {
     case CALIBRATE_OCTAVE:
+    case CALIBRATE_SCREENSAVER:
       graphics.print(step->message);
       graphics.setPrintPos(kValueX, y + 2);
       graphics.print((int)state.encoder_value, 5);
@@ -495,6 +509,10 @@ void calibration_update(CalibrationState &state) {
     case CALIBRATE_DISPLAY:
       OC::calibration_data.display_offset = state.encoder_value;
       display::AdjustOffset(OC::calibration_data.display_offset);
+      break;
+    case CALIBRATE_SCREENSAVER:
+      DAC::set_all_octave(0);
+      OC::calibration_data.screensaver_timeout = state.encoder_value;
       break;
   }
 }

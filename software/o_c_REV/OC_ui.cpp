@@ -45,6 +45,16 @@ void Ui::configure_encoders(EncoderConfig encoder_config) {
   encoder_left_.reverse(encoder_config & ENCODER_CONFIG_L_REVERSED);
 }
 
+void Ui::set_screensaver_timeout(uint32_t seconds) {
+  uint32_t timeout = seconds * 1000U;
+  if (timeout < kLongPressTicks * 2)
+    timeout = kLongPressTicks * 2;
+
+  screensaver_timeout_ = timeout;
+  SERIAL_PRINTLN("Set screensaver timeout to %lu", timeout);
+  event_queue_.Poke();
+}
+
 void FASTRUN Ui::Poll() {
 
   uint32_t now = ++ticks_;
