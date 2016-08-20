@@ -228,6 +228,7 @@ public:
     apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
 
     force_update_ = true;
+    instant_update_ = false;
     last_scale_ = -1;
     last_mask_ = 0;
     last_sample_ = 0;
@@ -247,6 +248,10 @@ public:
 
   void force_update() {
     force_update_ = true;
+  }
+
+  void instant_update() {
+    instant_update_ = (~instant_update_) & 1u;
   }
 
   inline void Update(uint32_t triggers, size_t index, DAC_CHANNEL dac_channel) {
@@ -274,9 +279,9 @@ public:
     }
 
     bool update = continous || triggered;
-    if (update_scale(forced_update))
-      update = true;
-
+    if (update_scale(forced_update) && instant_update_ == true)
+       update = true;
+       
     int32_t sample = last_sample_;
     int32_t history_sample = 0;
 
@@ -577,6 +582,7 @@ public:
 
 private:
   bool force_update_;
+  bool instant_update_;
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_sample_;
@@ -798,6 +804,10 @@ void QQ_menu() {
 }
 
 void QQ_handleButtonEvent(const UI::Event &event) {
+
+  if (UI::EVENT_BUTTON_LONG_PRESS == event.type && OC::CONTROL_BUTTON_DOWN == event.control)   
+    QQ_downButtonLong(); 
+      
   if (qq_state.scale_editor.active()) {
     qq_state.scale_editor.HandleButtonEvent(event);
     return;
@@ -820,7 +830,7 @@ void QQ_handleButtonEvent(const UI::Event &event) {
     }
   } else {
     if (OC::CONTROL_BUTTON_L == event.control)
-      QQ_leftButtonLong();
+      QQ_leftButtonLong();       
   }
 }
 
@@ -908,6 +918,12 @@ void QQ_leftButtonLong() {
       quantizer_channels[i].set_scale(scale);
     }
   }
+}
+
+void QQ_downButtonLong() {
+
+   for (int i = 0; i < 4; ++i) 
+      quantizer_channels[i].instant_update();
 }
 
 int32_t history[5];
