@@ -44,7 +44,7 @@ public:
     mod_offset_ = 0;
     last_pitch_ = 0;
     dac_channel_ = dac_channel;
-  
+
     update_enabled_settings();
   }
 
@@ -117,7 +117,7 @@ private:
 SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, -3, 6, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
+  { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_I8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
 };
 
@@ -203,7 +203,7 @@ void REFS_menu() {
   menu::SettingsListItem list_item;
 
   while (settings_list.available()) {
-    const int setting = 
+    const int setting =
       channel.enabled_setting_at(settings_list.Next(list_item));
     const int value = channel.get_value(setting);
     const settings::value_attr &attr = ReferenceChannel::value_attr(setting);
