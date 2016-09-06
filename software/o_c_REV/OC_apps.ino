@@ -42,6 +42,7 @@ OC::App available_apps[] = {
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
   DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('P','A', "Panther", PANTHER, PANTHER_isr),
   DECLARE_APP('R','F', "References", REFS, REFS_isr)
 };
 
