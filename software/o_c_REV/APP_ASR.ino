@@ -1,5 +1,6 @@
 #include "util/util_settings.h"
 #include "util/util_trigger_delay.h"
+#include "util/util_turing.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
@@ -27,6 +28,9 @@ enum ASRSettings {
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
+  ASR_SETTING_CV_SOURCE,
+  ASR_SETTING_TURING_LENGTH,
+  ASR_SETTING_TURING_PROB,
   ASR_SETTING_LAST
 };
 
@@ -80,6 +84,22 @@ public:
     return values_[ASR_SETTING_MULT];
   }
 
+  int get_cv_source() const {
+    return values_[ASR_SETTING_CV_SOURCE];
+  }
+
+  uint8_t get_turing_length() const {
+    return values_[ASR_SETTING_TURING_LENGTH];
+  }
+
+  uint8_t get_turing_probability() const {
+    return values_[ASR_SETTING_TURING_PROB];
+  }
+
+  uint32_t get_shift_register() const {
+    return turing_machine_.get_shift_register();
+  }
+
   uint16_t get_trigger_delay() const {
     return values_[ASR_SETTING_DELAY];
   }
@@ -95,6 +115,14 @@ public:
  
         _ASR->first=(_ASR->first+1); 
         _ASR->items--;
+  }
+
+  ASRSettings enabled_setting_at(int index) const {
+    return enabled_settings_[index];
+  }
+
+  int num_enabled_settings() const {
+    return num_enabled_settings_;
   }
 
   void init() {
@@ -121,9 +149,11 @@ public:
       sh.Init();
 
     trigger_delay_.Init();
+    turing_machine_.Init();
   }
 
   bool update_scale(bool force, int32_t mask_rotate) {
+    
     const int scale = get_scale();
     uint16_t mask = get_mask();
     if (mask_rotate)
@@ -164,6 +194,28 @@ public:
 
   uint16_t get_rotated_mask() const {
     return last_mask_;
+  }
+
+  void update_enabled_settings() {
+    
+    ASRSettings *settings = enabled_settings_;
+
+    //*settings++ = ASR_SETTING_SCALE;
+    //*settings++ = ASR_SETTING_OCTAVE;
+    *settings++ = ASR_SETTING_ROOT;
+    *settings++ = ASR_SETTING_MASK;
+    *settings++ = ASR_SETTING_INDEX; 
+    *settings++ = ASR_SETTING_MULT;
+    *settings++ = ASR_SETTING_DELAY;
+    *settings++ = ASR_SETTING_CV_SOURCE;
+    
+    if (get_cv_source()) {
+      
+      *settings++ = ASR_SETTING_TURING_LENGTH;
+      *settings++ = ASR_SETTING_TURING_PROB;
+    }
+     
+    num_enabled_settings_ = settings - enabled_settings_;
   }
 
   void updateASR_indexed(struct ASRbuf* _ASR, int32_t _s, int16_t _index) {
@@ -212,11 +264,11 @@ public:
         _hold[3] = out -= _delay;
         asr_outputs[3] = _ASR->data[out--];
 
-       // hold :
-       _ASR->data[_hold[0]] = asr_outputs[3];  
-       _ASR->data[_hold[1]] = asr_outputs[0];
-       _ASR->data[_hold[2]] = asr_outputs[1];
-       _ASR->data[_hold[3]] = asr_outputs[2];
+        // hold :
+        _ASR->data[_hold[0]] = asr_outputs[3];  
+        _ASR->data[_hold[1]] = asr_outputs[0];
+        _ASR->data[_hold[2]] = asr_outputs[1];
+        _ASR->data[_hold[3]] = asr_outputs[2];
 
         // octave up/down
         int _offset = 0;
@@ -241,10 +293,12 @@ public:
      bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
      clock_display_.Update(1, update);
 
-    trigger_delay_.Update();
-    if (update)
+     trigger_delay_.Update();
+    
+     if (update)
       trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
-    update = trigger_delay_.triggered();
+      
+     update = trigger_delay_.triggered();
 
       if (update) {        
    
@@ -253,34 +307,56 @@ public:
         
         clocks_cnt_++;
 
-        if (_root != last_root_) clocks_cnt_ = 0;
+        if (_root != last_root_) 
+          clocks_cnt_ = 0;
 
         last_root_ = _root;
 
         _index +=  SCALED_ADC(ADC_CHANNEL_2, 5);
 
-        if (!digitalReadFast(TR2)) _hold(_ASR, _index);   
+        if (!digitalReadFast(TR2)) 
+          _hold(_ASR, _index);   
         else {
 
              int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
-             int32_t _pitch  =  OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
              int8_t _mult    =  get_mult();
+             int32_t _pitch  = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
              if (_mult < 0)
                 _mult = 0;
              else if (_mult > 19)
                 _mult = 19;
-        
+
+            if (get_cv_source()) {
+
+                int16_t _length = get_turing_length();
+                int16_t _probability = get_turing_probability();
+                turing_machine_.set_length(_length);
+                turing_machine_.set_probability(_probability); 
+  
+                int32_t _shift_register = (static_cast<int16_t>(turing_machine_.Clock()) & 0xFFF); //
+                
+               // return useful values for small values of _length:
+               if (_length < 12) {
+                   _shift_register = _shift_register << (12 -_length);
+                   _shift_register = _shift_register & 0xFFF;
+                }
+                // _pitch from above should control p then, or what.
+                _pitch = _shift_register;        
+            } 
+             
             // scale incoming CV
              if (_mult != 9) {
                _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
                _pitch = signed_saturate_rshift(_pitch, 16, 0);
              }
-            
+             
              int32_t _quantized = quantizer_.Process(_pitch, _root << 7, TRANSPOSE_FIXED);
 
-             if (!digitalReadFast(TR3)) _octave++;
-             else if (!digitalReadFast(TR4)) _octave--;
+             if (!digitalReadFast(TR3)) 
+                _octave++;
+             else if (!digitalReadFast(TR4)) 
+                _octave--;
 
              _quantized += (_octave * 12 << 7);
 
@@ -319,12 +395,19 @@ private:
   ASRbuf *_ASR;
   OC::DigitalInputDisplay clock_display_;
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
-
+  util::TuringShiftRegister turing_machine_;
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
+
+  int num_enabled_settings_;
+  ASRSettings enabled_settings_[ASR_SETTING_LAST];
 };
 
 const char* const mult[20] = {
   "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0"
+};
+
+const char* const asr_input_sources[] = {
+  "CV1", "TM"
 };
 
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
@@ -335,13 +418,33 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 63, "Index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "Mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
+  { 16, 1, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 }
 };
 
-struct ASRState {
- 
-  int left_encoder_value;
+/* -------------------------------------------------------------------*/
 
+class ASRState {
+public:
+
+  void Init() {
+    cursor.Init(ASR_SETTING_SCALE, ASR_SETTING_LAST - 1);
+    scale_editor.Init();
+    left_encoder_value = 0;
+  }
+  
+  inline bool editing() const {
+    return cursor.editing();
+  }
+
+  inline int cursor_pos() const {
+    return cursor.cursor_pos();
+  }
+
+  int left_encoder_value;
   menu::ScreenCursor<menu::kScreenLines> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor_state;
   OC::ScaleEditor<ASR> scale_editor;
 };
 
@@ -352,9 +455,9 @@ void ASR_init() {
 
   asr.InitDefaults();
   asr.init();
-  asr_state.left_encoder_value  = 0;
-  asr_state.cursor.Init(ASR_SETTING_ROOT, ASR_SETTING_LAST - 1);
-  asr_state.scale_editor.Init();
+  asr_state.Init(); 
+  asr.update_enabled_settings();
+  asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
 }
 
 size_t ASR_storageSize() {
@@ -362,19 +465,22 @@ size_t ASR_storageSize() {
 }
 
 size_t ASR_restore(const void *storage) {
+  asr.update_enabled_settings();
+  asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
   return asr.Restore(storage);
 }
 
 void ASR_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      asr_state.left_encoder_value = asr.get_scale();
       asr_state.cursor.set_editing(false);
       asr_state.scale_editor.Close();
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
     case OC::APP_EVENT_SCREENSAVER_OFF:
+      asr.update_enabled_settings();
+      asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
       break;
   }
 }
@@ -386,6 +492,7 @@ void ASR_isr() {
   
   asr.update();
 }
+
 
 void ASR_handleButtonEvent(const UI::Event &event) {
   if (asr_state.scale_editor.active()) {
@@ -422,19 +529,38 @@ void ASR_handleEncoderEvent(const UI::Event &event) {
   }
 
   if (OC::CONTROL_ENCODER_L == event.control) {
+    
     int value = asr_state.left_encoder_value + event.value;
     CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
     asr_state.left_encoder_value = value;
+    
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    if (asr_state.cursor.editing()) {
-      if (ASR_SETTING_MASK != asr_state.cursor.cursor_pos()) {
-        asr.change_value(asr_state.cursor.cursor_pos(), event.value);
-      }
+
+    if (asr_state.editing()) {  
+
+    ASRSettings setting = asr.enabled_setting_at(asr_state.cursor_pos());
+
+    if (ASR_SETTING_MASK != setting) {
+
+          if (asr.change_value(setting, event.value))
+             asr.force_update();
+             
+          switch(setting) {
+  
+            case ASR_SETTING_CV_SOURCE:
+              asr.update_enabled_settings();
+              asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
+            break;
+            default:
+            break;
+          }
+        }
     } else {
       asr_state.cursor.Scroll(event.value);
     }
   }
 }
+
 
 void ASR_topButton() {
 
@@ -448,12 +574,18 @@ void ASR_lowerButton() {
 
 void ASR_rightButton() {
 
-  if (asr_state.cursor.cursor_pos() != ASR_SETTING_MASK) {
-    asr_state.cursor.toggle_editing();
-  } else {
-    int scale = asr.get_scale();
-    if (OC::Scales::SCALE_NONE != scale)
-      asr_state.scale_editor.Edit(&asr, scale);
+  switch (asr.enabled_setting_at(asr_state.cursor_pos())) {
+
+      case ASR_SETTING_MASK: {
+        int scale = asr.get_scale();
+        if (OC::Scales::SCALE_NONE != scale)
+          asr_state.scale_editor.Edit(&asr, scale);
+        }
+      break;
+      default:
+        asr_state.cursor.toggle_editing();
+      break;
+      
   }
 }
 
@@ -492,21 +624,41 @@ void ASR_menu() {
   if (clock_state)
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
 
-
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(asr_state.cursor);
   menu::SettingsListItem list_item;
+  
   while (settings_list.available()) {
-    const int current = settings_list.Next(list_item);
-    if (ASR_SETTING_MASK != current) {
-      list_item.DrawDefault(asr.get_value(current), ASR::value_attr(current));
-    } else {
+
+    const int setting = asr.enabled_setting_at(settings_list.Next(list_item));
+    const int value = asr.get_value(setting);
+    const settings::value_attr &attr = ASR::value_attr(setting); 
+
+    switch (setting) {
+
+      case ASR_SETTING_MASK:
       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_rotated_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
-      list_item.DrawNoValue<false>(asr.get_value(current), ASR::value_attr(current));
+      list_item.DrawNoValue<false>(value, attr);
+      break;
+      case ASR_SETTING_CV_SOURCE:
+      if (asr.get_cv_source()) {
+       
+          int turing_length = asr.get_turing_length();
+          int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
+
+          menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_shift_register(), turing_length);
+          list_item.valuex = menu::kDisplayWidth - w - 1;
+          list_item.DrawNoValue<true>(value, attr);
+      }
+      else
+       list_item.DrawDefault(value, attr);
+      break;
+      default:
+      list_item.DrawDefault(value, attr);
+      break;
     }
   }
-
-  if (asr_state.scale_editor.active())  
-    asr_state.scale_editor.Draw();
+  if (asr_state.scale_editor.active())
+    asr_state.scale_editor.Draw(); 
 }
 
 uint16_t channel_history[ASR::kHistoryDepth];
