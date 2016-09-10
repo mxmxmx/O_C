@@ -31,6 +31,7 @@ enum ASRSettings {
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
+  ASR_SETTING_TURING_CV_SOURCE,
   ASR_SETTING_LAST
 };
 
@@ -92,8 +93,16 @@ public:
     return values_[ASR_SETTING_TURING_LENGTH];
   }
 
+  uint8_t get_turing_display_length() {
+    return turing_display_length_;
+  }
+
   uint8_t get_turing_probability() const {
     return values_[ASR_SETTING_TURING_PROB];
+  }
+
+  uint8_t get_turing_CV() const {
+    return values_[ASR_SETTING_TURING_CV_SOURCE];
   }
 
   uint32_t get_shift_register() const {
@@ -213,6 +222,7 @@ public:
       
       *settings++ = ASR_SETTING_TURING_LENGTH;
       *settings++ = ASR_SETTING_TURING_PROB;
+      *settings++ = ASR_SETTING_TURING_CV_SOURCE;
     }
      
     num_enabled_settings_ = settings - enabled_settings_;
@@ -322,17 +332,30 @@ public:
              int8_t _mult    =  get_mult();
              int32_t _pitch  = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
-             if (_mult < 0)
-                _mult = 0;
-             else if (_mult > 19)
-                _mult = 19;
-
             if (get_cv_source()) {
 
                 int16_t _length = get_turing_length();
                 int16_t _probability = get_turing_probability();
+
+                // _pitch can do other things now -- 
+                switch (get_turing_CV()) {
+
+                    case 1:  // LEN, 4-32
+                     _length += ((_pitch + 127) >> 7);
+                     CONSTRAIN(_length, 4, 32);
+                    break;
+                     case 2:  // P
+                     _probability += ((_pitch + 15) >> 4);
+                     CONSTRAIN(_probability, 0, 255);
+                    break;
+                    default: // mult
+                     _mult += ((_pitch + 255) >> 8);
+                    break;
+                }
+                
                 turing_machine_.set_length(_length);
                 turing_machine_.set_probability(_probability); 
+                turing_display_length_ = _length;
   
                 int32_t _shift_register = (static_cast<int16_t>(turing_machine_.Clock()) & 0xFFF); //
                 
@@ -341,9 +364,11 @@ public:
                    _shift_register = _shift_register << (12 -_length);
                    _shift_register = _shift_register & 0xFFF;
                 }
-                // _pitch from above should control p then, or what.
+                
                 _pitch = _shift_register;        
             } 
+
+            CONSTRAIN(_mult, 0, 19);
              
             // scale incoming CV
              if (_mult != 9) {
@@ -396,6 +421,7 @@ private:
   OC::DigitalInputDisplay clock_display_;
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
+  int8_t turing_display_length_;
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 
   int num_enabled_settings_;
@@ -410,17 +436,22 @@ const char* const asr_input_sources[] = {
   "CV1", "TM"
 };
 
+const char* const tm_CV_destinations[] = {
+  "M/A", "LEN", "P(x)"
+};
+
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
-  { 0, -5, 5, "Octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
-  { 0, 0, 11, "Root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
+  { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
+  { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
-  { 0, 0, 63, "Index", NULL, settings::STORAGE_TYPE_I8 },
-  { 9, 0, 19, "Mult/att", mult, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
+  { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
-  { 16, 1, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 }
+  { 16, 4, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 2, " > CV1 -->", tm_CV_destinations, settings::STORAGE_TYPE_U4 },
 };
 
 /* -------------------------------------------------------------------*/
@@ -642,7 +673,7 @@ void ASR_menu() {
       case ASR_SETTING_CV_SOURCE:
       if (asr.get_cv_source()) {
        
-          int turing_length = asr.get_turing_length();
+          int turing_length = asr.get_turing_display_length(); // asr.get_turing_length();
           int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
 
           menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_shift_register(), turing_length);
