@@ -102,6 +102,10 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_MULT,
   SEQ_CHANNEL_SETTING_PULSEWIDTH,
   //
+  SEQ_CHANNEL_SETTING_SCALE,
+  SEQ_CHANNEL_SETTING_OCTAVE, 
+  SEQ_CHANNEL_SETTING_SCALE_MASK,
+  //
   SEQ_CHANNEL_SETTING_MASK1,
   SEQ_CHANNEL_SETTING_MASK2,
   SEQ_CHANNEL_SETTING_MASK3,
@@ -329,6 +333,14 @@ public:
     div_cnt_ = 0x0;
   }
 
+ int get_scale() const {
+    return values_[SEQ_CHANNEL_SETTING_SCALE];
+  }
+
+  int get_scale_mask() const {
+    return values_[SEQ_CHANNEL_SETTING_SCALE_MASK];
+  }
+
   template <DAC_CHANNEL dac_channel>
   uint16_t get_zero() const {
      
@@ -339,7 +351,9 @@ public:
     
     InitDefaults();
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
-    //quantizer_.Init(); // ??   
+    quantizer_.Init();  
+    // TODO ...
+    quantizer_.Configure(OC::Scales::GetScale(2), 0xFFFF);
     force_update_ = true;
     gate_state_ = step_state_ = OFF;
     ticks_ = 0;
@@ -371,6 +385,24 @@ public:
     randomSeed(_seed);
     clock_display_.Init();
     update_enabled_settings(0);  
+  }
+
+  bool update_scale(bool force, int32_t mask_rotate) {
+    
+    const int scale = get_scale();
+    uint16_t  scale_mask = get_scale_mask();
+    // todo ...
+    //if (mask_rotate)
+    //  mask = OC::ScaleEditor<ASR>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
+
+    if (force || (last_scale_ != scale || last_mask_ != scale_mask)) {
+      last_scale_ = scale;
+      last_mask_  = scale_mask;
+      quantizer_.Configure(OC::Scales::GetScale(scale), scale_mask);
+      return true;
+    } else {
+      return false;
+    }
   }
  
   void force_update() {
@@ -538,10 +570,10 @@ public:
          step_state_ = gate_state_ = process_seq_channel(_mode); // = gate ...either ON, OFF
          
          if (step_state_ == ON) {
-            //uint8_t _transpose = 0; //TODO...
-            //uint8_t _root =  0; // TODO ... 
-            step_pitch_ = 10000 + random(30000); /// 
-            //step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
+            uint8_t _transpose = 0; //TODO...
+            uint8_t _root =  0; // TODO ... 
+            step_pitch_ = 100 + random(3000); /// 
+            step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
          }
      }
   
@@ -686,6 +718,8 @@ public:
 
     *settings++ = SEQ_CHANNEL_SETTING_MULT;
     *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
+    *settings++ = SEQ_CHANNEL_SETTING_SCALE,
+    *settings++ = SEQ_CHANNEL_SETTING_OCTAVE, 
     *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
     
     switch (get_sequence()) {
@@ -734,7 +768,7 @@ public:
     return mask;
   }
 
-  void RenderScreensaver(weegfx::coord_t start_x, SEQ_Channel seq_channel) const;
+  void RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const;
   
 private:
   
@@ -765,9 +799,12 @@ private:
   int8_t sequence_advance_;
   int8_t sequence_advance_state_;
 
+  int last_scale_;
+  uint16_t last_mask_;
+
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
-  //braids::Quantizer quantizer_; //??
+  braids::Quantizer quantizer_; //??
   OC::DigitalInputDisplay clock_display_;
 };
 
@@ -798,6 +835,10 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 2, 0, 6, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
+  //
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
+  { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
+  { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
   // seq
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 1
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 2
@@ -913,10 +954,10 @@ void SEQ_isr() {
   seq_channel[0].Update(triggers, DAC_CHANNEL_A);
   seq_channel[1].Update(triggers, DAC_CHANNEL_B);
 
-  int32_t sample = seq_channel[0].get_step_pitch(); // OC::DAC::pitch_to_dac(DAC_CHANNEL_A, seq_channel[0].get_step_pitch(), 0);
+  int32_t sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, seq_channel[0].get_step_pitch(), 0);
   OC::DAC::set(DAC_CHANNEL_A, sample);
   
-  sample = seq_channel[1].get_step_pitch(); // OC::DAC::pitch_to_dac(DAC_CHANNEL_B, seq_channel[1].get_step_pitch(), 0);
+  sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, seq_channel[1].get_step_pitch(), 0);
   OC::DAC::set(DAC_CHANNEL_B, sample);
   
   int32_t gate = seq_channel[0].get_step_gate();
@@ -1001,7 +1042,7 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
              selected.force_update();
 
             switch (setting) {
-
+              
               case SEQ_CHANNEL_SETTING_SEQUENCE:
               {
                 if (!selected.get_playmode()) {
@@ -1043,6 +1084,11 @@ void SEQ_rightButton() {
   
   switch (selected.enabled_setting_at(seq_state.cursor_pos())) {
 
+    case SEQ_CHANNEL_SETTING_SCALE:
+      seq_state.cursor.toggle_editing();
+      // todo: mask
+      selected.update_scale(true, 0);
+    break;
     case SEQ_CHANNEL_SETTING_MASK1:
     case SEQ_CHANNEL_SETTING_MASK2:
     case SEQ_CHANNEL_SETTING_MASK3:
@@ -1128,16 +1174,31 @@ void SEQ_menu() {
     seq_state.pattern_editor.Draw();   
 }
 
-void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, SEQ_Channel seq_channel) const {
 
-  if (seq_channel.gate_state_ == ON)
-    graphics.drawRect(start_x, 26, 28, 28);
-  else  
-    graphics.drawRect(start_x+12, 26+12, 4, 4);
+void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const {
+
+      // todo ... 
+      uint16_t _dac_value = get_step_pitch();
+           
+      if (seq_channel[seq_id].step_state_ == OFF)
+        _dac_value = 0;
+   
+      if (_dac_value < 2047) {
+        // output negative
+        _dac_value = 16 - (_dac_value >> 7);
+        CONSTRAIN(_dac_value, 1, 16);
+        graphics.drawFrame(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
+      }
+      else {
+      // positive output
+        _dac_value = ((_dac_value - 2047) >> 7);
+        CONSTRAIN(_dac_value, 1, 16);
+        graphics.drawRect(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
+      }
 }
 
 void SEQ_screensaver() {
 
-  seq_channel[0].RenderScreensaver(20, seq_channel[0]);
-  seq_channel[1].RenderScreensaver(80, seq_channel[1]);
+  seq_channel[0].RenderScreensaver(20, 0);
+  seq_channel[1].RenderScreensaver(95, 1);
 }
