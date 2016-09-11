@@ -77,7 +77,7 @@ private:
       owner_->pattern_changed(mask);
   }
   
-  //void change_slot(size_t pos, int delta, bool notify);
+  void change_slot(size_t pos, int delta, bool notify);
   void handleButtonLeft(const UI::Event &event);
   void handleButtonUp(const UI::Event &event);
   void handleButtonDown(const UI::Event &event);
@@ -210,7 +210,11 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     }
 
     if (!handled) {
-      mask = RotateMask(mask_, num_slots_, event.value);
+
+      int32_t pitch = owner_->get_pitch_at_step(cursor_pos_);
+      pitch += event.value;
+      owner_->set_pitch_at_step(cursor_pos_, pitch);
+      //mask = RotateMask(mask_, num_slots_, event.value);
     }
   }
   // This isn't entirely atomic
