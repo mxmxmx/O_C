@@ -716,8 +716,6 @@ public:
 
     SEQ_ChannelSetting *settings = enabled_settings_;
 
-    *settings++ = SEQ_CHANNEL_SETTING_MULT;
-    *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
     *settings++ = SEQ_CHANNEL_SETTING_SCALE,
     *settings++ = SEQ_CHANNEL_SETTING_OCTAVE, 
     *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
@@ -741,6 +739,8 @@ public:
     }
    
    *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
+   *settings++ = SEQ_CHANNEL_SETTING_MULT;
+   *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
    *settings++ = SEQ_CHANNEL_SETTING_MODE;
    *settings++ = SEQ_CHANNEL_SETTING_RESET; 
    *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
