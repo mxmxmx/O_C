@@ -183,6 +183,29 @@ void DrawMask(weegfx::coord_t x, weegfx::coord_t y, uint32_t mask, size_t count)
   }
 }
 
+template <bool rtl, size_t max_bits, weegfx::coord_t height, weegfx::coord_t padding>
+void DrawMask(weegfx::coord_t x, weegfx::coord_t y, uint32_t mask, size_t count, uint8_t clock_indicator) {
+  weegfx::coord_t dx;
+  if (count > max_bits) count = max_bits;
+  if (rtl) {
+    x -= 3;
+    dx = -(2 + padding);
+  } else {
+    x -= count * 3;
+    dx = (2 + padding );
+  }
+
+  for (size_t i = 0; i < count; ++i, mask >>= 1, x += dx) {
+    if (mask & 0x1)
+      graphics.drawRect(x, y + 1, 2, height);
+    else
+      graphics.drawRect(x, y + height, 2, 1);
+      
+    if (clock_indicator == i)  
+      graphics.drawRect(x, y + height + 2, 2, 2);
+  }
+}
+
 inline static void DrawGateIndicator(weegfx::coord_t x, weegfx::coord_t y, uint8_t state) {
   state = (state + 3) >> 2;
   if (state)

@@ -8,13 +8,15 @@ namespace OC {
   static const int kNumDelayTimes = 8;
 
   namespace Strings {
+    extern const char * const pulsewidth_ms[];
+    extern const char * const seq_playmodes[];
+    extern const char * const seq_id[];
     extern const char * const note_names[];
     extern const char * const note_names_unpadded[];
     extern const char * const trigger_input_names[];
     extern const char * const cv_input_names[];
     extern const char * const no_yes[];
     extern const char * const encoder_config_strings[];
-
     extern const char * const trigger_delay_times[kNumDelayTimes];
   };
 
