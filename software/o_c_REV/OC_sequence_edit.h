@@ -109,13 +109,17 @@ void PatternEditor<Owner>::Draw() {
   uint8_t id = edit_this_sequence_;
   
   if (edit_this_sequence_ == owner_->get_sequence())
-    id += 4;
+    id += OC::Patterns::NUM_PATTERNS-1;
   graphics.print(OC::Strings::seq_id[id]);
 
   graphics.setPrintPos(x, y + 24);
   
-  if (cursor_pos_ != num_slots) 
+  if (cursor_pos_ != num_slots) {
     graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
+    if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
+      graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
+    graphics.print((int)owner_->get_pitch_at_step(cursor_pos_), 4);  
+  }
   else 
     graphics.print((int)num_slots, 2);
 
@@ -212,7 +216,15 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     if (!handled) {
 
       int32_t pitch = owner_->get_pitch_at_step(cursor_pos_);
-      pitch += event.value;
+      // Q? might be better to actually add whatever is in the scale
+      // or semitone/finetune?
+      int16_t delta = event.value;
+      if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) 
+       pitch += ((delta * 12) << 7); // octave
+      else
+        pitch += (delta << 7); // semitone = 128
+      // TODO .. proper limits  
+      CONSTRAIN(pitch, -6272, 6272);  
       owner_->set_pitch_at_step(cursor_pos_, pitch);
       //mask = RotateMask(mask_, num_slots_, event.value);
     }

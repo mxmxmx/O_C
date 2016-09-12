@@ -810,7 +810,7 @@ private:
   int8_t sequence_advance_;
   int8_t sequence_advance_state_;
   // temp hack
-  uint16_t sequence_[OC::Patterns::kMax];
+  int32_t sequence_[OC::Patterns::kMax];
 
   int last_scale_;
   uint16_t last_mask_;
