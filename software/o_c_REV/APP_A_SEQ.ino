@@ -1191,21 +1191,21 @@ void SEQ_menu() {
 void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const {
 
       // todo ... 
-      uint16_t _dac_value = get_step_pitch();
+      int32_t _dac_value = get_step_pitch();
            
       if (seq_channel[seq_id].step_state_ == OFF)
         _dac_value = 0;
    
-      if (_dac_value < 2047) {
+      if (_dac_value < 0) {
         // output negative
-        _dac_value = 16 - (_dac_value >> 7);
-        CONSTRAIN(_dac_value, 1, 16);
+        _dac_value = (_dac_value - (_dac_value << 1 )) >> 7;
+        CONSTRAIN(_dac_value, 1, 32);
         graphics.drawFrame(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
       }
       else {
       // positive output
-        _dac_value = ((_dac_value - 2047) >> 7);
-        CONSTRAIN(_dac_value, 1, 16);
+        _dac_value = (_dac_value  >> 7);
+        CONSTRAIN(_dac_value, 1, 32);
         graphics.drawRect(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
       }
 }
