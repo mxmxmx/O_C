@@ -111,20 +111,29 @@ void PatternEditor<Owner>::Draw() {
   if (edit_this_sequence_ == owner_->get_sequence())
     id += OC::Patterns::NUM_PATTERNS-1;
   graphics.print(OC::Strings::seq_id[id]);
+  graphics.print("/");
 
-  graphics.setPrintPos(x, y + 24);
-  
+  // print length
+  if (num_slots > 9)
+      graphics.print((int)num_slots, 2);
+    else 
+      graphics.print((int)num_slots, 1); 
+
   if (cursor_pos_ != num_slots) {
+
+    graphics.setPrintPos(x, y + 24);
     graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-    if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-      graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
-    graphics.print((int)owner_->get_pitch_at_step(cursor_pos_), 4);  
+    //if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
+    //  graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
+
+    // this should really be displayed  *below* the slot...
+    int pitch = (int)owner_->get_pitch_at_step(cursor_pos_);
+    graphics.print(pitch, 0);  
   }
-  else 
-    graphics.print((int)num_slots, 2);
 
   x += 2; y += 10;
   uint16_t mask = mask_;
+  uint8_t clock_pos= owner_->get_clock_cnt();
   for (size_t i = 0; i < num_slots; ++i, x += 7, mask >>= 1) {
     if (mask & 0x1)
       graphics.drawRect(x, y, 4, 8);
@@ -133,6 +142,9 @@ void PatternEditor<Owner>::Draw() {
 
     if (i == cursor_pos_)
       graphics.drawFrame(x - 2, y - 2, 8, 12);
+    if (i == clock_pos)
+      graphics.drawRect(x, y + 10, 2, 2);
+       
   }
   if (mutable_pattern_) {
     graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
