@@ -1192,6 +1192,12 @@ void SEQ_menu() {
 void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const {
 
       // todo ... 
+      uint8_t clock_x_pos = seq_channel[seq_id].get_clock_cnt();
+      clock_x_pos = (seq_id << 6) + (clock_x_pos << 2);
+      
+      graphics.drawRect(clock_x_pos, 2, 5, 5);
+      //graphics.drawVLine(clock_x_pos, 0, 68);
+ 
       int32_t _dac_value = get_step_pitch();
            
       if (seq_channel[seq_id].step_state_ == OFF)
@@ -1200,14 +1206,14 @@ void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) con
       if (_dac_value < 0) {
         // output negative
         _dac_value = (_dac_value - (_dac_value << 1 )) >> 6;
-        CONSTRAIN(_dac_value, 1, 48);
-        graphics.drawFrame(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
+        CONSTRAIN(_dac_value, 1, 40);
+        graphics.drawFrame(2 + clock_x_pos - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
       }
       else {
       // positive output
         _dac_value = (_dac_value  >> 6);
-        CONSTRAIN(_dac_value, 1, 48);
-        graphics.drawRect(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
+        CONSTRAIN(_dac_value, 1, 40);
+        graphics.drawRect(2 + clock_x_pos - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
       }
 }
 
