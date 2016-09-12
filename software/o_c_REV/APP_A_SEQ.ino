@@ -447,7 +447,8 @@ public:
      _mode = get_mode();
      // clocked ?
      _none = SEQ_CHANNEL_TRIGGER_NONE == _clock_source;
-     _triggered = !_none && (triggers & DIGITAL_INPUT_MASK(_clock_source - SEQ_CHANNEL_TRIGGER_TR1));
+     // TR1 or TR3?
+     _triggered = _clock_source ? (!_none && (triggers & (1 << OC::DIGITAL_INPUT_3))) : (!_none && (triggers & (1 << OC::DIGITAL_INPUT_1)));
      _tock = false;
      _sync = false;
      
@@ -954,11 +955,11 @@ void SEQ_isr() {
    
   uint32_t triggers = OC::DigitalInputs::clocked();  
 
-  if (triggers == 1)  {
+  if (triggers & (1 << OC::DIGITAL_INPUT_1)) {
     ext_frequency[SEQ_CHANNEL_TRIGGER_TR1] = ticks_src1;
     ticks_src1 = 0x0;
   }
-  if (triggers == 3) {
+  if (triggers & (1 << OC::DIGITAL_INPUT_3)) {
     ext_frequency[SEQ_CHANNEL_TRIGGER_TR2] = ticks_src2;
     ticks_src2 = 0x0;
   }
@@ -1198,14 +1199,14 @@ void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) con
    
       if (_dac_value < 0) {
         // output negative
-        _dac_value = (_dac_value - (_dac_value << 1 )) >> 7;
-        CONSTRAIN(_dac_value, 1, 32);
+        _dac_value = (_dac_value - (_dac_value << 1 )) >> 6;
+        CONSTRAIN(_dac_value, 1, 48);
         graphics.drawFrame(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
       }
       else {
       // positive output
-        _dac_value = (_dac_value  >> 7);
-        CONSTRAIN(_dac_value, 1, 32);
+        _dac_value = (_dac_value  >> 6);
+        CONSTRAIN(_dac_value, 1, 48);
         graphics.drawRect(start_x + 5 - (_dac_value >> 1), 41 - (_dac_value >> 1), _dac_value, _dac_value);
       }
 }
