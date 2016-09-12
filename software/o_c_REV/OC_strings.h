@@ -14,12 +14,14 @@ namespace OC {
     extern const char * const cv_input_names[];
     extern const char * const no_yes[];
     extern const char * const encoder_config_strings[];
+    extern const char * const bytebeat_equation_names[];
 
     extern const char * const trigger_delay_times[kNumDelayTimes];
   };
 
   // Not a string, but needs to be closer to trigger_delay_times
   extern const uint8_t trigger_delay_ticks[];
+
 };
 
 inline

@@ -2,6 +2,7 @@
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
 #include "peaks_bytebeat.h"
+#include "util/util_irrationals.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
@@ -21,10 +22,6 @@ namespace menu = OC::menu; // Ugh. This works for all .ino files
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
 };
 
-const char* const bytebeat_equation_names[] = {
-  "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
-};
-
 enum ASRSettings {
   ASR_SETTING_SCALE,
   ASR_SETTING_OCTAVE, 
@@ -42,6 +39,8 @@ enum ASRSettings {
   ASR_SETTING_BYTEBEAT_P1,
   ASR_SETTING_BYTEBEAT_P2,
   ASR_SETTING_BYTEBEAT_CV_SOURCE,
+  ASR_SETTING_IRR_SEQ_START,
+  ASR_SETTING_IRR_SEQ_END,
   ASR_SETTING_LAST
 };
 
@@ -49,6 +48,7 @@ enum ASRChannelSource {
   ASR_CHANNEL_SOURCE_CV1,
   ASR_CHANNEL_SOURCE_TURING,
   ASR_CHANNEL_SOURCE_BYTEBEAT,
+  ASR_CHANNEL_SOURCE_IRRATIONALS,
   ASR_CHANNEL_SOURCE_LAST
 };
 
@@ -150,6 +150,14 @@ public:
     return values_[ASR_SETTING_BYTEBEAT_CV_SOURCE];
   }
 
+  uint8_t get_irr_seq_start() const {
+    return values_[ ASR_SETTING_IRR_SEQ_START];
+  }
+
+  uint8_t get_irr_seq_end() const {
+    return values_[ ASR_SETTING_IRR_SEQ_END];
+  }
+
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
@@ -198,7 +206,8 @@ public:
     turing_machine_.Init();
     turing_display_length_ = get_turing_length();
     bytebeat_.Init();
-  }
+    irr_seq_.Init();
+ }
 
   bool update_scale(bool force, int32_t mask_rotate) {
     
@@ -271,7 +280,11 @@ public:
         *settings++ = ASR_SETTING_BYTEBEAT_P2;
         *settings++ = ASR_SETTING_BYTEBEAT_CV_SOURCE;
       break;
-      default:
+       case ASR_CHANNEL_SOURCE_IRRATIONALS:
+        *settings++ = ASR_SETTING_IRR_SEQ_START;
+        *settings++ = ASR_SETTING_IRR_SEQ_END;
+       break;
+     default:
       break;
     }
 
@@ -462,6 +475,19 @@ public:
                   _pitch = _bb;  
                  }
                   break;      
+                case ASR_CHANNEL_SOURCE_IRRATIONALS:
+                 {
+                 uint8_t _irr_seq_start = get_irr_seq_start() ;
+                 uint8_t _irr_seq_end = get_irr_seq_end();
+
+                  irr_seq_.set_loop_points(_irr_seq_start, _irr_seq_end);
+
+                  int32_t _is = (static_cast<int16_t>(irr_seq_.Clock()) & 0xFFF);
+                   
+                  _pitch = _is;  
+                 }
+                  break;      
+
                   default:
                   break;
             } 
@@ -521,6 +547,7 @@ private:
   util::TuringShiftRegister turing_machine_;
   int8_t turing_display_length_;
   peaks::ByteBeat bytebeat_ ;
+  util::IrrationalSequence irr_seq_ ;
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 
   int num_enabled_settings_;
@@ -532,7 +559,7 @@ const char* const mult[20] = {
 };
 
 const char* const asr_input_sources[] = {
-  "CV1", "TM", "BB"
+  "CV1", "TM", "BB", "IRR"
 };
 
 const char* const tm_CV_destinations[] = {
@@ -551,15 +578,18 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 2, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 4, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, " > CV1 -->", tm_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 15, "> BB eqn", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
+  { 255, 0, 255, "> Irr end", NULL, settings::STORAGE_TYPE_U8 },
+  
 };
 
 /* -------------------------------------------------------------------*/
