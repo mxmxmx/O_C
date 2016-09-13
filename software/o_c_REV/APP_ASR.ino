@@ -39,6 +39,7 @@ enum ASRSettings {
   ASR_SETTING_BYTEBEAT_P1,
   ASR_SETTING_BYTEBEAT_P2,
   ASR_SETTING_BYTEBEAT_CV_SOURCE,
+  ASR_SETTING_IRR_SEQ_INDEX,
   ASR_SETTING_IRR_SEQ_START,
   ASR_SETTING_IRR_SEQ_END,
   ASR_SETTING_LAST
@@ -148,6 +149,10 @@ public:
 
   uint8_t get_bytebeat_CV() const {
     return values_[ASR_SETTING_BYTEBEAT_CV_SOURCE];
+  }
+
+  uint8_t get_irr_seq_index() const {
+    return values_[ ASR_SETTING_IRR_SEQ_INDEX];
   }
 
   uint8_t get_irr_seq_start() const {
@@ -281,6 +286,7 @@ public:
         *settings++ = ASR_SETTING_BYTEBEAT_CV_SOURCE;
       break;
        case ASR_CHANNEL_SOURCE_IRRATIONALS:
+        *settings++ = ASR_SETTING_IRR_SEQ_INDEX;
         *settings++ = ASR_SETTING_IRR_SEQ_START;
         *settings++ = ASR_SETTING_IRR_SEQ_END;
        break;
@@ -477,11 +483,12 @@ public:
                   break;      
                 case ASR_CHANNEL_SOURCE_IRRATIONALS:
                  {
+                 uint8_t _irr_seq_index = get_irr_seq_index() ;
                  uint8_t _irr_seq_start = get_irr_seq_start() ;
                  uint8_t _irr_seq_end = get_irr_seq_end();
 
                   irr_seq_.set_loop_points(_irr_seq_start, _irr_seq_end);
-
+                  irr_seq_.set_irr_seq(_irr_seq_index);
                   int32_t _is = (static_cast<int16_t>(irr_seq_.Clock()) & 0xFFF);
                    
                   _pitch = _is;  
@@ -570,6 +577,10 @@ const char* const bb_CV_destinations[] = {
   "M/A", "EQN", "P0", "P1", "P2"
 };
 
+const char* const irr_sequences[] = {
+  "pi", "phi", "tau", "euler", "root2"
+};
+
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
@@ -587,6 +598,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "> Irrational", irr_sequences, settings::STORAGE_TYPE_U4 },
   { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "> Irr end", NULL, settings::STORAGE_TYPE_U8 },
   
