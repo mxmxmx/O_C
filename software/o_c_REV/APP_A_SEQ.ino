@@ -352,12 +352,22 @@ public:
     div_cnt_ = 0x0;
   }
 
- int get_scale() const {
+  int get_scale() const {
     return values_[SEQ_CHANNEL_SETTING_SCALE];
   }
 
   int get_scale_mask() const {
     return values_[SEQ_CHANNEL_SETTING_SCALE_MASK];
+  }
+
+  void scale_changed() {
+    force_scale_update_ = true;
+  }
+
+  void update_scale_mask(uint16_t mask) {
+    
+    force_scale_update_ = true;
+    apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK, mask); // Should automatically be updated
   }
 
   template <DAC_CHANNEL dac_channel>
@@ -374,6 +384,7 @@ public:
     // TODO ...
     quantizer_.Configure(OC::Scales::GetScale(2), 0xFFFF);
     force_update_ = true;
+    force_scale_update_ = true;
     gate_state_ = step_state_ = OFF;
     ticks_ = 0;
     subticks_ = 0;
@@ -413,16 +424,21 @@ public:
   }
 
   bool update_scale(bool force, int32_t mask_rotate) {
+
+    if (!force)
+      return false;
+    force_scale_update_ = false;  
     
     const int scale = get_scale();
     uint16_t  scale_mask = get_scale_mask();
-    // todo ...
-    //if (mask_rotate)
-    //  mask = OC::ScaleEditor<ASR>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
+   
+    if (mask_rotate)
+      scale_mask = OC::ScaleEditor<SEQ_Channel>::RotateMask(scale_mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
 
-    if (force || (last_scale_ != scale || last_mask_ != scale_mask)) {
+    if (force || (last_scale_ != scale || last_scale_mask_ != scale_mask)) {
       last_scale_ = scale;
-      last_mask_  = scale_mask;
+      last_scale_mask_ = scale_mask;
+     
       quantizer_.Configure(OC::Scales::GetScale(scale), scale_mask);
       return true;
     } else {
@@ -531,6 +547,9 @@ public:
         sequence_advance_state_ = _advance_trig;  
        
      }
+
+     // update scale? 
+     update_scale(force_scale_update_, 0); // TODO rotate
        
     /*             
      *  brute force ugly sync hack:
@@ -745,6 +764,7 @@ public:
     SEQ_ChannelSetting *settings = enabled_settings_;
 
     *settings++ = SEQ_CHANNEL_SETTING_SCALE,
+    *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK,
     *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
     
     switch (get_sequence()) {
@@ -801,6 +821,7 @@ private:
   
   uint16_t _sync_cnt;
   bool force_update_;
+  bool force_scale_update_;
   uint16_t _ZERO;
   uint8_t clk_src_;
   bool reset_;
@@ -830,7 +851,7 @@ private:
   int32_t sequence_[4][OC::Patterns::kMax];
 
   int last_scale_;
-  uint16_t last_mask_;
+  uint16_t last_scale_mask_;
 
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
@@ -868,7 +889,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   //
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
-  { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
+  { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // mask
   // seq
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 1
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 2
@@ -893,6 +914,7 @@ public:
     selected_channel = 0;
     cursor.Init(SEQ_CHANNEL_SETTING_MODE, SEQ_CHANNEL_SETTING_LAST - 1);
     pattern_editor.Init();
+    scale_editor.Init();
   }
 
   inline bool editing() const {
@@ -907,6 +929,7 @@ public:
   menu::ScreenCursor<menu::kScreenLines> cursor;
   menu::ScreenCursor<menu::kScreenLines> cursor_state;
   OC::PatternEditor<SEQ_Channel> pattern_editor;
+  OC::ScaleEditor<SEQ_Channel> scale_editor;
 };
 
 SEQ_State seq_state;
@@ -953,6 +976,7 @@ void SEQ_handleAppEvent(OC::AppEvent event) {
     case OC::APP_EVENT_RESUME:
         seq_state.cursor.set_editing(false);
         seq_state.pattern_editor.Close();
+        seq_state.scale_editor.Close();
     break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
@@ -1020,6 +1044,10 @@ void SEQ_handleButtonEvent(const UI::Event &event) {
     seq_state.pattern_editor.HandleButtonEvent(event);
     return;
   }
+  else if (seq_state.scale_editor.active()) {
+    seq_state.scale_editor.HandleButtonEvent(event);
+    return;
+  }
  
   if (UI::EVENT_BUTTON_PRESS == event.type) {
     switch (event.control) {
@@ -1045,6 +1073,10 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
     seq_state.pattern_editor.HandleEncoderEvent(event);
     return;
   }
+  else if (seq_state.scale_editor.active()) {
+    seq_state.scale_editor.HandleEncoderEvent(event);
+    return;
+  }
  
   if (OC::CONTROL_ENCODER_L == event.control) {
 
@@ -1066,7 +1098,7 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
         
           SEQ_ChannelSetting setting = selected.enabled_setting_at(seq_state.cursor_pos());
           
-          if (SEQ_CHANNEL_SETTING_MASK1 != setting || SEQ_CHANNEL_SETTING_MASK2 != setting || SEQ_CHANNEL_SETTING_MASK3 != setting || SEQ_CHANNEL_SETTING_MASK4 != setting) {
+          if (SEQ_CHANNEL_SETTING_SCALE_MASK != setting || SEQ_CHANNEL_SETTING_MASK1 != setting || SEQ_CHANNEL_SETTING_MASK2 != setting || SEQ_CHANNEL_SETTING_MASK3 != setting || SEQ_CHANNEL_SETTING_MASK4 != setting) {
             
             if (selected.change_value(setting, event.value))
              selected.force_update();
@@ -1116,9 +1148,16 @@ void SEQ_rightButton() {
 
     case SEQ_CHANNEL_SETTING_SCALE:
       seq_state.cursor.toggle_editing();
-      // todo: mask
       selected.update_scale(true, 0);
     break;
+    case SEQ_CHANNEL_SETTING_SCALE_MASK:
+    {
+     int scale = selected.get_scale();
+     if (OC::Scales::SCALE_NONE != scale) {
+          seq_state.scale_editor.Edit(&selected, scale);
+        }
+    }
+    break; 
     case SEQ_CHANNEL_SETTING_MASK1:
     case SEQ_CHANNEL_SETTING_MASK2:
     case SEQ_CHANNEL_SETTING_MASK3:
@@ -1171,7 +1210,7 @@ void SEQ_menu() {
     graphics.movePrintPos(5, 0);
     graphics.print("#");
     graphics.print((char)('1' + i));
-    graphics.print("/");
+    graphics.movePrintPos(30, 0);
     int octave = channel.get_octave();
     if (octave >= 0)
       graphics.print("+");
@@ -1194,6 +1233,10 @@ void SEQ_menu() {
 
     switch (setting) {
 
+      case SEQ_CHANNEL_SETTING_SCALE_MASK:
+       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_scale_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+       list_item.DrawNoValue<false>(value, attr);
+      break; 
       case SEQ_CHANNEL_SETTING_MASK1:
       case SEQ_CHANNEL_SETTING_MASK2:
       case SEQ_CHANNEL_SETTING_MASK3:
@@ -1208,7 +1251,9 @@ void SEQ_menu() {
   }
 
   if (seq_state.pattern_editor.active())
-    seq_state.pattern_editor.Draw();   
+    seq_state.pattern_editor.Draw();  
+  else if (seq_state.scale_editor.active())
+    seq_state.scale_editor.Draw();  
 }
 
 

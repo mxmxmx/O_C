@@ -24,10 +24,10 @@ namespace OC {
     }
 
     const char* const pattern_names_short[] = {
-        "USER1",
-        "USER2",
-        "USER3",
-        "USER4",
+        "SEQ-1",
+        "SEQ-2",
+        "SEQ-3",
+        "SEQ-4",
         "DEFAULT"
     };
 

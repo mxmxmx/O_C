@@ -234,9 +234,9 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
       // or semitone/finetune?
       int16_t delta = event.value;
       if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) 
-       pitch += ((delta * 12) << 7); // octave
+       pitch += delta; // fine
       else
-        pitch += (delta << 7); // semitone = 128
+        pitch += (delta << 7); // semitone 
       // TODO .. proper limits  
       CONSTRAIN(pitch, -6272, 6272);  
       owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
