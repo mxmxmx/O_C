@@ -314,12 +314,12 @@ public:
     return gate_state_;
   }
 
-  int32_t get_pitch_at_step(uint8_t step) const {
-    return sequence_[step];
+  int32_t get_pitch_at_step(uint8_t seq, uint8_t step) const {
+    return sequence_[seq][step];
   }
 
-  void set_pitch_at_step(uint8_t step, int32_t pitch) {
-    sequence_[step] = pitch;
+  void set_pitch_at_step(uint8_t seq, uint8_t step, int32_t pitch) {
+    sequence_[seq][step] = pitch;
   }
 
   uint8_t getTriggerState() const {
@@ -382,8 +382,11 @@ public:
     // TODO this needs to be per channel, not just 0 
     _ZERO = OC::calibration_data.dac.calibrated_octaves[0][OC::DAC::kOctaveZero];
 
-    for (int i = 0; i < OC::Patterns::kMax; i++)
-      sequence_[i] = 0;
+    for (int j = 0; j < 4; j++)  {
+      for (int i = 0; i < OC::Patterns::kMax; i++)   
+        sequence_[j][i] = 0;
+    }
+    
 
     // WTF? get_mask doesn't return the saved mask?
     display_sequence_ = get_sequence();
@@ -584,7 +587,8 @@ public:
          if (step_state_ == ON) {
             uint8_t _transpose = 0; //TODO...
             uint8_t _root =  0; // TODO ... 
-            step_pitch_ = get_pitch_at_step(clk_cnt_); /// 
+            // use the current sequence, updated in  process_seq_channel():
+            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_); /// 
             step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
          }
      }
@@ -811,7 +815,8 @@ private:
   int8_t sequence_advance_;
   int8_t sequence_advance_state_;
   // temp hack
-  int32_t sequence_[OC::Patterns::kMax];
+  // 4 should be ... OC::Patterns::NUM_PATTERNS - 1  
+  int32_t sequence_[4][OC::Patterns::kMax];
 
   int last_scale_;
   uint16_t last_mask_;

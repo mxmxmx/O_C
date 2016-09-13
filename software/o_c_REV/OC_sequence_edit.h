@@ -127,7 +127,7 @@ void PatternEditor<Owner>::Draw() {
     //  graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
 
     // this should really be displayed  *below* the slot...
-    int pitch = (int)owner_->get_pitch_at_step(cursor_pos_);
+    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
     graphics.print(pitch, 0);  
   }
 
@@ -226,8 +226,8 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     }
 
     if (!handled) {
-
-      int32_t pitch = owner_->get_pitch_at_step(cursor_pos_);
+      
+      int32_t pitch = owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
       // Q? might be better to actually add whatever is in the scale
       // or semitone/finetune?
       int16_t delta = event.value;
@@ -237,7 +237,7 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
         pitch += (delta << 7); // semitone = 128
       // TODO .. proper limits  
       CONSTRAIN(pitch, -6272, 6272);  
-      owner_->set_pitch_at_step(cursor_pos_, pitch);
+      owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
       //mask = RotateMask(mask_, num_slots_, event.value);
     }
   }
