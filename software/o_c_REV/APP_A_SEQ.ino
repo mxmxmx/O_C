@@ -163,6 +163,10 @@ public:
   void set_clock_source(uint8_t _src) {
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, _src);
   }
+
+  int get_octave() const {
+    return values_[SEQ_CHANNEL_SETTING_OCTAVE];
+  }
   
   int8_t get_multiplier() const {
     return values_[SEQ_CHANNEL_SETTING_MULT];
@@ -209,7 +213,6 @@ public:
   }
 
   void set_gate(uint16_t _state) {
-
     gate_state_ = _state;
   }
 
@@ -316,6 +319,10 @@ public:
 
   uint32_t get_step_gate() const {
     return gate_state_;
+  }
+
+  uint32_t get_step_state() const {
+    return step_state_;
   }
 
   int32_t get_pitch_at_step(uint8_t seq, uint8_t step) const {
@@ -592,7 +599,8 @@ public:
             uint8_t _transpose = 0; //TODO...
             uint8_t _root =  0; // TODO ... 
             // use the current sequence, updated in  process_seq_channel():
-            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_); /// 
+            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (get_octave() * 12 << 7); /// 
+            // todo -- limit range
             step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
          }
      }
@@ -737,7 +745,6 @@ public:
     SEQ_ChannelSetting *settings = enabled_settings_;
 
     *settings++ = SEQ_CHANNEL_SETTING_SCALE,
-    *settings++ = SEQ_CHANNEL_SETTING_OCTAVE, 
     *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
     
     switch (get_sequence()) {
@@ -1091,14 +1098,14 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
 
 void SEQ_upButton() {
 
-  //SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-
+  SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+  selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, 1);
 }
 
 void SEQ_downButton() {
 
-  //SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-
+  SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+  selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, -1);
 }
 
 void SEQ_rightButton() {
@@ -1155,13 +1162,20 @@ void SEQ_menu() {
   
   for (int i = 0, x = 0; i < NUM_CHANNELS; ++i, x += 21) {
 
-    //const SEQ_Channel &channel = seq_channel[i];
+    const SEQ_Channel &channel = seq_channel[i];
     menu::DualTitleBar::SetColumn(i);
+
+    uint8_t gate = channel.get_step_state() == ON ? 15 : 1;
+    menu::DualTitleBar::DrawGateIndicator(i, gate);
+
+    graphics.movePrintPos(5, 0);
+    graphics.print("#");
     graphics.print((char)('1' + i));
-    graphics.movePrintPos(2, 0);
-    //
-    // TODO: gate indicator 
-    //menu::DualTitleBar::DrawGateIndicator(...
+    graphics.print("/");
+    int octave = channel.get_octave();
+    if (octave >= 0)
+      graphics.print("+");
+    graphics.print(octave);  
   }
   
   const SEQ_Channel &channel = seq_channel[seq_state.selected_channel];
