@@ -1271,19 +1271,42 @@ void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) con
       }
       else  
         graphics.drawRect(clock_x_pos, 60, 5, 5);  
+
+      // separate windows ...  
       graphics.drawVLine(64, 0, 68);
    
       if (_dac_value < 0) {
-        // output negative
+        // display negative values as frame (though they're not negative...)
         _dac_value = (_dac_value - (_dac_value << 1 )) >> 6;
         CONSTRAIN(_dac_value, 1, 40);
-        graphics.drawFrame(2 + clock_x_pos - (_dac_value >> 1), 21 - (_dac_value >> 1), _dac_value, _dac_value);
+        int8_t x = 2 + clock_x_pos - (_dac_value >> 1);
+        int8_t x_size = 0;
+        // limit size of frame to window size
+        if (seq_id && x < 64) {
+          x_size = 64 - x;
+          x = 64;
+        }
+        else if (!seq_id && (x + _dac_value > 63)) 
+          x_size =  (x + _dac_value) - 64;
+        // draw  
+        graphics.drawFrame(x, 30 - (_dac_value >> 1), _dac_value - x_size, _dac_value);
       }
       else {
-      // positive output
+      // positive output as rectangle
         _dac_value = (_dac_value  >> 6);
         CONSTRAIN(_dac_value, 1, 40);
-        graphics.drawRect(2 + clock_x_pos - (_dac_value >> 1), 21 - (_dac_value >> 1), _dac_value, _dac_value);
+        
+        int8_t x = 2 + clock_x_pos - (_dac_value >> 1);
+        int8_t x_size = 0;
+        // limit size of rectangle to window size
+        if (seq_id && x < 64) {
+          x_size = 64 - x;
+          x = 64;
+        }
+        else if (!seq_id && (x + _dac_value > 63)) 
+          x_size = (x + _dac_value) - 64;
+        // draw  
+        graphics.drawRect(x, 30 - (_dac_value >> 1), _dac_value - x_size, _dac_value);
       }
 }
 
