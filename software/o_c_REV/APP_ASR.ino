@@ -41,7 +41,9 @@ enum ASRSettings {
   ASR_SETTING_BYTEBEAT_CV_SOURCE,
   ASR_SETTING_IRR_SEQ_INDEX,
   ASR_SETTING_IRR_SEQ_START,
-  ASR_SETTING_IRR_SEQ_END,
+  ASR_SETTING_IRR_SEQ_LENGTH,
+  ASR_SETTING_IRR_SEQ_DIR,
+  ASR_SETTING_IRR_SEQ_CV_SOURCE,
   ASR_SETTING_LAST
 };
 
@@ -159,8 +161,16 @@ public:
     return values_[ ASR_SETTING_IRR_SEQ_START];
   }
 
-  uint8_t get_irr_seq_end() const {
-    return values_[ ASR_SETTING_IRR_SEQ_END];
+  uint8_t get_irr_seq_length() const {
+    return values_[ ASR_SETTING_IRR_SEQ_LENGTH];
+  }
+
+  uint8_t get_irr_seq_dir() const {
+    return values_[ ASR_SETTING_IRR_SEQ_DIR];
+  }
+
+  uint8_t get_irr_seq_CV() const {
+    return values_[ASR_SETTING_IRR_SEQ_CV_SOURCE];
   }
 
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
@@ -288,13 +298,14 @@ public:
        case ASR_CHANNEL_SOURCE_IRRATIONALS:
         *settings++ = ASR_SETTING_IRR_SEQ_INDEX;
         *settings++ = ASR_SETTING_IRR_SEQ_START;
-        *settings++ = ASR_SETTING_IRR_SEQ_END;
+        *settings++ = ASR_SETTING_IRR_SEQ_LENGTH;
+        *settings++ = ASR_SETTING_IRR_SEQ_DIR;
+        *settings++ = ASR_SETTING_IRR_SEQ_CV_SOURCE;
        break;
      default:
       break;
     }
-
-     
+    
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -485,11 +496,31 @@ public:
                  {
                  uint8_t _irr_seq_index = get_irr_seq_index() ;
                  uint8_t _irr_seq_start = get_irr_seq_start() ;
-                 uint8_t _irr_seq_end = get_irr_seq_end();
+                 uint8_t _irr_seq_length = get_irr_seq_length();
+                 uint8_t _irr_seq_dir = get_irr_seq_dir();
 
-                  irr_seq_.set_loop_points(_irr_seq_start, _irr_seq_end);
+ // up to here
+                  // _pitch can do other things now -- 
+                  switch (get_irr_seq_CV()) {
+  
+                      case 1:  // LEN, 4-32
+                       _length += ((_pitch + 127) >> 7);
+                       CONSTRAIN(_length, 4, 32);
+                      break;
+                       case 2:  // P
+                       _probability += ((_pitch + 15) >> 4);
+                       CONSTRAIN(_probability, 0, 255);
+                      break;
+                      default: // mult
+                       _mult += ((_pitch + 255) >> 8);
+                      break;
+                  }
+                 
+                  irr_seq_.set_loop_start(_irr_seq_start);
+                  irr_seq_.set_loop_length(_irr_seq_length);
                   irr_seq_.set_irr_seq(_irr_seq_index);
-                  int32_t _is = (static_cast<int16_t>(irr_seq_.Clock()) & 0xFFF);
+                  irr_seq_.set_loop_direction(_irr_seq_dir);
+                 int32_t _is = (static_cast<int16_t>(irr_seq_.Clock()) & 0xFFF);
                    
                   _pitch = _is;  
                  }
@@ -581,6 +612,15 @@ const char* const irr_sequences[] = {
   "pi", "phi", "tau", "euler", "root2"
 };
 
+const char* const irr_seq_dirs[] = {
+  "loop", "swing"
+};
+
+const char* const irr_CV_destinations[] = {
+  "M/A", "seq", "start", "length", "dir"
+};
+
+
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
@@ -600,8 +640,9 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "> Irrational", irr_sequences, settings::STORAGE_TYPE_U4 },
   { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
-  { 255, 0, 255, "> Irr end", NULL, settings::STORAGE_TYPE_U8 },
-  
+  { 255, 0, 255, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "> Irr dir", irr_seq_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
 /* -------------------------------------------------------------------*/

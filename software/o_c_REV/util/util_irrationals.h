@@ -62,11 +62,38 @@ public:
     i_ = 0; // start of loop
     j_ = 255; // end of loop
     x_ = 3; // first digit of pi
+    loop_ = true;
+    up_ - true;
   }
 
   uint16_t Clock() {
-  	k_ += 1;
-  	if (k_ > j_) k_ = i_;
+  	if (up_) {
+  		if (k_ < 255) k_ += 1;
+  	} else {
+  		if (k_ > 0) k_ -= 1;
+  	}
+  	if (k_ > j_ | k_ == 255) {
+  		if (loop_) {
+  			k_ = i_;
+  		} else {
+  			if (k_ < 255) {
+  				k_ -= 2;
+  			} else {
+  				k_ -= 1;
+  			}
+  			up_ = false;
+  		}
+  	}
+  	if (k_ < i_) {
+  		k_ += 2;
+  		up_ = true;
+  	}
+  	if (i_ == 0 && k_ == 0) {
+  		k_ += 1;
+  		up_ = true;
+  	}
+  	
+  	
   	switch (n_) {
       case 0:
       	x_ = pi_digits[k_];
@@ -93,9 +120,16 @@ public:
     return x_ << 8;
   }
 
-  void set_loop_points(uint8_t i, uint8_t j) {
+  void set_loop_start(uint8_t i) {
     i_ = i; // loop start point
-    j_ = j ; // loop end point
+  }
+
+  void set_loop_length(uint8_t i) {
+    j_ = j; // loop length
+  }
+
+  void set_loop_direction(bool l) {
+    loop_ = l; // loop direction, false = swing (pendulum), true = loop
   }
 
   void set_irr_seq(uint8_t n) {
@@ -108,6 +142,8 @@ private:
   uint8_t i_;
   uint8_t j_;
   uint8_t x_;
+  bool loop_;
+  bool up_ ;
 };
 
 }; // namespace util
