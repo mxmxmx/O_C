@@ -864,7 +864,7 @@ private:
   int8_t sequence_advance_state_;
   // temp hack
   // 4 should be ... OC::Patterns::NUM_PATTERNS - 1  
-  int32_t sequence_[4][OC::Patterns::kMax];
+  int16_t sequence_[4][OC::Patterns::kMax];
 
   int last_scale_;
   uint16_t last_scale_mask_;
