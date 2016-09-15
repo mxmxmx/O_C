@@ -331,8 +331,7 @@ public:
     uint8_t _channel_offset = !channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS; 
     
     OC::Pattern *read_pattern_ = &OC::user_patterns[seq + _channel_offset];
-    int32_t pitch = read_pattern_->notes[step];
-    return pitch;
+    return read_pattern_->notes[step];
   }
 
   void set_pitch_at_step(uint8_t seq, uint8_t step, int32_t pitch) {

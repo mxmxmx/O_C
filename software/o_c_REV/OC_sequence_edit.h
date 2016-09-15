@@ -109,7 +109,7 @@ void PatternEditor<Owner>::Draw() {
   uint8_t id = edit_this_sequence_;
   
   if (edit_this_sequence_ == owner_->get_sequence())
-    id += OC::Patterns::NUM_PATTERNS-1;
+    id += OC::Patterns::PATTERN_USER_LAST;
   graphics.print(OC::Strings::seq_id[id]);
   graphics.print("/");
 
