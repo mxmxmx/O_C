@@ -123,15 +123,16 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_MASK_CV_SOURCE,
   SEQ_CHANNEL_SETTING_LAST
 };
-  
+
 enum SEQ_ChannelTriggerSource {
   SEQ_CHANNEL_TRIGGER_TR1,
   SEQ_CHANNEL_TRIGGER_TR2,
   SEQ_CHANNEL_TRIGGER_NONE,
-  SEQ_CHANNEL_TRIGGER_INTERNAL,
-  SEQ_CHANNEL_TRIGGER_LAST,
-  SEQ_CHANNEL_TRIGGER_FREEZE_HIGH = SEQ_CHANNEL_TRIGGER_INTERNAL,
-  SEQ_CHANNEL_TRIGGER_FREEZE_LOW = SEQ_CHANNEL_TRIGGER_LAST
+  SEQ_CHANNEL_TRIGGER_FREEZE_HI2,
+  SEQ_CHANNEL_TRIGGER_FREEZE_LO2,
+  SEQ_CHANNEL_TRIGGER_FREEZE_HI4,
+  SEQ_CHANNEL_TRIGGER_FREEZE_LO4,
+  SEQ_CHANNEL_TRIGGER_LAST
 };
 
 enum SEQ_ChannelCV_Mapping {
@@ -147,7 +148,7 @@ enum SEQ_CLOCKSTATES {
   ON = 50000
 };
 
-uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_LAST];
+uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE];
 
 class SEQ_Channel : public settings::SettingsBase<SEQ_Channel, SEQ_CHANNEL_SETTING_LAST> {
 public:
@@ -381,8 +382,6 @@ public:
     InitDefaults();
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
     quantizer_.Init();  
-    // TODO ...
-    quantizer_.Configure(OC::Scales::GetScale(2), 0xFFFF);
     force_update_ = true;
     force_scale_update_ = true;
     gate_state_ = step_state_ = OFF;
@@ -591,15 +590,32 @@ public:
             return;
             
          // mute output ?
-         if (_reset_source > SEQ_CHANNEL_TRIGGER_NONE) {
-
-          /*
-             if (_reset_source == SEQ_CHANNEL_TRIGGER_FREEZE_HIGH && !digitalReadFast(TR2))
-              return;
-             else if (_reset_source == SEQ_CHANNEL_TRIGGER_FREEZE_LOW && digitalReadFast(TR2)) 
-              return;
-          */   
+         bool mute = 0;
+         
+         switch (_reset_source) {
+             
+             case SEQ_CHANNEL_TRIGGER_TR1: 
+             case SEQ_CHANNEL_TRIGGER_TR2:
+             case SEQ_CHANNEL_TRIGGER_NONE: 
+             break; 
+             case SEQ_CHANNEL_TRIGGER_FREEZE_HI2: 
+              mute = !digitalReadFast(TR2);
+             break; 
+             case SEQ_CHANNEL_TRIGGER_FREEZE_LO2: 
+              mute = digitalReadFast(TR2);
+             break; 
+             case SEQ_CHANNEL_TRIGGER_FREEZE_HI4: 
+              mute = !digitalReadFast(TR4);
+             break; 
+             case SEQ_CHANNEL_TRIGGER_FREEZE_LO4:
+              mute = digitalReadFast(TR4); 
+             break; 
+             default:
+             break;
          }
+         
+         if (mute)
+           return;
                      
          // only then count clocks:  
          clk_cnt_++;  
@@ -882,8 +898,8 @@ const char* const modes[] = {
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
   { 0, 0, 1, "mode", modes, settings::STORAGE_TYPE_U4 },
-  { SEQ_CHANNEL_TRIGGER_TR1, 0, 2, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
-  { 2, 0, 6, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
+  { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   //
