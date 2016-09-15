@@ -327,11 +327,20 @@ public:
   }
 
   int32_t get_pitch_at_step(uint8_t seq, uint8_t step) const {
-    return sequence_[seq][step];
+
+    uint8_t _channel_offset = !channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS; 
+    
+    OC::Pattern *read_pattern_ = &OC::user_patterns[seq + _channel_offset];
+    int32_t pitch = read_pattern_->notes[step];
+    return pitch;
   }
 
   void set_pitch_at_step(uint8_t seq, uint8_t step, int32_t pitch) {
-    sequence_[seq][step] = pitch;
+
+    uint8_t _channel_offset = !channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS;
+    
+    OC::Pattern *write_pattern_ = &OC::user_patterns[seq + _channel_offset];
+    write_pattern_->notes[step] = pitch;
   }
 
   uint8_t getTriggerState() const {
@@ -377,9 +386,10 @@ public:
     return OC::DAC::get_zero_offset(dac_channel);
   }
   
-  void Init(SEQ_ChannelTriggerSource trigger_source) {
+  void Init(SEQ_ChannelTriggerSource trigger_source, uint8_t id) {
     
     InitDefaults();
+    channel_id_ = id;
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
     quantizer_.Init();  
     force_update_ = true;
@@ -402,12 +412,6 @@ public:
 
     // TODO this needs to be per channel, not just 0 
     _ZERO = OC::calibration_data.dac.calibrated_octaves[0][OC::DAC::kOctaveZero];
-
-    for (int j = 0; j < 4; j++)  {
-      for (int i = 0; i < OC::Patterns::kMax; i++)   
-        sequence_[j][i] = 0;
-    }
-    
 
     // WTF? get_mask doesn't return the saved mask?
     display_sequence_ = get_sequence();
@@ -834,7 +838,8 @@ public:
   void RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const;
   
 private:
-  
+
+  bool channel_id_;
   uint16_t _sync_cnt;
   bool force_update_;
   bool force_scale_update_;
@@ -862,16 +867,12 @@ private:
   int32_t sequence_cnt_;
   int8_t sequence_advance_;
   int8_t sequence_advance_state_;
-  // temp hack
-  // 4 should be ... OC::Patterns::NUM_PATTERNS - 1  
-  int16_t sequence_[4][OC::Patterns::kMax];
-
   int last_scale_;
   uint16_t last_scale_mask_;
 
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
-  braids::Quantizer quantizer_; //??
+  braids::Quantizer quantizer_; 
   OC::DigitalInputDisplay clock_display_;
 };
 
@@ -911,7 +912,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 2
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 3
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 4
-  { OC::Patterns::PATTERN_USER_0, 0, OC::Patterns::PATTERN_USER_LAST-1, "sequence #", OC::pattern_names_short, settings::STORAGE_TYPE_U8 },
+  { OC::Patterns::PATTERN_USER_0_1, 0, OC::Patterns::PATTERN_USER_LAST-1, "sequence #", OC::pattern_names_short, settings::STORAGE_TYPE_U8 },
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 1
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 2
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 3
@@ -961,7 +962,7 @@ void SEQ_init() {
 
   seq_state.Init();
   for (size_t i = 0; i < NUM_CHANNELS; ++i) 
-    seq_channel[i].Init(static_cast<SEQ_ChannelTriggerSource>(SEQ_CHANNEL_TRIGGER_TR1));
+    seq_channel[i].Init(static_cast<SEQ_ChannelTriggerSource>(SEQ_CHANNEL_TRIGGER_TR1), i);
   seq_state.cursor.AdjustEnd(seq_channel[0].num_enabled_settings() - 1);
 }
 

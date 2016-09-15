@@ -3,24 +3,17 @@
 
 namespace OC {
 
-    Pattern user_patterns[Patterns::PATTERN_USER_LAST];
+    Pattern user_patterns[Patterns::PATTERN_USER_ALL];
     Pattern dummy_pattern;
 
     /*static*/
-    const int Patterns::NUM_PATTERNS = OC::Patterns::PATTERN_USER_LAST + sizeof(OC::patterns) / sizeof(OC::patterns[0]);
+    const int Patterns::NUM_PATTERNS = OC::Patterns::PATTERN_USER_LAST; // = 4
 
     /*static*/
+    // 
     void Patterns::Init() {
-      for (size_t i = 0; i < PATTERN_USER_LAST; ++i)
+      for (size_t i = 0; i < OC::Patterns::PATTERN_USER_ALL ; ++i)
         memcpy(&user_patterns[i], &OC::patterns[0], sizeof(Pattern));
-    }
-
-    /*static*/
-    const Pattern &Patterns::GetPattern(int index) {
-      if (index < PATTERN_USER_LAST)
-        return user_patterns[index];
-      else
-        return OC::patterns[index - PATTERN_USER_LAST];
     }
 
     const char* const pattern_names_short[] = {
@@ -32,10 +25,10 @@ namespace OC {
     };
 
     const char* const pattern_names[] = {
-        "User-defined 1",
-        "User-defined 2",
-        "User-defined 3",
-        "User-defined 4",
+        "User-sequence 1",
+        "User-sequence 2",
+        "User-sequence 3",
+        "User-sequence 4",
         "DEFAULT"
     }; 
 } // namespace OC

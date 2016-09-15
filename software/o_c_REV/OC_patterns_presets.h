@@ -6,13 +6,15 @@
 namespace OC {
 
   struct Pattern {
-    size_t num_slots;
+    // length + mask is stored within app
+    int16_t notes[16];
   };
 
 
   const Pattern patterns[] = {
+    
     // default
-    { 16 }
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
   
   };
 }

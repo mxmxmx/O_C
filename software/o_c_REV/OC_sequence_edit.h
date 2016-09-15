@@ -35,7 +35,7 @@ public:
 
     pattern_ = mutable_pattern_ = &OC::user_patterns[pattern];
     pattern_name_ = OC::pattern_names_short[pattern];
-      //Serial.print("Editing user pattern "); Serial.println(pattern_name_);
+    //Serial.print("Editing user pattern "); Serial.println(pattern_name_);
     owner_ = owner;
 
     BeginEditing();
@@ -240,6 +240,7 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
       // TODO .. proper limits  
       CONSTRAIN(pitch, -6272, 6272);  
       owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
+      // TODO
       //mask = RotateMask(mask_, num_slots_, event.value);
     }
   }
