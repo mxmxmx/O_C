@@ -104,6 +104,7 @@ enum SEQ_ChannelSetting {
   //
   SEQ_CHANNEL_SETTING_SCALE,
   SEQ_CHANNEL_SETTING_OCTAVE, 
+  SEQ_CHANNEL_SETTING_OCTAVE_AUX, 
   SEQ_CHANNEL_SETTING_SCALE_MASK,
   //
   SEQ_CHANNEL_SETTING_MASK1,
@@ -167,6 +168,10 @@ public:
 
   int get_octave() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE];
+  }
+
+  int get_octave_aux() const {
+    return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX];
   }
   
   int8_t get_multiplier() const {
@@ -656,11 +661,11 @@ public:
                 case 0: // gates .. 
                 break;
                 case 1: // copy
-                  step_pitch_aux_ = step_pitch_;
+                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (get_octave_aux() * 12 << 7);
+                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, _transpose); 
                 break;
                 case 2: // oct+
-                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + ( (1 + get_octave()) * 12 << 7);
-                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, _transpose); 
+                  
                 default:
                 break;
             }
@@ -821,8 +826,20 @@ public:
    
    *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
    *settings++ = SEQ_CHANNEL_SETTING_MULT;
-   *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
    *settings++ = SEQ_CHANNEL_SETTING_MODE;
+   
+   switch (get_mode()) {
+
+      case 0: 
+        *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
+      break;
+      case 1: 
+        *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
+      break;
+      default:
+      break; 
+   }  
+   
    *settings++ = SEQ_CHANNEL_SETTING_RESET; 
    *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
   
@@ -946,10 +963,11 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
   { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
-  { 25, 0, PULSEW_MAX, "pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
+  { 25, 0, PULSEW_MAX, "--> pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   //
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
+  { 0, -5, 5, "--> aux +/-", NULL, settings::STORAGE_TYPE_I8 }, // aux octave
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // mask
   // seq
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 1
@@ -1063,14 +1081,13 @@ void SEQ_isr() {
     ticks_src2 = 0x0;
   }
 
-  // update channels:
+  // update sequencer channels 1, 2:
   seq_channel[0].Update(triggers, DAC_CHANNEL_A);
   seq_channel[1].Update(triggers, DAC_CHANNEL_B);
-
-  // update channels A, B: 
+  // update DAC channels A, B: 
   seq_channel[0].update_main_channel<DAC_CHANNEL_A>();
   seq_channel[1].update_main_channel<DAC_CHANNEL_B>();
-  // update C, D: 
+  // update DAC channels C, D: 
   seq_channel[0].update_aux_channel<DAC_CHANNEL_C>();
   seq_channel[1].update_aux_channel<DAC_CHANNEL_D>();
 }
