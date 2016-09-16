@@ -850,6 +850,14 @@ public:
   }
 
   template <DAC_CHANNEL dacChannel>
+  void update_main_channel() {
+
+    int32_t _output = OC::DAC::pitch_to_dac(dacChannel, get_step_pitch(), 0);
+    OC::DAC::set<dacChannel>(_output);  
+    
+  }
+  
+  template <DAC_CHANNEL dacChannel>
   void update_aux_channel()
   {
 
@@ -1060,13 +1068,9 @@ void SEQ_isr() {
   seq_channel[1].Update(triggers, DAC_CHANNEL_B);
 
   // update channels A, B: 
-  int32_t sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, seq_channel[0].get_step_pitch(), 0);
-  OC::DAC::set(DAC_CHANNEL_A, sample);
-  
-  sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, seq_channel[1].get_step_pitch(), 0);
-  OC::DAC::set(DAC_CHANNEL_B, sample);
-
-  // update C,D: 
+  seq_channel[0].update_main_channel<DAC_CHANNEL_A>();
+  seq_channel[1].update_main_channel<DAC_CHANNEL_B>();
+  // update C, D: 
   seq_channel[0].update_aux_channel<DAC_CHANNEL_C>();
   seq_channel[1].update_aux_channel<DAC_CHANNEL_D>();
 }
