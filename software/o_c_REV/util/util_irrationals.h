@@ -63,7 +63,7 @@ public:
     j_ = 255; // end of loop
     x_ = 3; // first digit of pi
     loop_ = true;
-    up_ - true;
+    up_ = true;
   }
 
   uint16_t Clock() {
@@ -72,7 +72,7 @@ public:
   	} else {
   		if (k_ > 0) k_ -= 1;
   	}
-  	if (k_ > j_ | k_ == 255) {
+  	if ((k_ > j_) | (k_ == 255)) {
   		if (loop_) {
   			k_ = i_;
   		} else {
@@ -124,7 +124,7 @@ public:
     i_ = i; // loop start point
   }
 
-  void set_loop_length(uint8_t i) {
+  void set_loop_length(uint8_t j) {
     j_ = j; // loop length
   }
 

@@ -503,13 +503,17 @@ public:
                   // _pitch can do other things now -- 
                   switch (get_irr_seq_CV()) {
   
-                      case 1:  // LEN, 4-32
-                       _length += ((_pitch + 127) >> 7);
-                       CONSTRAIN(_length, 4, 32);
+                      case 1:  // irrational sequence, 0-4
+                       _irr_seq_index += ((_pitch + 127) >> 9);
+                       CONSTRAIN(_irr_seq_index, 0, 4);
                       break;
-                       case 2:  // P
-                       _probability += ((_pitch + 15) >> 4);
-                       CONSTRAIN(_probability, 0, 255);
+                       case 2:  // sequence start point, 0-254
+                       _irr_seq_start += ((_pitch + 15) >> 4);
+                       CONSTRAIN(_irr_seq_start, 0, 254);
+                      break;
+                       case 3:  // sequence loop length, 1-255
+                       _irr_seq_length -= ((_pitch + 15) >> 4);
+                       CONSTRAIN(_irr_seq_length, 1, 255);
                       break;
                       default: // mult
                        _mult += ((_pitch + 255) >> 8);
@@ -617,7 +621,7 @@ const char* const irr_seq_dirs[] = {
 };
 
 const char* const irr_CV_destinations[] = {
-  "M/A", "seq", "start", "length", "dir"
+  "M/A", "seq", "start", "len"
 };
 
 
@@ -642,7 +646,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 1, "> Irr dir", irr_seq_dirs, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
+  { 0, 0, 3, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
 /* -------------------------------------------------------------------*/
