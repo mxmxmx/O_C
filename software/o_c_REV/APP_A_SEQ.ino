@@ -840,7 +840,7 @@ public:
     return mask;
   }
 
-  void RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const;
+  void RenderScreensaver(weegfx::coord_t start_x) const;
   
 private:
 
@@ -1224,7 +1224,12 @@ void SEQ_menu() {
     const SEQ_Channel &channel = seq_channel[i];
     menu::DualTitleBar::SetColumn(i);
 
-    uint8_t gate = channel.get_step_state() == ON ? 15 : 1;
+    // draw gate/step indicator
+    uint8_t gate = 1;
+    if (channel.get_step_gate() == ON) 
+      gate += 14;
+    else if (channel.get_step_state() == ON) 
+      gate += 10;
     menu::DualTitleBar::DrawGateIndicator(i, gate);
 
     graphics.movePrintPos(5, 0);
@@ -1277,9 +1282,9 @@ void SEQ_menu() {
 }
 
 
-void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) const {
+void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x) const {
 
-      // todo ... 
+      uint8_t seq_id = channel_id_;
       uint8_t clock_x_pos = seq_channel[seq_id].get_clock_cnt();
       int32_t _dac_value = seq_channel[seq_id].get_step_pitch();
       
@@ -1332,6 +1337,6 @@ void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x, uint8_t seq_id) con
 
 void SEQ_screensaver() {
 
-  seq_channel[0].RenderScreensaver(20, 0);
-  seq_channel[1].RenderScreensaver(95, 1);
+  seq_channel[0].RenderScreensaver(20);
+  seq_channel[1].RenderScreensaver(95);
 }
