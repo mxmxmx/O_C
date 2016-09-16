@@ -43,10 +43,17 @@ const uint8_t PULSEW_MAX = 255; // max pulse width [ms]
 const uint32_t SCALE_PULSEWIDTH = 58982; // 0.9 for signed_multiply_32x16b
 const uint32_t TICKS_TO_MS = 43691; // 0.6667f : fraction, if TU_CORE_TIMER_RATE = 60 us : 65536U * ((1000 / TU_CORE_TIMER_RATE) - 16)
 const uint32_t TICK_JITTER = 0xFFFFFFF;  // 1/16 : threshold/double triggers reject -> ext_frequency_in_ticks_
-const uint32_t TICK_SCALE  = 0xC0000000; // 0.75 for signed_multiply_32x32                      
+const uint32_t TICK_SCALE  = 0x80000000; // 0.5 for signed_multiply_32x32   ; ? any better                   
+const uint32_t COPYTIMEOUT = 200000; // in ticks
 
 uint32_t ticks_src1 = 0; // main clock frequency (top)
 uint32_t ticks_src2 = 0; // sec. clock frequency (bottom)
+
+// copy sequence, global
+uint8_t copy_sequence = 0;  
+uint8_t copy_length = OC::Patterns::kMax;
+uint16_t copy_mask = 0xFFFF;
+uint64_t copy_timeout = COPYTIMEOUT;
 
 const uint64_t multipliers_[] = {
   
@@ -357,6 +364,36 @@ public:
     memcpy(&OC::user_patterns[seq + _channel_offset], &OC::patterns[0], sizeof(OC::Pattern));
   }
 
+  void copy_seq(uint8_t seq, uint8_t len, uint16_t mask) {
+
+    // which sequence ?
+    copy_sequence = seq + (!channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS);
+    copy_length = len;
+    copy_mask = mask;
+    copy_timeout = 0;
+  }
+
+  uint8_t paste_seq(uint8_t seq) {
+
+    if (copy_timeout < COPYTIMEOUT) {
+
+       // which sequence to copy to ?
+       uint8_t sequence = seq + (!channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS);
+       // copy length:
+       set_sequence_length(copy_length, seq);
+       // copy mask:
+       update_pattern_mask(copy_mask, seq);
+       // copy note values:
+       memcpy(&OC::user_patterns[sequence], &OC::user_patterns[copy_sequence], sizeof(OC::Pattern));
+       // give more time for more pasting...
+       copy_timeout = 0;
+       
+       return copy_length;
+    }
+    else 
+      return 0;
+  }
+
   uint8_t getTriggerState() const {
     return clock_display_.getState();
   }
@@ -438,7 +475,6 @@ public:
     sequence_last_ = display_sequence_;
     sequence_advance_ = false;
     sequence_advance_state_ = false; 
-
     uint32_t _seed = OC::ADC::value<ADC_CHANNEL_1>() + OC::ADC::value<ADC_CHANNEL_2>() + OC::ADC::value<ADC_CHANNEL_3>() + OC::ADC::value<ADC_CHANNEL_4>();
     randomSeed(_seed);
     clock_display_.Init();
@@ -859,17 +895,6 @@ public:
     num_enabled_settings_ = settings - enabled_settings_;  
   }
   
-
-  uint16_t update_sequence(int32_t mask_rotate_, uint8_t sequence_, uint16_t mask_) {
-    
-    const int sequence_num = sequence_;
-    uint16_t mask = mask_;
-    
-    if (mask_rotate_)
-      mask = OC::PatternEditor<SEQ_Channel>::RotateMask(mask, get_sequence_length(sequence_num), mask_rotate_);
-    return mask;
-  }
-
   template <DAC_CHANNEL dacChannel>
   void update_main_channel() {
 
@@ -934,7 +959,7 @@ private:
   int8_t sequence_advance_state_;
   int last_scale_;
   uint16_t last_scale_mask_;
-
+  
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
   braids::Quantizer quantizer_; 
@@ -1073,6 +1098,7 @@ void SEQ_isr() {
 
   ticks_src1++; // src #1 ticks
   ticks_src2++; // src #2 ticks
+  copy_timeout++;
    
   uint32_t triggers = OC::DigitalInputs::clocked();  
 
@@ -1274,9 +1300,12 @@ void SEQ_leftButtonLong() {
 
 void SEQ_upButtonLong() {
 
+  // screensaver short cut (happens elsewhere)
 }
 
 void SEQ_downButtonLong() {
+
+  // CV menu
 
 }
 
