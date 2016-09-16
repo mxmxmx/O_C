@@ -840,7 +840,7 @@ public:
     return mask;
   }
 
-  void RenderScreensaver(weegfx::coord_t start_x) const;
+  void RenderScreensaver() const;
   
 private:
 
@@ -1282,7 +1282,7 @@ void SEQ_menu() {
 }
 
 
-void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x) const {
+void SEQ_Channel::RenderScreensaver() const {
 
       uint8_t seq_id = channel_id_;
       uint8_t clock_x_pos = seq_channel[seq_id].get_clock_cnt();
@@ -1337,6 +1337,6 @@ void SEQ_Channel::RenderScreensaver(weegfx::coord_t start_x) const {
 
 void SEQ_screensaver() {
 
-  seq_channel[0].RenderScreensaver(20);
-  seq_channel[1].RenderScreensaver(95);
+  seq_channel[0].RenderScreensaver();
+  seq_channel[1].RenderScreensaver();
 }
