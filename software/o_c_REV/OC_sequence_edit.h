@@ -181,13 +181,23 @@ void PatternEditor<Owner>::HandleButtonEvent(const UI::Event &event) {
   else if (UI::EVENT_BUTTON_LONG_PRESS == event.type) {
      switch (event.control) {
       case OC::CONTROL_BUTTON_UP:
-        // screensaver    // TODO: needs to be overridden ... invert_mask();
+        // screensaver    // TODO: ideally, needs to be overridden ... invert_mask();
       break;
       case OC::CONTROL_BUTTON_DOWN:
-        paste_sequence(); // TODO: clear_mask(); ... where?
+      {
+        if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) 
+          clear_mask();
+        else
+          paste_sequence(); 
+      }
       break;
       case OC::CONTROL_BUTTON_L: 
-        copy_sequence();
+      {
+        if (OC::ui.read_immediate(OC::CONTROL_BUTTON_DOWN)) 
+          clear_mask();
+        else
+          copy_sequence();
+      }
       break;
       case OC::CONTROL_BUTTON_R:
        // app menu
