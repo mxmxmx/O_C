@@ -307,7 +307,10 @@ void PatternEditor<Owner>::invert_mask() {
 
 template <typename Owner>
 void PatternEditor<Owner>::clear_mask() {
+  // clear the mask
   apply_mask(0x00);
+  // and the user pattern:
+  owner_->clear_user_pattern(edit_this_sequence_);
 }
 
 

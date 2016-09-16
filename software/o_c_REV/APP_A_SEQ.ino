@@ -152,7 +152,7 @@ uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE];
 
 class SEQ_Channel : public settings::SettingsBase<SEQ_Channel, SEQ_CHANNEL_SETTING_LAST> {
 public:
-
+  
   uint8_t get_mode() const {
     return values_[SEQ_CHANNEL_SETTING_MODE];
   }
@@ -340,6 +340,12 @@ public:
     
     OC::Pattern *write_pattern_ = &OC::user_patterns[seq + _channel_offset];
     write_pattern_->notes[step] = pitch;
+  }
+
+  void clear_user_pattern(uint8_t seq) {
+    
+    uint8_t _channel_offset = !channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS;
+    memcpy(&OC::user_patterns[seq + _channel_offset], &OC::patterns[0], sizeof(OC::Pattern));
   }
 
   uint8_t getTriggerState() const {
@@ -952,8 +958,6 @@ SEQ_State seq_state;
 SEQ_Channel seq_channel[NUM_CHANNELS];
 
 void SEQ_init() {
-
-  OC::Patterns::Init();
 
   ext_frequency[SEQ_CHANNEL_TRIGGER_TR1]  = 0xFFFFFFFF;
   ext_frequency[SEQ_CHANNEL_TRIGGER_TR2]  = 0xFFFFFFFF;
