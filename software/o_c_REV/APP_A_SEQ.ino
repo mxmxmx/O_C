@@ -380,6 +380,10 @@ public:
     return values_[SEQ_CHANNEL_SETTING_SCALE];
   }
 
+  void set_scale(int scale) {
+     apply_value(SEQ_CHANNEL_SETTING_SCALE, scale);
+  }
+  
   int get_scale_mask() const {
     return values_[SEQ_CHANNEL_SETTING_SCALE_MASK];
   }
@@ -833,7 +837,7 @@ public:
       case 0: 
         *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
       break;
-      case 1: 
+      case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
       break;
       default:
@@ -963,7 +967,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
   { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
-  { 25, 0, PULSEW_MAX, "--> pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
+  { 25, 0, PULSEW_MAX, "--> pw", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   //
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
@@ -1255,7 +1259,17 @@ void SEQ_leftButton() {
 }
 
 void SEQ_leftButtonLong() {
-  
+  // copy scale
+  if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {
+    
+      uint8_t this_channel, the_other_channel, scale;
+      this_channel = seq_state.selected_channel;
+      scale = seq_channel[this_channel].get_scale();
+      
+      the_other_channel = (~this_channel) & 1u;
+      seq_channel[the_other_channel].set_scale(scale);
+      seq_channel[the_other_channel].update_scale(true,scale);
+  }
 }
 
 void SEQ_upButtonLong() {
