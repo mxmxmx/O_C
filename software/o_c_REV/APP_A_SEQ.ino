@@ -318,6 +318,10 @@ public:
     return step_pitch_;
   }
 
+  uint32_t get_step_pitch_aux() const {
+    return step_pitch_aux_;
+  }
+
   uint32_t get_step_gate() const {
     return gate_state_;
   }
@@ -400,6 +404,8 @@ public:
     force_update_ = true;
     force_scale_update_ = true;
     gate_state_ = step_state_ = OFF;
+    step_pitch_ = 0;
+    step_pitch_aux_ = 0;
     ticks_ = 0;
     subticks_ = 0;
     tickjitter_ = 10000;
@@ -418,7 +424,6 @@ public:
     // TODO this needs to be per channel, not just 0 
     _ZERO = OC::calibration_data.dac.calibrated_octaves[0][OC::DAC::kOctaveZero];
 
-    // WTF? get_mask doesn't return the saved mask?
     display_sequence_ = get_sequence();
     display_mask_ = get_mask(display_sequence_);
     sequence_last_ = display_sequence_;
@@ -637,15 +642,28 @@ public:
          reset_me_ = true;
          reset_counter_ = false;
          // finally, process trigger + output
-         step_state_ = gate_state_ = process_seq_channel(_mode); // = gate ...either ON, OFF
+         step_state_ = gate_state_ = process_seq_channel(); // = gate ...either ON, OFF
          
          if (step_state_ == ON) {
             uint8_t _transpose = 0; //TODO...
-            uint8_t _root =  0; // TODO ... 
             // use the current sequence, updated in  process_seq_channel():
             step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (get_octave() * 12 << 7); /// 
-            // todo -- limit range
-            step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
+            // update output:
+            step_pitch_ = quantizer_.Process(step_pitch_, 0, _transpose);  
+
+            switch (_mode) {
+
+                case 0: // gates .. 
+                break;
+                case 1: // copy
+                  step_pitch_aux_ = step_pitch_;
+                break;
+                case 2: // oct+
+                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + ( (1 + get_octave()) * 12 << 7);
+                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, _transpose); 
+                default:
+                break;
+            }
          }
      }
   
@@ -653,7 +671,7 @@ public:
       *  below: pulsewidth stuff
       */
       
-     if (gate_state_) { 
+     if (!_mode && gate_state_) { 
        
         // pulsewidth setting -- 
         int16_t _pulsewidth = get_pulsewidth();
@@ -718,65 +736,56 @@ public:
   } // end update
 
   /* details re: trigger processing happens (mostly) here: */
-  inline uint16_t process_seq_channel(uint8_t mode) {
+  inline uint16_t process_seq_channel() {
  
       uint16_t _out = ON;
-  
-      switch (mode) {
-  
-          case 0: {
-              // sequencer mode, adapted from o_C scale edit:
-              int16_t _seq = get_sequence();
-              
-              if (get_sequence_cv_source()) {
-                _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
-                CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
-              }
-
-              uint8_t _playmode = get_playmode();
-              
-              if (_playmode) {
-
-                // concatenate sequences:
-                if (_playmode <= 3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
-                  sequence_cnt_++;
-                  sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
-                  clk_cnt_ = 0; 
-                }
-                else if (_playmode > 3 && sequence_advance_) {
-                  _playmode -= 3;
-                  sequence_cnt_++;
-                  sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
-                  clk_cnt_ = 0;
-                  sequence_advance_ = false; 
-                }
-               
-                if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
-                  sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
-              }
-              else 
-                sequence_last_ = _seq;
-                         
-              _seq = sequence_last_;
-              // this is the sequence # (USER1-USER4):
-              display_sequence_ = _seq;
-              // and corresponding pattern mask:
-              uint16_t _mask = get_mask(_seq);
-              // rotate mask ?
-              if (get_mask_cv_source())
-                _mask = update_sequence((OC::ADC::value(static_cast<ADC_CHANNEL>(get_mask_cv_source() - 1)) + 127) >> 8, _seq, _mask);
-              display_mask_ = _mask;
-              // reset counter ?
-              if (clk_cnt_ >= get_sequence_length(_seq))
-                clk_cnt_ = 0; 
-              // output slot at current position:  
-              _out = (_mask >> clk_cnt_) & 1u;
-              _out = _out ? ON : OFF;
-            }   
-            break; 
-           default:
-            break; // end mode switch       
+      int16_t _seq = get_sequence();
+      
+      if (get_sequence_cv_source()) {
+        _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
+        CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
       }
+
+      uint8_t _playmode = get_playmode();
+      
+      if (_playmode) {
+
+        // concatenate sequences:
+        if (_playmode <= 3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
+          sequence_cnt_++;
+          sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+          clk_cnt_ = 0; 
+        }
+        else if (_playmode > 3 && sequence_advance_) {
+          _playmode -= 3;
+          sequence_cnt_++;
+          sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+          clk_cnt_ = 0;
+          sequence_advance_ = false; 
+        }
+       
+        if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
+          sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
+      }
+      else 
+        sequence_last_ = _seq;
+                 
+      _seq = sequence_last_;
+      // this is the sequence # (USER1-USER4):
+      display_sequence_ = _seq;
+      // and corresponding pattern mask:
+      uint16_t _mask = get_mask(_seq);
+      // rotating the mask doesn't really make sense .... length might
+      //if (get_mask_cv_source())
+      //  _mask = update_sequence((OC::ADC::value(static_cast<ADC_CHANNEL>(get_mask_cv_source() - 1)) + 127) >> 8, _seq, _mask);
+      display_mask_ = _mask;
+      // reset counter ?
+      if (clk_cnt_ >= get_sequence_length(_seq))
+        clk_cnt_ = 0; 
+      // output slot at current position:  
+      _out = (_mask >> clk_cnt_) & 1u;
+      _out = _out ? ON : OFF;   
+      // return step:  
       return _out; 
   }
  
@@ -840,6 +849,27 @@ public:
     return mask;
   }
 
+  template <DAC_CHANNEL dacChannel>
+  void update_aux_channel()
+  {
+
+      int8_t _mode = get_mode();
+      uint32_t _output = 0;
+      
+      switch (_mode) {
+
+        case 0: // gate
+          _output = get_step_gate();
+        break;
+        case 1: // copy
+          _output = OC::DAC::pitch_to_dac(dacChannel, get_step_pitch_aux(), 0);
+        break;
+        default:
+        break;
+      }
+      OC::DAC::set<dacChannel>(_output);    
+  }
+
   void RenderScreensaver() const;
   
 private:
@@ -864,6 +894,7 @@ private:
   uint16_t gate_state_;
   uint16_t step_state_;
   uint32_t step_pitch_;
+  uint32_t step_pitch_aux_;
   uint8_t prev_multiplier_;
   uint8_t prev_pulsewidth_;
   uint8_t display_sequence_;
@@ -898,7 +929,7 @@ const char* const cv_sources[] = {
 };
 
 const char* const modes[] = {
-  "gate", "-"
+  "gate", "copy"
 };
 
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
@@ -1028,17 +1059,16 @@ void SEQ_isr() {
   seq_channel[0].Update(triggers, DAC_CHANNEL_A);
   seq_channel[1].Update(triggers, DAC_CHANNEL_B);
 
+  // update channels A, B: 
   int32_t sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, seq_channel[0].get_step_pitch(), 0);
   OC::DAC::set(DAC_CHANNEL_A, sample);
   
   sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, seq_channel[1].get_step_pitch(), 0);
   OC::DAC::set(DAC_CHANNEL_B, sample);
-  
-  int32_t gate = seq_channel[0].get_step_gate();
-  OC::DAC::set(DAC_CHANNEL_C, gate);
-  
-  gate = seq_channel[1].get_step_gate();
-  OC::DAC::set(DAC_CHANNEL_D, gate);
+
+  // update C,D: 
+  seq_channel[0].update_aux_channel<DAC_CHANNEL_C>();
+  seq_channel[1].update_aux_channel<DAC_CHANNEL_D>();
 }
 
 void SEQ_handleButtonEvent(const UI::Event &event) {
@@ -1290,6 +1320,7 @@ void SEQ_Channel::RenderScreensaver() const {
       
       clock_x_pos = (seq_id << 6) + (clock_x_pos << 2);
 
+      // clock/step indicator:
       if(seq_channel[seq_id].step_state_ == OFF) {
         graphics.drawRect(clock_x_pos, 63, 5, 2);
         _dac_value = 0;
@@ -1299,7 +1330,8 @@ void SEQ_Channel::RenderScreensaver() const {
 
       // separate windows ...  
       graphics.drawVLine(64, 0, 68);
-   
+
+      // display pitch values as squares/frames:
       if (_dac_value < 0) {
         // display negative values as frame (though they're not negative...)
         _dac_value = (_dac_value - (_dac_value << 1 )) >> 6;
