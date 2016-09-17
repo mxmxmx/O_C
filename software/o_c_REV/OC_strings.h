@@ -15,7 +15,8 @@ namespace OC {
     extern const char * const no_yes[];
     extern const char * const encoder_config_strings[];
     extern const char * const bytebeat_equation_names[];
-
+    extern const char * const irrational_sequence_names[];
+    extern const char * const irrational_sequence_dirs[];
     extern const char * const trigger_delay_times[kNumDelayTimes];
   };
 

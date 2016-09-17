@@ -499,7 +499,6 @@ public:
                  uint8_t _irr_seq_length = get_irr_seq_length();
                  uint8_t _irr_seq_dir = get_irr_seq_dir();
 
- // up to here
                   // _pitch can do other things now -- 
                   switch (get_irr_seq_CV()) {
   
@@ -612,13 +611,6 @@ const char* const bb_CV_destinations[] = {
   "M/A", "EQN", "P0", "P1", "P2"
 };
 
-const char* const irr_sequences[] = {
-  "pi", "phi", "tau", "euler", "root2"
-};
-
-const char* const irr_seq_dirs[] = {
-  "loop", "swing"
-};
 
 const char* const irr_CV_destinations[] = {
   "M/A", "seq", "start", "len"
@@ -642,10 +634,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "> Irrational", irr_sequences, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "> Irrational", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
   { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "> Irr dir", irr_seq_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "> Irr dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 3, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 

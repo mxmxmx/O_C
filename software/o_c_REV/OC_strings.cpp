@@ -22,11 +22,18 @@ namespace OC {
     "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
   };
 
+  const char* const irrational_sequence_names[] = {
+    "pi", "phi", "tau", "Euler", "root2" 
   };
+
+  const char* const irrational_sequence_dirs[] = {
+    "loop", "swing"
+  };
+  
+ }; 
 
   // \sa OC_config.h -> kMaxTriggerDelayTicks
   const uint8_t trigger_delay_ticks[kNumDelayTimes] = {
     0, 2, 4, 6, 8, 16, 33, 66
   };
-  
 };

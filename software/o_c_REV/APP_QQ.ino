@@ -30,6 +30,7 @@
 #include "util/util_settings.h"
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
+#include "util/util_irrationals.h"
 #include "peaks_bytebeat.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
@@ -68,6 +69,15 @@ enum ChannelSetting {
   CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE,
   CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE,
   CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE, 
+  CHANNEL_SETTING_IRR_SEQ_INDEX,
+  CHANNEL_SETTING_IRR_SEQ_RANGE,
+  CHANNEL_SETTING_IRR_SEQ_DIRECTION,
+  CHANNEL_SETTING_IRR_SEQ_LOOP_START,
+  CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH,
+  CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE,
+  CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_IRR_SEQ_LOOP_START_CV_SOURCE,
+  CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH_CV_SOURCE,
   CHANNEL_SETTING_LAST
 };
 
@@ -88,6 +98,7 @@ enum ChannelSource {
   CHANNEL_SOURCE_TURING,
   CHANNEL_SOURCE_LOGISTIC_MAP,
   CHANNEL_SOURCE_BYTEBEAT,
+  CHANNEL_SOURCE_IRR_SEQ,
   CHANNEL_SOURCE_LAST
 };
 
@@ -173,7 +184,6 @@ public:
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_RANGE];
   }
 
-
   uint8_t get_logistic_map_r_cv_source() const {
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE];
   }
@@ -222,6 +232,42 @@ public:
     return values_[CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE];
   }
 
+  uint8_t get_irr_seq_index() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_INDEX];
+  }
+
+  uint8_t get_irr_seq_range() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_RANGE];
+  }
+
+  uint8_t get_irr_seq_start() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START];
+  }
+
+  uint8_t get_irr_seq_length() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH];
+  }
+
+  uint8_t get_irr_seq_dir() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_DIRECTION];
+  }
+
+  uint8_t get_irr_seq_index_cv_source() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE];
+  }
+
+  uint8_t get_irr_seq_range_cv_source() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE];
+  }
+
+  uint8_t get_irr_seq_loop_start_cv_source() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START];
+  }
+
+  uint8_t get_irr_seq_loop_length_cv_source() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH];
+  }
+
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
     apply_value(CHANNEL_SETTING_SOURCE, source);
@@ -238,6 +284,7 @@ public:
     turing_machine_.Init();
     logistic_map_.Init();
     bytebeat_.Init();
+    irr_seq_.Init();
     quantizer_.Init();
     update_scale(true);
     trigger_display_.Init();
@@ -423,6 +470,69 @@ public:
           }
         }
         break;
+      case CHANNEL_SOURCE_IRR_SEQ: {
+            irr_seq_.set_loop_direction(get_irr_seq_dir());
+
+            int32_t irr_seq_index = get_irr_seq_index() << 13;
+            if (get_irr_seq_index_cv_source()) {
+              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) << 4);
+              irr_seq_index = USAT16(irr_seq_index);
+            }
+            irr_seq_index = irr_seq_index >> 13;
+            CONSTRAIN(irr_seq_index, 0, 4);
+            irr_seq_.set_irr_seq(static_cast<uint8_t>(irr_seq_index));
+
+            int32_t irr_seq_loop_start = get_irr_seq_start() << 8;
+            if (get_irr_seq_loop_start_cv_source()) {
+              irr_seq_loop_start += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_loop_start_cv_source() - 1)) << 4);
+              irr_seq_loop_start = USAT16(irr_seq_loop_start);
+            }
+            irr_seq_loop_start = irr_seq_loop_start >> 8;
+            CONSTRAIN(irr_seq_loop_start, 0, 254);
+            irr_seq_.set_loop_start(static_cast<uint8_t>(irr_seq_loop_start));
+
+            int32_t irr_seq_loop_length = get_irr_seq_length() << 8;
+            if (get_irr_seq_loop_length_cv_source()) {
+              irr_seq_loop_length += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_loop_length_cv_source() - 1)) << 4);
+              irr_seq_loop_length = USAT16(irr_seq_loop_length);
+            }
+            irr_seq_loop_length = irr_seq_loop_length >> 8;
+            CONSTRAIN(irr_seq_loop_length, 1, 255);
+            irr_seq_.set_loop_length(static_cast<uint8_t>(irr_seq_loop_length));
+            
+            if (triggered) {
+              uint32_t is = irr_seq_.Clock();
+              uint8_t range = get_irr_seq_range();
+              if (get_irr_seq_range_cv_source()) {
+                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 5);
+                CONSTRAIN(range, 1, 120);
+              }
+              if (quantizer_.enabled()) {
+    
+                // Since our range is limited anyway, just grab the last byte
+                uint32_t scaled = ((is >> 4) * range) >> 8;
+    
+                // The quantizer uses a lookup codebook with 128 entries centered
+                // about 0, so we use the range/scaled output to lookup a note
+                // directly instead of changing to pitch first.
+                int32_t pitch =
+                  quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
+                sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+                history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
+              } else {
+                // We dont' need a calibrated value here, really
+                int octave = get_octave();
+                CONSTRAIN(octave, 0, 6);
+                sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
+                // range is actually 120 (10 oct) but 65535 / 128 is close enough
+                sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, is << 20);
+                sample = USAT16(sample);
+                history_sample = sample;
+              }
+            }
+          }
+          break;        
+
       default: {
           if (update) {
             int32_t transpose = get_transpose();
@@ -486,6 +596,10 @@ public:
     return bytebeat_.get_last_sample();
   }
 
+  uint32_t get_irr_seq_register() const {
+    return irr_seq_.get_register();
+  }
+
   // Maintain an internal list of currently available settings, since some are
   // dependent on others. It's kind of brute force, but eh, works :) If other
   // apps have a similar need, it can be moved to a common wrapper
@@ -531,6 +645,18 @@ public:
         *settings++ = CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE;
+      break;
+      case CHANNEL_SOURCE_IRR_SEQ:
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_DIRECTION;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_START;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_START_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH_CV_SOURCE;
+      break;
       default:
       break;
     }
@@ -568,6 +694,15 @@ public:
       case CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE:
       case CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE:
       case CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE:      
+      case CHANNEL_SETTING_IRR_SEQ_INDEX:
+      case CHANNEL_SETTING_IRR_SEQ_RANGE:
+      case CHANNEL_SETTING_IRR_SEQ_DIRECTION:
+      case CHANNEL_SETTING_IRR_SEQ_LOOP_START:
+      case CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH:
+      case CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE:
+      case CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_IRR_SEQ_LOOP_START_CV_SOURCE:
+      case CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH_CV_SOURCE:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -592,6 +727,7 @@ private:
   util::TuringShiftRegister turing_machine_;
   util::LogisticMap logistic_map_;
   peaks::ByteBeat bytebeat_ ;
+  util::IrrationalSequence irr_seq_ ;
   braids::Quantizer quantizer_;
   OC::DigitalInputDisplay trigger_display_;
 
@@ -619,12 +755,13 @@ const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
 };
 
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
-  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB"
+  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "Irrat"
 };
 
 const char* const turing_logistic_cv_sources[5] = {
   "None", "CV1", "CV2", "CV3", "CV4"
 };
+
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
@@ -656,6 +793,15 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Irrational", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 12, 1, 120, "Irr seq range", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "Irr seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "Irr loop start", NULL, settings::STORAGE_TYPE_U8 },
+  { 14, 1, 255, "Irr loop len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Irr seq CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Irr rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Irr start CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Irr len CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
@@ -954,9 +1100,12 @@ void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
       menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_logistic_map_register(), 32);
       break;
     case CHANNEL_SOURCE_BYTEBEAT:
+      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_bytebeat_register(), 8);
+      break;
+    case CHANNEL_SOURCE_IRR_SEQ:
       // graphics.movePrintPos(start_x, 1);
       // graphics.print(bytebeat_equation_names[get_bytebeat_equation()]);
-      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_bytebeat_register(), 8);
+      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_irr_seq_register(), 8);
       break;
     default: {
       graphics.setPixel(start_x + 31 - 16, 4);
