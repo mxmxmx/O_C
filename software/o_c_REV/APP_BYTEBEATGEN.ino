@@ -339,12 +339,8 @@ const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
   "off", "equ", "spd", "p0", "p1", "p2", "beg++", "beg+", "beg", "end++", "end+", "end"  
 };
 
-const char* const bytebeat_equation_names[] = {
-  "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
-};
-
 SETTINGS_DECLARE(ByteBeat, BYTEBEAT_SETTING_LAST) {
-  { 0, 0, 15, "Equation", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 15, "Equation", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "Speed", NULL, settings::STORAGE_TYPE_U8 },
   { 126, 0, 255, "Parameter 0", NULL, settings::STORAGE_TYPE_U8 }, 
   { 126, 0, 255, "Parameter 1", NULL, settings::STORAGE_TYPE_U8 }, 

@@ -1,6 +1,8 @@
 #include "util/util_settings.h"
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
+#include "peaks_bytebeat.h"
+#include "util/util_irrationals.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
@@ -32,7 +34,25 @@ enum ASRSettings {
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
   ASR_SETTING_TURING_CV_SOURCE,
+  ASR_SETTING_BYTEBEAT_EQUATION,
+  ASR_SETTING_BYTEBEAT_P0,
+  ASR_SETTING_BYTEBEAT_P1,
+  ASR_SETTING_BYTEBEAT_P2,
+  ASR_SETTING_BYTEBEAT_CV_SOURCE,
+  ASR_SETTING_IRR_SEQ_INDEX,
+  ASR_SETTING_IRR_SEQ_START,
+  ASR_SETTING_IRR_SEQ_LENGTH,
+  ASR_SETTING_IRR_SEQ_DIR,
+  ASR_SETTING_IRR_SEQ_CV_SOURCE,
   ASR_SETTING_LAST
+};
+
+enum ASRChannelSource {
+  ASR_CHANNEL_SOURCE_CV1,
+  ASR_CHANNEL_SOURCE_TURING,
+  ASR_CHANNEL_SOURCE_BYTEBEAT,
+  ASR_CHANNEL_SOURCE_IRRATIONALS,
+  ASR_CHANNEL_SOURCE_LAST
 };
 
 #define ASR_MAX_ITEMS 256   // ASR ring buffer size
@@ -113,6 +133,46 @@ public:
     return values_[ASR_SETTING_DELAY];
   }
 
+  uint8_t get_bytebeat_equation() const {
+    return values_[ASR_SETTING_BYTEBEAT_EQUATION];
+  }
+
+  uint8_t get_bytebeat_p0() const {
+    return values_[ASR_SETTING_BYTEBEAT_P0];
+  }
+
+  uint8_t get_bytebeat_p1() const {
+    return values_[ASR_SETTING_BYTEBEAT_P1];
+  }
+
+  uint8_t get_bytebeat_p2() const {
+    return values_[ASR_SETTING_BYTEBEAT_P2];
+  }
+
+  uint8_t get_bytebeat_CV() const {
+    return values_[ASR_SETTING_BYTEBEAT_CV_SOURCE];
+  }
+
+  uint8_t get_irr_seq_index() const {
+    return values_[ ASR_SETTING_IRR_SEQ_INDEX];
+  }
+
+  uint8_t get_irr_seq_start() const {
+    return values_[ ASR_SETTING_IRR_SEQ_START];
+  }
+
+  uint8_t get_irr_seq_length() const {
+    return values_[ ASR_SETTING_IRR_SEQ_LENGTH];
+  }
+
+  uint8_t get_irr_seq_dir() const {
+    return values_[ ASR_SETTING_IRR_SEQ_DIR];
+  }
+
+  uint8_t get_irr_seq_CV() const {
+    return values_[ASR_SETTING_IRR_SEQ_CV_SOURCE];
+  }
+
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
@@ -160,7 +220,9 @@ public:
     trigger_delay_.Init();
     turing_machine_.Init();
     turing_display_length_ = get_turing_length();
-  }
+    bytebeat_.Init();
+    irr_seq_.Init();
+ }
 
   bool update_scale(bool force, int32_t mask_rotate) {
     
@@ -219,13 +281,31 @@ public:
     *settings++ = ASR_SETTING_DELAY;
     *settings++ = ASR_SETTING_CV_SOURCE;
     
-    if (get_cv_source()) {
-      
-      *settings++ = ASR_SETTING_TURING_LENGTH;
-      *settings++ = ASR_SETTING_TURING_PROB;
-      *settings++ = ASR_SETTING_TURING_CV_SOURCE;
+ 
+    switch (get_cv_source()) {
+      case ASR_CHANNEL_SOURCE_TURING:
+        *settings++ = ASR_SETTING_TURING_LENGTH;
+        *settings++ = ASR_SETTING_TURING_PROB;
+        *settings++ = ASR_SETTING_TURING_CV_SOURCE;
+       break;
+      case ASR_CHANNEL_SOURCE_BYTEBEAT:
+        *settings++ = ASR_SETTING_BYTEBEAT_EQUATION;
+        *settings++ = ASR_SETTING_BYTEBEAT_P0;
+        *settings++ = ASR_SETTING_BYTEBEAT_P1;
+        *settings++ = ASR_SETTING_BYTEBEAT_P2;
+        *settings++ = ASR_SETTING_BYTEBEAT_CV_SOURCE;
+      break;
+       case ASR_CHANNEL_SOURCE_IRRATIONALS:
+        *settings++ = ASR_SETTING_IRR_SEQ_INDEX;
+        *settings++ = ASR_SETTING_IRR_SEQ_START;
+        *settings++ = ASR_SETTING_IRR_SEQ_LENGTH;
+        *settings++ = ASR_SETTING_IRR_SEQ_DIR;
+        *settings++ = ASR_SETTING_IRR_SEQ_CV_SOURCE;
+       break;
+     default:
+      break;
     }
-     
+    
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -333,40 +413,125 @@ public:
              int8_t _mult    =  get_mult();
              int32_t _pitch  = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
-            if (get_cv_source()) {
-
-                int16_t _length = get_turing_length();
-                int16_t _probability = get_turing_probability();
-
-                // _pitch can do other things now -- 
-                switch (get_turing_CV()) {
-
-                    case 1:  // LEN, 4-32
-                     _length += ((_pitch + 127) >> 7);
-                     CONSTRAIN(_length, 4, 32);
-                    break;
-                     case 2:  // P
-                     _probability += ((_pitch + 15) >> 4);
-                     CONSTRAIN(_probability, 0, 255);
-                    break;
-                    default: // mult
-                     _mult += ((_pitch + 255) >> 8);
-                    break;
-                }
-                
-                turing_machine_.set_length(_length);
-                turing_machine_.set_probability(_probability); 
-                turing_display_length_ = _length;
+             switch (get_cv_source()) {
+                case ASR_CHANNEL_SOURCE_TURING:
+                  {
+                  int16_t _length = get_turing_length();
+                  int16_t _probability = get_turing_probability();
   
-                int32_t _shift_register = (static_cast<int16_t>(turing_machine_.Clock()) & 0xFFF); //
-                
-               // return useful values for small values of _length:
-               if (_length < 12) {
-                   _shift_register = _shift_register << (12 -_length);
-                   _shift_register = _shift_register & 0xFFF;
-                }
-                
-                _pitch = _shift_register;        
+                  // _pitch can do other things now -- 
+                  switch (get_turing_CV()) {
+  
+                      case 1:  // LEN, 4-32
+                       _length += ((_pitch + 127) >> 7);
+                       CONSTRAIN(_length, 4, 32);
+                      break;
+                       case 2:  // P
+                       _probability += ((_pitch + 15) >> 4);
+                       CONSTRAIN(_probability, 0, 255);
+                      break;
+                      default: // mult
+                       _mult += ((_pitch + 255) >> 8);
+                      break;
+                  }
+                  
+                  turing_machine_.set_length(_length);
+                  turing_machine_.set_probability(_probability); 
+                  turing_display_length_ = _length;
+    
+                  int32_t _shift_register = (static_cast<int16_t>(turing_machine_.Clock()) & 0xFFF); 
+                  
+                 // return useful values for small values of _length:
+                 if (_length < 12) {
+                     _shift_register = _shift_register << (12 -_length);
+                     _shift_register = _shift_register & 0xFFF;
+                  }
+                  
+                  _pitch = _shift_register;  
+                  }
+                  break;      
+ 
+                case ASR_CHANNEL_SOURCE_BYTEBEAT:
+                 {
+                 int32_t _bytebeat_eqn = get_bytebeat_equation() << 12;
+                 int32_t _bytebeat_p0 = get_bytebeat_p0() << 8;
+                 int32_t _bytebeat_p1 = get_bytebeat_p1() << 8;
+                 int32_t _bytebeat_p2 = get_bytebeat_p2() << 8;
+
+                   // _pitch can do other things now -- 
+                  switch (get_bytebeat_CV()) {
+  
+                      case 1:  //  0-15
+                       _bytebeat_eqn += (_pitch << 4);
+                       _bytebeat_eqn = USAT16(_bytebeat_eqn);
+                      break;
+                      case 2:  // P0
+                       _bytebeat_p0 += (_pitch << 4);
+                       _bytebeat_p0 = USAT16(_bytebeat_p0);
+                      break;
+                      case 3:  // P1
+                       _bytebeat_p1 += (_pitch << 4);
+                       _bytebeat_p1 = USAT16(_bytebeat_p1);
+                      break;
+                      case 5:  // P4
+                       _bytebeat_p2 += (_pitch << 4);
+                       _bytebeat_p2 = USAT16(_bytebeat_p2);
+                      break;
+                      default: // mult
+                       _mult += ((_pitch + 255) >> 8);
+                      break;
+                  }
+
+                  bytebeat_.set_equation(_bytebeat_eqn);
+                  bytebeat_.set_p0(_bytebeat_p0);
+                  bytebeat_.set_p0(_bytebeat_p1);
+                  bytebeat_.set_p0(_bytebeat_p2);
+
+                  int32_t _bb = (static_cast<int16_t>(bytebeat_.Clock()) & 0xFFF);
+                   
+                  _pitch = _bb;  
+                 }
+                  break;      
+                case ASR_CHANNEL_SOURCE_IRRATIONALS:
+                 {
+                 uint8_t _irr_seq_index = get_irr_seq_index() ;
+                 uint8_t _irr_seq_start = get_irr_seq_start() ;
+                 uint8_t _irr_seq_length = get_irr_seq_length();
+                 uint8_t _irr_seq_dir = get_irr_seq_dir();
+
+ // up to here
+                  // _pitch can do other things now -- 
+                  switch (get_irr_seq_CV()) {
+  
+                      case 1:  // irrational sequence, 0-4
+                       _irr_seq_index += ((_pitch + 127) >> 9);
+                       CONSTRAIN(_irr_seq_index, 0, 4);
+                      break;
+                       case 2:  // sequence start point, 0-254
+                       _irr_seq_start += ((_pitch + 15) >> 4);
+                       CONSTRAIN(_irr_seq_start, 0, 254);
+                      break;
+                       case 3:  // sequence loop length, 1-255
+                       _irr_seq_length -= ((_pitch + 15) >> 4);
+                       CONSTRAIN(_irr_seq_length, 1, 255);
+                      break;
+                      default: // mult
+                       _mult += ((_pitch + 255) >> 8);
+                      break;
+                  }
+                 
+                  irr_seq_.set_loop_start(_irr_seq_start);
+                  irr_seq_.set_loop_length(_irr_seq_length);
+                  irr_seq_.set_irr_seq(_irr_seq_index);
+                  irr_seq_.set_loop_direction(_irr_seq_dir);
+                 int32_t _is = (static_cast<int16_t>(irr_seq_.Clock()) & 0xFFF);
+                   
+                  _pitch = _is;  
+                 }
+                  break;      
+
+                  default:
+                  break;
             } 
 
             CONSTRAIN(_mult, 0, 19);
@@ -423,6 +588,8 @@ private:
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
   int8_t turing_display_length_;
+  peaks::ByteBeat bytebeat_ ;
+  util::IrrationalSequence irr_seq_ ;
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 
   int num_enabled_settings_;
@@ -434,12 +601,29 @@ const char* const mult[20] = {
 };
 
 const char* const asr_input_sources[] = {
-  "CV1", "TM"
+  "CV1", "TM", "BB", "IRR"
 };
 
 const char* const tm_CV_destinations[] = {
   "M/A", "LEN", "P(x)"
 };
+
+const char* const bb_CV_destinations[] = {
+  "M/A", "EQN", "P0", "P1", "P2"
+};
+
+const char* const irr_sequences[] = {
+  "pi", "phi", "tau", "euler", "root2"
+};
+
+const char* const irr_seq_dirs[] = {
+  "loop", "swing"
+};
+
+const char* const irr_CV_destinations[] = {
+  "M/A", "seq", "start", "len"
+};
+
 
 SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
@@ -449,10 +633,20 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 4, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, " > CV1 -->", tm_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
+  { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "> Irrational", irr_sequences, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
+  { 255, 0, 255, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "> Irr dir", irr_seq_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 3, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
 /* -------------------------------------------------------------------*/
@@ -672,7 +866,7 @@ void ASR_menu() {
       list_item.DrawNoValue<false>(value, attr);
       break;
       case ASR_SETTING_CV_SOURCE:
-      if (asr.get_cv_source()) {
+      if (asr.get_cv_source() == ASR_CHANNEL_SOURCE_TURING) {
        
           int turing_length = asr.get_turing_display_length(); // asr.get_turing_length();
           int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
@@ -680,8 +874,7 @@ void ASR_menu() {
           menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_shift_register(), turing_length);
           list_item.valuex = menu::kDisplayWidth - w - 1;
           list_item.DrawNoValue<true>(value, attr);
-      }
-      else
+       } else
        list_item.DrawDefault(value, attr);
       break;
       default:

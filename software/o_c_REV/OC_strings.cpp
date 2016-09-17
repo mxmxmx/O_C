@@ -18,10 +18,15 @@ namespace OC {
       "off", "120us", "240us", "360us", "480us", "1ms", "2ms", "4ms"
   };
 
+  const char* const bytebeat_equation_names[] = {
+    "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
+  };
+
   };
 
   // \sa OC_config.h -> kMaxTriggerDelayTicks
   const uint8_t trigger_delay_ticks[kNumDelayTimes] = {
     0, 2, 4, 6, 8, 16, 33, 66
   };
+  
 };

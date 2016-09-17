@@ -646,7 +646,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 12, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "Log r CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 15, "Bytebeat eqn", bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 15, "Bytebeat eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "Bytebeat range", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "Bytebeat P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "Bytebeat P1", NULL, settings::STORAGE_TYPE_U8 },
