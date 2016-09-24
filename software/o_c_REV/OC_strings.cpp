@@ -27,7 +27,7 @@ namespace OC {
   };
 
   const char* const irrational_sequence_dirs[] = {
-    "loop", "swing"
+    "swing", "loop"
   };
   
  }; 

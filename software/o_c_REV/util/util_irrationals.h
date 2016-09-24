@@ -56,31 +56,28 @@ public:
   4,8,3,6,0,5,5,8,5,0,7,3,7,2,1,2,6,4,4,1,2,1,4,9,7,0,9,9,9,3,5,8,3,1,4,1,3,2,2,2,6,6,5,9,2,7,5,0,5,5,9,2,7,5,5,7,9,9,9,5,0,5,0,1,1,5,2,7,
   8,2,0,6,0,5,7,1,4,7,0,1,0,9,5,5,9,9,7,1,6,0,5,9,7,0,2,7,4,5,3,4,5,9,6,8,6,2,0,1,4,7,2,8,5,1,7,4,1,8,6,4,0,8,8,9,1,9,8,6,0,9,5,5};
   
-  void Init() {
+  void Init(int16_t i, int16_t l) {
     n_ = 0; // index of irrational series
-    k_ = 0; // current index
-    i_ = 0; // start of loop
-    j_ = 255; // end of loop
+    i_ = i; // start of loop
+    l_ = l; // length of loop
+    j_ = i_ + l_; // end of loop
+    k_ = i_; // current index
     x_ = 3; // first digit of pi
     loop_ = true;
     up_ = true;
   }
 
   uint16_t Clock() {
-  	if (up_) {
-  		if (k_ < 255) k_ += 1;
+  	if (loop_ || up_) {
+  		k_ += 1;
   	} else {
-  		if (k_ > 0) k_ -= 1;
+  		k_ -= 1;
   	}
-  	if ((k_ > j_) | (k_ == 255)) {
+  	if (k_ > j_) {
   		if (loop_) {
   			k_ = i_;
   		} else {
-  			if (k_ < 255) {
-  				k_ -= 2;
-  			} else {
-  				k_ -= 1;
-  			}
+  			k_ -= 2;
   			up_ = false;
   		}
   	}
@@ -88,12 +85,7 @@ public:
   		k_ += 2;
   		up_ = true;
   	}
-  	if (i_ == 0 && k_ == 0) {
-  		k_ += 1;
-  		up_ = true;
-  	}
-  	
-  	
+  	  	
   	switch (n_) {
       case 0:
       	x_ = pi_digits[k_];
@@ -113,35 +105,70 @@ public:
       default:
         break;
     }
-    return x_ << 8;
+    return static_cast<uint16_t>(x_ << 8);
   }
 
   uint16_t get_register() const {
     return x_ << 8;
   }
 
-  void set_loop_start(uint8_t i) {
+  void set_loop_start(int16_t i) {
+    if (i < 0) i = 0;
+    if (i > 254) i = 254;
     i_ = i; // loop start point
+    j_ = i_ + l_;
+    if (j_ < 1) j_ = 1;
+    if (j_ > 255) j_ = 255;
+    if (k_ < i_) k_ = i_;
+    if (k_ > j_) k_ = j_;
+  }
+  
+  void set_loop_length(int16_t l) {
+    if (l < 1) l = 1;
+    if (l > 255) l = 255;
+    l_ = l; // loop length
+    j_ = i_ + l_;
+    if (j_ < 1) j_ = 1;
+    if (j_ > 255) j_ = 255;
+    if (k_ < i_) k_ = i_;
+    if (k_ > j_) k_ = j_;
   }
 
-  void set_loop_length(uint8_t j) {
-    j_ = j; // loop length
+  void set_loop_direction(bool p) {
+    loop_ = p; // loop direction, false = swing (pendulum), true = loop
   }
 
-  void set_loop_direction(bool l) {
-    loop_ = l; // loop direction, false = swing (pendulum), true = loop
-  }
-
-  void set_irr_seq(uint8_t n) {
+  void set_irr_seq(int16_t n) {
     n_ = n; 
   }
 
+  int16_t get_k() const {
+    return k_;
+  }
+
+  int16_t get_l() const {
+    return l_;
+  }
+
+  int16_t get_i() const {
+    return i_;
+  }
+
+  int16_t get_j() const {
+    return j_;
+  }
+
+  int16_t get_n() const {
+    return n_;
+  }
+
 private:
-  uint8_t n_;
-  uint8_t k_;
-  uint8_t i_;
-  uint8_t j_;
-  uint8_t x_;
+  int16_t n_;
+  int16_t k_;
+  int16_t i_;
+  int16_t j_;
+  int16_t l_;
+  int16_t x_;
   bool loop_;
   bool up_ ;
 };

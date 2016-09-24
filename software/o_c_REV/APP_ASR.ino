@@ -157,20 +157,40 @@ public:
     return values_[ ASR_SETTING_IRR_SEQ_INDEX];
   }
 
-  uint8_t get_irr_seq_start() const {
-    return values_[ ASR_SETTING_IRR_SEQ_START];
+  int16_t get_irr_seq_start() const {
+    return static_cast<int16_t>(values_[ ASR_SETTING_IRR_SEQ_START]);
   }
 
-  uint8_t get_irr_seq_length() const {
-    return values_[ ASR_SETTING_IRR_SEQ_LENGTH];
+  int16_t get_irr_seq_length() const {
+    return static_cast<int16_t>(values_[ ASR_SETTING_IRR_SEQ_LENGTH] - 1);
   }
 
-  uint8_t get_irr_seq_dir() const {
-    return values_[ ASR_SETTING_IRR_SEQ_DIR];
+  bool get_irr_seq_dir() const {
+    return static_cast<bool>(values_[ ASR_SETTING_IRR_SEQ_DIR]);
   }
 
   uint8_t get_irr_seq_CV() const {
     return values_[ASR_SETTING_IRR_SEQ_CV_SOURCE];
+  }
+
+  int16_t get_irr_seq_k() const {
+    return irr_seq_.get_k();
+  }
+
+  int16_t get_irr_seq_l() const {
+    return irr_seq_.get_l();
+  }
+
+  int16_t get_irr_seq_i() const {
+    return irr_seq_.get_i();
+  }
+
+  int16_t get_irr_seq_j() const {
+    return irr_seq_.get_j();
+  }
+
+  int16_t get_irr_seq_n() const {
+    return irr_seq_.get_n();
   }
 
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
@@ -216,12 +236,13 @@ public:
     clock_display_.Init();
     for (auto &sh : scrolling_history_)
       sh.Init();
-
+    update_enabled_settings();
+    
     trigger_delay_.Init();
     turing_machine_.Init();
     turing_display_length_ = get_turing_length();
     bytebeat_.Init();
-    irr_seq_.Init();
+    irr_seq_.Init(get_irr_seq_start(), get_irr_seq_length());
  }
 
   bool update_scale(bool force, int32_t mask_rotate) {
@@ -494,10 +515,10 @@ public:
                   break;      
                 case ASR_CHANNEL_SOURCE_IRRATIONALS:
                  {
-                 uint8_t _irr_seq_index = get_irr_seq_index() ;
-                 uint8_t _irr_seq_start = get_irr_seq_start() ;
-                 uint8_t _irr_seq_length = get_irr_seq_length();
-                 uint8_t _irr_seq_dir = get_irr_seq_dir();
+                 int16_t _irr_seq_index = get_irr_seq_index() ;
+                 int16_t _irr_seq_start = get_irr_seq_start() ;
+                 int16_t _irr_seq_length = get_irr_seq_length();
+                 bool _irr_seq_dir = get_irr_seq_dir();
 
                   // _pitch can do other things now -- 
                   switch (get_irr_seq_CV()) {
@@ -507,11 +528,11 @@ public:
                        CONSTRAIN(_irr_seq_index, 0, 4);
                       break;
                        case 2:  // sequence start point, 0-254
-                       _irr_seq_start += ((_pitch + 15) >> 4);
+                       _irr_seq_start += ((_pitch + 15) >> 8);
                        CONSTRAIN(_irr_seq_start, 0, 254);
                       break;
                        case 3:  // sequence loop length, 1-255
-                       _irr_seq_length -= ((_pitch + 15) >> 4);
+                       _irr_seq_length += ((_pitch + 15) >> 8);
                        CONSTRAIN(_irr_seq_length, 1, 255);
                       break;
                       default: // mult
@@ -635,9 +656,9 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "> Irrational", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 255, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
-  { 255, 0, 255, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "> Irr dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 256, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 1, "> Irr dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 3, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
@@ -928,4 +949,20 @@ void ASR_screensaver() {
 //    x += 8 - scroll_pos;
 //    graphics.drawVLine(x, y, 3);
   }
+}
+
+void ASR_debug() {
+  for (int i = 0; i < 1; ++i) { 
+    uint8_t ypos = 10*(i + 1) + 2 ; 
+    graphics.setPrintPos(2, ypos);
+    graphics.print(asr.get_irr_seq_i());
+    graphics.setPrintPos(32, ypos);
+    graphics.print(asr.get_irr_seq_l());
+    graphics.setPrintPos(62, ypos);
+    graphics.print(asr.get_irr_seq_j());
+    graphics.setPrintPos(92, ypos);
+    graphics.print(asr.get_irr_seq_k());
+    graphics.setPrintPos(122, ypos);
+    graphics.print(asr.get_irr_seq_n());
+ }
 }

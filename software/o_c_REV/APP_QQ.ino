@@ -76,8 +76,6 @@ enum ChannelSetting {
   CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH,
   CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE,
   CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE,
-  CHANNEL_SETTING_IRR_SEQ_LOOP_START_CV_SOURCE,
-  CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH_CV_SOURCE,
   CHANNEL_SETTING_LAST
 };
 
@@ -240,16 +238,16 @@ public:
     return values_[CHANNEL_SETTING_IRR_SEQ_RANGE];
   }
 
-  uint8_t get_irr_seq_start() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START];
+  int16_t get_irr_seq_start() const {
+    return static_cast<int16_t>(values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START]);
   }
 
-  uint8_t get_irr_seq_length() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH];
+  int16_t get_irr_seq_length() const {
+    return static_cast<int16_t>(values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH] - 1);
   }
 
-  uint8_t get_irr_seq_dir() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_DIRECTION];
+  bool get_irr_seq_dir() const {
+    return static_cast<bool>(values_[CHANNEL_SETTING_IRR_SEQ_DIRECTION]);
   }
 
   uint8_t get_irr_seq_index_cv_source() const {
@@ -260,13 +258,6 @@ public:
     return values_[CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE];
   }
 
-  uint8_t get_irr_seq_loop_start_cv_source() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START];
-  }
-
-  uint8_t get_irr_seq_loop_length_cv_source() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH];
-  }
 
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
@@ -284,7 +275,7 @@ public:
     turing_machine_.Init();
     logistic_map_.Init();
     bytebeat_.Init();
-    irr_seq_.Init();
+    irr_seq_.Init(get_irr_seq_start(), get_irr_seq_length());
     quantizer_.Init();
     update_scale(true);
     trigger_display_.Init();
@@ -473,50 +464,35 @@ public:
       case CHANNEL_SOURCE_IRR_SEQ: {
             irr_seq_.set_loop_direction(get_irr_seq_dir());
 
-            int32_t irr_seq_index = get_irr_seq_index() << 13;
+            int16_t irr_seq_index = get_irr_seq_index();
             if (get_irr_seq_index_cv_source()) {
-              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) << 4);
-              irr_seq_index = USAT16(irr_seq_index);
+              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) >> 8);
             }
-            irr_seq_index = irr_seq_index >> 13;
-            CONSTRAIN(irr_seq_index, 0, 4);
-            irr_seq_.set_irr_seq(static_cast<uint8_t>(irr_seq_index));
+            if (irr_seq_index < 0) irr_seq_index = 0;
+            if (irr_seq_index > 4) irr_seq_index = 4;
+            irr_seq_.set_irr_seq(irr_seq_index);
 
-            int32_t irr_seq_loop_start = get_irr_seq_start() << 8;
-            if (get_irr_seq_loop_start_cv_source()) {
-              irr_seq_loop_start += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_loop_start_cv_source() - 1)) << 4);
-              irr_seq_loop_start = USAT16(irr_seq_loop_start);
-            }
-            irr_seq_loop_start = irr_seq_loop_start >> 8;
-            CONSTRAIN(irr_seq_loop_start, 0, 254);
-            irr_seq_.set_loop_start(static_cast<uint8_t>(irr_seq_loop_start));
+            irr_seq_.set_loop_start(get_irr_seq_start());
 
-            int32_t irr_seq_loop_length = get_irr_seq_length() << 8;
-            if (get_irr_seq_loop_length_cv_source()) {
-              irr_seq_loop_length += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_loop_length_cv_source() - 1)) << 4);
-              irr_seq_loop_length = USAT16(irr_seq_loop_length);
-            }
-            irr_seq_loop_length = irr_seq_loop_length >> 8;
-            CONSTRAIN(irr_seq_loop_length, 1, 255);
-            irr_seq_.set_loop_length(static_cast<uint8_t>(irr_seq_loop_length));
+            irr_seq_.set_loop_length(get_irr_seq_length());
             
             if (triggered) {
               uint32_t is = irr_seq_.Clock();
-              uint8_t range = get_irr_seq_range();
+              int16_t range_ = get_irr_seq_range();
               if (get_irr_seq_range_cv_source()) {
-                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 5);
-                CONSTRAIN(range, 1, 120);
+                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 5);
+                CONSTRAIN(range_, 1, 120);
               }
               if (quantizer_.enabled()) {
     
                 // Since our range is limited anyway, just grab the last byte
-                uint32_t scaled = ((is >> 4) * range) >> 8;
+                uint32_t scaled = ((is >> 4) * range_) >> 8;
     
                 // The quantizer uses a lookup codebook with 128 entries centered
                 // about 0, so we use the range/scaled output to lookup a note
                 // directly instead of changing to pitch first.
                 int32_t pitch =
-                  quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
+                  quantizer_.Lookup(64 + range_ / 2 - scaled) + (get_root() << 7);
                 sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
@@ -525,7 +501,7 @@ public:
                 CONSTRAIN(octave, 0, 6);
                 sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
                 // range is actually 120 (10 oct) but 65535 / 128 is close enough
-                sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, is << 20);
+                sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range_) * 65535U) >> 7, is << 20);
                 sample = USAT16(sample);
                 history_sample = sample;
               }
@@ -600,6 +576,26 @@ public:
     return irr_seq_.get_register();
   }
 
+  int16_t get_irr_seq_k() const {
+    return irr_seq_.get_k();
+  }
+
+  int16_t get_irr_seq_l() const {
+    return irr_seq_.get_l();
+  }
+
+  int16_t get_irr_seq_i() const {
+    return irr_seq_.get_i();
+  }
+
+  int16_t get_irr_seq_j() const {
+    return irr_seq_.get_j();
+  }
+
+  int16_t get_irr_seq_n() const {
+    return irr_seq_.get_n();
+  }
+
   // Maintain an internal list of currently available settings, since some are
   // dependent on others. It's kind of brute force, but eh, works :) If other
   // apps have a similar need, it can be moved to a common wrapper
@@ -654,8 +650,6 @@ public:
         *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_START_CV_SOURCE;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH_CV_SOURCE;
       break;
       default:
       break;
@@ -701,8 +695,6 @@ public:
       case CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH:
       case CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE:
       case CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE:
-      case CHANNEL_SETTING_IRR_SEQ_LOOP_START_CV_SOURCE:
-      case CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH_CV_SOURCE:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -795,13 +787,11 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Irrational", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
   { 12, 1, 120, "Irr seq range", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "Irr seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 254, "Irr loop start", NULL, settings::STORAGE_TYPE_U8 },
-  { 14, 1, 255, "Irr loop len", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Irr seq CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Irr rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Irr start CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Irr len CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 1, 0, 1, "Irr seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "Irr start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 256, "Irr len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Irr seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Irr rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U8 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
@@ -1157,4 +1147,20 @@ void QQ_screensaver() {
   graphics.setPrintPos(0, 32);
   graphics.printf("%u",  us);
 #endif
+}
+
+void QQ_debug() {
+  for (int i = 0; i < 4; ++i) { 
+    uint8_t ypos = 10*(i + 1) + 2 ; 
+    graphics.setPrintPos(2, ypos);
+    graphics.print(quantizer_channels[i].get_irr_seq_i());
+    graphics.setPrintPos(32, ypos);
+    graphics.print(quantizer_channels[i].get_irr_seq_l());
+    graphics.setPrintPos(62, ypos);
+    graphics.print(quantizer_channels[i].get_irr_seq_j());
+    graphics.setPrintPos(92, ypos);
+    graphics.print(quantizer_channels[i].get_irr_seq_k());
+    graphics.setPrintPos(122, ypos);
+    graphics.print(quantizer_channels[i].get_irr_seq_n());
+ }
 }
