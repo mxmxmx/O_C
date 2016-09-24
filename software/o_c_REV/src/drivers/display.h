@@ -27,6 +27,7 @@
 #include "page_display_driver.h"
 #include "SH1106_128x64_Driver.h"
 #include "weegfx.h"
+#include "../../util/util_debugpins.h"
 
 namespace display {
 

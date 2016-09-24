@@ -37,7 +37,7 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 #include "OC_version.h"
-#include "drivers/display.h"
+#include "src/drivers/display.h"
 #include "util/util_debugpins.h"
 
 unsigned long LAST_REDRAW_TIME = 0;
