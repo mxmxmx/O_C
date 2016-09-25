@@ -64,6 +64,7 @@ public:
     k_ = i_; // current index
     x_ = 3; // first digit of pi
     loop_ = true;
+    pass_go_ = true;
     up_ = true;
   }
 
@@ -84,7 +85,14 @@ public:
   	if (k_ < i_) {
   		k_ += 2;
   		up_ = true;
+  	}  	
+
+  	if (k_ == i_) {
+  		pass_go_ = true;
+  	} else {
+  		pass_go_ = false;
   	}
+
   	  	
   	switch (n_) {
       case 0:
@@ -162,6 +170,10 @@ public:
     return n_;
   }
 
+  bool get_pass_go() const {
+    return pass_go_;
+  }
+
 private:
   int16_t n_;
   int16_t k_;
@@ -170,6 +182,7 @@ private:
   int16_t l_;
   int16_t x_;
   bool loop_;
+  bool pass_go_;
   bool up_ ;
 };
 

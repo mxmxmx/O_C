@@ -74,6 +74,8 @@ enum ChannelSetting {
   CHANNEL_SETTING_IRR_SEQ_DIRECTION,
   CHANNEL_SETTING_IRR_SEQ_LOOP_START,
   CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH,
+  CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB,
+  CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE,
   CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE,
   CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE,
   CHANNEL_SETTING_LAST
@@ -242,6 +244,10 @@ public:
     return static_cast<int16_t>(values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START]);
   }
 
+  void set_irr_seq_start(uint8_t start_pos) {
+    values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START] = start_pos;
+  }
+
   int16_t get_irr_seq_length() const {
     return static_cast<int16_t>(values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH] - 1);
   }
@@ -258,6 +264,13 @@ public:
     return values_[CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE];
   }
 
+  uint8_t get_irr_seq_frame_shift_prob() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB];
+  }
+
+  uint8_t get_irr_seq_frame_shift_range() const {
+    return values_[CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE];
+  }
 
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
@@ -478,6 +491,36 @@ public:
             
             if (triggered) {
               uint32_t is = irr_seq_.Clock();
+              // check whether frame should be shifted and if so, by how much.
+              if (get_irr_seq_pass_go()) {
+                // OK, we're at the start of a loop or at one end of a pendulum swing
+                uint8_t fs_prob = get_irr_seq_frame_shift_prob();
+                uint8_t fs_range = get_irr_seq_frame_shift_range();
+                Serial.print("fs_prob=");
+                Serial.println(fs_prob);
+                Serial.print("fs_range=");
+                Serial.println(fs_range);
+                uint8_t fs_rand = static_cast<uint8_t>(random(0,256)) ;
+                Serial.print("fs_rand=");
+                Serial.println(fs_rand);
+                Serial.println("---"); 
+                if (fs_rand < fs_prob) {
+                  // OK, move the frame!
+                  int16_t frame_shift = random(-fs_range, fs_range + 1) ;
+                  Serial.print("frame_shift=");
+                  Serial.println(frame_shift);
+                  Serial.print("current start pos=");
+                  Serial.println(get_irr_seq_start());
+                  int16_t new_start_pos = get_irr_seq_start() + frame_shift ;
+                  Serial.print("new_start_pos=");
+                  Serial.println(new_start_pos);
+                  Serial.println("==="); 
+                  if (new_start_pos < 0) new_start_pos = 0;
+                  if (new_start_pos > 254) new_start_pos = 254;
+                  set_irr_seq_start(static_cast<uint8_t>(new_start_pos)) ;
+                  irr_seq_.set_loop_start(get_irr_seq_start());                  
+                }
+              }
               int16_t range_ = get_irr_seq_range();
               if (get_irr_seq_range_cv_source()) {
                 range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 5);
@@ -596,6 +639,10 @@ public:
     return irr_seq_.get_n();
   }
 
+  bool get_irr_seq_pass_go() const {
+   return irr_seq_.get_pass_go();
+  }
+
   // Maintain an internal list of currently available settings, since some are
   // dependent on others. It's kind of brute force, but eh, works :) If other
   // apps have a similar need, it can be moved to a common wrapper
@@ -648,6 +695,8 @@ public:
         *settings++ = CHANNEL_SETTING_IRR_SEQ_DIRECTION;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_START;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE;
       break;
@@ -693,6 +742,8 @@ public:
       case CHANNEL_SETTING_IRR_SEQ_DIRECTION:
       case CHANNEL_SETTING_IRR_SEQ_LOOP_START:
       case CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH:
+      case CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB:
+      case CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE:
       case CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE:
       case CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_CLKDIV:
@@ -790,8 +841,10 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 1, 0, 1, "Irr seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "Irr start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "Irr len", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Irr seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Irr rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "Irr FS prob", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 5, "Irr FS rng", NULL, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Irr seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Irr rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
