@@ -488,7 +488,9 @@ public:
             irr_seq_.set_loop_start(get_irr_seq_start());
 
             irr_seq_.set_loop_length(get_irr_seq_length());
-            
+
+            // if (instant_update_) irr_seq_.reset_loop();
+
             if (triggered) {
               uint32_t is = irr_seq_.Clock();
               // check whether frame should be shifted and if so, by how much.
@@ -496,25 +498,25 @@ public:
                 // OK, we're at the start of a loop or at one end of a pendulum swing
                 uint8_t fs_prob = get_irr_seq_frame_shift_prob();
                 uint8_t fs_range = get_irr_seq_frame_shift_range();
-                Serial.print("fs_prob=");
-                Serial.println(fs_prob);
-                Serial.print("fs_range=");
-                Serial.println(fs_range);
+                // Serial.print("fs_prob=");
+                // Serial.println(fs_prob);
+                // Serial.print("fs_range=");
+                // Serial.println(fs_range);
                 uint8_t fs_rand = static_cast<uint8_t>(random(0,256)) ;
-                Serial.print("fs_rand=");
-                Serial.println(fs_rand);
-                Serial.println("---"); 
+                // Serial.print("fs_rand=");
+                // Serial.println(fs_rand);
+                // Serial.println("---"); 
                 if (fs_rand < fs_prob) {
                   // OK, move the frame!
                   int16_t frame_shift = random(-fs_range, fs_range + 1) ;
-                  Serial.print("frame_shift=");
-                  Serial.println(frame_shift);
-                  Serial.print("current start pos=");
-                  Serial.println(get_irr_seq_start());
+                  // Serial.print("frame_shift=");
+                  // Serial.println(frame_shift);
+                  // Serial.print("current start pos=");
+                  // Serial.println(get_irr_seq_start());
                   int16_t new_start_pos = get_irr_seq_start() + frame_shift ;
-                  Serial.print("new_start_pos=");
-                  Serial.println(new_start_pos);
-                  Serial.println("==="); 
+                  // Serial.print("new_start_pos=");
+                  // Serial.println(new_start_pos);
+                  // Serial.println("==="); 
                   if (new_start_pos < 0) new_start_pos = 0;
                   if (new_start_pos > 254) new_start_pos = 254;
                   set_irr_seq_start(static_cast<uint8_t>(new_start_pos)) ;
@@ -523,7 +525,7 @@ public:
               }
               int16_t range_ = get_irr_seq_range();
               if (get_irr_seq_range_cv_source()) {
-                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 5);
+                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 6);
                 CONSTRAIN(range_, 1, 120);
               }
               if (quantizer_.enabled()) {
@@ -1146,9 +1148,10 @@ void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
       menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_bytebeat_register(), 8);
       break;
     case CHANNEL_SOURCE_IRR_SEQ:
-      // graphics.movePrintPos(start_x, 1);
-      // graphics.print(bytebeat_equation_names[get_bytebeat_equation()]);
-      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_irr_seq_register(), 8);
+      // graphics.setPrintPos(start_x + 31 - 16, 4);
+      graphics.setPrintPos(start_x + 8, 4);
+      graphics.print(get_irr_seq_k());
+      // menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_irr_seq_register(), 8);
       break;
     default: {
       graphics.setPixel(start_x + 31 - 16, 4);

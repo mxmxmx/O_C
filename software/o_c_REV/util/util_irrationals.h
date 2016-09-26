@@ -150,6 +150,10 @@ public:
     n_ = n; 
   }
 
+  void reset_loop() {
+    k_ = i_;
+  }
+
   int16_t get_k() const {
     return k_;
   }
