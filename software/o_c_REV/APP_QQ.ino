@@ -479,10 +479,10 @@ public:
 
             int16_t irr_seq_index = get_irr_seq_index();
             if (get_irr_seq_index_cv_source()) {
-              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) >> 8);
+              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) >> 7);
             }
             if (irr_seq_index < 0) irr_seq_index = 0;
-            if (irr_seq_index > 4) irr_seq_index = 4;
+            if (irr_seq_index > 7) irr_seq_index = 7;
             irr_seq_.set_irr_seq(irr_seq_index);
 
             irr_seq_.set_loop_start(get_irr_seq_start());
@@ -800,7 +800,7 @@ const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
 };
 
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
-  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "Irrat"
+  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "IntSeq"
 };
 
 const char* const turing_logistic_cv_sources[5] = {
@@ -838,15 +838,15 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Irrational", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 12, 1, 120, "Irr seq range", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 1, "Irr seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 254, "Irr start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "Irr len", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 255, "Irr FS prob", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "Irr FS rng", NULL, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Irr seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Irr rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "Int seq", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 12, 1, 120, "Int seq range", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 1, "Int seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "Int start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 256, "Int len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "Int FS prob", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 5, "Int FS rng", NULL, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Int seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Int rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change

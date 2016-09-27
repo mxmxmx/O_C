@@ -23,7 +23,7 @@ namespace OC {
   };
 
   const char* const irrational_sequence_names[] = {
-    "pi", "phi", "tau", "Euler", "root2" 
+    "pi", "phi", "tau", "Euler", "root2", "dress", "d31", "d63" 
   };
 
   const char* const irrational_sequence_dirs[] = {
