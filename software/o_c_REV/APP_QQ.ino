@@ -78,6 +78,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE,
   CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE,
   CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER,
   CHANNEL_SETTING_LAST
 };
 
@@ -272,6 +273,10 @@ public:
     return values_[CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE];
   }
 
+  ChannelTriggerSource get_irr_seq_reset_trigger_source() const {
+    return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER]);
+  }
+
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
     apply_value(CHANNEL_SETTING_SOURCE, source);
@@ -283,6 +288,7 @@ public:
     last_mask_ = 0;
     last_sample_ = 0;
     clock_ = 0;
+    irr_seq_reset_ = false;
 
     trigger_delay_.Init();
     turing_machine_.Init();
@@ -315,6 +321,11 @@ public:
     bool triggered = !continous &&
       (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
 
+    if (source == CHANNEL_SOURCE_IRR_SEQ) {
+      ChannelTriggerSource irr_seq_reset_trigger_source = get_irr_seq_reset_trigger_source() ;
+      irr_seq_reset_ = (triggers & DIGITAL_INPUT_MASK(irr_seq_reset_trigger_source - 1));
+    }
+    
     trigger_delay_.Update();
     if (triggered)
       trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
@@ -489,7 +500,10 @@ public:
 
             irr_seq_.set_loop_length(get_irr_seq_length());
 
-            // if (instant_update_) irr_seq_.reset_loop();
+            if (irr_seq_reset_) {
+              irr_seq_.reset_loop();
+              irr_seq_reset_ = false;
+            }
 
             if (triggered) {
               uint32_t is = irr_seq_.Clock();
@@ -701,6 +715,7 @@ public:
         *settings++ = CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER;
       break;
       default:
       break;
@@ -748,6 +763,7 @@ public:
       case CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE:
       case CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE:
       case CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -767,7 +783,8 @@ private:
   uint16_t last_mask_;
   int32_t last_sample_;
   uint8_t clock_;
-
+  bool irr_seq_reset_;
+  
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
   util::LogisticMap logistic_map_;
@@ -806,6 +823,11 @@ const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
 const char* const turing_logistic_cv_sources[5] = {
   "None", "CV1", "CV2", "CV3", "CV4"
 };
+
+const char* const reset_trigger_sources[5] = {
+  "None", "TR1", "TR2", "TR3", "TR4"
+};
+
 
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
@@ -847,6 +869,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 5, "Int FS rng", NULL, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Int seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Int rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Int seq reset", reset_trigger_sources, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change

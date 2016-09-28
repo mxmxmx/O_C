@@ -655,10 +655,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "> Irrational", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 254, "> Irr start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "> Irr length", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 1, "> Irr dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "> Integer Seq", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "> Seq start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 256, "> Seq length", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 1, "> Seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 3, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
