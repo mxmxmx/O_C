@@ -523,9 +523,9 @@ public:
                   // _pitch can do other things now -- 
                   switch (get_irr_seq_CV()) {
   
-                      case 1:  // irrational sequence, 0-4
+                      case 1:  // irrational sequence, 0-7
                        _irr_seq_index += ((_pitch + 127) >> 9);
-                       CONSTRAIN(_irr_seq_index, 0, 4);
+                       CONSTRAIN(_irr_seq_index, 0, 7);
                       break;
                        case 2:  // sequence start point, 0-254
                        _irr_seq_start += ((_pitch + 15) >> 8);
@@ -621,7 +621,7 @@ const char* const mult[20] = {
 };
 
 const char* const asr_input_sources[] = {
-  "CV1", "TM", "BB", "IRR"
+  "CV1", "TM", "ByteB", "IntSeq"
 };
 
 const char* const tm_CV_destinations[] = {

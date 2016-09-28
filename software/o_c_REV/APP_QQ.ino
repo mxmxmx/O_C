@@ -490,7 +490,7 @@ public:
 
             int16_t irr_seq_index = get_irr_seq_index();
             if (get_irr_seq_index_cv_source()) {
-              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) >> 7);
+              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) >> 8);
             }
             if (irr_seq_index < 0) irr_seq_index = 0;
             if (irr_seq_index > 7) irr_seq_index = 7;
