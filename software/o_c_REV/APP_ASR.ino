@@ -2,7 +2,7 @@
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
 #include "peaks_bytebeat.h"
-#include "util/util_irrationals.h"
+#include "util/util_integer_sequences.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
 #include "OC_scales.h"
@@ -39,11 +39,11 @@ enum ASRSettings {
   ASR_SETTING_BYTEBEAT_P1,
   ASR_SETTING_BYTEBEAT_P2,
   ASR_SETTING_BYTEBEAT_CV_SOURCE,
-  ASR_SETTING_IRR_SEQ_INDEX,
-  ASR_SETTING_IRR_SEQ_START,
-  ASR_SETTING_IRR_SEQ_LENGTH,
-  ASR_SETTING_IRR_SEQ_DIR,
-  ASR_SETTING_IRR_SEQ_CV_SOURCE,
+  ASR_SETTING_INT_SEQ_INDEX,
+  ASR_SETTING_INT_SEQ_START,
+  ASR_SETTING_INT_SEQ_LENGTH,
+  ASR_SETTING_INT_SEQ_DIR,
+  ASR_SETTING_INT_SEQ_CV_SOURCE,
   ASR_SETTING_LAST
 };
 
@@ -51,7 +51,7 @@ enum ASRChannelSource {
   ASR_CHANNEL_SOURCE_CV1,
   ASR_CHANNEL_SOURCE_TURING,
   ASR_CHANNEL_SOURCE_BYTEBEAT,
-  ASR_CHANNEL_SOURCE_IRRATIONALS,
+  ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES,
   ASR_CHANNEL_SOURCE_LAST
 };
 
@@ -153,44 +153,44 @@ public:
     return values_[ASR_SETTING_BYTEBEAT_CV_SOURCE];
   }
 
-  uint8_t get_irr_seq_index() const {
-    return values_[ ASR_SETTING_IRR_SEQ_INDEX];
+  uint8_t get_int_seq_index() const {
+    return values_[ ASR_SETTING_INT_SEQ_INDEX];
   }
 
-  int16_t get_irr_seq_start() const {
-    return static_cast<int16_t>(values_[ ASR_SETTING_IRR_SEQ_START]);
+  int16_t get_int_seq_start() const {
+    return static_cast<int16_t>(values_[ ASR_SETTING_INT_SEQ_START]);
   }
 
-  int16_t get_irr_seq_length() const {
-    return static_cast<int16_t>(values_[ ASR_SETTING_IRR_SEQ_LENGTH] - 1);
+  int16_t get_int_seq_length() const {
+    return static_cast<int16_t>(values_[ ASR_SETTING_INT_SEQ_LENGTH] - 1);
   }
 
-  bool get_irr_seq_dir() const {
-    return static_cast<bool>(values_[ ASR_SETTING_IRR_SEQ_DIR]);
+  bool get_int_seq_dir() const {
+    return static_cast<bool>(values_[ ASR_SETTING_INT_SEQ_DIR]);
   }
 
-  uint8_t get_irr_seq_CV() const {
-    return values_[ASR_SETTING_IRR_SEQ_CV_SOURCE];
+  uint8_t get_int_seq_CV() const {
+    return values_[ASR_SETTING_INT_SEQ_CV_SOURCE];
   }
 
-  int16_t get_irr_seq_k() const {
-    return irr_seq_.get_k();
+  int16_t get_int_seq_k() const {
+    return int_seq_.get_k();
   }
 
-  int16_t get_irr_seq_l() const {
-    return irr_seq_.get_l();
+  int16_t get_int_seq_l() const {
+    return int_seq_.get_l();
   }
 
-  int16_t get_irr_seq_i() const {
-    return irr_seq_.get_i();
+  int16_t get_int_seq_i() const {
+    return int_seq_.get_i();
   }
 
-  int16_t get_irr_seq_j() const {
-    return irr_seq_.get_j();
+  int16_t get_int_seq_j() const {
+    return int_seq_.get_j();
   }
 
-  int16_t get_irr_seq_n() const {
-    return irr_seq_.get_n();
+  int16_t get_int_seq_n() const {
+    return int_seq_.get_n();
   }
 
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
@@ -242,7 +242,7 @@ public:
     turing_machine_.Init();
     turing_display_length_ = get_turing_length();
     bytebeat_.Init();
-    irr_seq_.Init(get_irr_seq_start(), get_irr_seq_length());
+    int_seq_.Init(get_int_seq_start(), get_int_seq_length());
  }
 
   bool update_scale(bool force, int32_t mask_rotate) {
@@ -316,12 +316,12 @@ public:
         *settings++ = ASR_SETTING_BYTEBEAT_P2;
         *settings++ = ASR_SETTING_BYTEBEAT_CV_SOURCE;
       break;
-       case ASR_CHANNEL_SOURCE_IRRATIONALS:
-        *settings++ = ASR_SETTING_IRR_SEQ_INDEX;
-        *settings++ = ASR_SETTING_IRR_SEQ_START;
-        *settings++ = ASR_SETTING_IRR_SEQ_LENGTH;
-        *settings++ = ASR_SETTING_IRR_SEQ_DIR;
-        *settings++ = ASR_SETTING_IRR_SEQ_CV_SOURCE;
+       case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
+        *settings++ = ASR_SETTING_INT_SEQ_INDEX;
+        *settings++ = ASR_SETTING_INT_SEQ_START;
+        *settings++ = ASR_SETTING_INT_SEQ_LENGTH;
+        *settings++ = ASR_SETTING_INT_SEQ_DIR;
+        *settings++ = ASR_SETTING_INT_SEQ_CV_SOURCE;
        break;
      default:
       break;
@@ -513,38 +513,38 @@ public:
                   _pitch = _bb;  
                  }
                   break;      
-                case ASR_CHANNEL_SOURCE_IRRATIONALS:
+                case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
                  {
-                 int16_t _irr_seq_index = get_irr_seq_index() ;
-                 int16_t _irr_seq_start = get_irr_seq_start() ;
-                 int16_t _irr_seq_length = get_irr_seq_length();
-                 bool _irr_seq_dir = get_irr_seq_dir();
+                 int16_t _int_seq_index = get_int_seq_index() ;
+                 int16_t _int_seq_start = get_int_seq_start() ;
+                 int16_t _int_seq_length = get_int_seq_length();
+                 bool _int_seq_dir = get_int_seq_dir();
 
                   // _pitch can do other things now -- 
-                  switch (get_irr_seq_CV()) {
+                  switch (get_int_seq_CV()) {
   
-                      case 1:  // irrational sequence, 0-7
-                       _irr_seq_index += ((_pitch + 127) >> 9);
-                       CONSTRAIN(_irr_seq_index, 0, 7);
+                      case 1:  // integer sequence, 0-7
+                       _int_seq_index += ((_pitch + 127) >> 9);
+                       CONSTRAIN(_int_seq_index, 0, 7);
                       break;
                        case 2:  // sequence start point, 0-254
-                       _irr_seq_start += ((_pitch + 15) >> 8);
-                       CONSTRAIN(_irr_seq_start, 0, 254);
+                       _int_seq_start += ((_pitch + 15) >> 8);
+                       CONSTRAIN(_int_seq_start, 0, 254);
                       break;
                        case 3:  // sequence loop length, 1-255
-                       _irr_seq_length += ((_pitch + 15) >> 8);
-                       CONSTRAIN(_irr_seq_length, 1, 255);
+                       _int_seq_length += ((_pitch + 15) >> 8);
+                       CONSTRAIN(_int_seq_length, 1, 255);
                       break;
                       default: // mult
                        _mult += ((_pitch + 255) >> 8);
                       break;
                   }
                  
-                  irr_seq_.set_loop_start(_irr_seq_start);
-                  irr_seq_.set_loop_length(_irr_seq_length);
-                  irr_seq_.set_irr_seq(_irr_seq_index);
-                  irr_seq_.set_loop_direction(_irr_seq_dir);
-                 int32_t _is = (static_cast<int16_t>(irr_seq_.Clock()) & 0xFFF);
+                  int_seq_.set_loop_start(_int_seq_start);
+                  int_seq_.set_loop_length(_int_seq_length);
+                  int_seq_.set_int_seq(_int_seq_index);
+                  int_seq_.set_loop_direction(_int_seq_dir);
+                 int32_t _is = (static_cast<int16_t>(int_seq_.Clock()) & 0xFFF);
                    
                   _pitch = _is;  
                  }
@@ -609,7 +609,7 @@ private:
   util::TuringShiftRegister turing_machine_;
   int8_t turing_display_length_;
   peaks::ByteBeat bytebeat_ ;
-  util::IrrationalSequence irr_seq_ ;
+  util::IntegerSequence int_seq_ ;
   OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 
   int num_enabled_settings_;
@@ -621,7 +621,7 @@ const char* const mult[20] = {
 };
 
 const char* const asr_input_sources[] = {
-  "CV1", "TM", "ByteB", "IntSeq"
+  "CV1", "TM", "ByteB", "IntSq"
 };
 
 const char* const tm_CV_destinations[] = {
@@ -633,8 +633,8 @@ const char* const bb_CV_destinations[] = {
 };
 
 
-const char* const irr_CV_destinations[] = {
-  "M/A", "seq", "start", "len"
+const char* const int_seq_CV_destinations[] = {
+  "M/A", "seq", "strt", "len"
 };
 
 
@@ -649,17 +649,17 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 4, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, " > CV1 -->", tm_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 2, " > LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U4 },
   { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, " > CV1 -->", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "> Integer Seq", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 254, "> Seq start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "> Seq length", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 1, "> Seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, " > CV1 -->", irr_CV_destinations, settings::STORAGE_TYPE_U4 },   
+  { 0, 0, 4, " > BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 3, " > IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
 /* -------------------------------------------------------------------*/
@@ -955,14 +955,14 @@ void ASR_debug() {
   for (int i = 0; i < 1; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
     graphics.setPrintPos(2, ypos);
-    graphics.print(asr.get_irr_seq_i());
+    graphics.print(asr.get_int_seq_i());
     graphics.setPrintPos(32, ypos);
-    graphics.print(asr.get_irr_seq_l());
+    graphics.print(asr.get_int_seq_l());
     graphics.setPrintPos(62, ypos);
-    graphics.print(asr.get_irr_seq_j());
+    graphics.print(asr.get_int_seq_j());
     graphics.setPrintPos(92, ypos);
-    graphics.print(asr.get_irr_seq_k());
+    graphics.print(asr.get_int_seq_k());
     graphics.setPrintPos(122, ypos);
-    graphics.print(asr.get_irr_seq_n());
+    graphics.print(asr.get_int_seq_n());
  }
 }

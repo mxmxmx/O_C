@@ -19,8 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UTIL_IRRATIONALS_H_
-#define UTIL_IRRATIONALS_H_
+#ifndef UTIL_INTEGER_SEQUENCES_H_
+#define UTIL_INTEGER_SEQUENCES_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -31,13 +31,13 @@
 
 namespace util {
 
-class IrrationalSequence {
+class IntegerSequence {
 public:
 
 
 
   void Init(int16_t i, int16_t l) {
-    n_ = 0; // index of irrational series
+    n_ = 0; // index of integer series
     i_ = i; // start of loop
     l_ = l; // length of loop
     j_ = i_ + l_; // end of loop
@@ -135,7 +135,7 @@ public:
     loop_ = p; // loop direction, false = swing (pendulum), true = loop
   }
 
-  void set_irr_seq(int16_t n) {
+  void set_int_seq(int16_t n) {
     n_ = n; 
   }
 
@@ -181,4 +181,4 @@ private:
 
 }; // namespace util
 
-#endif // UTIL_IRRATIONALS_H_
+#endif // UTIL_INTEGER_SEQUENCES_H_

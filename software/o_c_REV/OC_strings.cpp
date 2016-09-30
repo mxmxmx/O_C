@@ -22,11 +22,11 @@ namespace OC {
     "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
   };
 
-  const char* const irrational_sequence_names[] = {
+  const char* const integer_sequence_names[] = {
     "pi", "phi", "tau", "Euler", "root2", "dress", "dr31", "dr63" 
   };
 
-  const char* const irrational_sequence_dirs[] = {
+  const char* const integer_sequence_dirs[] = {
     "swing", "loop"
   };
 

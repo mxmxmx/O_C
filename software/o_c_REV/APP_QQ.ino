@@ -30,7 +30,7 @@
 #include "util/util_settings.h"
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
-#include "util/util_irrationals.h"
+#include "util/util_integer_sequences.h"
 #include "peaks_bytebeat.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
@@ -69,16 +69,16 @@ enum ChannelSetting {
   CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE,
   CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE,
   CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE, 
-  CHANNEL_SETTING_IRR_SEQ_INDEX,
-  CHANNEL_SETTING_IRR_SEQ_RANGE,
-  CHANNEL_SETTING_IRR_SEQ_DIRECTION,
-  CHANNEL_SETTING_IRR_SEQ_LOOP_START,
-  CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH,
-  CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB,
-  CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE,
-  CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE,
-  CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE,
-  CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER,
+  CHANNEL_SETTING_INT_SEQ_INDEX,
+  CHANNEL_SETTING_INT_SEQ_RANGE,
+  CHANNEL_SETTING_INT_SEQ_DIRECTION,
+  CHANNEL_SETTING_INT_SEQ_LOOP_START,
+  CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH,
+  CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB,
+  CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE,
+  CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE,
+  CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER,
   CHANNEL_SETTING_LAST
 };
 
@@ -99,7 +99,7 @@ enum ChannelSource {
   CHANNEL_SOURCE_TURING,
   CHANNEL_SOURCE_LOGISTIC_MAP,
   CHANNEL_SOURCE_BYTEBEAT,
-  CHANNEL_SOURCE_IRR_SEQ,
+  CHANNEL_SOURCE_INT_SEQ,
   CHANNEL_SOURCE_LAST
 };
 
@@ -233,48 +233,48 @@ public:
     return values_[CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE];
   }
 
-  uint8_t get_irr_seq_index() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_INDEX];
+  uint8_t get_int_seq_index() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_INDEX];
   }
 
-  uint8_t get_irr_seq_range() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_RANGE];
+  uint8_t get_int_seq_range() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_RANGE];
   }
 
-  int16_t get_irr_seq_start() const {
-    return static_cast<int16_t>(values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START]);
+  int16_t get_int_seq_start() const {
+    return static_cast<int16_t>(values_[CHANNEL_SETTING_INT_SEQ_LOOP_START]);
   }
 
-  void set_irr_seq_start(uint8_t start_pos) {
-    values_[CHANNEL_SETTING_IRR_SEQ_LOOP_START] = start_pos;
+  void set_int_seq_start(uint8_t start_pos) {
+    values_[CHANNEL_SETTING_INT_SEQ_LOOP_START] = start_pos;
   }
 
-  int16_t get_irr_seq_length() const {
-    return static_cast<int16_t>(values_[CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH] - 1);
+  int16_t get_int_seq_length() const {
+    return static_cast<int16_t>(values_[CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH] - 1);
   }
 
-  bool get_irr_seq_dir() const {
-    return static_cast<bool>(values_[CHANNEL_SETTING_IRR_SEQ_DIRECTION]);
+  bool get_int_seq_dir() const {
+    return static_cast<bool>(values_[CHANNEL_SETTING_INT_SEQ_DIRECTION]);
   }
 
-  uint8_t get_irr_seq_index_cv_source() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE];
+  uint8_t get_int_seq_index_cv_source() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE];
   }
 
-  uint8_t get_irr_seq_range_cv_source() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE];
+  uint8_t get_int_seq_range_cv_source() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE];
   }
 
-  uint8_t get_irr_seq_frame_shift_prob() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB];
+  uint8_t get_int_seq_frame_shift_prob() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB];
   }
 
-  uint8_t get_irr_seq_frame_shift_range() const {
-    return values_[CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE];
+  uint8_t get_int_seq_frame_shift_range() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE];
   }
 
-  ChannelTriggerSource get_irr_seq_reset_trigger_source() const {
-    return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER]);
+  ChannelTriggerSource get_int_seq_reset_trigger_source() const {
+    return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER]);
   }
 
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
@@ -288,13 +288,13 @@ public:
     last_mask_ = 0;
     last_sample_ = 0;
     clock_ = 0;
-    irr_seq_reset_ = false;
+    int_seq_reset_ = false;
 
     trigger_delay_.Init();
     turing_machine_.Init();
     logistic_map_.Init();
     bytebeat_.Init();
-    irr_seq_.Init(get_irr_seq_start(), get_irr_seq_length());
+    int_seq_.Init(get_int_seq_start(), get_int_seq_length());
     quantizer_.Init();
     update_scale(true);
     trigger_display_.Init();
@@ -321,9 +321,9 @@ public:
     bool triggered = !continous &&
       (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
 
-    if (source == CHANNEL_SOURCE_IRR_SEQ) {
-      ChannelTriggerSource irr_seq_reset_trigger_source = get_irr_seq_reset_trigger_source() ;
-      irr_seq_reset_ = (triggers & DIGITAL_INPUT_MASK(irr_seq_reset_trigger_source - 1));
+    if (source == CHANNEL_SOURCE_INT_SEQ) {
+      ChannelTriggerSource int_seq_reset_trigger_source = get_int_seq_reset_trigger_source() ;
+      int_seq_reset_ = (triggers & DIGITAL_INPUT_MASK(int_seq_reset_trigger_source - 1));
     }
     
     trigger_delay_.Update();
@@ -485,33 +485,33 @@ public:
           }
         }
         break;
-      case CHANNEL_SOURCE_IRR_SEQ: {
-            irr_seq_.set_loop_direction(get_irr_seq_dir());
+      case CHANNEL_SOURCE_INT_SEQ: {
+            int_seq_.set_loop_direction(get_int_seq_dir());
 
-            int16_t irr_seq_index = get_irr_seq_index();
-            if (get_irr_seq_index_cv_source()) {
-              irr_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_index_cv_source() - 1)) >> 8);
+            int16_t int_seq_index = get_int_seq_index();
+            if (get_int_seq_index_cv_source()) {
+              int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) >> 8);
             }
-            if (irr_seq_index < 0) irr_seq_index = 0;
-            if (irr_seq_index > 7) irr_seq_index = 7;
-            irr_seq_.set_irr_seq(irr_seq_index);
+            if (int_seq_index < 0) int_seq_index = 0;
+            if (int_seq_index > 7) int_seq_index = 7;
+            int_seq_.set_int_seq(int_seq_index);
 
-            irr_seq_.set_loop_start(get_irr_seq_start());
+            int_seq_.set_loop_start(get_int_seq_start());
 
-            irr_seq_.set_loop_length(get_irr_seq_length());
+            int_seq_.set_loop_length(get_int_seq_length());
 
-            if (irr_seq_reset_) {
-              irr_seq_.reset_loop();
-              irr_seq_reset_ = false;
+            if (int_seq_reset_) {
+              int_seq_.reset_loop();
+              int_seq_reset_ = false;
             }
 
             if (triggered) {
-              uint32_t is = irr_seq_.Clock();
+              uint32_t is = int_seq_.Clock();
               // check whether frame should be shifted and if so, by how much.
-              if (get_irr_seq_pass_go()) {
+              if (get_int_seq_pass_go()) {
                 // OK, we're at the start of a loop or at one end of a pendulum swing
-                uint8_t fs_prob = get_irr_seq_frame_shift_prob();
-                uint8_t fs_range = get_irr_seq_frame_shift_range();
+                uint8_t fs_prob = get_int_seq_frame_shift_prob();
+                uint8_t fs_range = get_int_seq_frame_shift_range();
                 // Serial.print("fs_prob=");
                 // Serial.println(fs_prob);
                 // Serial.print("fs_range=");
@@ -526,20 +526,20 @@ public:
                   // Serial.print("frame_shift=");
                   // Serial.println(frame_shift);
                   // Serial.print("current start pos=");
-                  // Serial.println(get_irr_seq_start());
-                  int16_t new_start_pos = get_irr_seq_start() + frame_shift ;
+                  // Serial.println(get_int_seq_start());
+                  int16_t new_start_pos = get_int_seq_start() + frame_shift ;
                   // Serial.print("new_start_pos=");
                   // Serial.println(new_start_pos);
                   // Serial.println("==="); 
                   if (new_start_pos < 0) new_start_pos = 0;
                   if (new_start_pos > 254) new_start_pos = 254;
-                  set_irr_seq_start(static_cast<uint8_t>(new_start_pos)) ;
-                  irr_seq_.set_loop_start(get_irr_seq_start());                  
+                  set_int_seq_start(static_cast<uint8_t>(new_start_pos)) ;
+                  int_seq_.set_loop_start(get_int_seq_start());                  
                 }
               }
-              int16_t range_ = get_irr_seq_range();
-              if (get_irr_seq_range_cv_source()) {
-                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_irr_seq_range_cv_source() - 1)) >> 6);
+              int16_t range_ = get_int_seq_range();
+              if (get_int_seq_range_cv_source()) {
+                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_range_cv_source() - 1)) >> 6);
                 CONSTRAIN(range_, 1, 120);
               }
               if (quantizer_.enabled()) {
@@ -631,32 +631,32 @@ public:
     return bytebeat_.get_last_sample();
   }
 
-  uint32_t get_irr_seq_register() const {
-    return irr_seq_.get_register();
+  uint32_t get_int_seq_register() const {
+    return int_seq_.get_register();
   }
 
-  int16_t get_irr_seq_k() const {
-    return irr_seq_.get_k();
+  int16_t get_int_seq_k() const {
+    return int_seq_.get_k();
   }
 
-  int16_t get_irr_seq_l() const {
-    return irr_seq_.get_l();
+  int16_t get_int_seq_l() const {
+    return int_seq_.get_l();
   }
 
-  int16_t get_irr_seq_i() const {
-    return irr_seq_.get_i();
+  int16_t get_int_seq_i() const {
+    return int_seq_.get_i();
   }
 
-  int16_t get_irr_seq_j() const {
-    return irr_seq_.get_j();
+  int16_t get_int_seq_j() const {
+    return int_seq_.get_j();
   }
 
-  int16_t get_irr_seq_n() const {
-    return irr_seq_.get_n();
+  int16_t get_int_seq_n() const {
+    return int_seq_.get_n();
   }
 
-  bool get_irr_seq_pass_go() const {
-   return irr_seq_.get_pass_go();
+  bool get_int_seq_pass_go() const {
+   return int_seq_.get_pass_go();
   }
 
   // Maintain an internal list of currently available settings, since some are
@@ -705,17 +705,17 @@ public:
         *settings++ = CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE;
       break;
-      case CHANNEL_SOURCE_IRR_SEQ:
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_DIRECTION;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_START;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE;
-        *settings++ = CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER;
+      case CHANNEL_SOURCE_INT_SEQ:
+        *settings++ = CHANNEL_SETTING_INT_SEQ_INDEX;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_RANGE;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_DIRECTION;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_START;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER;
       break;
       default:
       break;
@@ -754,16 +754,16 @@ public:
       case CHANNEL_SETTING_BYTEBEAT_P0_CV_SOURCE:
       case CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE:
       case CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE:      
-      case CHANNEL_SETTING_IRR_SEQ_INDEX:
-      case CHANNEL_SETTING_IRR_SEQ_RANGE:
-      case CHANNEL_SETTING_IRR_SEQ_DIRECTION:
-      case CHANNEL_SETTING_IRR_SEQ_LOOP_START:
-      case CHANNEL_SETTING_IRR_SEQ_LOOP_LENGTH:
-      case CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_PROB:
-      case CHANNEL_SETTING_IRR_SEQ_FRAME_SHIFT_RANGE:
-      case CHANNEL_SETTING_IRR_SEQ_INDEX_CV_SOURCE:
-      case CHANNEL_SETTING_IRR_SEQ_RANGE_CV_SOURCE:
-      case CHANNEL_SETTING_IRR_SEQ_RESET_TRIGGER:
+      case CHANNEL_SETTING_INT_SEQ_INDEX:
+      case CHANNEL_SETTING_INT_SEQ_RANGE:
+      case CHANNEL_SETTING_INT_SEQ_DIRECTION:
+      case CHANNEL_SETTING_INT_SEQ_LOOP_START:
+      case CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH:
+      case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB:
+      case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE:
+      case CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE:
+      case CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
         return true;
@@ -783,13 +783,13 @@ private:
   uint16_t last_mask_;
   int32_t last_sample_;
   uint8_t clock_;
-  bool irr_seq_reset_;
+  bool int_seq_reset_;
   
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
   util::LogisticMap logistic_map_;
   peaks::ByteBeat bytebeat_ ;
-  util::IrrationalSequence irr_seq_ ;
+  util::IntegerSequence int_seq_ ;
   braids::Quantizer quantizer_;
   OC::DigitalInputDisplay trigger_display_;
 
@@ -817,7 +817,7 @@ const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
 };
 
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
-  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "IntSeq"
+  "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "IntSq"
 };
 
 const char* const turing_logistic_cv_sources[5] = {
@@ -860,16 +860,16 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "Int seq", OC::Strings::irrational_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 12, 1, 120, "Int seq range", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 1, "Int seq dir", OC::Strings::irrational_sequence_dirs, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 254, "Int start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "Int len", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 255, "Int FS prob", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "Int FS rng", NULL, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Int seq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Int rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Int seq reset", reset_trigger_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 256, "IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "IntSeq FS prob", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 5, "IntSeq FS rng", NULL, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq reset", reset_trigger_sources, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
@@ -1170,11 +1170,11 @@ void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
     case CHANNEL_SOURCE_BYTEBEAT:
       menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_bytebeat_register(), 8);
       break;
-    case CHANNEL_SOURCE_IRR_SEQ:
+    case CHANNEL_SOURCE_INT_SEQ:
       // graphics.setPrintPos(start_x + 31 - 16, 4);
       graphics.setPrintPos(start_x + 8, 4);
-      graphics.print(get_irr_seq_k());
-      // menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_irr_seq_register(), 8);
+      graphics.print(get_int_seq_k());
+      // menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_int_seq_register(), 8);
       break;
     default: {
       graphics.setPixel(start_x + 31 - 16, 4);
@@ -1232,14 +1232,14 @@ void QQ_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
     graphics.setPrintPos(2, ypos);
-    graphics.print(quantizer_channels[i].get_irr_seq_i());
+    graphics.print(quantizer_channels[i].get_int_seq_i());
     graphics.setPrintPos(32, ypos);
-    graphics.print(quantizer_channels[i].get_irr_seq_l());
+    graphics.print(quantizer_channels[i].get_int_seq_l());
     graphics.setPrintPos(62, ypos);
-    graphics.print(quantizer_channels[i].get_irr_seq_j());
+    graphics.print(quantizer_channels[i].get_int_seq_j());
     graphics.setPrintPos(92, ypos);
-    graphics.print(quantizer_channels[i].get_irr_seq_k());
+    graphics.print(quantizer_channels[i].get_int_seq_k());
     graphics.setPrintPos(122, ypos);
-    graphics.print(quantizer_channels[i].get_irr_seq_n());
+    graphics.print(quantizer_channels[i].get_int_seq_n());
  }
 }
