@@ -76,8 +76,10 @@ enum ChannelSetting {
   CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH,
   CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB,
   CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE,
+  CHANNEL_SETTING_INT_SEQ_STRIDE,
   CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER,
   CHANNEL_SETTING_LAST
 };
@@ -271,6 +273,14 @@ public:
 
   uint8_t get_int_seq_frame_shift_range() const {
     return values_[CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE];
+  }
+
+  uint8_t get_int_seq_stride() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_STRIDE];
+  }
+
+  uint8_t get_int_seq_stride_cv_source() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE];
   }
 
   ChannelTriggerSource get_int_seq_reset_trigger_source() const {
@@ -487,14 +497,22 @@ public:
         break;
       case CHANNEL_SOURCE_INT_SEQ: {
             int_seq_.set_loop_direction(get_int_seq_dir());
-
             int16_t int_seq_index = get_int_seq_index();
+            int16_t int_seq_stride = get_int_seq_stride();
+
             if (get_int_seq_index_cv_source()) {
               int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) >> 8);
             }
             if (int_seq_index < 0) int_seq_index = 0;
             if (int_seq_index > 7) int_seq_index = 7;
             int_seq_.set_int_seq(int_seq_index);
+
+            if (get_int_seq_stride_cv_source()) {
+              int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) >> 6);
+            }
+            if (int_seq_stride < 1) int_seq_stride = 1;
+            if (int_seq_stride > 255) int_seq_stride = 255;
+            int_seq_.set_fractal_stride(int_seq_stride);
 
             int_seq_.set_loop_start(get_int_seq_start());
 
@@ -711,6 +729,8 @@ public:
         *settings++ = CHANNEL_SETTING_INT_SEQ_DIRECTION;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_START;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_STRIDE;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB;
         *settings++ = CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE;
@@ -761,8 +781,10 @@ public:
       case CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH:
       case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB:
       case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE:
+      case CHANNEL_SETTING_INT_SEQ_STRIDE:
       case CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE:
       case CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE:
+      case CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE:
       case CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER:
       case CHANNEL_SETTING_CLKDIV:
       case CHANNEL_SETTING_DELAY:
@@ -771,8 +793,6 @@ public:
     }
     return false;
   }
-
-  //
 
   void RenderScreensaver(weegfx::coord_t x) const;
 
@@ -867,11 +887,13 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 8, 2, 256, "IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "IntSeq FS prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "IntSeq FS rng", NULL, settings::STORAGE_TYPE_U4 },
+  { 1, 1, 255, "Fractal stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "IntSeq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Frctl stride CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq reset", reset_trigger_sources, settings::STORAGE_TYPE_U4 },
 };
-
+ 
 // WIP refactoring to better encapsulate and for possible app interface change
 class QuadQuantizer {
 public:

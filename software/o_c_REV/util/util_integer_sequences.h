@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include "../OC_strings.h"
 
-//     int bitcount =  __builtin_popcountll(1625255263);
-
 namespace util {
 
 class IntegerSequence {
@@ -43,6 +41,7 @@ public:
     j_ = i_ + l_; // end of loop
     k_ = i_; // current index
     x_ = 3; // first digit of pi
+    s_ = 1; // stride for fractal sequance
     loop_ = true;
     pass_go_ = true;
     up_ = true;
@@ -91,13 +90,13 @@ public:
       	x_ = OC::Strings::rt2_digits[k_];
       	break;
       case 5:
-      	x_ = OC::Strings::dress_digits[k_];
+      	x_ = OC::Strings::rt3_digits[k_];
       	break;
       case 6:
-      	x_ = OC::Strings::dress31_digits[k_];
+      	x_ = OC::Strings::rt5_digits[k_];
       	break;
       case 7:
-      	x_ = OC::Strings::dress63_digits[k_];
+        x_ =  __builtin_popcountll(s_ * k_);
       	break;
       default:
         break;
@@ -139,6 +138,10 @@ public:
     n_ = n; 
   }
 
+  void set_fractal_stride(int16_t s) {
+    s_ = s; 
+  }
+
   void reset_loop() {
     k_ = i_;
   }
@@ -163,6 +166,10 @@ public:
     return n_;
   }
 
+  int16_t get_s() const {
+    return s_;
+  }
+
   bool get_pass_go() const {
     return pass_go_;
   }
@@ -174,6 +181,7 @@ private:
   int16_t j_;
   int16_t l_;
   int16_t x_;
+  int16_t s_;
   bool loop_;
   bool pass_go_;
   bool up_ ;

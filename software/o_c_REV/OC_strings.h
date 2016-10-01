@@ -24,9 +24,8 @@ namespace OC {
   extern const uint8_t tau_digits[256];
   extern const uint8_t eul_digits[256];
   extern const uint8_t rt2_digits[256];
-  extern const uint8_t dress_digits[256];
-  extern const uint8_t dress31_digits[256];
-  extern const uint8_t dress63_digits[256];
+  extern const uint8_t rt3_digits[256];
+  extern const uint8_t rt5_digits[256];
  };
 
   // Not a string, but needs to be closer to trigger_delay_times
