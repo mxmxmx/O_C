@@ -51,6 +51,7 @@ static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
 
 #define OC_CALIBRATION_DEFAULT_FLAGS (0)
 
+#define QQ_DEBUG
 //#define QQ_DEBUG_SCREENSAVER
 //#define ENVGEN_DEBUG_SCREENSAVER
 
