@@ -13,8 +13,11 @@ static constexpr uint32_t OC_CORE_ISR_FREQ = 16666U;
 static constexpr uint32_t OC_CORE_TIMER_RATE = (1000000UL / OC_CORE_ISR_FREQ);
 static constexpr uint32_t OC_UI_TIMER_RATE   = 1000UL;
 
-static constexpr int OC_CORE_TIMER_PRIO = 128; // default?
-static constexpr int OC_UI_TIMER_PRIO   = 132; // lower
+// From kinetis.h
+// Cortex-M4: 0,16,32,48,64,80,96,112,128,144,160,176,192,208,224,240
+static constexpr int OC_CORE_TIMER_PRIO = 112; // higher
+static constexpr int OC_GPIO_ISR_PRIO   = 128; // default
+static constexpr int OC_UI_TIMER_PRIO   = 144; // lower
 
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr uint32_t SCREENSAVER_TIMEOUT_S = 25; // default time out menu (in s)
