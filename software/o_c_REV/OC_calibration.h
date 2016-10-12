@@ -42,7 +42,8 @@ struct CalibrationData {
 
   uint8_t display_offset;
   uint32_t flags;
-  uint32_t reserved0;
+  uint8_t screensaver_timeout; // 0: default, else seconds
+  uint8_t reserved0[3];
   uint32_t reserved1;
 
   EncoderConfig encoder_config() const {
@@ -55,6 +56,10 @@ struct CalibrationData {
     return static_cast<EncoderConfig>(raw_config);
   }
 };
+
+static_assert(sizeof(DAC::CalibrationData) == 88, "DAC::CalibrationData size changed!");
+static_assert(sizeof(ADC::CalibrationData) == 12, "ADC::CalibrationData size changed!");
+static_assert(sizeof(CalibrationData) == 116, "Calibration data size changed!");
 
 typedef PageStorage<EEPROMStorage, EEPROM_CALIBRATIONDATA_START, EEPROM_CALIBRATIONDATA_END, CalibrationData> CalibrationStorage;
 
