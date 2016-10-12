@@ -56,18 +56,23 @@ void Quantizer::Configure(
     uint16_t mask) {
   enabled_ = notes != NULL && num_notes != 0 && span != 0 && (mask & ~(0xffff<<num_notes));
   if (enabled_) {
+
+    // Build up array that contains only the enabled notes, and use that to
+    // generate the codebook. This avoids a bunch of issues and checks in the
+    // main generating loop.
+    size_t num_enabled_notes = 0;
+    for (size_t i = 0; i < num_notes; ++i) {
+      if (mask & 1)
+        enabled_notes_[num_enabled_notes++] = notes[i];
+      mask >>= 1;
+    }
+    num_notes = num_enabled_notes;
+    notes = enabled_notes_;
+
     int32_t octave = 0;
     size_t note = 0;
     int16_t root = 0;
     for (int32_t i = 0; i < 64; ++i) {
-      while (!(mask & (0x1 << note))) {
-        ++note;
-        if (note >= num_notes) {
-          note = 0;
-          ++octave;
-        }
-      }
-
       int32_t up = root + notes[note] + span * octave;
       int32_t down = root + notes[num_notes - 1 - note] + (-octave - 1) * span;
       CLIP(up)

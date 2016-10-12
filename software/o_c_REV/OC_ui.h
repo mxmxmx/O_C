@@ -42,7 +42,7 @@ enum UiMode {
 class Ui {
 public:
   static const size_t kEventQueueDepth = 16;
-  static const uint32_t kLongPressTicks = 2000;
+  static const uint32_t kLongPressTicks = 1000;
 
   Ui() { }
 
@@ -96,9 +96,16 @@ public:
     button_ignore_mask_ |= control;
   }
 
+  uint32_t screensaver_timeout() const {
+    return screensaver_timeout_;
+  }
+
+  void set_screensaver_timeout(uint32_t seconds);
+
 private:
 
   uint32_t ticks_;
+  uint32_t screensaver_timeout_;
 
   UI::Button buttons_[4];
   uint32_t button_press_time_[4];

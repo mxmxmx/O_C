@@ -1,10 +1,10 @@
-#/* BOM for O+C (rev 2d) */
+#/* BOM for O+C (rev 2d, 2e) */
 
-- if your board is **red** and labelled **rev.2d** (on top of the board, underneath the 'ornament and crime' label), that's rev 2d. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
+- if your board is **red** and labelled **rev.2e** (on top of the board, underneath the 'ornament and crime' label), that's rev 2e. previous versions differ only slightly. see the [build guide](https://github.com/mxmxmx/O_C/wiki/build-it#bill-of-materials-bom) for details.
 
 - the footprint for passives is **0805 throughout**. using 0603 everywhere will work just as fine, of course.
 
-- there's five 3-pin pads for trimpots (input/output calibration): **simply omit the trimpots**; the calibration can be done entirely in software. use five **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier.
+- versions prior to 2e: there's five 3-pin pads for trimpots (input/output calibration): **simply omit the trimpots**; the calibration can be done entirely in software. use five **jumper wires** instead and, ideally, **0.1% resistors** for the output stage (the "wiki" has more details): it's cheaper and makes calibration easier.
 
 
 ### SMD resistors (0805):
@@ -15,18 +15,18 @@
 | 510R | 2x | e.g. mouser # 603-RC0805JR-07510RL | 1-5% |
 | 2k   | 1x | e.g. mouser # 660-RK73H2ATTE2001F | 1% |
 | 10k  | 1x | e.g. mouser # 660-RK73H2ATTD1002F | 1-5% |
-| **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%**  (‡)|
+| **24k9**  | 4x | e.g. mouser # 756-PCF0805R-24K9BT1 | **0.1%** |
 | 33k | 8x | e.g. mouser # 660-RK73H2ATTD3302F | 1% |
 | 47k | 2x | e.g. mouser # 660-RK73H2ATTD4702F | 1% |
-| **75k** | 4x | e.g. mouser # 660-RK73H2ATTD7502F | 1% (silkscreen says 49k9: ignore) |
+| 75k | 4x | e.g. mouser # 660-RK73H2ATTD7502F | 1% |
 | **100k** | 4x | e.g. mouser # 279-CPF0805B100KE | **0.1%** |
 | 100k | 8x | e.g. mouser # 660-RK73H2ATTD1003F| 1% (or simply get 12 x 0.1%) |
 
 ### SMD caps (0805) (25V or better):
 | value | #| type | note |
 | --- | ---: | :---: | --- |
-| 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A220GXAPBC |
-| 10n | 4x | C0G/NP0 | e.g. mouser # 603-CC805JRNPO9BN103 |
+| 18p-22p | 4x | **C0G/NP0** (!) | e.g. mouser # 77-VJ0805A180GXACBC|
+| 560p | 4x | C0G/NP0 | e.g. mouser # 77-VJ0805A561JXAAC |
 | 100n  | 12x | ceramic | e.g. mouser # 80-C0805C104K5R |
 | 470n  | 3x  | ceramic | e.g. mouser # 77-VJ0805Y474JXJTBC |
 | 1u    | 2x | ceramic | e.g. mouser # 581-08055C105K4Z2A |
@@ -54,11 +54,11 @@
 | 22uF cap | 2x | RM2.5 (35V or better) | e.g. mouser # 647-UPM1V220MDD1TD | 
 | inductor | 1x | 10uH | e.g. mouser # 542-78F100-RC | 
 | jacks |  12x | 'thonkiconn' (or kobiconn) | [PJ301M-12](https://www.thonk.co.uk/shop/3-5mm-jacks/) |
-| encoders | 2x  | 24 steps w/ switch | e.g. PEC11R-4215K-S0024 (†) | 
+| encoders | 2x  | 24 steps w/ switch | e.g. mouser # 652-PEC11R-4220F-S24 (†) | 
 | 2x5 pin header | 1x | 2.54mm (euro power connector) | e.g. mouser # 649-67996-410HLF | 
-| 1x7 (1x8) OLED socket | 1x | 2.54mm, **low profile** ! | e.g mouser # 517-929870-01-08-RA | 
-| 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | see note (††) | 
-| 1x14 pin header (to match) |  2x | 2.54mm, header for teensy 3.x | - |
+| 1x7 OLED socket | 1x | 2.54mm, **low profile** !, w/ standard square holes | e.g mouser # 517-929870-01-07-RA | 
+| 1x14 socket | 2x | 2.54mm, socket for teensy 3.x | w/ round holes, see note (††) | 
+| 1x14 pin header **(to match)** |  2x | 2.54mm, header for teensy 3.x | - |
 | tact switches | 2x | multimecs 5E/5G | mouser #: 642-5GTH935 (†††) | 
 | + caps | 2x | multimecs 1SS09-15.0 or -16.0 | mouser #: 642-1SS09-15.0, or -16.0 | 
 | 3mm spacer | 1x | ∅ 3M, 10mm | - | 
