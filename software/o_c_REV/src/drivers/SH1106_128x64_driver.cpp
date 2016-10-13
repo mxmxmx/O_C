@@ -25,7 +25,7 @@
 
 #include <Arduino.h>
 #include "SH1106_128x64_driver.h"
-#include "../OC_gpio.h"
+#include "../../OC_gpio.h"
 
 #define DMA_PAGE_TRANSFER
 #ifdef DMA_PAGE_TRANSFER

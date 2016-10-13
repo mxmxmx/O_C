@@ -11,7 +11,7 @@
 #include "OC_strings.h"
 #include "OC_ui.h"
 #include "OC_version.h"
-#include "drivers/display.h"
+#include "src/drivers/display.h"
 
 extern uint_fast8_t MENU_REDRAW;
 
