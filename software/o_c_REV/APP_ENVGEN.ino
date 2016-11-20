@@ -64,6 +64,9 @@ enum EnvelopeSettings {
   ENV_SETTING_ATTACK_SHAPE,
   ENV_SETTING_DECAY_SHAPE,
   ENV_SETTING_RELEASE_SHAPE,
+  ENV_SETTING_ATTACK_TIME_MULTIPLIER,
+  ENV_SETTING_DECAY_TIME_MULTIPLIER,
+  ENV_SETTING_RELEASE_TIME_MULTIPLIER,
   ENV_SETTING_LAST
 };
 
@@ -204,6 +207,18 @@ public:
     return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_RELEASE_SHAPE]);
   }
 
+  uint16_t get_attack_time_multiplier() const {
+    return static_cast<uint16_t>(values_[ENV_SETTING_ATTACK_TIME_MULTIPLIER]);
+  }
+
+  uint16_t get_decay_time_multiplier() const {
+    return static_cast<uint16_t>(values_[ENV_SETTING_DECAY_TIME_MULTIPLIER]);
+  }
+
+  uint16_t get_release_time_multiplier() const {
+    return static_cast<uint16_t>(values_[ENV_SETTING_RELEASE_TIME_MULTIPLIER]);
+  }
+
   // Utils
   uint16_t get_segment_value(int segment) const {
     return values_[ENV_SETTING_SEG1_VALUE + segment];
@@ -278,6 +293,10 @@ public:
     *settings++ = ENV_SETTING_ATTACK_SHAPE;
     *settings++ = ENV_SETTING_DECAY_SHAPE;
     *settings++ = ENV_SETTING_RELEASE_SHAPE;
+
+    *settings++ = ENV_SETTING_ATTACK_TIME_MULTIPLIER;
+    *settings++ = ENV_SETTING_DECAY_TIME_MULTIPLIER;
+    *settings++ = ENV_SETTING_RELEASE_TIME_MULTIPLIER;
 
     *settings++ = ENV_SETTING_CV1;
     *settings++ = ENV_SETTING_CV2;
@@ -362,6 +381,11 @@ public:
     env_.set_attack_shape(get_attack_shape());
     env_.set_decay_shape(get_decay_shape());
     env_.set_release_shape(get_release_shape());
+
+    // set the envelope segment time multipliers
+    env_.set_attack_time_multiplier(get_attack_time_multiplier());
+    env_.set_decay_time_multiplier(get_decay_time_multiplier());
+    env_.set_release_time_multiplier(get_release_time_multiplier());
 
     OC::DigitalInput trigger_input = get_trigger_input();
     bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
@@ -526,6 +550,10 @@ const char* const euclidean_lengths[] = {
   " 31", " 32",
 };
 
+const char* const time_multipliers[] = {
+  "1", "  2", "  4", "  8", "  16", "  32", "  64", "128",
+};
+
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
@@ -549,6 +577,9 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "Attack mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "Decay mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  {0, 0, 7, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
 };
 
 class QuadEnvelopeGenerator {

@@ -35,240 +35,122 @@
 #include "peaks_tap_tempo_lfo.h"
 
 enum TTLfoSettings {
-  TTLFO_SETTING_TYPE,
-  TTLFO_SETTING_SEG1_VALUE,
-  TTLFO_SETTING_SEG2_VALUE,
-  TTLFO_SETTING_SEG3_VALUE,
-  TTLFO_SETTING_SEG4_VALUE,
+  TTLFO_SETTING_MODE,
+  TTLFO_SETTING_FREQ_COARSE,
+  TTLFO_SETTING_FREQ_FINE,
+  TTLFO_SETTING_FREQ_CV,
   TTLFO_SETTING_TRIGGER_INPUT,
-  TTLFO_SETTING_TRIGGER_DELAY_MODE,
-  TTLFO_SETTING_TRIGGER_DELAY_COUNT,
-  TTLFO_SETTING_TRIGGER_DELAY_MILLISECONDS,
-  TTLFO_SETTING_TRIGGER_DELAY_SECONDS,
-  TTLFO_SETTING_EUCLIDEAN_LENGTH,
-  TTLFO_SETTING_EUCLIDEAN_FILL,
-  TTLFO_SETTING_EUCLIDEAN_OFFSET,
-  TTLFO_SETTING_CV1,
-  TTLFO_SETTING_CV2,
-  TTLFO_SETTING_CV3,
-  TTLFO_SETTING_CV4,
-  TTLFO_SETTING_HARD_RESET,
-  TTLFO_SETTING_GATE_HIGH,
-  TTLFO_SETTING_ATTACK_SHAPE,
-  TTLFO_SETTING_DECAY_SHAPE,
-  TTLFO_SETTING_RELEASE_SHAPE,
+  TTLFO_SETTING_TAP_MULT_DIV,
+  TTLFO_SETTING_TAP_MULT_DIV_CV,
+  TTLFO_SETTING_WAVEFORM,
+  TTLFO_SETTING_WAVEFORM_VAR,
+  TTLFO_SETTING_WAVEFORM_VAR_CV,
+  TTLFO_SETTING_PHASE_ON_RESET,
   TTLFO_SETTING_LAST
 };
 
-enum TTLfoCVMapping {
-  TTLFO_CV_MAPPING_NONE,
-  TTLFO_CV_MAPPING_SEG1,
-  TTLFO_CV_MAPPING_SEG2,
-  TTLFO_CV_MAPPING_SEG3,
-  TTLFO_CV_MAPPING_SEG4,
-  TTLFO_CV_MAPPING_EUCLIDEAN_LENGTH,
-  TTLFO_CV_MAPPING_EUCLIDEAN_FILL,
-  TTLFO_CV_MAPPING_EUCLIDEAN_OFFSET,
-  TTLFO_CV_MAPPING_DELAY_MSEC,
-  TTLFO_CV_MAPPING_LAST
+enum TTLfoModes {
+  TTLFO_MODE_FREQ,
+  TTLFO_MODE_TAP,
+  TTLFO_MODE_LAST
 };
 
-class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
+enum TTLfoWaveform {
+  // sine, linear slope, square, steps, random
+  TTLFO_WAVEFORM_SINE,
+  TTLFO_WAVEFORM_LINEAR_SLOPE,
+  TTLFO_WAVEFORM_SQUARE,
+  TTLFO_WAVEFORM_STEPS,
+  TTLFO_WAVEFORM_RANDOM,
+  TTLFO_WAVEFORM_LAST
+};
+
+class LfoGenerator : public settings::SettingsBase<LfoGenerator, TTLFO_SETTING_LAST> {
 public:
-
-  static constexpr int kMaxSegments = 4;
-  static constexpr int kEuclideanParams = 3;
-  static constexpr int kDelayParams = 1;
-  static constexpr size_t kMaxDelayedTriggers = 32;
-
-  struct DelayedTrigger {
-    uint32_t delay;
-    uint32_t time_left;
-
-    inline void Activate(uint32_t t) {
-      delay = time_left = t;
-    }
-
-    inline void Reset() {
-      delay = time_left = 0;
-    }
   };
 
   void Init(OC::DigitalInput default_trigger);
 
-  EnvelopeType get_type() const {
-    return static_cast<EnvelopeType>(values_[ENV_SETTING_TYPE]);
+  TTLfoMode get_mode() const {
+    return static_cast<TTLfoMode>(values_[TTLFO_SETTING_MODE]);
   }
 
   OC::DigitalInput get_trigger_input() const {
-    return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
+    return static_cast<OC::DigitalInput>(values_[TTLFO_SETTING_TRIGGER_INPUT]);
   }
 
-  int32_t get_trigger_delay_ms() const {
-    return 1000U * values_[ENV_SETTING_TRIGGER_DELAY_SECONDS] + values_[ENV_SETTING_TRIGGER_DELAY_MILLISECONDS] ;
+  TTLfoWaveform get_waveform() const {
+    return values_[TTLFO_SETTING_WAVEFORM];
   }
 
-  TriggerDelayMode get_trigger_delay_mode() const {
-    return static_cast<TriggerDelayMode>(values_[ENV_SETTING_TRIGGER_DELAY_MODE]);
+  uint8_t get_waveform_var() const {
+    return values_[TTLFO_SETTING_WAVEFORM_VAR];
   }
 
-  uint8_t get_euclidean_length() const {
-    return values_[ENV_SETTING_EUCLIDEAN_LENGTH];
+  uint8_t get_freq_coarse() const {
+    return values_[TTLFO_SETTING_FREQ_COARSE];
   }
 
-  uint8_t get_euclidean_fill() const {
-    return values_[ENV_SETTING_EUCLIDEAN_FILL];
+  uint8_t get_freq_fine() const {
+    return values_[TTLFO_SETTING_FREQ_FINE];
   }
 
-  uint8_t get_euclidean_offset() const {
-    return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
+  uint8_t get_freq_cv_input() const {
+    return values_[TTLFO_SETTING_FREQ_CV];
   }
 
-  // Debug only
-  //  uint8_t get_s_euclidean_length() const {
-  //    return static_cast<uint8_t>(s_euclidean_length_);
-  //  }
-  //
-  //  uint8_t get_s_euclidean_fill() const {
-  //    return static_cast<uint8_t>(s_euclidean_fill_);
-  //  }
-  //
-  //  uint8_t get_s_euclidean_offset() const {
-  //    return static_cast<uint8_t>(s_euclidean_offset_);
-  //  }
-
-  int get_trigger_delay_count() const {
-    return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
+  uint8_t get_tap_mult_div() const {
+    return values_[TTLFO_SETTING_TAP_MULT_DIV_CV];
   }
 
-  CVMapping get_cv1_mapping() const {
-    return static_cast<CVMapping>(values_[ENV_SETTING_CV1]);
+  uint8_t get_tap_mult_div_cv_input() const {
+    return values_[TTLFO_SETTING_TAP_MULT_DIV];
   }
+  
 
-  CVMapping get_cv2_mapping() const {
-    return static_cast<CVMapping>(values_[ENV_SETTING_CV2]);
-  }
-
-  CVMapping get_cv3_mapping() const {
-    return static_cast<CVMapping>(values_[ENV_SETTING_CV3]);
-  }
-
-  CVMapping get_cv4_mapping() const {
-    return static_cast<CVMapping>(values_[ENV_SETTING_CV4]);
-  }
-
-  bool get_hard_reset() const {
-    return values_[ENV_SETTING_HARD_RESET];
-  }
-
-  bool get_gate_high() const {
-    return values_[ENV_SETTING_GATE_HIGH];
-  }
-
-  peaks::EnvelopeShape get_attack_shape() const {
-    return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_ATTACK_SHAPE]);
-  }
-
-  peaks::EnvelopeShape get_decay_shape() const {
-    return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_DECAY_SHAPE]);
-  }
-
-  peaks::EnvelopeShape get_release_shape() const {
-    return static_cast<peaks::EnvelopeShape>(values_[ENV_SETTING_RELEASE_SHAPE]);
-  }
-
-  // Utils
-  uint16_t get_segment_value(int segment) const {
-    return values_[ENV_SETTING_SEG1_VALUE + segment];
-  }
-
-  int num_editable_segments() const {
-    switch (get_type()) {
-      case ENV_TYPE_AD:
-      case ENV_TYPE_AR:
-      case ENV_TYPE_AD_LOOP:
-        return 2;
-      case ENV_TYPE_ADR:
-      case ENV_TYPE_ADSR:
-      case ENV_TYPE_ADSAR:
-      case ENV_TYPE_ADAR:
-      case ENV_TYPE_ADR_LOOP:
-      case ENV_TYPE_ADAR_LOOP:
-        return 4;
-      default: break;
-    }
-    return 0;
-  }
-
-  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams + kDelayParams]) {
-    int mapping = values_[cv_setting];
-    switch (mapping) {
-      case CV_MAPPING_SEG1:
-      case CV_MAPPING_SEG2:
-      case CV_MAPPING_SEG3:
-      case CV_MAPPING_SEG4:
-        segments[mapping - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
-        break;
-      case CV_MAPPING_EUCLIDEAN_LENGTH:
-      case CV_MAPPING_EUCLIDEAN_FILL:
-      case CV_MAPPING_EUCLIDEAN_OFFSET:
-        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 6;
-        break;
-      case CV_MAPPING_DELAY_MSEC:
-        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 2;
-        break;
-       default:
-        break;
-    }
+  uint8_t get_phase_on_reset() const {
+    return values_[TTLFO_SETTING_PHASE_ON_RESET];
   }
 
   int num_enabled_settings() const {
     return num_enabled_settings_;
   }
 
-  EnvelopeSettings enabled_setting_at(int index) const {
+  TTLfoSettings enabled_setting_at(int index) const {
     return enabled_settings_[index];
   }
 
   void update_enabled_settings() {
-    EnvelopeSettings *settings = enabled_settings_;
+    TTLfoSettings *settings = enabled_settings_;
 
     *settings++ = ENV_SETTING_TYPE;
     *settings++ = ENV_SETTING_TRIGGER_INPUT;
     *settings++ = ENV_SETTING_TRIGGER_DELAY_MODE;
-    if (get_trigger_delay_mode()) {
-      *settings++ = ENV_SETTING_TRIGGER_DELAY_COUNT;
-      *settings++ = ENV_SETTING_TRIGGER_DELAY_MILLISECONDS;
-      *settings++ = ENV_SETTING_TRIGGER_DELAY_SECONDS;
+
+    *settings++ = TTLFO_SETTING_MODE;
+    if (get_mode() == TTLFO_MODE_FREQ) {
+      *settings++ = TTLFO_SETTING_FREQ_COARSE;
+      *settings++ = TTLFO_SETTING_FREQ_FINE;
+      *settings++ = TTLFO_SETTING_FREQ_CV;
+    else {
+      *settings++ = TTLFO_SETTING_TAP_MULT_DIV;
+      *settings++ = TTLFO_SETTING_TAP_MULT_DIV_CV;
     }
-    
-    *settings++ = ENV_SETTING_EUCLIDEAN_LENGTH;
-    if (get_euclidean_length()) {
-      *settings++ = ENV_SETTING_EUCLIDEAN_FILL;
-      *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
-    }
-
-    *settings++ = ENV_SETTING_ATTACK_SHAPE;
-    *settings++ = ENV_SETTING_DECAY_SHAPE;
-    *settings++ = ENV_SETTING_RELEASE_SHAPE;
-
-    *settings++ = ENV_SETTING_CV1;
-    *settings++ = ENV_SETTING_CV2;
-    *settings++ = ENV_SETTING_CV3;
-    *settings++ = ENV_SETTING_CV4;
-    *settings++ = ENV_SETTING_HARD_RESET;
-    *settings++ = ENV_SETTING_GATE_HIGH;
-
+    *settings++ = TTLFO_SETTING_TRIGGER_INPUT;
+    *settings++ = TTLFO_SETTING_WAVEFORM;
+    *settings++ = TTLFO_SETTING_WAVEFORM_VAR;
+    *settings++ = TTLFO_SETTING_WAVEFORM_VAR_CV;
+    *settings++ = TTLFO_SETTING_PHASE_ON_RESET;
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
-  static bool indentSetting(EnvelopeSettings setting) {
+  static bool indentSetting(TTLfoSettings setting) {
     switch (setting) {
-      case ENV_SETTING_TRIGGER_DELAY_COUNT:
-      case ENV_SETTING_TRIGGER_DELAY_SECONDS:
-      case ENV_SETTING_TRIGGER_DELAY_MILLISECONDS:
-      case ENV_SETTING_EUCLIDEAN_FILL:
-      case ENV_SETTING_EUCLIDEAN_OFFSET:
+      case TTLFO_SETTING_FREQ_COARSE:
+      case TTLFO_SETTING_FREQ_FINE:
+      case TTLFO_SETTING_FREQ_CV:
+      case TTLFO_SETTING_TAP_MULT_DIV:
+      case TTLFO_SETTING_TAP_MULT_DIV_CV:
         return true;
       default:
       break;
@@ -472,66 +354,46 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   update_enabled_settings();
 }
 
-const char* const envelope_types[ENV_TYPE_LAST] = {
-  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "AD loop", "ADR loop", "ADAR loop"
+
+const char* const ttlfo_modes[TTLFO_MODE_LAST] = {
+  "Freq", "Tap"
 };
 
-const char* const segment_names[] = {
-  "Attack", "Decay", "Sustain/Level", "Release"
+const char* const ttlfo_cv_sources[5] = {
+  "None", "CV1", "CV2", "CV3", "CV4"
 };
 
-const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
-  "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "Gate", "BgDip", "MeDip", "LtDip", "Wiggl"
+const char* const ttlfo_trigger_sources[5] = {
+  "None", "TR1", "TR2", "TR3", "TR4"
 };
 
-const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay"
+// Up to here
+// const char* const ttlfo_mult_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
+//   "unity", "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
+// };
+
+SETTINGS_DECLARE(LfoGenerator, TTLFO_SETTING_LAST) {
+  { TTLFO_MODE_FREQ, TTLFO_MODE_FREQ, TTLFO_MODE_LAST-1, "Mode", ttlfo_modes, settings::STORAGE_TYPE_U4 },
+  { 128, 0, 255, "Freq coarse", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 128, 0, 255, "Freq fine", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Freq CV input", ttlfo_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Trigger input", ttlfo_trigger_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 255, "Tap mult/div", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Tap mult/div CV", ttlfo_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 64, "Waveform", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31, "Waveform var", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 4, "Wform var CV", ttlfo_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 1, 0, 32, "reset phase", NULL, settings::STORAGE_TYPE_U8 },
 };
 
-const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
-  "Off", "Queue", "Ring"
-};
-
-const char* const euclidean_lengths[] = {
-  "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
-  " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
-  " 21", " 12", " 23", " 24", " 25", " 26", " 27", " 28", " 29", " 30",
-  " 31", " 32",
-};
-
-SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
-  { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
-  { 128, 0, 255, "S2", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
-  { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
-  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
-  { TRIGGER_DELAY_OFF, TRIGGER_DELAY_OFF, TRIGGER_DELAY_LAST - 1, "Tr delay mode", trigger_delay_modes, settings::STORAGE_TYPE_U4 },
-  { 1, 1, EnvelopeGenerator::kMaxDelayedTriggers, "Tr delay count", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
-  { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
-  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
-  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
-  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
-};
-
-class QuadEnvelopeGenerator {
+class QuadLfoGenerator {
 public:
   static constexpr int32_t kCvSmoothing = 16;
 
   void Init() {
     int input = OC::DIGITAL_INPUT_1;
-    for (auto &env : envelopes_) {
-      env.Init(static_cast<OC::DigitalInput>(input));
+    for (auto &lfo : lfos_) {
+      lfo.Init(static_cast<OC::DigitalInput>(input));
       ++input;
     }
 

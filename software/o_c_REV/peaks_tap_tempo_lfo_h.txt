@@ -56,18 +56,7 @@ class Lfo {
   void Init();
   void FillBuffer(InputBuffer* input_buffer, OutputBuffer* output_buffer);
   
-  void Configure(uint16_t* parameter, ControlMode control_mode) {
-    if (control_mode == CONTROL_MODE_HALF) {
-      if (sync_) {
-        set_shape_integer(parameter[0]);
-        set_parameter(parameter[1] - 32768);
-      } else {
-        set_rate(parameter[0]);
-        set_shape_parameter_preset(parameter[1]);
-      }
-      set_reset_phase(0);
-      set_level(40960);
-    } else {
+  void Configure(uint16_t* parameter) {
       if (sync_) {
         set_level(parameter[0]);
         set_shape_integer(parameter[1]);
@@ -80,7 +69,6 @@ class Lfo {
         set_parameter(parameter[2] - 32768);
         set_reset_phase(parameter[3] - 32768);
       }
-    }
   }
   
   inline void set_rate(uint16_t rate) {
