@@ -551,7 +551,7 @@ const char* const euclidean_lengths[] = {
 };
 
 const char* const time_multipliers[] = {
-  "1", "  2", "  4", "  8", "  16", "  32", "  64", "128",
+  "1", "  2", "  4", "  8", "  16", "  32", "  64", " 128", " 256", " 512", "1024", "2048", "4096", "8192"
 };
 
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
@@ -577,9 +577,9 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "Attack mult", time_multipliers, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "Decay mult", time_multipliers, settings::STORAGE_TYPE_U4 },
-  {0, 0, 7, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 13, "Attack mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 13, "Decay mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  {0, 0, 13, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
 };
 
 class QuadEnvelopeGenerator {
