@@ -530,9 +530,9 @@ public:
                   // _pitch can do other things now -- 
                   switch (get_int_seq_CV()) {
   
-                      case 1:  // integer sequence, 0-7
+                      case 1:  // integer sequence, 0-8
                        _int_seq_index += ((_pitch + 127) >> 9);
-                       CONSTRAIN(_int_seq_index, 0, 7);
+                       CONSTRAIN(_int_seq_index, 0, 8);
                       break;
                        case 2:  // sequence start point, 0-254
                        _int_seq_start += ((_pitch + 15) >> 8);
@@ -668,7 +668,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 8, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },

@@ -46,7 +46,7 @@ public:
     pass_go_ = true;
     up_ = true;
     sk_ = 0;
-  	msb_pos_ = 0;
+  	// msb_pos_ = 0;
   	bit_sum_ = 0;
   	pending_bit_ = 0;
   }
@@ -104,20 +104,21 @@ public:
       case 8: // Per Nørgård's infinity series
       	sk_ = static_cast<uint32_t>(s_ * k_) ;
       	// Serial.println(sk_) ;
-      	msb_pos_ = 32 - __builtin_clzll(sk_) ;
+      	// msb_pos_ = 32 - __builtin_clzll(sk_) ;
       	// Serial.println(msb_pos_) ;
       	bit_sum_ = 0 ;
       	pending_bit_ = 0;
-      	for (int b = msb_pos_; b > 0; --b) {
+      	for (int8_t b = 32; b > -1; --b) {
       		// Serial.println(b) ;
-      		if ((sk_ & (1 << b)) == (1 << b)) {
+      		uint32_t bitmask = static_cast<uint32_t>(0x01 << b) ;
+      		if ((sk_ & bitmask) == bitmask) {
       			bit_sum_ += pending_bit_ ;
       			pending_bit_ = 1;
       		} else {
       			pending_bit_ = -pending_bit_;
       		}
       	} 
-      	x_ = 70 + bit_sum_ + pending_bit_ ; // add final bit
+      	x_ = 12 + bit_sum_ + pending_bit_ ; // add final bit
       	// x_ = bit_sum_ ;
       	break;
       default:
@@ -208,8 +209,8 @@ private:
   int16_t l_;
   int16_t x_;
   int16_t s_;
-  uint16_t sk_;
-  uint8_t msb_pos_;
+  uint32_t sk_;
+  // uint8_t msb_pos_;
   int8_t bit_sum_;
   int8_t pending_bit_;
   bool loop_;

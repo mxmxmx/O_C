@@ -524,7 +524,7 @@ public:
             }
 
             if (triggered) {
-              uint32_t is = int_seq_.Clock();
+              // uint32_t is = int_seq_.Clock();
               // check whether frame should be shifted and if so, by how much.
               if (get_int_seq_pass_go()) {
                 // OK, we're at the start of a loop or at one end of a pendulum swing
@@ -555,6 +555,7 @@ public:
                   int_seq_.set_loop_start(get_int_seq_start());                  
                 }
               }
+              uint32_t is = int_seq_.Clock();
               int16_t range_ = get_int_seq_range();
               if (get_int_seq_range_cv_source()) {
                 range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_range_cv_source() - 1)) >> 6);
