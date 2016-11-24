@@ -45,6 +45,10 @@ public:
     loop_ = true;
     pass_go_ = true;
     up_ = true;
+    sk_ = 0;
+  	msb_pos_ = 0;
+  	bit_sum_ = 0;
+  	pending_bit_ = 0;
   }
 
   uint16_t Clock() {
@@ -72,7 +76,6 @@ public:
   		pass_go_ = false;
   	}
 
-  	  	
   	switch (n_) {
       case 0:
       	x_ = OC::Strings::pi_digits[k_];
@@ -95,8 +98,27 @@ public:
       case 6:
       	x_ = OC::Strings::rt5_digits[k_];
       	break;
-      case 7:
+      case 7: // Dress sequence
         x_ =  __builtin_popcountll(s_ * k_);
+      	break;
+      case 8: // Per Nørgård's infinity series
+      	sk_ = static_cast<uint32_t>(s_ * k_) ;
+      	// Serial.println(sk_) ;
+      	msb_pos_ = 32 - __builtin_clzll(sk_) ;
+      	// Serial.println(msb_pos_) ;
+      	bit_sum_ = 0 ;
+      	pending_bit_ = 0;
+      	for (int b = msb_pos_; b > 0; --b) {
+      		// Serial.println(b) ;
+      		if ((sk_ & (1 << b)) == (1 << b)) {
+      			bit_sum_ += pending_bit_ ;
+      			pending_bit_ = 1;
+      		} else {
+      			pending_bit_ = -pending_bit_;
+      		}
+      	} 
+      	x_ = 70 + bit_sum_ + pending_bit_ ; // add final bit
+      	// x_ = bit_sum_ ;
       	break;
       default:
         break;
@@ -166,6 +188,10 @@ public:
     return n_;
   }
 
+  int16_t get_x() const {
+    return x_;
+  }
+
   int16_t get_s() const {
     return s_;
   }
@@ -182,6 +208,10 @@ private:
   int16_t l_;
   int16_t x_;
   int16_t s_;
+  uint16_t sk_;
+  uint8_t msb_pos_;
+  int8_t bit_sum_;
+  int8_t pending_bit_;
   bool loop_;
   bool pass_go_;
   bool up_ ;

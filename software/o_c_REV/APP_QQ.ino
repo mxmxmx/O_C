@@ -504,7 +504,7 @@ public:
               int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) >> 8);
             }
             if (int_seq_index < 0) int_seq_index = 0;
-            if (int_seq_index > 7) int_seq_index = 7;
+            if (int_seq_index > 8) int_seq_index = 8;
             int_seq_.set_int_seq(int_seq_index);
 
             if (get_int_seq_stride_cv_source()) {
@@ -671,6 +671,10 @@ public:
 
   int16_t get_int_seq_n() const {
     return int_seq_.get_n();
+  }
+
+  int16_t get_int_seq_x() const {
+    return int_seq_.get_x();
   }
 
   bool get_int_seq_pass_go() const {
@@ -880,7 +884,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 8, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
@@ -1255,13 +1259,13 @@ void QQ_debug() {
     uint8_t ypos = 10*(i + 1) + 2 ; 
     graphics.setPrintPos(2, ypos);
     graphics.print(quantizer_channels[i].get_int_seq_i());
-    graphics.setPrintPos(32, ypos);
+    graphics.setPrintPos(30, ypos);
     graphics.print(quantizer_channels[i].get_int_seq_l());
-    graphics.setPrintPos(62, ypos);
+    graphics.setPrintPos(58, ypos);
     graphics.print(quantizer_channels[i].get_int_seq_j());
-    graphics.setPrintPos(92, ypos);
+    graphics.setPrintPos(80, ypos);
     graphics.print(quantizer_channels[i].get_int_seq_k());
-    graphics.setPrintPos(122, ypos);
-    graphics.print(quantizer_channels[i].get_int_seq_n());
+    graphics.setPrintPos(104, ypos);
+    graphics.print(quantizer_channels[i].get_int_seq_x());
  }
 }
