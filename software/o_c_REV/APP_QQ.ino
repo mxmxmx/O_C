@@ -70,6 +70,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE,
   CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE, 
   CHANNEL_SETTING_INT_SEQ_INDEX,
+  CHANNEL_SETTING_INT_SEQ_MODULUS,
   CHANNEL_SETTING_INT_SEQ_RANGE,
   CHANNEL_SETTING_INT_SEQ_DIRECTION,
   CHANNEL_SETTING_INT_SEQ_LOOP_START,
@@ -237,6 +238,10 @@ public:
 
   uint8_t get_int_seq_index() const {
     return values_[CHANNEL_SETTING_INT_SEQ_INDEX];
+  }
+
+  uint8_t get_int_seq_modulus() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_MODULUS];
   }
 
   uint8_t get_int_seq_range() const {
@@ -498,6 +503,7 @@ public:
       case CHANNEL_SOURCE_INT_SEQ: {
             int_seq_.set_loop_direction(get_int_seq_dir());
             int16_t int_seq_index = get_int_seq_index();
+            int16_t int_seq_modulus = get_int_seq_modulus();
             int16_t int_seq_stride = get_int_seq_stride();
 
             if (get_int_seq_index_cv_source()) {
@@ -506,6 +512,7 @@ public:
             if (int_seq_index < 0) int_seq_index = 0;
             if (int_seq_index > 8) int_seq_index = 8;
             int_seq_.set_int_seq(int_seq_index);
+            int_seq_.set_int_seq_modulus(int_seq_modulus);
 
             if (get_int_seq_stride_cv_source()) {
               int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) >> 6);
@@ -730,6 +737,7 @@ public:
       break;
       case CHANNEL_SOURCE_INT_SEQ:
         *settings++ = CHANNEL_SETTING_INT_SEQ_INDEX;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_MODULUS;
         *settings++ = CHANNEL_SETTING_INT_SEQ_RANGE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_DIRECTION;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_START;
@@ -780,6 +788,7 @@ public:
       case CHANNEL_SETTING_BYTEBEAT_P1_CV_SOURCE:
       case CHANNEL_SETTING_BYTEBEAT_P2_CV_SOURCE:      
       case CHANNEL_SETTING_INT_SEQ_INDEX:
+      case CHANNEL_SETTING_INT_SEQ_MODULUS:
       case CHANNEL_SETTING_INT_SEQ_RANGE:
       case CHANNEL_SETTING_INT_SEQ_DIRECTION:
       case CHANNEL_SETTING_INT_SEQ_LOOP_START:
@@ -886,6 +895,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 12, 1, 120, "IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },

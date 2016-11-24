@@ -36,6 +36,7 @@ public:
 
   void Init(int16_t i, int16_t l) {
     n_ = 0; // index of integer series
+    modulus_ = 1; // default modulus
     i_ = i; // start of loop
     l_ = l; // length of loop
     j_ = i_ + l_; // end of loop
@@ -124,6 +125,7 @@ public:
       default:
         break;
     }
+    x_ = x_ % modulus_;
     return static_cast<uint16_t>(x_ << 8);
   }
 
@@ -159,6 +161,10 @@ public:
 
   void set_int_seq(int16_t n) {
     n_ = n; 
+  }
+
+  void set_int_seq_modulus(int16_t m) {
+    modulus_ = m; 
   }
 
   void set_fractal_stride(int16_t s) {
@@ -203,6 +209,7 @@ public:
 
 private:
   int16_t n_;
+  int16_t modulus_;
   int16_t k_;
   int16_t i_;
   int16_t j_;
