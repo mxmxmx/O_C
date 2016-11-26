@@ -94,18 +94,19 @@ public:
       	x_ = OC::Strings::rt2_digits[k_];
       	break;
       case 5:
-      	x_ = OC::Strings::rt3_digits[k_];
+      	x_ = OC::Strings::van_eck[k_];
       	break;
       case 6:
-      	x_ = OC::Strings::rt5_digits[k_];
+      	x_ = OC::Strings::sum_of_squares_of_digits_of_n[k_];
       	break;
       case 7: // Dress sequence
         x_ =  __builtin_popcountll(s_ * k_);
       	break;
       case 8: // Per Nørgård's infinity series
+      	// See http://www.pernoergaard.dk/eng/strukturer/uendelig/ukonstruktion03.html
       	sk_ = static_cast<uint32_t>(s_ * k_) ;
       	// Serial.println(sk_) ;
-      	// msb_pos_ = 32 - __builtin_clzll(sk_) ;
+      	// msb_pos_ = static_cast<uint8_t>(32 - __builtin_clzll(sk_)) ;
       	// Serial.println(msb_pos_) ;
       	bit_sum_ = 0 ;
       	pending_bit_ = 0;

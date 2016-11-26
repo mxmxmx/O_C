@@ -52,8 +52,10 @@ enum ChannelSetting {
   CHANNEL_SETTING_FINE,
   CHANNEL_SETTING_TURING_LENGTH,
   CHANNEL_SETTING_TURING_PROB,
+  CHANNEL_SETTING_TURING_MODULUS,
   CHANNEL_SETTING_TURING_RANGE,
   CHANNEL_SETTING_TURING_PROB_CV_SOURCE,
+  CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE,
   CHANNEL_SETTING_TURING_RANGE_CV_SOURCE,
   CHANNEL_SETTING_LOGISTIC_MAP_R,
   CHANNEL_SETTING_LOGISTIC_MAP_RANGE,
@@ -79,6 +81,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE,
   CHANNEL_SETTING_INT_SEQ_STRIDE,
   CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE,
+  CHANNEL_SETTING_INT_SEQ_MODULUS_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER,
@@ -168,12 +171,20 @@ public:
     return values_[CHANNEL_SETTING_TURING_PROB];
   }
 
+  uint8_t get_turing_modulus() const {
+    return values_[CHANNEL_SETTING_TURING_MODULUS];
+  }
+
   uint8_t get_turing_range() const {
     return values_[CHANNEL_SETTING_TURING_RANGE];
   }
 
   uint8_t get_turing_prob_cv_source() const {
     return values_[CHANNEL_SETTING_TURING_PROB_CV_SOURCE];
+  }
+
+  uint8_t get_turing_modulus_cv_source() const {
+    return values_[CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE];
   }
 
   uint8_t get_turing_range_cv_source() const {
@@ -266,6 +277,10 @@ public:
 
   uint8_t get_int_seq_index_cv_source() const {
     return values_[CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE];
+  }
+
+  uint8_t get_int_seq_modulus_cv_source() const {
+    return values_[CHANNEL_SETTING_INT_SEQ_MODULUS_CV_SOURCE];
   }
 
   uint8_t get_int_seq_range_cv_source() const {
@@ -378,6 +393,16 @@ public:
               range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) >> 5);
               CONSTRAIN(range, 1, 120);
             }
+
+            uint8_t modulus = get_turing_modulus();
+            if (get_turing_modulus_cv_source()) {
+              modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) >> 5);
+              CONSTRAIN(range, 1, 120);
+            }
+
+            // apply modulus
+            shift_register = shift_register % modulus ;
+
             if (quantizer_.enabled()) {
     
               // To use full range of bits is something like:
@@ -441,6 +466,7 @@ public:
                 range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) >> 5);
                 CONSTRAIN(range, 1, 120);
               }
+
               if (quantizer_.enabled()) {
     
                 // Since our range is limited anyway, just grab the last byte
@@ -481,6 +507,7 @@ public:
               range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) >> 5);
               CONSTRAIN(range, 1, 120);
             }
+            
             if (quantizer_.enabled()) {   
               uint32_t logistic_scaled = (logistic_map_x * range) >> 24;
 
@@ -503,7 +530,6 @@ public:
       case CHANNEL_SOURCE_INT_SEQ: {
             int_seq_.set_loop_direction(get_int_seq_dir());
             int16_t int_seq_index = get_int_seq_index();
-            int16_t int_seq_modulus = get_int_seq_modulus();
             int16_t int_seq_stride = get_int_seq_stride();
 
             if (get_int_seq_index_cv_source()) {
@@ -512,7 +538,12 @@ public:
             if (int_seq_index < 0) int_seq_index = 0;
             if (int_seq_index > 8) int_seq_index = 8;
             int_seq_.set_int_seq(int_seq_index);
-            int_seq_.set_int_seq_modulus(int_seq_modulus);
+            int16_t int_seq_modulus_ = get_int_seq_modulus();
+            if (get_int_seq_modulus_cv_source()) {
+                int_seq_modulus_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_modulus_cv_source() - 1)) >> 6);
+                CONSTRAIN(int_seq_modulus_, 1, 120);
+            }
+            int_seq_.set_int_seq_modulus(int_seq_modulus_);
 
             if (get_int_seq_stride_cv_source()) {
               int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) >> 6);
@@ -712,8 +743,10 @@ public:
     switch (get_source()) {
       case CHANNEL_SOURCE_TURING:
         *settings++ = CHANNEL_SETTING_TURING_LENGTH;
+        *settings++ = CHANNEL_SETTING_TURING_MODULUS;
         *settings++ = CHANNEL_SETTING_TURING_RANGE;
         *settings++ = CHANNEL_SETTING_TURING_PROB;
+        *settings++ = CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_TURING_PROB_CV_SOURCE;
       break;
@@ -747,6 +780,7 @@ public:
         *settings++ = CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB;
         *settings++ = CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_MODULUS_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER;
       break;
@@ -769,8 +803,10 @@ public:
   static bool indentSetting(ChannelSetting s) {
     switch (s) {
       case CHANNEL_SETTING_TURING_LENGTH:
+      case CHANNEL_SETTING_TURING_MODULUS:
       case CHANNEL_SETTING_TURING_RANGE:
       case CHANNEL_SETTING_TURING_PROB:
+      case CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE:
       case CHANNEL_SETTING_TURING_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_TURING_PROB_CV_SOURCE:
       case CHANNEL_SETTING_LOGISTIC_MAP_R:
@@ -797,6 +833,7 @@ public:
       case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_RANGE:
       case CHANNEL_SETTING_INT_SEQ_STRIDE:
       case CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE:
+      case CHANNEL_SETTING_INT_SEQ_MODULUS_CV_SOURCE:
       case CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE:
       case CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER:
@@ -877,8 +914,10 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, -999, 999, "Fine", NULL, settings::STORAGE_TYPE_I16 },
   { 16, 1, 32, "LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "LFSR p", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 2, 120, "LFSR modulus", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "LFSR p CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR mod CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "LFSR rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
@@ -895,7 +934,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 12, 1, 120, "IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 2, 120, "IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
@@ -904,6 +943,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 5, "IntSeq FS rng", NULL, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "Fractal stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "IntSeq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq mod CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Frctl stride CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq reset", reset_trigger_sources, settings::STORAGE_TYPE_U4 },
