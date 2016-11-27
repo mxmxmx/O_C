@@ -8,15 +8,21 @@ namespace OC {
   static const int kNumDelayTimes = 8;
 
   namespace Strings {
+    extern const char * const pulsewidth_ms[];
+    extern const char * const seq_playmodes[];
+    extern const char * const seq_id[];
     extern const char * const note_names[];
     extern const char * const note_names_unpadded[];
     extern const char * const trigger_input_names[];
     extern const char * const cv_input_names[];
     extern const char * const no_yes[];
     extern const char * const encoder_config_strings[];
+<<<<<<< HEAD
     extern const char * const bytebeat_equation_names[];
     extern const char * const integer_sequence_names[];
     extern const char * const integer_sequence_dirs[];
+=======
+>>>>>>> SEQ_test_store
     extern const char * const trigger_delay_times[kNumDelayTimes];
   // Not strings but are constant integer sequences
   extern const uint8_t pi_digits[256];
