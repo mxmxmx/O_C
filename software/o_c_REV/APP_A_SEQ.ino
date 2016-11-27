@@ -885,7 +885,7 @@ const char* const SEQ_CHANNEL_TRIGGER_sources[] = {
   "TR1", "TR3", " - "
 };
 
-const char* const reset_trigger_sources[] = {
+const char* const seq_reset_trigger_sources[] = {
   "RST2", "RST4", " - ", "=HI2", "=LO2", "=HI4", "=LO4"
 };
 
@@ -905,7 +905,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
   { 0, 0, 1, "mode", modes, settings::STORAGE_TYPE_U4 },
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
-  { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", seq_reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   //

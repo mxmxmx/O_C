@@ -17,12 +17,9 @@ namespace OC {
     extern const char * const cv_input_names[];
     extern const char * const no_yes[];
     extern const char * const encoder_config_strings[];
-<<<<<<< HEAD
     extern const char * const bytebeat_equation_names[];
     extern const char * const integer_sequence_names[];
     extern const char * const integer_sequence_dirs[];
-=======
->>>>>>> SEQ_test_store
     extern const char * const trigger_delay_times[kNumDelayTimes];
   // Not strings but are constant integer sequences
   extern const uint8_t pi_digits[256];
