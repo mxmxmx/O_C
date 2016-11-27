@@ -126,10 +126,11 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE,
   // cv sources
   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE,
   SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
-  SEQ_CHANNEL_SETTING_MASK_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE,
   SEQ_CHANNEL_SETTING_DUMMY,
   SEQ_CHANNEL_SETTING_LAST
 };
@@ -267,16 +268,24 @@ public:
     return values_[SEQ_CHANNEL_SETTING_MULT_CV_SOURCE];
   }
 
+  uint8_t get_transpose_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE];
+  }
+  
   uint8_t get_pulsewidth_cv_source() const {
     return values_[SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE];
   }
 
-  uint8_t get_mask_cv_source() const {
-    return values_[SEQ_CHANNEL_SETTING_MASK_CV_SOURCE];
+  uint8_t get_scale_mask_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE];
   }
 
   uint8_t get_sequence_cv_source() const {
     return values_[SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE];
+  }
+
+  uint8_t get_octave_aux_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE]; 
   }
   
   void update_pattern_mask(uint16_t mask, uint8_t sequence) {
@@ -372,6 +381,10 @@ public:
     OC::Pattern *write_pattern_ = &OC::user_patterns[seq + _channel_offset];
     write_pattern_->notes[step] = pitch;
   }
+  
+  uint16_t get_rotated_scale_mask() const {
+    return last_scale_mask_;
+  }
 
   void clear_user_pattern(uint8_t seq) {
     
@@ -433,7 +446,7 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_MULT_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE, 0);
-    apply_value(SEQ_CHANNEL_SETTING_MASK_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE, 0);
   }
   
   int get_scale() const {
@@ -629,7 +642,12 @@ public:
      }
 
      // update scale? 
-     update_scale(force_scale_update_, 0); // TODO rotate
+     int32_t _rotate = 0;
+     if (get_scale_mask_cv_source()) {
+       _rotate += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_scale_mask_cv_source() - 1)) + 127) >> 8; 
+       force_scale_update_ = true;
+     }
+     update_scale(force_scale_update_, _rotate); //
        
     /*             
      *  brute force ugly sync hack:
@@ -712,19 +730,28 @@ public:
          step_state_ = gate_state_ = process_seq_channel(); // = gate ...either ON, OFF
          
          if (step_state_ == ON) {
-            uint8_t _transpose = 0; //TODO...
+          
+            int8_t _octave = get_octave();        
+            if (get_transpose_cv_source()) 
+              _octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv_source() - 1)) + 255) >> 9;             
+     
             // use the current sequence, updated in  process_seq_channel():
-            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (get_octave() * 12 << 7); /// 
+            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); /// 
             // update output:
-            step_pitch_ = quantizer_.Process(step_pitch_, 0, _transpose);  
+            step_pitch_ = quantizer_.Process(step_pitch_, 0, 0);  
 
             switch (_mode) {
 
                 case 0: // gates .. 
                 break;
                 case 1: // copy
-                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (get_octave_aux() * 12 << 7);
-                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, _transpose); 
+                {
+                  int8_t _octave_aux = get_octave_aux();
+                  if (get_octave_aux_cv_source())
+                    _octave_aux += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_aux_cv_source() - 1)) + 255) >> 9;  
+                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave_aux * 12 << 7);
+                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, 0); 
+                }
                 break;
                 case 2: // oct+
                   
@@ -913,8 +940,8 @@ public:
       
       case CV_MAPPING: {
         
-          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = SCALE
-          *settings++ = SEQ_CHANNEL_SETTING_MASK_CV_SOURCE; // = rotate mask 
+          *settings++ = SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE;  // = transpose SCALE
+          *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE; // = rotate mask 
           *settings++ = SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE; // sequence #
           *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = TD: rotate mask
          
@@ -1061,6 +1088,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 6, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U4 },
   // cv sources
   { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "transpose   ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "--> pw      ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "--> aux +/- ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "sequence #  ->", cv_sources, settings::STORAGE_TYPE_U4 },
@@ -1365,7 +1393,7 @@ void SEQ_leftButtonLong() {
       
       the_other_channel = (~this_channel) & 1u;
       seq_channel[the_other_channel].set_scale(scale);
-      seq_channel[the_other_channel].update_scale(true,scale);
+      seq_channel[the_other_channel].update_scale(true, scale);
   }
 }
 
@@ -1442,7 +1470,7 @@ void SEQ_menu() {
     switch (setting) {
 
       case SEQ_CHANNEL_SETTING_SCALE_MASK:
-       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_scale_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
        list_item.DrawNoValue<false>(value, attr);
       break; 
       case SEQ_CHANNEL_SETTING_MASK1:
