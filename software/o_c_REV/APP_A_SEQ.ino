@@ -1281,13 +1281,23 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
 void SEQ_upButton() {
 
   SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-  selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, 1);
+  if (selected.get_menu_page() == PARAMETERS) 
+    selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, 1);
+  else  {
+    selected.set_menu_page(PARAMETERS);
+    selected.update_enabled_settings(seq_state.selected_channel);
+  }
 }
 
 void SEQ_downButton() {
 
   SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-  selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, -1);
+  if (selected.get_menu_page() == PARAMETERS) 
+    selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, -1);
+  else {
+    selected.set_menu_page(PARAMETERS);
+    selected.update_enabled_settings(seq_state.selected_channel);
+  }
 }
 
 void SEQ_rightButton() {
@@ -1355,13 +1365,13 @@ void SEQ_upButtonLong() {
 
 void SEQ_downButtonLong() {
   // toggle menu page
-  SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-  uint8_t _menu_page = selected.get_menu_page();
-  selected.set_menu_page((~_menu_page)&1u);
-  selected.update_enabled_settings(seq_state.selected_channel);
-  seq_state.cursor.set_editing(false);
-  seq_state.pattern_editor.Close();
-  seq_state.scale_editor.Close();
+  if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {
+    SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+    uint8_t _menu_page = selected.get_menu_page();
+    selected.set_menu_page((~_menu_page)&1u);
+    selected.update_enabled_settings(seq_state.selected_channel);
+    seq_state.cursor.set_editing(false);
+  }
 }
 
 void SEQ_menu() {
