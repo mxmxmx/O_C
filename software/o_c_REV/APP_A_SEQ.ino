@@ -127,8 +127,10 @@ enum SEQ_ChannelSetting {
   // cv sources
   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
   SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
   SEQ_CHANNEL_SETTING_MASK_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_DUMMY,
   SEQ_CHANNEL_SETTING_LAST
 };
 
@@ -156,10 +158,23 @@ enum SEQ_CLOCKSTATES {
   ON = 50000
 };
 
+enum MENU_PAGES {
+  PARAMETERS,
+  CV_MAPPING  
+};
+
 uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE];
 
 class SEQ_Channel : public settings::SettingsBase<SEQ_Channel, SEQ_CHANNEL_SETTING_LAST> {
 public:
+
+  uint8_t get_menu_page() const {
+    return menu_page_;  
+  }
+
+  void set_menu_page(uint8_t _menu_page) {
+    menu_page_ = _menu_page;  
+  }
   
   uint8_t get_mode() const {
     return values_[SEQ_CHANNEL_SETTING_MODE];
@@ -430,14 +445,12 @@ public:
   }
 
   void update_scale_mask(uint16_t mask) {
-    
     force_scale_update_ = true;
     apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK, mask); // Should automatically be updated
   }
 
   template <DAC_CHANNEL dac_channel>
   uint16_t get_zero() const {
-     
     return OC::DAC::get_zero_offset(dac_channel);
   }
   
@@ -445,6 +458,7 @@ public:
     
     InitDefaults();
     channel_id_ = id;
+    menu_page_ = PARAMETERS;
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
     quantizer_.Init();  
     force_update_ = true;
@@ -842,57 +856,84 @@ public:
 
     SEQ_ChannelSetting *settings = enabled_settings_;
 
-    *settings++ = SEQ_CHANNEL_SETTING_SCALE,
-    *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK,
-    *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
-    
-    switch (get_sequence()) {
-    
-      case 0:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK1;
-      break;
-      case 1:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK2;
-      break;
-      case 2:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK3;
-      break;
-      case 3:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK4;
+    switch(get_menu_page()) {
+
+      case PARAMETERS: {
+
+          *settings++ = SEQ_CHANNEL_SETTING_SCALE;
+          *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
+          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
+          
+          switch (get_sequence()) {
+          
+            case 0:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK1;
+            break;
+            case 1:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK2;
+            break;
+            case 2:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK3;
+            break;
+            case 3:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK4;
+            break;
+            default:
+            break;             
+          }
+         
+         *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
+         *settings++ = SEQ_CHANNEL_SETTING_MULT;
+         *settings++ = SEQ_CHANNEL_SETTING_MODE;
+         
+         switch (get_mode()) {
+      
+            case 0: 
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
+            break;
+            case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
+              *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
+            break;
+            default:
+            break; 
+         }
+         
+         *settings++ = SEQ_CHANNEL_SETTING_RESET; 
+         *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
+      }
+      break;  
+      
+      case CV_MAPPING: {
+        
+          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = SCALE
+          *settings++ = SEQ_CHANNEL_SETTING_MASK_CV_SOURCE; // = rotate mask 
+          *settings++ = SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE; // sequence #
+          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = TD: rotate mask
+         
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = playmode
+         *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
+
+         switch (get_mode()) {
+      
+            case 0: 
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE;
+            break;
+            case 1: 
+              *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE;
+            break;
+            default:
+            break; 
+         }
+       
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // =  TD: toggle clock source
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = reset source
+      }
       break;
       default:
-      break;             
-    }
-   
-   *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
-   *settings++ = SEQ_CHANNEL_SETTING_MULT;
-   *settings++ = SEQ_CHANNEL_SETTING_MODE;
-   
-   switch (get_mode()) {
-
-      case 0: 
-        *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
       break;
-      case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
-        *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
-      break;
-      default:
-      break; 
-   }  
-   
-   *settings++ = SEQ_CHANNEL_SETTING_RESET; 
-   *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
-  
-
-   // TODO
-   /*
-   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
-   SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE,
-   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
-   SEQ_CHANNEL_SETTING_MASK_CV_SOURCE,
-   */
-    
-    num_enabled_settings_ = settings - enabled_settings_;  
+   } 
+   num_enabled_settings_ = settings - enabled_settings_;  
   }
   
   template <DAC_CHANNEL dacChannel>
@@ -929,6 +970,7 @@ public:
 private:
 
   bool channel_id_;
+  uint8_t menu_page_;
   uint16_t _sync_cnt;
   bool force_update_;
   bool force_scale_update_;
@@ -1010,10 +1052,12 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 4
   { 0, 0, 6, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U4 },
   // cv sources
-  { 0, 0, 3, "mult/div    >>", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, "pulsewidth  >>", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, "sequence #  >>", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, "mask        >>", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> pw      ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> aux +/- ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "sequence #  ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mask rotate ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY
 };
   
 class SEQ_State {
@@ -1086,7 +1130,12 @@ void SEQ_handleAppEvent(OC::AppEvent event) {
     break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
-    case OC::APP_EVENT_SCREENSAVER_OFF:
+    case OC::APP_EVENT_SCREENSAVER_OFF: 
+    {  
+       SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+       selected.set_menu_page(PARAMETERS);
+       selected.update_enabled_settings(seq_state.selected_channel);
+    }
     break;
   }
 }
@@ -1270,15 +1319,17 @@ void SEQ_rightButton() {
       }
     }
     break;
+    case SEQ_CHANNEL_SETTING_DUMMY:
+      selected.set_menu_page(PARAMETERS);
+      selected.update_enabled_settings(seq_state.selected_channel);
+    break;
     default:
      seq_state.cursor.toggle_editing();
     break;
   }
-
 }
 
 void SEQ_leftButton() {
- 
   // sync:
   for (int i = 0; i < NUM_CHANNELS; ++i) 
         seq_channel[i].sync();
@@ -1299,14 +1350,18 @@ void SEQ_leftButtonLong() {
 }
 
 void SEQ_upButtonLong() {
-
   // screensaver short cut (happens elsewhere)
 }
 
 void SEQ_downButtonLong() {
-
-  // CV menu
-
+  // toggle menu page
+  SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+  uint8_t _menu_page = selected.get_menu_page();
+  selected.set_menu_page((~_menu_page)&1u);
+  selected.update_enabled_settings(seq_state.selected_channel);
+  seq_state.cursor.set_editing(false);
+  seq_state.pattern_editor.Close();
+  seq_state.scale_editor.Close();
 }
 
 void SEQ_menu() {
@@ -1361,6 +1416,9 @@ void SEQ_menu() {
       case SEQ_CHANNEL_SETTING_MASK3:
       case SEQ_CHANNEL_SETTING_MASK4:
         menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_display_mask(), channel.get_sequence_length(channel.get_display_sequence()), channel.get_clock_cnt());
+        list_item.DrawNoValue<false>(value, attr);
+      break;
+      case SEQ_CHANNEL_SETTING_DUMMY:
         list_item.DrawNoValue<false>(value, attr);
       break;
       default:
