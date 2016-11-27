@@ -36,6 +36,7 @@
 enum ByteBeatSettings {
   BYTEBEAT_SETTING_EQUATION,
   BYTEBEAT_SETTING_SPEED,
+  BYTEBEAT_SETTING_PITCH,
   BYTEBEAT_SETTING_P0,
   BYTEBEAT_SETTING_P1,
   BYTEBEAT_SETTING_P2,
@@ -69,6 +70,7 @@ enum ByteBeatCVMapping {
   BYTEBEAT_CV_MAPPING_LOOP_END,
   BYTEBEAT_CV_MAPPING_LOOP_END_MED,
   BYTEBEAT_CV_MAPPING_LOOP_END_FINE,
+  BYTEBEAT_CV_MAPPING_PITCH,
   BYTEBEAT_CV_MAPPING_LAST,
   BYTEBEAT_CV_MAPPING_FIRST=BYTEBEAT_CV_MAPPING_EQUATION
   
@@ -78,7 +80,7 @@ class ByteBeat : public settings::SettingsBase<ByteBeat, BYTEBEAT_SETTING_LAST> 
 public:
 
   static constexpr size_t kHistoryDepth = 64;
-  static constexpr int kMaxByteBeatParameters = 11;
+  static constexpr int kMaxByteBeatParameters = 12;
 
   void Init(OC::DigitalInput default_trigger);
 
@@ -112,6 +114,10 @@ public:
 
   uint8_t get_speed() const {
     return values_[BYTEBEAT_SETTING_SPEED];
+  }
+
+  uint8_t get_pitch() const {
+    return values_[BYTEBEAT_SETTING_PITCH];
   }
 
   uint8_t get_p0() const {
@@ -199,6 +205,7 @@ public:
     ByteBeatSettings *settings = enabled_settings_;
     *settings++ = BYTEBEAT_SETTING_EQUATION;
     *settings++ = BYTEBEAT_SETTING_SPEED;
+    *settings++ = BYTEBEAT_SETTING_PITCH;
     *settings++ = BYTEBEAT_SETTING_P0;
     *settings++ = BYTEBEAT_SETTING_P1;
     *settings++ = BYTEBEAT_SETTING_P2;
@@ -242,6 +249,7 @@ public:
     switch (mapping) {
       case BYTEBEAT_CV_MAPPING_EQUATION:
       case BYTEBEAT_CV_MAPPING_SPEED:
+      case BYTEBEAT_CV_MAPPING_PITCH:
       case BYTEBEAT_CV_MAPPING_P0:
       case BYTEBEAT_CV_MAPPING_P1:
       case BYTEBEAT_CV_MAPPING_P2:
@@ -275,13 +283,14 @@ public:
     s[8] = SCALE8_16(static_cast<int32_t>(get_loop_end()));
     s[9] = SCALE8_16(static_cast<int32_t>(get_loop_end_med()));
     s[10] = SCALE8_16(static_cast<int32_t>(get_loop_end_fine()));
+    s[11] = SCALE8_16(static_cast<int32_t>(get_pitch()));
 
     apply_cv_mapping(BYTEBEAT_SETTING_CV1, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV2, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV3, cvs, s);
     apply_cv_mapping(BYTEBEAT_SETTING_CV4, cvs, s);
 
-    for (uint_fast8_t i = 0; i < 11; ++i) {
+    for (uint_fast8_t i = 0; i < 12; ++i) {
       s[i] = USAT16(s[i]) ;
       s_[i] = s[i] ;
     }
@@ -336,12 +345,13 @@ void ByteBeat::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const bytebeat_cv_mapping_names[BYTEBEAT_CV_MAPPING_LAST] = {
-  "off", "equ", "spd", "p0", "p1", "p2", "beg++", "beg+", "beg", "end++", "end+", "end"  
+  "off", "equ", "spd", "p0", "p1", "p2", "beg++", "beg+", "beg", "end++", "end+", "end","pitch"  
 };
 
 SETTINGS_DECLARE(ByteBeat, BYTEBEAT_SETTING_LAST) {
   { 0, 0, 15, "Equation", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 255, 0, 255, "Speed", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 1, 255, "Pitch", NULL, settings::STORAGE_TYPE_U8 },
   { 126, 0, 255, "Parameter 0", NULL, settings::STORAGE_TYPE_U8 }, 
   { 126, 0, 255, "Parameter 1", NULL, settings::STORAGE_TYPE_U8 }, 
   { 127, 0, 255, "Parameter 2", NULL, settings::STORAGE_TYPE_U8 }, 

@@ -60,6 +60,7 @@ class ByteBeat {
       set_p2(parameter[4]);
       set_loop_start(parameter[5], parameter[6], parameter[7]);
       set_loop_end(parameter[8], parameter[9] , parameter[10]);
+      set_pitch(parameter[11]);
       set_step_mode(stepmode) ;
       set_loop_mode(loopmode) ;
       // Quick and dirty log scaling sans LUT
@@ -82,6 +83,10 @@ class ByteBeat {
 
   inline void set_speed(int32_t speed) {
     speed_ = speed;
+  }
+
+  inline void set_pitch(int32_t pitch) {
+    pitch_ = pitch >> 8;
   }
   
   inline void set_p0(int32_t parameter) {
@@ -143,6 +148,7 @@ class ByteBeat {
  private:
   uint16_t equation_ ;
   uint16_t speed_;
+  uint16_t pitch_;
   uint8_t p0_;
   uint8_t p1_;
   uint8_t p2_;

@@ -40,6 +40,7 @@ enum ASRSettings {
   ASR_SETTING_BYTEBEAT_P2,
   ASR_SETTING_BYTEBEAT_CV_SOURCE,
   ASR_SETTING_INT_SEQ_INDEX,
+  ASR_SETTING_INT_SEQ_MODULUS,
   ASR_SETTING_INT_SEQ_START,
   ASR_SETTING_INT_SEQ_LENGTH,
   ASR_SETTING_INT_SEQ_DIR,
@@ -156,6 +157,10 @@ public:
 
   uint8_t get_int_seq_index() const {
     return values_[ ASR_SETTING_INT_SEQ_INDEX];
+  }
+
+  uint8_t get_int_seq_modulus() const {
+    return values_[ ASR_SETTING_INT_SEQ_MODULUS];
   }
 
   int16_t get_int_seq_start() const {
@@ -323,6 +328,7 @@ public:
       break;
        case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
         *settings++ = ASR_SETTING_INT_SEQ_INDEX;
+        *settings++ = ASR_SETTING_INT_SEQ_MODULUS;
         *settings++ = ASR_SETTING_INT_SEQ_START;
         *settings++ = ASR_SETTING_INT_SEQ_LENGTH;
         *settings++ = ASR_SETTING_INT_SEQ_DIR;
@@ -522,6 +528,7 @@ public:
                 case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
                  {
                  int16_t _int_seq_index = get_int_seq_index() ;
+                 int16_t _int_seq_modulus = get_int_seq_modulus() ;
                  int16_t _int_seq_start = get_int_seq_start() ;
                  int16_t _int_seq_length = get_int_seq_length();
                  int16_t _fractal_seq_stride = get_fractal_seq_stride();
@@ -546,6 +553,10 @@ public:
                        _fractal_seq_stride += ((_pitch + 15) >> 8);
                        CONSTRAIN(_fractal_seq_stride, 1, 255);
                       break;
+                       case 5:  // fractal sequence modulus
+                       _int_seq_modulus += ((_pitch + 15) >> 9);
+                       CONSTRAIN(_fractal_seq_stride, 2, 120);
+                      break;
                       default: // mult
                        _mult += ((_pitch + 255) >> 8);
                       break;
@@ -554,6 +565,7 @@ public:
                   int_seq_.set_loop_start(_int_seq_start);
                   int_seq_.set_loop_length(_int_seq_length);
                   int_seq_.set_int_seq(_int_seq_index);
+                  int_seq_.set_int_seq_modulus(_int_seq_modulus);
                   int_seq_.set_loop_direction(_int_seq_dir);
                   int_seq_.set_fractal_stride(_fractal_seq_stride);
 
@@ -647,7 +659,7 @@ const char* const bb_CV_destinations[] = {
 
 
 const char* const int_seq_CV_destinations[] = {
-  "M/A", "seq", "strt", "len", "strd"
+  "M/A", "seq", "strt", "len", "strd", "mod"
 };
 
 
@@ -669,11 +681,12 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, " > BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 24, 2, 120, "IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, " > IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 },   
+  { 0, 0, 5, " > IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 },   
 };
 
 /* -------------------------------------------------------------------*/
