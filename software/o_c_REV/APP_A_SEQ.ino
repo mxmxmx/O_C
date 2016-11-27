@@ -428,6 +428,14 @@ public:
     div_cnt_ = 0x0;
   }
 
+  void clear_CV_mapping() {
+    apply_value(SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_MULT_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_MASK_CV_SOURCE, 0);
+  }
+  
   int get_scale() const {
     return values_[SEQ_CHANNEL_SETTING_SCALE];
   }
@@ -1286,6 +1294,7 @@ void SEQ_upButton() {
   else  {
     selected.set_menu_page(PARAMETERS);
     selected.update_enabled_settings(seq_state.selected_channel);
+    seq_state.cursor.set_editing(false);
   }
 }
 
@@ -1297,6 +1306,7 @@ void SEQ_downButton() {
   else {
     selected.set_menu_page(PARAMETERS);
     selected.update_enabled_settings(seq_state.selected_channel);
+    seq_state.cursor.set_editing(false);
   }
 }
 
@@ -1365,12 +1375,26 @@ void SEQ_upButtonLong() {
 
 void SEQ_downButtonLong() {
   // toggle menu page
-  if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {
-    SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-    uint8_t _menu_page = selected.get_menu_page();
-    selected.set_menu_page((~_menu_page)&1u);
-    selected.update_enabled_settings(seq_state.selected_channel);
+
+  SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+  uint8_t _menu_page = selected.get_menu_page();
+
+  switch (_menu_page) {  
+  case PARAMETERS:  
+  {
+    if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {  
+      selected.set_menu_page(CV_MAPPING);
+      selected.update_enabled_settings(seq_state.selected_channel);
+      seq_state.cursor.set_editing(false);
+    } 
+  }
+  break;
+  case CV_MAPPING:
+    selected.clear_CV_mapping();
     seq_state.cursor.set_editing(false);
+  break;
+  default:
+  break;
   }
 }
 
