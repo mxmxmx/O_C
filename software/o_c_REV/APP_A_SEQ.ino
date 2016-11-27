@@ -447,6 +447,7 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE, 0);
   }
   
   int get_scale() const {
