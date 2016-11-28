@@ -43,10 +43,17 @@ const uint8_t PULSEW_MAX = 255; // max pulse width [ms]
 const uint32_t SCALE_PULSEWIDTH = 58982; // 0.9 for signed_multiply_32x16b
 const uint32_t TICKS_TO_MS = 43691; // 0.6667f : fraction, if TU_CORE_TIMER_RATE = 60 us : 65536U * ((1000 / TU_CORE_TIMER_RATE) - 16)
 const uint32_t TICK_JITTER = 0xFFFFFFF;  // 1/16 : threshold/double triggers reject -> ext_frequency_in_ticks_
-const uint32_t TICK_SCALE  = 0xC0000000; // 0.75 for signed_multiply_32x32                      
+const uint32_t TICK_SCALE  = 0xC0000000; // 0.75 for signed_multiply_32x32               
+const uint32_t COPYTIMEOUT = 200000; // in ticks
 
 uint32_t ticks_src1 = 0; // main clock frequency (top)
 uint32_t ticks_src2 = 0; // sec. clock frequency (bottom)
+
+// copy sequence, global
+uint8_t copy_sequence = 0;  
+uint8_t copy_length = OC::Patterns::kMax;
+uint16_t copy_mask = 0xFFFF;
+uint64_t copy_timeout = COPYTIMEOUT;
 
 const uint64_t multipliers_[] = {
   
@@ -104,6 +111,7 @@ enum SEQ_ChannelSetting {
   //
   SEQ_CHANNEL_SETTING_SCALE,
   SEQ_CHANNEL_SETTING_OCTAVE, 
+  SEQ_CHANNEL_SETTING_OCTAVE_AUX, 
   SEQ_CHANNEL_SETTING_SCALE_MASK,
   //
   SEQ_CHANNEL_SETTING_MASK1,
@@ -118,9 +126,12 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE,
   // cv sources
   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
-  SEQ_CHANNEL_SETTING_MASK_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_DUMMY,
   SEQ_CHANNEL_SETTING_LAST
 };
 
@@ -148,10 +159,23 @@ enum SEQ_CLOCKSTATES {
   ON = 50000
 };
 
+enum MENU_PAGES {
+  PARAMETERS,
+  CV_MAPPING  
+};
+
 uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE];
 
 class SEQ_Channel : public settings::SettingsBase<SEQ_Channel, SEQ_CHANNEL_SETTING_LAST> {
 public:
+
+  uint8_t get_menu_page() const {
+    return menu_page_;  
+  }
+
+  void set_menu_page(uint8_t _menu_page) {
+    menu_page_ = _menu_page;  
+  }
   
   uint8_t get_mode() const {
     return values_[SEQ_CHANNEL_SETTING_MODE];
@@ -167,6 +191,10 @@ public:
 
   int get_octave() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE];
+  }
+
+  int get_octave_aux() const {
+    return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX];
   }
   
   int8_t get_multiplier() const {
@@ -240,16 +268,24 @@ public:
     return values_[SEQ_CHANNEL_SETTING_MULT_CV_SOURCE];
   }
 
+  uint8_t get_transpose_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE];
+  }
+  
   uint8_t get_pulsewidth_cv_source() const {
     return values_[SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE];
   }
 
-  uint8_t get_mask_cv_source() const {
-    return values_[SEQ_CHANNEL_SETTING_MASK_CV_SOURCE];
+  uint8_t get_scale_mask_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE];
   }
 
   uint8_t get_sequence_cv_source() const {
     return values_[SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE];
+  }
+
+  uint8_t get_octave_aux_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE]; 
   }
   
   void update_pattern_mask(uint16_t mask, uint8_t sequence) {
@@ -318,6 +354,10 @@ public:
     return step_pitch_;
   }
 
+  uint32_t get_step_pitch_aux() const {
+    return step_pitch_aux_;
+  }
+
   uint32_t get_step_gate() const {
     return gate_state_;
   }
@@ -341,11 +381,45 @@ public:
     OC::Pattern *write_pattern_ = &OC::user_patterns[seq + _channel_offset];
     write_pattern_->notes[step] = pitch;
   }
+  
+  uint16_t get_rotated_scale_mask() const {
+    return last_scale_mask_;
+  }
 
   void clear_user_pattern(uint8_t seq) {
     
     uint8_t _channel_offset = !channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS;
     memcpy(&OC::user_patterns[seq + _channel_offset], &OC::patterns[0], sizeof(OC::Pattern));
+  }
+
+  void copy_seq(uint8_t seq, uint8_t len, uint16_t mask) {
+
+    // which sequence ?
+    copy_sequence = seq + (!channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS);
+    copy_length = len;
+    copy_mask = mask;
+    copy_timeout = 0;
+  }
+
+  uint8_t paste_seq(uint8_t seq) {
+
+    if (copy_timeout < COPYTIMEOUT) {
+
+       // which sequence to copy to ?
+       uint8_t sequence = seq + (!channel_id_ ? 0x0 : OC::Patterns::NUM_PATTERNS);
+       // copy length:
+       set_sequence_length(copy_length, seq);
+       // copy mask:
+       update_pattern_mask(copy_mask, seq);
+       // copy note values:
+       memcpy(&OC::user_patterns[sequence], &OC::user_patterns[copy_sequence], sizeof(OC::Pattern));
+       // give more time for more pasting...
+       copy_timeout = 0;
+       
+       return copy_length;
+    }
+    else 
+      return 0;
   }
 
   uint8_t getTriggerState() const {
@@ -367,10 +441,23 @@ public:
     div_cnt_ = 0x0;
   }
 
+  void clear_CV_mapping() {
+    apply_value(SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_MULT_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE, 0);
+  }
+  
   int get_scale() const {
     return values_[SEQ_CHANNEL_SETTING_SCALE];
   }
 
+  void set_scale(int scale) {
+     apply_value(SEQ_CHANNEL_SETTING_SCALE, scale);
+  }
+  
   int get_scale_mask() const {
     return values_[SEQ_CHANNEL_SETTING_SCALE_MASK];
   }
@@ -380,14 +467,12 @@ public:
   }
 
   void update_scale_mask(uint16_t mask) {
-    
     force_scale_update_ = true;
     apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK, mask); // Should automatically be updated
   }
 
   template <DAC_CHANNEL dac_channel>
   uint16_t get_zero() const {
-     
     return OC::DAC::get_zero_offset(dac_channel);
   }
   
@@ -395,11 +480,14 @@ public:
     
     InitDefaults();
     channel_id_ = id;
+    menu_page_ = PARAMETERS;
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
     quantizer_.Init();  
     force_update_ = true;
     force_scale_update_ = true;
     gate_state_ = step_state_ = OFF;
+    step_pitch_ = 0;
+    step_pitch_aux_ = 0;
     ticks_ = 0;
     subticks_ = 0;
     tickjitter_ = 10000;
@@ -418,13 +506,11 @@ public:
     // TODO this needs to be per channel, not just 0 
     _ZERO = OC::calibration_data.dac.calibrated_octaves[0][OC::DAC::kOctaveZero];
 
-    // WTF? get_mask doesn't return the saved mask?
     display_sequence_ = get_sequence();
     display_mask_ = get_mask(display_sequence_);
     sequence_last_ = display_sequence_;
     sequence_advance_ = false;
     sequence_advance_state_ = false; 
-
     uint32_t _seed = OC::ADC::value<ADC_CHANNEL_1>() + OC::ADC::value<ADC_CHANNEL_2>() + OC::ADC::value<ADC_CHANNEL_3>() + OC::ADC::value<ADC_CHANNEL_4>();
     randomSeed(_seed);
     clock_display_.Init();
@@ -557,7 +643,12 @@ public:
      }
 
      // update scale? 
-     update_scale(force_scale_update_, 0); // TODO rotate
+     int32_t _rotate = 0;
+     if (get_scale_mask_cv_source()) {
+       _rotate += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_scale_mask_cv_source() - 1)) + 127) >> 8; 
+       force_scale_update_ = true;
+     }
+     update_scale(force_scale_update_, _rotate); //
        
     /*             
      *  brute force ugly sync hack:
@@ -637,15 +728,37 @@ public:
          reset_me_ = true;
          reset_counter_ = false;
          // finally, process trigger + output
-         step_state_ = gate_state_ = process_seq_channel(_mode); // = gate ...either ON, OFF
+         step_state_ = gate_state_ = process_seq_channel(); // = gate ...either ON, OFF
          
          if (step_state_ == ON) {
-            uint8_t _transpose = 0; //TODO...
-            uint8_t _root =  0; // TODO ... 
+          
+            int8_t _octave = get_octave();        
+            if (get_transpose_cv_source()) 
+              _octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv_source() - 1)) + 255) >> 9;             
+     
             // use the current sequence, updated in  process_seq_channel():
-            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (get_octave() * 12 << 7); /// 
-            // todo -- limit range
-            step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
+            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); /// 
+            // update output:
+            step_pitch_ = quantizer_.Process(step_pitch_, 0, 0);  
+
+            switch (_mode) {
+
+                case 0: // gates .. 
+                break;
+                case 1: // copy
+                {
+                  int8_t _octave_aux = get_octave_aux();
+                  if (get_octave_aux_cv_source())
+                    _octave_aux += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_aux_cv_source() - 1)) + 255) >> 9;  
+                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave_aux * 12 << 7);
+                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, 0); 
+                }
+                break;
+                case 2: // oct+
+                  
+                default:
+                break;
+            }
          }
      }
   
@@ -653,7 +766,7 @@ public:
       *  below: pulsewidth stuff
       */
       
-     if (gate_state_) { 
+     if (!_mode && gate_state_) { 
        
         // pulsewidth setting -- 
         int16_t _pulsewidth = get_pulsewidth();
@@ -718,65 +831,56 @@ public:
   } // end update
 
   /* details re: trigger processing happens (mostly) here: */
-  inline uint16_t process_seq_channel(uint8_t mode) {
+  inline uint16_t process_seq_channel() {
  
       uint16_t _out = ON;
-  
-      switch (mode) {
-  
-          case 0: {
-              // sequencer mode, adapted from o_C scale edit:
-              int16_t _seq = get_sequence();
-              
-              if (get_sequence_cv_source()) {
-                _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
-                CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
-              }
-
-              uint8_t _playmode = get_playmode();
-              
-              if (_playmode) {
-
-                // concatenate sequences:
-                if (_playmode <= 3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
-                  sequence_cnt_++;
-                  sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
-                  clk_cnt_ = 0; 
-                }
-                else if (_playmode > 3 && sequence_advance_) {
-                  _playmode -= 3;
-                  sequence_cnt_++;
-                  sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
-                  clk_cnt_ = 0;
-                  sequence_advance_ = false; 
-                }
-               
-                if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
-                  sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
-              }
-              else 
-                sequence_last_ = _seq;
-                         
-              _seq = sequence_last_;
-              // this is the sequence # (USER1-USER4):
-              display_sequence_ = _seq;
-              // and corresponding pattern mask:
-              uint16_t _mask = get_mask(_seq);
-              // rotate mask ?
-              if (get_mask_cv_source())
-                _mask = update_sequence((OC::ADC::value(static_cast<ADC_CHANNEL>(get_mask_cv_source() - 1)) + 127) >> 8, _seq, _mask);
-              display_mask_ = _mask;
-              // reset counter ?
-              if (clk_cnt_ >= get_sequence_length(_seq))
-                clk_cnt_ = 0; 
-              // output slot at current position:  
-              _out = (_mask >> clk_cnt_) & 1u;
-              _out = _out ? ON : OFF;
-            }   
-            break; 
-           default:
-            break; // end mode switch       
+      int16_t _seq = get_sequence();
+      
+      if (get_sequence_cv_source()) {
+        _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
+        CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
       }
+
+      uint8_t _playmode = get_playmode();
+      
+      if (_playmode) {
+
+        // concatenate sequences:
+        if (_playmode <= 3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
+          sequence_cnt_++;
+          sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+          clk_cnt_ = 0; 
+        }
+        else if (_playmode > 3 && sequence_advance_) {
+          _playmode -= 3;
+          sequence_cnt_++;
+          sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+          clk_cnt_ = 0;
+          sequence_advance_ = false; 
+        }
+       
+        if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
+          sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
+      }
+      else 
+        sequence_last_ = _seq;
+                 
+      _seq = sequence_last_;
+      // this is the sequence # (USER1-USER4):
+      display_sequence_ = _seq;
+      // and corresponding pattern mask:
+      uint16_t _mask = get_mask(_seq);
+      // rotating the mask doesn't really make sense .... length might
+      //if (get_mask_cv_source())
+      //  _mask = update_sequence((OC::ADC::value(static_cast<ADC_CHANNEL>(get_mask_cv_source() - 1)) + 127) >> 8, _seq, _mask);
+      display_mask_ = _mask;
+      // reset counter ?
+      if (clk_cnt_ >= get_sequence_length(_seq))
+        clk_cnt_ = 0; 
+      // output slot at current position:  
+      _out = (_mask >> clk_cnt_) & 1u;
+      _out = _out ? ON : OFF;   
+      // return step:  
       return _out; 
   }
  
@@ -788,56 +892,113 @@ public:
 
     SEQ_ChannelSetting *settings = enabled_settings_;
 
-    *settings++ = SEQ_CHANNEL_SETTING_SCALE,
-    *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK,
-    *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
-    
-    switch (get_sequence()) {
-    
-      case 0:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK1;
-      break;
-      case 1:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK2;
-      break;
-      case 2:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK3;
-      break;
-      case 3:
-        *settings++ = SEQ_CHANNEL_SETTING_MASK4;
+    switch(get_menu_page()) {
+
+      case PARAMETERS: {
+
+          *settings++ = SEQ_CHANNEL_SETTING_SCALE;
+          *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
+          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
+          
+          switch (get_sequence()) {
+          
+            case 0:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK1;
+            break;
+            case 1:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK2;
+            break;
+            case 2:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK3;
+            break;
+            case 3:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK4;
+            break;
+            default:
+            break;             
+          }
+         
+         *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
+         *settings++ = SEQ_CHANNEL_SETTING_MULT;
+         *settings++ = SEQ_CHANNEL_SETTING_MODE;
+         
+         switch (get_mode()) {
+      
+            case 0: 
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
+            break;
+            case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
+              *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
+            break;
+            default:
+            break; 
+         }
+         
+         *settings++ = SEQ_CHANNEL_SETTING_RESET; 
+         *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
+      }
+      break;  
+      
+      case CV_MAPPING: {
+        
+          *settings++ = SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE;  // = transpose SCALE
+          *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE; // = rotate mask 
+          *settings++ = SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE; // sequence #
+          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = TD: rotate mask
+         
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = playmode
+         *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
+
+         switch (get_mode()) {
+      
+            case 0: 
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE;
+            break;
+            case 1: 
+              *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE;
+            break;
+            default:
+            break; 
+         }
+       
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // =  TD: toggle clock source
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = reset source
+      }
       break;
       default:
-      break;             
-    }
-   
-   *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
-   *settings++ = SEQ_CHANNEL_SETTING_MULT;
-   *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
-   *settings++ = SEQ_CHANNEL_SETTING_MODE;
-   *settings++ = SEQ_CHANNEL_SETTING_RESET; 
-   *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
-  
-
-   // TODO
-   /*
-   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
-   SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE,
-   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
-   SEQ_CHANNEL_SETTING_MASK_CV_SOURCE,
-   */
-    
-    num_enabled_settings_ = settings - enabled_settings_;  
+      break;
+   } 
+   num_enabled_settings_ = settings - enabled_settings_;  
   }
   
+  template <DAC_CHANNEL dacChannel>
+  void update_main_channel() {
 
-  uint16_t update_sequence(int32_t mask_rotate_, uint8_t sequence_, uint16_t mask_) {
+    int32_t _output = OC::DAC::pitch_to_dac(dacChannel, get_step_pitch(), 0);
+    OC::DAC::set<dacChannel>(_output);  
     
-    const int sequence_num = sequence_;
-    uint16_t mask = mask_;
-    
-    if (mask_rotate_)
-      mask = OC::PatternEditor<SEQ_Channel>::RotateMask(mask, get_sequence_length(sequence_num), mask_rotate_);
-    return mask;
+  }
+  
+  template <DAC_CHANNEL dacChannel>
+  void update_aux_channel()
+  {
+
+      int8_t _mode = get_mode();
+      uint32_t _output = 0;
+      
+      switch (_mode) {
+
+        case 0: // gate
+          _output = get_step_gate();
+        break;
+        case 1: // copy
+          _output = OC::DAC::pitch_to_dac(dacChannel, get_step_pitch_aux(), 0);
+        break;
+        default:
+        break;
+      }
+      OC::DAC::set<dacChannel>(_output);    
   }
 
   void RenderScreensaver() const;
@@ -845,6 +1006,7 @@ public:
 private:
 
   bool channel_id_;
+  uint8_t menu_page_;
   uint16_t _sync_cnt;
   bool force_update_;
   bool force_scale_update_;
@@ -864,6 +1026,7 @@ private:
   uint16_t gate_state_;
   uint16_t step_state_;
   uint32_t step_pitch_;
+  uint32_t step_pitch_aux_;
   uint8_t prev_multiplier_;
   uint8_t prev_pulsewidth_;
   uint8_t display_sequence_;
@@ -874,7 +1037,7 @@ private:
   int8_t sequence_advance_state_;
   int last_scale_;
   uint16_t last_scale_mask_;
-
+  
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
   braids::Quantizer quantizer_; 
@@ -885,7 +1048,7 @@ const char* const SEQ_CHANNEL_TRIGGER_sources[] = {
   "TR1", "TR3", " - "
 };
 
-const char* const seq_reset_trigger_sources[] = {
+const char* const reset_trigger_sources[] = {
   "RST2", "RST4", " - ", "=HI2", "=LO2", "=HI4", "=LO4"
 };
 
@@ -898,19 +1061,20 @@ const char* const cv_sources[] = {
 };
 
 const char* const modes[] = {
-  "gate", "-"
+  "gate", "copy"
 };
 
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
   { 0, 0, 1, "mode", modes, settings::STORAGE_TYPE_U4 },
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
-  { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", seq_reset_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
-  { 25, 0, PULSEW_MAX, "pulsewidth", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
+  { 25, 0, PULSEW_MAX, "--> pw", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   //
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
+  { 0, -5, 5, "--> aux +/-", NULL, settings::STORAGE_TYPE_I8 }, // aux octave
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // mask
   // seq
   { 65535, 0, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // seq 1
@@ -924,10 +1088,13 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 4
   { 0, 0, 6, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U4 },
   // cv sources
-  { 0, 0, 3, "mult/div    >>", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, "pulsewidth  >>", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, "sequence #  >>", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 3, "mask        >>", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "transpose   ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> pw      ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> aux +/- ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "sequence #  ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mask rotate ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY
 };
   
 class SEQ_State {
@@ -1000,7 +1167,12 @@ void SEQ_handleAppEvent(OC::AppEvent event) {
     break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
-    case OC::APP_EVENT_SCREENSAVER_OFF:
+    case OC::APP_EVENT_SCREENSAVER_OFF: 
+    {  
+       SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+       selected.set_menu_page(PARAMETERS);
+       selected.update_enabled_settings(seq_state.selected_channel);
+    }
     break;
   }
 }
@@ -1012,6 +1184,7 @@ void SEQ_isr() {
 
   ticks_src1++; // src #1 ticks
   ticks_src2++; // src #2 ticks
+  copy_timeout++;
    
   uint32_t triggers = OC::DigitalInputs::clocked();  
 
@@ -1024,21 +1197,15 @@ void SEQ_isr() {
     ticks_src2 = 0x0;
   }
 
-  // update channels:
+  // update sequencer channels 1, 2:
   seq_channel[0].Update(triggers, DAC_CHANNEL_A);
   seq_channel[1].Update(triggers, DAC_CHANNEL_B);
-
-  int32_t sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, seq_channel[0].get_step_pitch(), 0);
-  OC::DAC::set(DAC_CHANNEL_A, sample);
-  
-  sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, seq_channel[1].get_step_pitch(), 0);
-  OC::DAC::set(DAC_CHANNEL_B, sample);
-  
-  int32_t gate = seq_channel[0].get_step_gate();
-  OC::DAC::set(DAC_CHANNEL_C, gate);
-  
-  gate = seq_channel[1].get_step_gate();
-  OC::DAC::set(DAC_CHANNEL_D, gate);
+  // update DAC channels A, B: 
+  seq_channel[0].update_main_channel<DAC_CHANNEL_A>();
+  seq_channel[1].update_main_channel<DAC_CHANNEL_B>();
+  // update DAC channels C, D: 
+  seq_channel[0].update_aux_channel<DAC_CHANNEL_C>();
+  seq_channel[1].update_aux_channel<DAC_CHANNEL_D>();
 }
 
 void SEQ_handleButtonEvent(const UI::Event &event) {
@@ -1151,13 +1318,25 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
 void SEQ_upButton() {
 
   SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-  selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, 1);
+  if (selected.get_menu_page() == PARAMETERS) 
+    selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, 1);
+  else  {
+    selected.set_menu_page(PARAMETERS);
+    selected.update_enabled_settings(seq_state.selected_channel);
+    seq_state.cursor.set_editing(false);
+  }
 }
 
 void SEQ_downButton() {
 
   SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
-  selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, -1);
+  if (selected.get_menu_page() == PARAMETERS) 
+    selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, -1);
+  else {
+    selected.set_menu_page(PARAMETERS);
+    selected.update_enabled_settings(seq_state.selected_channel);
+    seq_state.cursor.set_editing(false);
+  }
 }
 
 void SEQ_rightButton() {
@@ -1189,30 +1368,63 @@ void SEQ_rightButton() {
       }
     }
     break;
+    case SEQ_CHANNEL_SETTING_DUMMY:
+      selected.set_menu_page(PARAMETERS);
+      selected.update_enabled_settings(seq_state.selected_channel);
+    break;
     default:
      seq_state.cursor.toggle_editing();
     break;
   }
-
 }
 
 void SEQ_leftButton() {
- 
   // sync:
   for (int i = 0; i < NUM_CHANNELS; ++i) 
         seq_channel[i].sync();
 }
 
 void SEQ_leftButtonLong() {
-  
+  // copy scale
+  if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {
+    
+      uint8_t this_channel, the_other_channel, scale;
+      this_channel = seq_state.selected_channel;
+      scale = seq_channel[this_channel].get_scale();
+      
+      the_other_channel = (~this_channel) & 1u;
+      seq_channel[the_other_channel].set_scale(scale);
+      seq_channel[the_other_channel].update_scale(true, scale);
+  }
 }
 
 void SEQ_upButtonLong() {
-
+  // screensaver short cut (happens elsewhere)
 }
 
 void SEQ_downButtonLong() {
+  // toggle menu page
 
+  SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+  uint8_t _menu_page = selected.get_menu_page();
+
+  switch (_menu_page) {  
+  case PARAMETERS:  
+  {
+    if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {  
+      selected.set_menu_page(CV_MAPPING);
+      selected.update_enabled_settings(seq_state.selected_channel);
+      seq_state.cursor.set_editing(false);
+    } 
+  }
+  break;
+  case CV_MAPPING:
+    selected.clear_CV_mapping();
+    seq_state.cursor.set_editing(false);
+  break;
+  default:
+  break;
+  }
 }
 
 void SEQ_menu() {
@@ -1259,7 +1471,7 @@ void SEQ_menu() {
     switch (setting) {
 
       case SEQ_CHANNEL_SETTING_SCALE_MASK:
-       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_scale_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
        list_item.DrawNoValue<false>(value, attr);
       break; 
       case SEQ_CHANNEL_SETTING_MASK1:
@@ -1267,6 +1479,9 @@ void SEQ_menu() {
       case SEQ_CHANNEL_SETTING_MASK3:
       case SEQ_CHANNEL_SETTING_MASK4:
         menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_display_mask(), channel.get_sequence_length(channel.get_display_sequence()), channel.get_clock_cnt());
+        list_item.DrawNoValue<false>(value, attr);
+      break;
+      case SEQ_CHANNEL_SETTING_DUMMY:
         list_item.DrawNoValue<false>(value, attr);
       break;
       default:
@@ -1290,6 +1505,7 @@ void SEQ_Channel::RenderScreensaver() const {
       
       clock_x_pos = (seq_id << 6) + (clock_x_pos << 2);
 
+      // clock/step indicator:
       if(seq_channel[seq_id].step_state_ == OFF) {
         graphics.drawRect(clock_x_pos, 63, 5, 2);
         _dac_value = 0;
@@ -1299,7 +1515,8 @@ void SEQ_Channel::RenderScreensaver() const {
 
       // separate windows ...  
       graphics.drawVLine(64, 0, 68);
-   
+
+      // display pitch values as squares/frames:
       if (_dac_value < 0) {
         // display negative values as frame (though they're not negative...)
         _dac_value = (_dac_value - (_dac_value << 1 )) >> 6;
@@ -1340,3 +1557,4 @@ void SEQ_screensaver() {
   seq_channel[0].RenderScreensaver();
   seq_channel[1].RenderScreensaver();
 }
+
