@@ -60,8 +60,25 @@ enum H1200Setting {
   H1200_SETTING_INVERSION,
   H1200_SETTING_TRANFORM_PRIO,
   H1200_SETTING_OUTPUT_MODE,
+  H1200_SETTING_TRIGGER_TYPE,
+  H1200_SETTING_P_EUCLIDEAN_LENGTH,
+  H1200_SETTING_P_EUCLIDEAN_FILL,
+  H1200_SETTING_P_EUCLIDEAN_OFFSET,
+  H1200_SETTING_L_EUCLIDEAN_LENGTH,
+  H1200_SETTING_L_EUCLIDEAN_FILL,
+  H1200_SETTING_L_EUCLIDEAN_OFFSET,
+  H1200_SETTING_R_EUCLIDEAN_LENGTH,
+  H1200_SETTING_R_EUCLIDEAN_FILL,
+  H1200_SETTING_R_EUCLIDEAN_OFFSET,
   H1200_SETTING_LAST
 };
+
+enum H1200TriggerTypes {
+  H1200_TRIGGER_TYPE_PLR,
+  H1200_TRIGGER_TYPE_EUCLIDEAN,
+  H1200_TRIGGER_TYPE_LAST
+};
+
 
 class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
@@ -109,6 +126,11 @@ const char * const trigger_mode_names[] = {
   "L>P>R",
 };
 
+const char * const trigger_type_names[] = {
+  "PLR",
+  "Eucl",
+};
+
 const char * const mode_names[] = {
   "maj", "min"
 };
@@ -119,7 +141,9 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
   {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "Priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8}
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
+  {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U4},
+  
 };
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;

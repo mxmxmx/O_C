@@ -62,23 +62,45 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng)
   uint32_t a;
   uint32_t b;
   switch(frq_rng){
-    case 0:
+    // "glacl", "snail", "sloth", "vlazy", "lazy", "vslow", "slow", "med", "fast", "vfast",
+
+    case 0: // glacial
+      a = lut_increments_vslow[index >> 5] >> 5;
+      b = lut_increments_vslow[(index >> 5) + 1] >> 5;
+      break;
+    case 1: // snail
+      a = lut_increments_vslow[index >> 5] >> 4;
+      b = lut_increments_vslow[(index >> 5) + 1] >> 4;
+      break;
+    case 2: // sloth
+      a = lut_increments_vslow[index >> 5] >> 3;
+      b = lut_increments_vslow[(index >> 5) + 1] >> 3;
+      break;
+    case 3: // vlazy
+      a = lut_increments_vslow[index >> 5] >> 2;
+      b = lut_increments_vslow[(index >> 5) + 1] >> 2;
+      break;
+    case 4: // lazy
+      a = lut_increments_vslow[index >> 5] >> 1;
+      b = lut_increments_vslow[(index >> 5) + 1] >> 1;
+      break;
+    case 5: // vslow
       a = lut_increments_vslow[index >> 5];
       b = lut_increments_vslow[(index >> 5) + 1];
       break;
-    case 1:
+    case 6: //slow
       a = lut_increments_slow[index >> 5];
       b = lut_increments_slow[(index >> 5) + 1];
       break;
-    case 2:
+    case 7: // medium
       a = lut_increments_med[index >> 5];
       b = lut_increments_med[(index >> 5) + 1];
       break;
-    case 3:
+    case 8: // fast
       a = lut_increments_fast[index >> 5];
       b = lut_increments_fast[(index >> 5) + 1];
       break;
-    case 4:
+    case 9: // vfast
       a = lut_increments_vfast[index >> 5];
       b = lut_increments_vfast[(index >> 5) + 1];
       break;
