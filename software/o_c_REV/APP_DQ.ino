@@ -39,7 +39,10 @@
 const uint8_t NUMCHANNELS = 2;
 
 enum DQ_ChannelSetting {
-  DQ_CHANNEL_SETTING_SCALE,
+  DQ_CHANNEL_SETTING_SCALE1,
+  DQ_CHANNEL_SETTING_SCALE2,
+  DQ_CHANNEL_SETTING_SCALE3,
+  DQ_CHANNEL_SETTING_SCALE4,
   DQ_CHANNEL_SETTING_ROOT,
   DQ_CHANNEL_SETTING_SCALE_SEQ,
   DQ_CHANNEL_SETTING_MASK1,
@@ -83,7 +86,11 @@ class DQ_QuantizerChannel : public settings::SettingsBase<DQ_QuantizerChannel, D
 public:
 
   int get_scale() const {
-    return values_[DQ_CHANNEL_SETTING_SCALE];
+    return values_[DQ_CHANNEL_SETTING_SCALE1]; // to do
+  } 
+
+  int get_scale_select() {
+    return values_[DQ_CHANNEL_SETTING_SCALE_SEQ];
   }
 
   void set_scale(int scale) {
@@ -93,7 +100,7 @@ public:
       if (0 == (mask & ~(0xffff << scale_def.num_notes)))
         mask |= 0x1;
       apply_value(DQ_CHANNEL_SETTING_MASK1, mask); // to do
-      apply_value(DQ_CHANNEL_SETTING_SCALE, scale);
+      apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
     }
   }
 
@@ -133,6 +140,10 @@ public:
     return values_[DQ_CHANNEL_SETTING_AUX_OUTPUT];
   }
 
+  int get_pulsewidth() const {
+    return values_[DQ_CHANNEL_SETTING_PULSEWIDTH];
+  }
+
   void Init(DQ_ChannelSource source, DQ_ChannelTriggerSource trigger_source) {
     InitDefaults();
     apply_value(DQ_CHANNEL_SETTING_SOURCE, source);
@@ -162,7 +173,9 @@ public:
     instant_update_ = (~instant_update_) & 1u;
   }
 
-  inline void Update(uint32_t triggers, size_t index, DAC_CHANNEL dac_channel) {
+  inline void Update(uint32_t triggers, size_t index, DAC_CHANNEL dac_channel, DAC_CHANNEL aux_channel) {
+
+    ticks_++;
     bool forced_update = force_update_;
     force_update_ = false;
 
@@ -177,8 +190,11 @@ public:
       trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
     triggered = trigger_delay_.triggered();
 
-    if (triggered)
-      ++clock_;
+    if (triggered) {
+      channel_frequency_in_ticks_ = ticks_;
+      ticks_ = 0x0;
+      gate_state_ = ON; 
+    }
 
     bool update = continous || triggered;
     if (update_scale(forced_update) && instant_update_ == true)
@@ -187,31 +203,116 @@ public:
     int32_t sample = last_sample_;
     int32_t history_sample = 0;
 
-    switch (source) {
+    if (update) {
       
-      default: {
-          if (update) {
-            int32_t transpose = get_transpose();
-            int32_t pitch = quantizer_.enabled()
-                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(source))
-                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
-            if (index != source) {
-              transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
-            }
-            CONSTRAIN(transpose, -12, 12); 
-            const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
-            sample = OC::DAC::pitch_to_dac(dac_channel, quantized, get_octave());
-            history_sample = quantized + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
-          }
-        }
-    } // end switch  
-
+      int32_t transpose = get_transpose();
+      int32_t pitch = quantizer_.enabled()
+          ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(source))
+          : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
+      if (index != source) {
+        transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+      }
+      CONSTRAIN(transpose, -12, 12); 
+      const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
+      sample = OC::DAC::pitch_to_dac(dac_channel, quantized, get_octave());
+      history_sample = quantized + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);   
+    }
+    
     bool changed = last_sample_ != sample;
+
+    uint8_t aux_mode = get_aux_mode();
+    
     if (changed) {
+      
       MENU_REDRAW = 1;
       last_sample_ = sample;
+      
+      if (continous && aux_mode == DQ_GATE) {
+        gate_state_ = ON;
+        ticks_ = 0x0;
+      } 
     }
+    
+    // pulsewidth / gate outputs: 
+
+    switch (aux_mode) {
+
+      case DQ_GATE:
+      { 
+      if (gate_state_) { 
+           
+            // pulsewidth setting -- 
+            int16_t _pulsewidth = get_pulsewidth();
+    
+            if (_pulsewidth || continous) { // don't echo
+    
+                bool _gates = false;
+             
+                if (_pulsewidth == PULSEW_MAX)
+                  _gates = true;
+                // we-can't-echo-hack  
+                if (continous && !_pulsewidth)
+                  _pulsewidth = 0x1;
+                // CV?
+                /*
+                if (get_pulsewidth_cv_source()) {
+    
+                  _pulsewidth += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_pulsewidth_cv_source() - 1)) + 8) >> 3; 
+                  if (!_gates)          
+                    CONSTRAIN(_pulsewidth, 1, PULSEW_MAX);
+                  else // CV for 50% duty cycle: 
+                    CONSTRAIN(_pulsewidth, 1, (PULSEW_MAX<<1) - 55);  // incl margin, max < 2x mult. see below 
+                }
+                */
+                // recalculate (in ticks), if new pulsewidth setting:
+                if (prev_pulsewidth_ != _pulsewidth || ! ticks_) {
+                  
+                    if (!_gates) {
+                      int32_t _fraction = signed_multiply_32x16b(TICKS_TO_MS, static_cast<int32_t>(_pulsewidth)); // = * 0.6667f
+                      _fraction = signed_saturate_rshift(_fraction, 16, 0);
+                      pulse_width_in_ticks_  = (_pulsewidth << 4) + _fraction;
+                    }
+                    else { // put out gates/half duty cycle:
+
+                      pulse_width_in_ticks_ = channel_frequency_in_ticks_ >> 1;
+                      
+                      if (_pulsewidth != PULSEW_MAX) { // CV?
+                        pulse_width_in_ticks_ = signed_multiply_32x16b(static_cast<int32_t>(_pulsewidth) << 8, pulse_width_in_ticks_); // 
+                        pulse_width_in_ticks_ = signed_saturate_rshift(pulse_width_in_ticks_, 16, 0);
+                      }
+                    }
+                }
+                prev_pulsewidth_ = _pulsewidth;
+                
+                // limit pulsewidth, if approaching half duty cycle:
+                if (!_gates && pulse_width_in_ticks_ >= channel_frequency_in_ticks_>>1) 
+                  pulse_width_in_ticks_ = (channel_frequency_in_ticks_ >> 1) | 1u;
+                  
+                // turn off output? 
+                if (ticks_ >= pulse_width_in_ticks_) 
+                  gate_state_ = OFF;
+                else // keep on 
+                  gate_state_ = ON; 
+             }
+             else {
+                // we simply echo the pulsewidth:
+                bool _state = (trigger_source == DQ_CHANNEL_TRIGGER_TR1) ? !digitalReadFast(TR1) : !digitalReadFast(TR3);  
+               
+                if (_state)
+                  gate_state_ = ON; 
+                else  
+                  gate_state_ = OFF;
+             }   
+         }  
+      } 
+      break;
+      default:
+      break;
+        
+    }
+    
     OC::DAC::set(dac_channel, sample + get_fine());
+    OC::DAC::set(aux_channel, gate_state_);
 
     if (triggered || (continous && changed)) {
       scrolling_history_.Push(history_sample);
@@ -254,7 +355,24 @@ public:
 
   void update_enabled_settings() {
     DQ_ChannelSetting *settings = enabled_settings_;
-    *settings++ = DQ_CHANNEL_SETTING_SCALE;
+
+    switch(get_scale_select()) {
+
+      case 0:
+      *settings++ = DQ_CHANNEL_SETTING_SCALE1;
+      break;
+      case 1:
+      *settings++ = DQ_CHANNEL_SETTING_SCALE2;
+      break;
+      case 2:
+      *settings++ = DQ_CHANNEL_SETTING_SCALE3;
+      break;
+      case 3:
+      *settings++ = DQ_CHANNEL_SETTING_SCALE4;
+      break;
+      default:
+      break;
+    }
     if (OC::Scales::SCALE_NONE != get_scale()) {
       *settings++ = DQ_CHANNEL_SETTING_ROOT;
       *settings++ = DQ_CHANNEL_SETTING_SCALE_SEQ;
@@ -297,6 +415,11 @@ private:
   uint16_t last_mask_;
   int32_t last_sample_;
   uint8_t clock_;
+  uint16_t gate_state_;
+  uint8_t prev_pulsewidth_;
+  uint32_t ticks_;
+  uint32_t channel_frequency_in_ticks_;
+  uint32_t pulse_width_in_ticks_;
 
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   braids::Quantizer quantizer_;
@@ -344,6 +467,9 @@ const char* const dq_aux_outputs[] = {
   
 SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "Root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, 0, 3, "scale #", dq_seq_scales, settings::STORAGE_TYPE_U4  },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
@@ -367,7 +493,8 @@ class DualQuantizer {
 public:
   void Init() {
     selected_channel = 0;
-    cursor.Init(DQ_CHANNEL_SETTING_SCALE, DQ_CHANNEL_SETTING_LAST - 1);
+    // to do
+    cursor.Init(DQ_CHANNEL_SETTING_SCALE1, DQ_CHANNEL_SETTING_LAST - 1);
     scale_editor.Init();
   }
 
@@ -434,10 +561,11 @@ void DQ_handleAppEvent(OC::AppEvent event) {
 }
 
 void DQ_isr() {
+  
   uint32_t triggers = OC::DigitalInputs::clocked();
-  // to do
-  dq_quantizer_channels[0].Update(triggers, 0, DAC_CHANNEL_A);
-  dq_quantizer_channels[1].Update(triggers, 1, DAC_CHANNEL_C);
+
+  dq_quantizer_channels[0].Update(triggers, 0, DAC_CHANNEL_A, DAC_CHANNEL_C);
+  dq_quantizer_channels[1].Update(triggers, 2, DAC_CHANNEL_B, DAC_CHANNEL_D);
 }
 
 void DQ_loop() {
@@ -446,16 +574,19 @@ void DQ_loop() {
 void DQ_menu() {
 
   menu::DualTitleBar::Draw();
+  
   for (int i = 0, x = 0; i < NUMCHANNELS; ++i, x += 21) {
+
     const DQ_QuantizerChannel &channel = dq_quantizer_channels[i];
     menu::DualTitleBar::SetColumn(i);
+    menu::DualTitleBar::DrawGateIndicator(i, channel.getTriggerState());
+    
+    graphics.movePrintPos(5, 0);
     graphics.print((char)('A' + i));
-    graphics.movePrintPos(2, 0);
+    graphics.movePrintPos(36, 0);
     int octave = channel.get_octave();
     if (octave)
       graphics.pretty_print(octave);
-
-    menu::DualTitleBar::DrawGateIndicator(i, channel.getTriggerState());
   }
   menu::DualTitleBar::Selected(dq_state.selected_channel);
 
@@ -471,7 +602,10 @@ void DQ_menu() {
     const settings::value_attr &attr = DQ_QuantizerChannel::value_attr(setting);
 
     switch (setting) {
-      case DQ_CHANNEL_SETTING_SCALE:
+      case DQ_CHANNEL_SETTING_SCALE1:
+      case DQ_CHANNEL_SETTING_SCALE2:
+      case DQ_CHANNEL_SETTING_SCALE3:
+      case DQ_CHANNEL_SETTING_SCALE4:
         list_item.SetPrintPos();
         if (list_item.editing) {
           menu::DrawEditIcon(6, list_item.y, value, attr);
@@ -549,7 +683,11 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
           selected.force_update();
 
         switch (setting) {
-          case DQ_CHANNEL_SETTING_SCALE:
+          case DQ_CHANNEL_SETTING_SCALE1:
+          case DQ_CHANNEL_SETTING_SCALE2:
+          case DQ_CHANNEL_SETTING_SCALE3:
+          case DQ_CHANNEL_SETTING_SCALE4:
+          case DQ_CHANNEL_SETTING_SCALE_SEQ:
           case DQ_CHANNEL_SETTING_TRIGGER:
           case DQ_CHANNEL_SETTING_SOURCE:
           case DQ_CHANNEL_SETTING_AUX_OUTPUT:
