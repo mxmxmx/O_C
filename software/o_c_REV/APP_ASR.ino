@@ -50,12 +50,16 @@ class ASR : public settings::SettingsBase<ASR, ASR_SETTING_LAST> {
 public:
   static constexpr size_t kHistoryDepth = 5;
 
-  int get_scale() const {
+  int get_scale(uint8_t dummy) const {
     return values_[ASR_SETTING_SCALE];
   }
 
+  int get_scale_select() const {
+    return 0;
+  }
+
   void set_scale(int scale) {
-    if (scale != get_scale()) {
+    if (scale != get_scale(DUMMY)) {
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
       uint16_t mask = get_mask();
       if (0 == (mask & ~(0xffff << scale_def.num_notes)))
@@ -164,7 +168,7 @@ public:
 
   bool update_scale(bool force, int32_t mask_rotate) {
     
-    const int scale = get_scale();
+    const int scale = get_scale(DUMMY);
     uint16_t mask = get_mask();
     if (mask_rotate)
       mask = OC::ScaleEditor<ASR>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
@@ -193,11 +197,11 @@ public:
     force_update_ = true;
   }
 
-  uint16_t get_scale_mask() const {
+  uint16_t get_scale_mask(uint8_t scale_select) const {
     return get_mask();
   }
 
-  void update_scale_mask(uint16_t mask) {
+  void update_scale_mask(uint16_t mask, uint16_t dummy) {
     apply_value(ASR_SETTING_MASK, mask); // Should automatically be updated
   }
   //
@@ -609,7 +613,7 @@ void ASR_rightButton() {
   switch (asr.enabled_setting_at(asr_state.cursor_pos())) {
 
       case ASR_SETTING_MASK: {
-        int scale = asr.get_scale();
+        int scale = asr.get_scale(DUMMY);
         if (OC::Scales::SCALE_NONE != scale)
           asr_state.scale_editor.Edit(&asr, scale);
         }
@@ -623,7 +627,7 @@ void ASR_rightButton() {
 
 void ASR_leftButton() {
 
-  if (asr_state.left_encoder_value != asr.get_scale())
+  if (asr_state.left_encoder_value != asr.get_scale(DUMMY))
     asr.set_scale(asr_state.left_encoder_value);
 }
 
@@ -646,7 +650,7 @@ void ASR_menu() {
   int scale = asr_state.left_encoder_value;
   graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(OC::scale_names[scale]);
-  if (asr.get_scale() == scale)
+  if (asr.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
   menu::TitleBar<0, 4, 0>::SetColumn(3);
@@ -668,7 +672,7 @@ void ASR_menu() {
     switch (setting) {
 
       case ASR_SETTING_MASK:
-      menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_rotated_mask(), OC::Scales::GetScale(asr.get_scale()).num_notes);
+      menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_rotated_mask(), OC::Scales::GetScale(asr.get_scale(DUMMY)).num_notes);
       list_item.DrawNoValue<false>(value, attr);
       break;
       case ASR_SETTING_CV_SOURCE:

@@ -450,15 +450,19 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE, 0);
   }
   
-  int get_scale() const {
+  int get_scale(uint8_t dummy) const {
     return values_[SEQ_CHANNEL_SETTING_SCALE];
+  }
+
+  int get_scale_select() const {
+    return 0;
   }
 
   void set_scale(int scale) {
      apply_value(SEQ_CHANNEL_SETTING_SCALE, scale);
   }
   
-  int get_scale_mask() const {
+  int get_scale_mask(uint8_t scale_select) const {
     return values_[SEQ_CHANNEL_SETTING_SCALE_MASK];
   }
 
@@ -466,7 +470,7 @@ public:
     force_scale_update_ = true;
   }
 
-  void update_scale_mask(uint16_t mask) {
+  void update_scale_mask(uint16_t mask, uint16_t dummy) {
     force_scale_update_ = true;
     apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK, mask); // Should automatically be updated
   }
@@ -523,8 +527,8 @@ public:
       return false;
     force_scale_update_ = false;  
     
-    const int scale = get_scale();
-    uint16_t  scale_mask = get_scale_mask();
+    const int scale = get_scale(DUMMY);
+    uint16_t  scale_mask = get_scale_mask(DUMMY);
    
     if (mask_rotate)
       scale_mask = OC::ScaleEditor<SEQ_Channel>::RotateMask(scale_mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
@@ -1351,7 +1355,7 @@ void SEQ_rightButton() {
     break;
     case SEQ_CHANNEL_SETTING_SCALE_MASK:
     {
-     int scale = selected.get_scale();
+     int scale = selected.get_scale(DUMMY);
      if (OC::Scales::SCALE_NONE != scale) {
           seq_state.scale_editor.Edit(&selected, scale);
         }
@@ -1390,7 +1394,7 @@ void SEQ_leftButtonLong() {
     
       uint8_t this_channel, the_other_channel, scale;
       this_channel = seq_state.selected_channel;
-      scale = seq_channel[this_channel].get_scale();
+      scale = seq_channel[this_channel].get_scale(DUMMY);
       
       the_other_channel = (~this_channel) & 1u;
       seq_channel[the_other_channel].set_scale(scale);
@@ -1471,7 +1475,7 @@ void SEQ_menu() {
     switch (setting) {
 
       case SEQ_CHANNEL_SETTING_SCALE_MASK:
-       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+       menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
        list_item.DrawNoValue<false>(value, attr);
       break; 
       case SEQ_CHANNEL_SETTING_MASK1:

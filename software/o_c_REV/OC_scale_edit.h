@@ -2,6 +2,7 @@
 #define OC_SCALE_EDIT_H_
 
 #include "OC_bitmaps.h"
+#include "OC_strings.h"
 
 namespace OC {
 
@@ -28,6 +29,19 @@ public:
     mask_ = 0;
     cursor_pos_ = 0;
     num_notes_ = 0;
+    edit_this_scale_ = 0;
+    seq_mode = false;
+  }
+
+  void Init_seq() {
+    owner_ = nullptr;
+    scale_name_ = "?!";
+    scale_ = mutable_scale_ = &dummy_scale;
+    mask_ = 0;
+    cursor_pos_ = 0;
+    num_notes_ = 0;
+    edit_this_scale_ = 0;
+    seq_mode = true;
   }
 
   bool active() const {
@@ -49,16 +63,16 @@ public:
       Serial.print("Editing const scale "); Serial.println(scale_name_);
     }
     owner_ = owner;
-
-    BeginEditing();
+    if (!seq_mode)
+      BeginEditing();
+    else
+      BeginEditing_Seq();  
   }
 
   void Close();
-
   void Draw();
   void HandleButtonEvent(const UI::Event &event);
   void HandleEncoderEvent(const UI::Event &event);
-
   static uint16_t RotateMask(uint16_t mask, int num_notes, int amount);
 
 private:
@@ -71,8 +85,11 @@ private:
   uint16_t mask_;
   size_t cursor_pos_;
   size_t num_notes_;
+  int8_t edit_this_scale_;
+  bool seq_mode;
 
   void BeginEditing();
+  void BeginEditing_Seq();  
 
   void move_cursor(int offset);
 
@@ -80,9 +97,10 @@ private:
   void invert_mask(); 
 
   void apply_mask(uint16_t mask) {
+    
     if (mask_ != mask) {
       mask_ = mask;
-      owner_->update_scale_mask(mask_);
+      owner_->update_scale_mask(mask_, edit_this_scale_);
     }
   }
 
@@ -116,6 +134,13 @@ void ScaleEditor<Owner>::Draw() {
 
   graphics.setPrintPos(x, y);
   graphics.print(scale_name_);
+
+  if (seq_mode) {
+    uint8_t id = edit_this_scale_;
+    if (edit_this_scale_ == owner_->get_scale_select())
+      id += 4;
+    graphics.print(OC::Strings::scale_id[id]);
+  }
 
   graphics.setPrintPos(x, y + 24);
   if (cursor_pos_ != num_notes) {
@@ -238,7 +263,30 @@ void ScaleEditor<Owner>::handleButtonUp(const UI::Event &event) {
     else
       change_note(cursor_pos_, 128, true);
   } else {
-    invert_mask();
+    if (!seq_mode)
+      invert_mask();
+    else {
+      edit_this_scale_++;  
+      if (edit_this_scale_ > 3) 
+        edit_this_scale_ = 0;
+        
+      uint8_t scale = owner_->get_scale(edit_this_scale_);  
+      Serial.println(scale);
+      if (scale < OC::Scales::SCALE_USER_LAST) {
+        scale_ = mutable_scale_ = &OC::user_scales[scale];
+        scale_name_ = OC::scale_names_short[scale];
+        //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+       } 
+       else {
+        scale_ = &OC::Scales::GetScale(scale);
+        mutable_scale_ = nullptr;
+        scale_name_ = OC::scale_names_short[scale];
+        //Serial.print("Editing const scale "); Serial.println(scale_name_);
+      }
+      cursor_pos_ = 0;
+      num_notes_ = scale_->num_notes;
+      mask_ = owner_->get_scale_mask(edit_this_scale_);  
+    }
   }
 }
 
@@ -248,7 +296,30 @@ void ScaleEditor<Owner>::handleButtonDown(const UI::Event &event) {
     OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
     change_note(cursor_pos_, -128, true);
   } else {
-    invert_mask();
+    if (!seq_mode)
+      invert_mask();
+    else {
+      edit_this_scale_--;  
+      if (edit_this_scale_ < 0) 
+        edit_this_scale_ = 3; 
+        
+      uint8_t scale = owner_->get_scale(edit_this_scale_);  
+      Serial.println(scale);
+      if (scale < OC::Scales::SCALE_USER_LAST) {
+        scale_ = mutable_scale_ = &OC::user_scales[scale];
+        scale_name_ = OC::scale_names_short[scale];
+        //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+       } 
+       else {
+        scale_ = &OC::Scales::GetScale(scale);
+        mutable_scale_ = nullptr;
+        scale_name_ = OC::scale_names_short[scale];
+        //Serial.print("Editing const scale "); Serial.println(scale_name_);
+      }
+      cursor_pos_ = 0;
+      num_notes_ = scale_->num_notes;
+      mask_ = owner_->get_scale_mask(edit_this_scale_);
+    }
   }
 }
 
@@ -330,13 +401,23 @@ void ScaleEditor<Owner>::BeginEditing() {
 
   cursor_pos_ = 0;
   num_notes_ = scale_->num_notes;
-  mask_ = owner_->get_scale_mask();
+  mask_ = owner_->get_scale_mask(DUMMY);
+}
+
+template <typename Owner>
+void ScaleEditor<Owner>::BeginEditing_Seq() {
+
+  cursor_pos_ = 0;
+  edit_this_scale_ = owner_->get_scale_select();
+  num_notes_ = scale_->num_notes;
+  mask_ = owner_->get_scale_mask(edit_this_scale_);
 }
 
 template <typename Owner>
 void ScaleEditor<Owner>::Close() {
   ui.SetButtonIgnoreMask();
   owner_ = nullptr;
+  edit_this_scale_ = 0;
 }
 
 }; // namespace OC

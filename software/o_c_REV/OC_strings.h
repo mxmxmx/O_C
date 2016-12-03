@@ -11,6 +11,7 @@ namespace OC {
     extern const char * const pulsewidth_ms[];
     extern const char * const seq_playmodes[];
     extern const char * const seq_id[];
+    extern const char * const scale_id[];
     extern const char * const note_names[];
     extern const char * const note_names_unpadded[];
     extern const char * const trigger_input_names[];

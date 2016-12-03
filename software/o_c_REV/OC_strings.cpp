@@ -38,6 +38,8 @@ namespace OC {
   const char * const seq_playmodes[] = {" -", "SEQ+1", "SEQ+2", "SEQ+3", "TR+1", "TR+2", "TR+3"}; 
 
   const char * const seq_id[] = { "--> #1", "--> #2", "--> #3", "--> #4", "#1", "#2", "#3", "#4"};
+
+  const char * const scale_id[] = { ">#1", ">#2", ">#3", ">#4", " #1", " #2", " #3", " #4"};
   
   const char * const note_names[12] = { "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B " };
   

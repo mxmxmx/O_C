@@ -94,12 +94,16 @@ enum ChannelSource {
 class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
 public:
 
-  int get_scale() const {
+  int get_scale(uint8_t dummy) const {
     return values_[CHANNEL_SETTING_SCALE];
   }
 
+  int get_scale_select() const {
+    return 0;
+  }
+
   void set_scale(int scale) {
-    if (scale != get_scale()) {
+    if (scale != get_scale(DUMMY)) {
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
       uint16_t mask = get_mask();
       if (0 == (mask & ~(0xffff << scale_def.num_notes)))
@@ -461,11 +465,11 @@ public:
     force_update_ = true;
   }
 
-  uint16_t get_scale_mask() const {
+  uint16_t get_scale_mask(uint8_t scale_select) const {
     return get_mask();
   }
 
-  void update_scale_mask(uint16_t mask) {
+  void update_scale_mask(uint16_t mask, uint16_t dummy) {
     apply_value(CHANNEL_SETTING_MASK, mask); // Should automatically be updated
   }
   //
@@ -501,7 +505,7 @@ public:
   void update_enabled_settings() {
     ChannelSetting *settings = enabled_settings_;
     *settings++ = CHANNEL_SETTING_SCALE;
-    if (OC::Scales::SCALE_NONE != get_scale()) {
+    if (OC::Scales::SCALE_NONE != get_scale(DUMMY)) {
       *settings++ = CHANNEL_SETTING_ROOT;
       *settings++ = CHANNEL_SETTING_MASK;
     }
@@ -601,7 +605,7 @@ private:
   OC::vfx::ScrollingHistory<int32_t, 5> scrolling_history_;
 
   bool update_scale(bool force) {
-    const int scale = get_scale();
+    const int scale = get_scale(DUMMY);
     const uint16_t mask = get_mask();
     if (force || (last_scale_ != scale || last_mask_ != mask)) {
       last_scale_ = scale;
@@ -778,7 +782,7 @@ void QQ_menu() {
         list_item.DrawCustom();
         break;
       case CHANNEL_SETTING_MASK:
-        menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale()).num_notes);
+        menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHANNEL_SETTING_SOURCE:
@@ -890,7 +894,7 @@ void QQ_rightButton() {
   QuantizerChannel &selected = quantizer_channels[qq_state.selected_channel];
   switch (selected.enabled_setting_at(qq_state.cursor_pos())) {
     case CHANNEL_SETTING_MASK: {
-      int scale = selected.get_scale();
+      int scale = selected.get_scale(DUMMY);
       if (OC::Scales::SCALE_NONE != scale) {
         qq_state.scale_editor.Edit(&selected, scale);
       }
@@ -910,7 +914,7 @@ void QQ_leftButton() {
 
 void QQ_leftButtonLong() {
   QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
-  int scale = selected_channel.get_scale();
+  int scale = selected_channel.get_scale(DUMMY);
   int root = selected_channel.get_root();
   for (int i = 0; i < 4; ++i) {
     if (i != qq_state.selected_channel) {
