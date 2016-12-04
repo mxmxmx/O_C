@@ -236,6 +236,10 @@ public:
     return values_[DQ_CHANNEL_SETTING_AUX_OUTPUT];
   }
 
+  int get_aux_octave() const {
+    return values_[DQ_CHANNEL_SETTING_AUX_OCTAVE];
+  }
+
   int get_pulsewidth() const {
     return values_[DQ_CHANNEL_SETTING_PULSEWIDTH];
   }
@@ -293,7 +297,7 @@ public:
     }
    
     if (get_scale_seq_mode()) {
-        // to do 
+        // to do, don't hardcode? 
         uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
         if (_advance_trig < scale_advance_state_) 
           scale_advance_ = true;
@@ -321,6 +325,7 @@ public:
        
     int32_t sample = last_sample_;
     int32_t history_sample = 0;
+    uint8_t aux_mode = get_aux_mode();
 
     if (update) {
 
@@ -336,12 +341,23 @@ public:
        
       const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
       sample = OC::DAC::pitch_to_dac(dac_channel, quantized, get_octave());
-      history_sample = quantized + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);   
+      history_sample = quantized + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);  
+     
+      if (aux_mode == DQ_COPY) {
+        int octave_offset = get_octave() + get_aux_octave();
+        gate_state_ = OC::DAC::pitch_to_dac(aux_channel, quantized, octave_offset);
+      }
+      else if (aux_mode == DQ_ASR) {
+        // to do ... more settings
+        int octave_offset = get_octave() + get_aux_octave();
+        const int32_t quantized_aux = quantizer_.Process(last_raw_sample_, get_root() << 7, transpose);
+        gate_state_ = OC::DAC::pitch_to_dac(aux_channel, quantized_aux, octave_offset);
+        last_raw_sample_ = pitch;
+      }
     }
 
     // 
     bool changed = last_sample_ != sample;
-    uint8_t aux_mode = get_aux_mode();
     
     if (changed) {
       
@@ -358,6 +374,9 @@ public:
 
     switch (aux_mode) {
 
+      case DQ_COPY: 
+      case DQ_ASR:
+      break;
       case DQ_GATE:
       { 
       if (gate_state_) { 
@@ -545,6 +564,9 @@ public:
       case DQ_COPY:
         *settings++ = DQ_CHANNEL_SETTING_AUX_OCTAVE;
       break;
+      case DQ_ASR:
+        *settings++ = DQ_CHANNEL_SETTING_AUX_OCTAVE; // to do
+      break;
       default:
       break;
     }
@@ -567,6 +589,7 @@ private:
   bool schedule_scale_update_;
   uint16_t last_mask_;
   int32_t last_sample_;
+  int32_t last_raw_sample_;
   uint8_t clock_;
   uint16_t gate_state_;
   uint8_t prev_pulsewidth_;
@@ -615,7 +638,7 @@ const char* const dq_seq_modes[] = {
 };
 
 const char* const dq_aux_outputs[] = {
-  "gate", "copy"
+  "gate", "copy", "asr"
 };
 
   
@@ -636,7 +659,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, 0, 1, "aux.output", dq_aux_outputs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, DQ_AUX_MODE_LAST-1, "aux.output", dq_aux_outputs, settings::STORAGE_TYPE_U4 },
   { 25, 0, PULSEW_MAX, "--> pw", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "--> aux +/-", NULL, settings::STORAGE_TYPE_I8 }, // aux octave
 };
