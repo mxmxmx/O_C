@@ -73,6 +73,15 @@ enum H1200Setting {
   H1200_SETTING_R_EUCLIDEAN_LENGTH,
   H1200_SETTING_R_EUCLIDEAN_FILL,
   H1200_SETTING_R_EUCLIDEAN_OFFSET,
+  H1200_SETTING_N_EUCLIDEAN_LENGTH,
+  H1200_SETTING_N_EUCLIDEAN_FILL,
+  H1200_SETTING_N_EUCLIDEAN_OFFSET,
+  H1200_SETTING_S_EUCLIDEAN_LENGTH,
+  H1200_SETTING_S_EUCLIDEAN_FILL,
+  H1200_SETTING_S_EUCLIDEAN_OFFSET,
+  H1200_SETTING_H_EUCLIDEAN_LENGTH,
+  H1200_SETTING_H_EUCLIDEAN_FILL,
+  H1200_SETTING_H_EUCLIDEAN_OFFSET,
   H1200_SETTING_LAST
 };
 
@@ -162,6 +171,42 @@ public:
     return values_[H1200_SETTING_R_EUCLIDEAN_OFFSET];
   }
 
+  uint8_t get_n_euclidean_length() const {
+    return values_[H1200_SETTING_N_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_n_euclidean_fill() const {
+    return values_[H1200_SETTING_N_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_n_euclidean_offset() const {
+    return values_[H1200_SETTING_N_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_s_euclidean_length() const {
+    return values_[H1200_SETTING_S_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_s_euclidean_fill() const {
+    return values_[H1200_SETTING_S_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_s_euclidean_offset() const {
+    return values_[H1200_SETTING_S_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_h_euclidean_length() const {
+    return values_[H1200_SETTING_H_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_h_euclidean_fill() const {
+    return values_[H1200_SETTING_H_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_h_euclidean_offset() const {
+    return values_[H1200_SETTING_H_EUCLIDEAN_OFFSET];
+  }
+
   void Init() {
     InitDefaults();
   }
@@ -200,16 +245,25 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U4},
   { 8, 2, 32, "Root Eucl len", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 4, 0, 32, "Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "Root Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, "P Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 4, 0, 32, "P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, "L Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 4, 0, 32, "L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, "Root Eucl off", NULL, settings::STORAGE_TYPE_U8 },
+  { 32, 2, 32, "P Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 2, 0, 32, "P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, "P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 32, 2, 32, "L Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, "L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "L Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, "R Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 4, 0, 32, "R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
+  { 32, 2, 32, "R Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, "R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, "R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
+  { 12, 2, 32, "N Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, "N Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, "N Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 2, 32, "S Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, "S Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, "S Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 2, 32, "H Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, "H Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, "H Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
 };
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
@@ -379,7 +433,11 @@ void FASTRUN H1200_clock(uint32_t triggers) {
           break;
     
         default: break;
-      }    
+      }  
+      if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+      if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+      if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+        
     }
  }
 
