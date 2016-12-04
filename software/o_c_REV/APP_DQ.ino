@@ -123,6 +123,36 @@ public:
     return display_scale_;
   }
 
+  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+
+    if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot)) {
+ 
+      const OC::Scale &scale_def = OC::Scales::GetScale(scale);
+   
+      if (0 == (mask & ~(0xffff << scale_def.num_notes)))
+        mask |= 0x1;
+      switch (scale_slot) {  
+        case 1:
+        apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE2, scale);
+        break;
+        case 2:
+        apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE3, scale);
+        break;
+        case 3:
+        apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE4, scale);
+        break;
+        default:
+        apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
+        break;
+      }
+    }
+    
+  }
+
   void set_scale(int scale, uint16_t mask, uint8_t scale_slot) {
 
     if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot)) {

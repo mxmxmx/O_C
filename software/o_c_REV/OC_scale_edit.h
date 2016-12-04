@@ -234,7 +234,30 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     }
 
     if (!handled) {
-      mask = RotateMask(mask_, num_notes_, event.value);
+      if (!seq_mode)
+        mask = RotateMask(mask_, num_notes_, event.value);
+      else {
+        int _scale = owner_->get_scale(edit_this_scale_) + event.value;
+        CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
+        
+        owner_->set_scale_at_slot(_scale, mask_, edit_this_scale_); 
+        scale_changed = true; 
+        
+        if (_scale < OC::Scales::SCALE_USER_LAST) {
+          scale_ = mutable_scale_ = &OC::user_scales[_scale];
+          scale_name_ = OC::scale_names_short[_scale];
+          //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+        } 
+        else {
+          scale_ = &OC::Scales::GetScale(_scale);
+          mutable_scale_ = nullptr;
+          scale_name_ = OC::scale_names_short[_scale];
+          //Serial.print("Editing const scale "); Serial.println(scale_name_);
+        }
+        cursor_pos_ = 0;
+        num_notes_ = scale_->num_notes;
+        mask_ = owner_->get_scale_mask(edit_this_scale_);  
+      }
     }
   }
 

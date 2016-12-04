@@ -69,6 +69,10 @@ public:
     }
   }
 
+  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+    // dummy
+  }
+   
   uint16_t get_mask() const {
     return values_[ASR_SETTING_MASK];
   }

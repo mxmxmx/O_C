@@ -113,6 +113,10 @@ public:
     }
   }
 
+  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+    // dummy
+  }
+  
   int get_root() const {
     return values_[CHANNEL_SETTING_ROOT];
   }

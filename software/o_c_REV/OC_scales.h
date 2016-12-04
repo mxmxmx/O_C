@@ -14,7 +14,7 @@ static constexpr int kMinScaleLength = 4;
 class Scales {
 public:
 
-	static const int NUM_SCALES;
+  static const int NUM_SCALES;
 
   enum {
     SCALE_USER_0,

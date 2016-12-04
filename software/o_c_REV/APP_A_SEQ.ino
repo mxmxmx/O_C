@@ -461,6 +461,10 @@ public:
   void set_scale(int scale) {
      apply_value(SEQ_CHANNEL_SETTING_SCALE, scale);
   }
+
+  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+    // dummy
+  }
   
   int get_scale_mask(uint8_t scale_select) const {
     return values_[SEQ_CHANNEL_SETTING_SCALE_MASK];
