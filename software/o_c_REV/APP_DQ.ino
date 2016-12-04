@@ -37,6 +37,7 @@
 #include "OC_strings.h"
 
 const uint8_t NUMCHANNELS = 2;
+const uint8_t NUM_SCALE_SLOTS = 4;
 
 enum DQ_ChannelSetting {
   DQ_CHANNEL_SETTING_SCALE1,
@@ -122,13 +123,12 @@ public:
     return display_scale_;
   }
 
-  void set_scale(int scale, uint8_t scale_slot) {
+  void set_scale(int scale, uint16_t mask, uint8_t scale_slot) {
 
-    // to do ... 
-    if (scale != get_scale(scale_slot)) {
+    if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot)) {
  
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
-      uint16_t mask = get_mask(scale_slot);
+   
       if (0 == (mask & ~(0xffff << scale_def.num_notes)))
         mask |= 0x1;
       switch (scale_slot) {  
@@ -276,9 +276,9 @@ public:
     if (scale_advance_) {
       scale_sequence_cnt_++;
       display_scale_ = get_scale_select() + (scale_sequence_cnt_ % (get_scale_seq_mode()+1));
-      // to do: make nice
-      if (display_scale_ > 3)
-        display_scale_ -= 4;
+      
+      if (display_scale_ >= NUM_SCALE_SLOTS)
+        display_scale_ -= NUM_SCALE_SLOTS;
       scale_advance_ = false;
       schedule_scale_update_ = true;
     }
@@ -595,7 +595,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 3, "scale #", dq_seq_scales, settings::STORAGE_TYPE_U4  },
+  { 0, 0, NUM_SCALE_SLOTS - 1, "scale #", dq_seq_scales, settings::STORAGE_TYPE_U4  },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
@@ -616,7 +616,6 @@ class DualQuantizer {
 public:
   void Init() {
     selected_channel = 0;
-    // to do
     cursor.Init(DQ_CHANNEL_SETTING_SCALE1, DQ_CHANNEL_SETTING_LAST - 1);
     scale_editor.Init_seq();
   }
@@ -801,7 +800,7 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
     DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
     if (dq_state.editing()) {
       DQ_ChannelSetting setting = selected.enabled_setting_at(dq_state.cursor_pos());
-      if (DQ_CHANNEL_SETTING_MASK1 != setting) { // to do
+      if (DQ_CHANNEL_SETTING_MASK1 != setting || DQ_CHANNEL_SETTING_MASK2 != setting || DQ_CHANNEL_SETTING_MASK3 != setting || DQ_CHANNEL_SETTING_MASK4 != setting) { 
         if (selected.change_value(setting, event.value))
           selected.force_update();
 
@@ -869,22 +868,22 @@ void DQ_leftButton() {
 void DQ_leftButtonLong() {
   DQ_QuantizerChannel &selected_channel = dq_quantizer_channels[dq_state.selected_channel];
   int scale = selected_channel.get_scale(selected_channel.get_scale_select());
+  int mask = selected_channel.get_mask(selected_channel.get_scale_select());
   int root = selected_channel.get_root();
-  for (int i = 0; i < NUMCHANNELS; ++i) {
-    if (i != dq_state.selected_channel) {
-      dq_quantizer_channels[i].apply_value(DQ_CHANNEL_SETTING_ROOT, root);
-      dq_quantizer_channels[i].set_scale(scale, 0);
-      dq_quantizer_channels[i].set_scale(scale, 1);
-      dq_quantizer_channels[i].set_scale(scale, 2);
-      dq_quantizer_channels[i].set_scale(scale, 3);
-    }
+
+  dq_quantizer_channels[(~dq_state.selected_channel)&1u].apply_value(DQ_CHANNEL_SETTING_ROOT, root);
+   
+  for (int i = 0; i < NUM_SCALE_SLOTS; ++i) {
+    for (int j = 0; j < NUMCHANNELS; ++j)
+      dq_quantizer_channels[j].set_scale(scale, mask, i);
   }
 }
 
 void DQ_downButtonLong() {
    // to do...
-   for (int i = 0; i < NUMCHANNELS; ++i) 
-      dq_quantizer_channels[i].instant_update();
+   // CV menu
+   //for (int i = 0; i < NUMCHANNELS; ++i) 
+   //  dq_quantizer_channels[i].instant_update();
 }
 
 int32_t dq_history[5];
