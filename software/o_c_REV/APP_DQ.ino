@@ -735,7 +735,10 @@ void DQ_menu() {
     
     graphics.movePrintPos(5, 0);
     graphics.print((char)('A' + i));
-    graphics.movePrintPos(36, 0);
+    graphics.movePrintPos(2, 0);
+    graphics.print('#');
+    graphics.print(channel.get_display_scale() + 1);
+    graphics.movePrintPos(22, 0);
     int octave = channel.get_octave();
     if (octave)
       graphics.pretty_print(octave);
