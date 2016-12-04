@@ -14,8 +14,8 @@ namespace OC {
 // The owner class needs to provide callbacks to get notification when values
 // change:
 // void scale_changed();
-// uint16_t get_scale_mask();
-// void update_scale_mask(uint16_t mask);
+// uint16_t get_scale_mask(uint8_t scale_slot);
+// void update_scale_mask(uint16_t mask, uint8_t scale_slot);
 //
 
 template <typename Owner>
