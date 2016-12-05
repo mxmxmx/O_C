@@ -989,7 +989,7 @@ void DQ_rightButton() {
 }
 
 void DQ_leftButton() {
-  dq_state.selected_channel = (dq_state.selected_channel + 1) & 3;
+  dq_state.selected_channel = (dq_state.selected_channel + 1) & 1u;
   DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
   dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
 }
