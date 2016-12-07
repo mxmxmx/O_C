@@ -40,9 +40,9 @@ OC::App available_apps[] = {
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
-  DECLARE_APP('S','Q', "SEQ...", SEQ, SEQ_isr),
-  //DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
-  //DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('S','Q', "Sequins", SEQ, SEQ_isr),
+  DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
+  DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
   DECLARE_APP('R','F', "References", REFS, REFS_isr)
 };
 
