@@ -301,26 +301,26 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "Priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U4},
-  { 8, 2, 32, "..Root Eucl len", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 4, 0, 32, "..Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "..Root Eucl off", NULL, settings::STORAGE_TYPE_U8 },
-  { 32, 2, 32, "..P Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 2, 0, 32, "..P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, "..P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 32, 2, 32, "..L Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, "..L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "..L Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 32, 2, 32, "..R Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, "..R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, "..R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
-  { 12, 2, 32, "..N Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, "..N Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, "..N Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 12, 2, 32, "..S Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, "..S Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, "..S Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 12, 2, 32, "..H Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, "..H Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32, ".Root Eucl len", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 4, 0, 32, ".Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, ".Root Eucl off", NULL, settings::STORAGE_TYPE_U8 },
+  { 32, 2, 32, ".P Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 2, 0, 32, ".P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, ".P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 32, 2, 32, ".L Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, ".L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, ".L Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 32, 2, 32, ".R Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, ".R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, ".R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
+  { 12, 2, 32, ".N Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, ".N Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, ".N Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 2, 32, ".S Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, ".S Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 32, ".S Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 2, 32, ".H Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, ".H Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 5, 0, 32, "..H Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
 };
 
@@ -601,8 +601,6 @@ void H1200_handleButtonEvent(const UI::Event &event) {
         h1200_state.display_notes = !h1200_state.display_notes;
         break;
       case OC::CONTROL_BUTTON_R:
-        h1200_settings.update_enabled_settings();
-        h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);
         h1200_state.cursor.toggle_editing();
         break;
     }
