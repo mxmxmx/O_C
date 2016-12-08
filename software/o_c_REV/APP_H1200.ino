@@ -273,8 +273,8 @@ public:
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;
     
  
-    switch (get_trigger_type()) {
-      case H1200_TRIGGER_TYPE_EUCLIDEAN:
+     switch (get_trigger_type()) {
+       case H1200_TRIGGER_TYPE_EUCLIDEAN:
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_LENGTH;
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_FILL;
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_OFFSET;
@@ -297,10 +297,10 @@ public:
         *settings++ =   H1200_SETTING_H_EUCLIDEAN_FILL;
         *settings++ =   H1200_SETTING_H_EUCLIDEAN_OFFSET;
         *settings++ =   H1200_SETTING_CV4_DESTINATION;
-       break;
-     default:
-      break;
-    }
+        break;
+      default:
+        break;
+     }
     
     num_enabled_settings_ = settings - enabled_settings_;
   }
