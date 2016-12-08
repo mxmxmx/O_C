@@ -50,7 +50,17 @@ enum TransformPriority {
   TRANSFORM_PRIO_XPRL,
   TRANSFORM_PRIO_XRLP,
   TRANSFORM_PRIO_XLPR,
-  TRANSFORM_PRIO_LAST
+  TRANSFORM_PRIO_PLR_LAST
+};
+
+enum NshTransformPriority {
+  TRANSFORM_PRIO_XNSH,
+  TRANSFORM_PRIO_XSHN,
+  TRANSFORM_PRIO_XHNS,
+  TRANSFORM_PRIO_XNHS,
+  TRANSFORM_PRIO_XHSN,
+  TRANSFORM_PRIO_XSNH,
+  TRANSFORM_PRIO_NSH_LAST
 };
 
 enum H1200Setting {
@@ -58,7 +68,8 @@ enum H1200Setting {
   H1200_SETTING_OCTAVE,
   H1200_SETTING_MODE,
   H1200_SETTING_INVERSION,
-  H1200_SETTING_TRANFORM_PRIO,
+  H1200_SETTING_PLR_TRANSFORM_PRIO,
+  H1200_SETTING_NSH_TRANSFORM_PRIO,
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_TRIGGER_TYPE,
   H1200_SETTING_ROOT_EUCLIDEAN_LENGTH,
@@ -87,6 +98,7 @@ enum H1200Setting {
 
 enum H1200TriggerTypes {
   H1200_TRIGGER_TYPE_PLR,
+  H1200_TRIGGER_TYPE_NSH,
   H1200_TRIGGER_TYPE_EUCLIDEAN,
   H1200_TRIGGER_TYPE_LAST
 };
@@ -112,7 +124,11 @@ public:
   }
 
   TransformPriority get_transform_priority() const {
-    return static_cast<TransformPriority>(values_[H1200_SETTING_TRANFORM_PRIO]);
+    return static_cast<TransformPriority>(values_[H1200_SETTING_PLR_TRANSFORM_PRIO]);
+  }
+
+  NshTransformPriority get_nsh_transform_priority() const {
+    return static_cast<NshTransformPriority>(values_[H1200_SETTING_NSH_TRANSFORM_PRIO]);
   }
 
   OutputMode output_mode() const {
@@ -228,7 +244,8 @@ public:
     *settings++ =   H1200_SETTING_OCTAVE;
     *settings++ =   H1200_SETTING_MODE;
     *settings++ =   H1200_SETTING_INVERSION;
-    *settings++ =   H1200_SETTING_TRANFORM_PRIO;
+    *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO;
+    *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;
     
@@ -275,7 +292,7 @@ const char * const output_mode_names[] = {
   "tune"
 };
 
-const char * const trigger_mode_names[] = {
+const char * const plr_trigger_mode_names[] = {
   "P>L>R",
   "L>R>P",
   "R>P>L",
@@ -284,8 +301,18 @@ const char * const trigger_mode_names[] = {
   "L>P>R",
 };
 
+const char * const nsh_trigger_mode_names[] = {
+  "N>S>H",
+  "S>H>N",
+  "H>N>S",
+  "N>H>S",
+  "H>S>N",
+  "S>N>H",
+};
+
 const char * const trigger_type_names[] = {
   "PLR",
+  "NSH",
   "Eucl",
 };
 
@@ -293,14 +320,19 @@ const char * const mode_names[] = {
   "maj", "min"
 };
 
+const char* const h1200_logistic_cv_sources[5] = {
+  "None", "CV1", "CV2", "CV3", "CV4"
+};
+
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
-  {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
+  {0, -11, 11, "Root", NULL, settings::STORAGE_TYPE_I8},
   {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
-  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "Priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_PLR_LAST-1, "PLR Priority", plr_trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
-  {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U4},
+  {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
   { 8, 2, 32, ".Root Eucl len", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 4, 0, 32, ".Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, ".Root Eucl off", NULL, settings::STORAGE_TYPE_U8 },
@@ -328,6 +360,9 @@ static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
 static constexpr uint32_t TRIGGER_MASK_P = OC::DIGITAL_INPUT_2_MASK;
 static constexpr uint32_t TRIGGER_MASK_L = OC::DIGITAL_INPUT_3_MASK;
 static constexpr uint32_t TRIGGER_MASK_R = OC::DIGITAL_INPUT_4_MASK;
+static constexpr uint32_t TRIGGER_MASK_N = OC::DIGITAL_INPUT_2_MASK;
+static constexpr uint32_t TRIGGER_MASK_S = OC::DIGITAL_INPUT_3_MASK;
+static constexpr uint32_t TRIGGER_MASK_H = OC::DIGITAL_INPUT_4_MASK;
 static constexpr uint32_t TRIGGER_MASK_DIRTY = 0x10;
 static constexpr uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
 
@@ -455,6 +490,51 @@ void FASTRUN H1200_clock(uint32_t triggers) {
     
         default: break;
       }
+  } else if (h1200_settings.get_trigger_type() == H1200_TRIGGER_TYPE_NSH) {
+    
+      // Since there can be simultaneous triggers, there is a definable priority.
+      // Reset always has top priority
+      //
+      // Note: Proof-of-concept code, do not copy/paste all combinations ;)
+      switch (h1200_settings.get_nsh_transform_priority()) {
+        case TRANSFORM_PRIO_XNSH:
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+
+        case TRANSFORM_PRIO_XSHN:
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+    
+        case TRANSFORM_PRIO_XHNS:
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+    
+        case TRANSFORM_PRIO_XNHS:
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+    
+        case TRANSFORM_PRIO_XHSN:
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+    
+        case TRANSFORM_PRIO_XSNH:
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+    
+        default: break;
+      }
   } else {
 
     if (triggers & TRIGGER_MASK_P) {
@@ -495,11 +575,43 @@ void FASTRUN H1200_clock(uint32_t triggers) {
           break;
     
         default: break;
-      }  
-      if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
-      if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
-      if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+      }
         
+      switch (h1200_settings.get_nsh_transform_priority()) {
+        case TRANSFORM_PRIO_XNSH:
+          if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+        case TRANSFORM_PRIO_XSHN:
+          if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+        case TRANSFORM_PRIO_XHNS:
+          if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+        case TRANSFORM_PRIO_XNHS:
+          if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+        case TRANSFORM_PRIO_XHSN:
+          if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+        case TRANSFORM_PRIO_XSNH:
+          if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), h1200_settings.get_s_euclidean_fill(), h1200_settings.get_s_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), h1200_settings.get_n_euclidean_fill(), h1200_settings.get_n_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_settings.get_h_euclidean_length(), h1200_settings.get_h_euclidean_fill(), h1200_settings.get_h_euclidean_offset(), h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+          
+         default: break;
+      }  
+       
     }
  }
 
