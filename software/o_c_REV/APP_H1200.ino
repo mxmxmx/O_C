@@ -270,11 +270,10 @@ public:
     *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO;
     *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
-    *settings++ =   H1200_SETTING_TRIGGER_TYPE;
-    
+    *settings++ =   H1200_SETTING_TRIGGER_TYPE;    
  
-     switch (get_trigger_type()) {
-       case H1200_TRIGGER_TYPE_EUCLIDEAN:
+    switch (get_trigger_type()) {
+      case H1200_TRIGGER_TYPE_EUCLIDEAN:
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_LENGTH;
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_FILL;
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_OFFSET;
@@ -371,28 +370,28 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
-  { 8, 2, 32, ".Root Eucl len", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 4, 0, 32, ".Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, ".Root Eucl off", NULL, settings::STORAGE_TYPE_U8 },
-  { 32, 2, 32, ".P Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 2, 0, 32, ".P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, ".P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 32, 2, 32, ".L Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, ".L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, ".L Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 32, 2, 32, ".R Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, ".R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, ".R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
-  { 12, 2, 32, ".N Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, ".N Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, ".N Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 12, 2, 32, ".S Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, ".S Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 3, 0, 32, ".S Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 12, 2, 32, ".H Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, ".H Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, "..H Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
-  { H1200_CV_DEST_EUCL_N_OFFSET, H1200_CV_DEST_EUCL_NULL, H1200_CV_DEST_EUCL_LAST-1, "..CV4 dest", h1200_cv_destinations, settings::STORAGE_TYPE_U8 },  
+  { 8, 2, 32,  " Root Eucl len", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 0, 32,  " Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " Root Eucl offs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32, " P Eucl length", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32, " L Eucl length", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, " L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, " L Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32, " R Eucl length", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, " R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, " R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
+  { 8, 2, 32, " N Eucl length", NULL, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, " N Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, " N Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32, " S Eucl length", NULL, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, " S Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, " S Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32, " H Eucl length", NULL, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, " H Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 5, 0, 32, " H Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
+  { H1200_CV_DEST_EUCL_N_OFFSET, H1200_CV_DEST_EUCL_NULL, H1200_CV_DEST_EUCL_LAST-1, " CV4 dest", h1200_cv_destinations, settings::STORAGE_TYPE_U8 },  
 };
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
@@ -462,6 +461,7 @@ public:
   }
 
   menu::ScreenCursor<menu::kScreenLines> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor_state;
   bool display_notes;
 
   inline int cursor_pos() const {
@@ -848,19 +848,13 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
     if (h1200_state.cursor.editing()) {
       H1200Setting setting = h1200_settings.enabled_setting_at(h1200_state.cursor_pos());
       
-      if (h1200_settings.change_value(h1200_state.cursor.cursor_pos(), event.value))
-        h1200_state.force_update();
-
-          switch(setting) {
-  
-            case H1200_SETTING_TRIGGER_TYPE:
+      if (h1200_settings.change_value(h1200_state.cursor.cursor_pos(), event.value)) {
+          if (setting == H1200_SETTING_TRIGGER_TYPE) {
               h1200_settings.update_enabled_settings();
-              h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);
-            break;
-            default:
-            break;
+              h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);            
           }
-        
+          h1200_state.force_update();
+      }        
     } else {
       h1200_state.cursor.Scroll(event.value);
     }
@@ -894,8 +888,12 @@ void H1200_menu() {
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(h1200_state.cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {
-    const int current = h1200_settings.enabled_setting_at(settings_list.Next(list_item));
-    list_item.DrawDefault(h1200_settings.get_value(current), H1200Settings::value_attr(current));
+
+    const int setting = h1200_settings.enabled_setting_at(settings_list.Next(list_item));
+    const int value = h1200_settings.get_value(setting);
+    const settings::value_attr &attr = H1200Settings::value_attr(setting); 
+
+    list_item.DrawDefault(value, attr);
   }
 }
 
