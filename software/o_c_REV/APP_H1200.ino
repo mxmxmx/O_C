@@ -370,9 +370,9 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
-  { 8, 2, 32,  " Root Eucl len", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 0, 32,  " Root Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32,  " Root Eucl offs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32,  " ROI Eucl len", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 0, 32,  " ROI Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " ROI Eucl offs", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 32, " P Eucl length", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32,  " P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32,  " P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
@@ -593,61 +593,62 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       uint8_t h_euclidean_fill_ = h1200_settings.get_h_euclidean_fill() ;
       uint8_t h_euclidean_offset_ = h1200_settings.get_h_euclidean_offset() ;
 
+      int channel_4_cv = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 8);
       switch(h1200_settings.get_cv4_destination()) {
         case H1200_CV_DEST_EUCL_ROOT_FILL:
-          root_euclidean_fill_ = root_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          root_euclidean_fill_ = root_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(root_euclidean_fill_, 0, h1200_settings.get_root_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_ROOT_OFFSET:
-          root_euclidean_offset_ = root_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          root_euclidean_offset_ = root_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(root_euclidean_offset_, 0, h1200_settings.get_root_euclidean_length()-1);
           break;
         case H1200_CV_DEST_EUCL_P_FILL:
-          p_euclidean_fill_ = p_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          p_euclidean_fill_ = p_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(p_euclidean_fill_, 0, h1200_settings.get_p_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_P_OFFSET:
-          p_euclidean_offset_ = p_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          p_euclidean_offset_ = p_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(p_euclidean_offset_, 0, h1200_settings.get_p_euclidean_length()-1);
           break;
         case H1200_CV_DEST_EUCL_L_FILL:
-          l_euclidean_fill_ = l_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          l_euclidean_fill_ = l_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(l_euclidean_fill_, 0, h1200_settings.get_l_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_L_OFFSET:
-          l_euclidean_offset_ = l_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          l_euclidean_offset_ = l_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(l_euclidean_offset_, 0, h1200_settings.get_l_euclidean_length()-1);
           break;
         case H1200_CV_DEST_EUCL_R_FILL:
-          r_euclidean_fill_ = r_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          r_euclidean_fill_ = r_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(r_euclidean_fill_, 0, h1200_settings.get_r_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_R_OFFSET:
-          r_euclidean_offset_ = r_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          r_euclidean_offset_ = r_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(r_euclidean_offset_, 0, h1200_settings.get_r_euclidean_length()-1);
           break;
         case H1200_CV_DEST_EUCL_N_FILL:
-          n_euclidean_fill_ = n_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          n_euclidean_fill_ = n_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(n_euclidean_fill_, 0, h1200_settings.get_n_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_N_OFFSET:
-          n_euclidean_offset_ = n_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          n_euclidean_offset_ = n_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(n_euclidean_offset_, 0, h1200_settings.get_n_euclidean_length()-1);
           break;
         case H1200_CV_DEST_EUCL_S_FILL:
-          s_euclidean_fill_ = s_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          s_euclidean_fill_ = s_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(s_euclidean_fill_, 0, h1200_settings.get_s_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_S_OFFSET:
-          s_euclidean_offset_ = s_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          s_euclidean_offset_ = s_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(s_euclidean_offset_, 0, h1200_settings.get_s_euclidean_length()-1);
           break;
         case H1200_CV_DEST_EUCL_H_FILL:
-          h_euclidean_fill_ = h_euclidean_fill_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          h_euclidean_fill_ = h_euclidean_fill_ + channel_4_cv;
           CONSTRAIN(h_euclidean_fill_, 0, h1200_settings.get_h_euclidean_length());
           break;
         case H1200_CV_DEST_EUCL_H_OFFSET:
-          h_euclidean_offset_ = h_euclidean_offset_ + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+          h_euclidean_offset_ = h_euclidean_offset_ + channel_4_cv;
           CONSTRAIN(h_euclidean_offset_, 0, h1200_settings.get_h_euclidean_length()-1);
           break;
         default: break;
@@ -738,16 +739,17 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 //    CONSTRAIN(transpose, -24, 24);
 //  }
   int32_t root = h1200_settings.root_offset();
+  int octave = h1200_settings.octave();
+  int inversion = h1200_settings.inversion();
   if (h1200_state.root_sample_) {
       h1200_state.root_sample_ = false;
       root += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1)) ;
       h1200_state.root_ = root;
+      octave += ((OC::ADC::value<ADC_CHANNEL_2>() + 511) >> 10);
+      CONSTRAIN(octave, -3, 3);
+      inversion +=  ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+      CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
   }
-  int octave = h1200_settings.octave() + ((OC::ADC::value<ADC_CHANNEL_2>() + 511) >> 10);
-  CONSTRAIN(octave, -3, 3);
-
-  int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
-  CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
 
   h1200_state.Render(h1200_state.root_, inversion, octave, h1200_settings.output_mode());
 
@@ -937,7 +939,7 @@ void H1200_screensaver() {
 
 void H1200_debug() {
   int cv = OC::ADC::value<ADC_CHANNEL_4>();
-  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 8);
 
   graphics.setPrintPos(2, 12);
   graphics.printf("I: %4d %4d", cv, scaled);
