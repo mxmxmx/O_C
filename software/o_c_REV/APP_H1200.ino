@@ -65,36 +65,73 @@ enum NshTransformPriority {
 
 enum H1200Setting {
   H1200_SETTING_ROOT_OFFSET,
+  H1200_SETTING_ROOT_OFFSET_CV,
   H1200_SETTING_OCTAVE,
+  H1200_SETTING_OCTAVE_CV,
   H1200_SETTING_MODE,
   H1200_SETTING_INVERSION,
+  H1200_SETTING_INVERSION_CV,
   H1200_SETTING_PLR_TRANSFORM_PRIO,
+  H1200_SETTING_PLR_TRANSFORM_PRIO_CV,
   H1200_SETTING_NSH_TRANSFORM_PRIO,
+  H1200_SETTING_NSH_TRANSFORM_PRIO_CV,
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_TRIGGER_TYPE,
   H1200_SETTING_ROOT_EUCLIDEAN_LENGTH,
   H1200_SETTING_ROOT_EUCLIDEAN_FILL,
+  H1200_SETTING_ROOT_EUCLIDEAN_FILL_CV,
   H1200_SETTING_ROOT_EUCLIDEAN_OFFSET,
+  H1200_SETTING_ROOT_EUCLIDEAN_OFFSET_CV,
+  H1200_SETTING_OCTAVE_EUCLIDEAN_LENGTH,
+  H1200_SETTING_OCTAVE_EUCLIDEAN_FILL,
+  H1200_SETTING_OCTAVE_EUCLIDEAN_FILL_CV,
+  H1200_SETTING_OCTAVE_EUCLIDEAN_OFFSET,
+  H1200_SETTING_OCTAVE_EUCLIDEAN_OFFSET_CV,
+  H1200_SETTING_INVERSION_EUCLIDEAN_LENGTH,
+  H1200_SETTING_INVERSION_EUCLIDEAN_FILL,
+  H1200_SETTING_INVERSION_EUCLIDEAN_FILL_CV,
+  H1200_SETTING_INVERSION_EUCLIDEAN_OFFSET,
+  H1200_SETTING_INVERSION_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_P_EUCLIDEAN_LENGTH,
   H1200_SETTING_P_EUCLIDEAN_FILL,
+  H1200_SETTING_P_EUCLIDEAN_FILL_CV,
   H1200_SETTING_P_EUCLIDEAN_OFFSET,
+  H1200_SETTING_P_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_L_EUCLIDEAN_LENGTH,
   H1200_SETTING_L_EUCLIDEAN_FILL,
+  H1200_SETTING_L_EUCLIDEAN_FILL_CV,
   H1200_SETTING_L_EUCLIDEAN_OFFSET,
+  H1200_SETTING_L_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_R_EUCLIDEAN_LENGTH,
   H1200_SETTING_R_EUCLIDEAN_FILL,
+  H1200_SETTING_R_EUCLIDEAN_FILL_CV,
   H1200_SETTING_R_EUCLIDEAN_OFFSET,
+  H1200_SETTING_R_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_N_EUCLIDEAN_LENGTH,
   H1200_SETTING_N_EUCLIDEAN_FILL,
+  H1200_SETTING_N_EUCLIDEAN_FILL_CV,
   H1200_SETTING_N_EUCLIDEAN_OFFSET,
+  H1200_SETTING_N_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_S_EUCLIDEAN_LENGTH,
   H1200_SETTING_S_EUCLIDEAN_FILL,
+  H1200_SETTING_S_EUCLIDEAN_FILL_CV,
   H1200_SETTING_S_EUCLIDEAN_OFFSET,
+  H1200_SETTING_S_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_H_EUCLIDEAN_LENGTH,
   H1200_SETTING_H_EUCLIDEAN_FILL,
+  H1200_SETTING_H_EUCLIDEAN_FILL_CV,
   H1200_SETTING_H_EUCLIDEAN_OFFSET,
-  H1200_SETTING_CV4_DESTINATION,
+  H1200_SETTING_H_EUCLIDEAN_OFFSET_CV,
   H1200_SETTING_LAST
+};
+
+enum H1200CvSource {
+  H1200_CV_SOURCE_NONE,
+  H1200_CV_SOURCE_CV1,
+  H1200_CV_SOURCE_CV2,
+  H1200_CV_SOURCE_CV3,
+  H1200_CV_SOURCE_CV4,
+  H1200_CV_SOURCE_LAST
 };
 
 enum H1200TriggerTypes {
@@ -104,24 +141,6 @@ enum H1200TriggerTypes {
   H1200_TRIGGER_TYPE_LAST
 };
 
-enum H1200CvDestinations {
-  H1200_CV_DEST_EUCL_NULL,
-  H1200_CV_DEST_EUCL_ROOT_FILL,
-  H1200_CV_DEST_EUCL_ROOT_OFFSET,
-  H1200_CV_DEST_EUCL_P_FILL,
-  H1200_CV_DEST_EUCL_P_OFFSET,
-  H1200_CV_DEST_EUCL_L_FILL,
-  H1200_CV_DEST_EUCL_L_OFFSET,
-  H1200_CV_DEST_EUCL_R_FILL,
-  H1200_CV_DEST_EUCL_R_OFFSET,
-  H1200_CV_DEST_EUCL_N_FILL,
-  H1200_CV_DEST_EUCL_N_OFFSET,
-  H1200_CV_DEST_EUCL_S_FILL,
-  H1200_CV_DEST_EUCL_S_OFFSET,
-  H1200_CV_DEST_EUCL_H_FILL,
-  H1200_CV_DEST_EUCL_H_OFFSET,
-  H1200_CV_DEST_EUCL_LAST
-};
 
 class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
@@ -130,8 +149,16 @@ public:
     return values_[H1200_SETTING_ROOT_OFFSET];
   }
 
+  H1200CvSource get_root_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_ROOT_OFFSET_CV]);
+  }
+
   int octave() const {
     return values_[H1200_SETTING_OCTAVE];
+  }
+
+  H1200CvSource get_octave_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_OCTAVE_CV]);
   }
 
   EMode mode() const {
@@ -142,12 +169,24 @@ public:
     return values_[H1200_SETTING_INVERSION];
   }
 
-  TransformPriority get_transform_priority() const {
-    return static_cast<TransformPriority>(values_[H1200_SETTING_PLR_TRANSFORM_PRIO]);
+  H1200CvSource get_inversion_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_INVERSION_CV]);
   }
 
-  NshTransformPriority get_nsh_transform_priority() const {
-    return static_cast<NshTransformPriority>(values_[H1200_SETTING_NSH_TRANSFORM_PRIO]);
+  uint8_t get_transform_priority() const {
+    return values_[H1200_SETTING_PLR_TRANSFORM_PRIO];
+  }
+
+  H1200CvSource get_transform_priority_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_PLR_TRANSFORM_PRIO_CV]);
+  }
+
+  uint8_t get_nsh_transform_priority() const {
+    return values_[H1200_SETTING_NSH_TRANSFORM_PRIO];
+  }
+
+  H1200CvSource get_nsh_transform_priority_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_NSH_TRANSFORM_PRIO_CV]);
   }
 
   OutputMode output_mode() const {
@@ -166,8 +205,56 @@ public:
     return values_[H1200_SETTING_ROOT_EUCLIDEAN_FILL];
   }
 
+  H1200CvSource get_root_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_ROOT_EUCLIDEAN_FILL_CV]);
+  }
+
   uint8_t get_root_euclidean_offset() const {
     return values_[H1200_SETTING_ROOT_EUCLIDEAN_OFFSET];
+  }
+
+  H1200CvSource get_root_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_ROOT_EUCLIDEAN_OFFSET_CV]);
+  }
+
+  uint8_t get_octave_euclidean_length() const {
+    return values_[H1200_SETTING_OCTAVE_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_octave_euclidean_fill() const {
+    return values_[H1200_SETTING_OCTAVE_EUCLIDEAN_FILL];
+  }
+
+  H1200CvSource get_octave_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_OCTAVE_EUCLIDEAN_FILL_CV]);
+  }
+
+  uint8_t get_octave_euclidean_offset() const {
+    return values_[H1200_SETTING_OCTAVE_EUCLIDEAN_OFFSET];
+  }
+
+  H1200CvSource get_octave_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_OCTAVE_EUCLIDEAN_OFFSET_CV]);
+  }
+
+  uint8_t get_inversion_euclidean_length() const {
+    return values_[H1200_SETTING_INVERSION_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_inversion_euclidean_fill() const {
+    return values_[H1200_SETTING_INVERSION_EUCLIDEAN_FILL];
+  }
+
+  H1200CvSource get_inversion_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_INVERSION_EUCLIDEAN_FILL_CV]);
+  }
+
+  uint8_t get_inversion_euclidean_offset() const {
+    return values_[H1200_SETTING_INVERSION_EUCLIDEAN_OFFSET];
+  }
+
+  H1200CvSource get_inversion_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_INVERSION_EUCLIDEAN_OFFSET_CV]);
   }
 
   uint8_t get_p_euclidean_length() const {
@@ -182,6 +269,14 @@ public:
     return values_[H1200_SETTING_P_EUCLIDEAN_OFFSET];
   }
 
+  H1200CvSource get_p_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_P_EUCLIDEAN_FILL_CV]);
+  }
+
+  H1200CvSource get_p_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_P_EUCLIDEAN_OFFSET_CV]);
+  }
+
   uint8_t get_l_euclidean_length() const {
     return values_[H1200_SETTING_L_EUCLIDEAN_LENGTH];
   }
@@ -192,6 +287,14 @@ public:
 
   uint8_t get_l_euclidean_offset() const {
     return values_[H1200_SETTING_L_EUCLIDEAN_OFFSET];
+  }
+
+  H1200CvSource get_l_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_L_EUCLIDEAN_FILL_CV]);
+  }
+
+  H1200CvSource get_l_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_L_EUCLIDEAN_OFFSET_CV]);
   }
 
   uint8_t get_r_euclidean_length() const {
@@ -206,6 +309,14 @@ public:
     return values_[H1200_SETTING_R_EUCLIDEAN_OFFSET];
   }
 
+  H1200CvSource get_r_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_R_EUCLIDEAN_FILL_CV]);
+  }
+
+  H1200CvSource get_r_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_R_EUCLIDEAN_OFFSET_CV]);
+  }
+
   uint8_t get_n_euclidean_length() const {
     return values_[H1200_SETTING_N_EUCLIDEAN_LENGTH];
   }
@@ -216,6 +327,14 @@ public:
 
   uint8_t get_n_euclidean_offset() const {
     return values_[H1200_SETTING_N_EUCLIDEAN_OFFSET];
+  }
+
+  H1200CvSource get_n_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_N_EUCLIDEAN_FILL_CV]);
+  }
+
+  H1200CvSource get_n_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_N_EUCLIDEAN_OFFSET_CV]);
   }
 
   uint8_t get_s_euclidean_length() const {
@@ -230,6 +349,14 @@ public:
     return values_[H1200_SETTING_S_EUCLIDEAN_OFFSET];
   }
 
+  H1200CvSource get_s_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_S_EUCLIDEAN_FILL_CV]);
+  }
+
+  H1200CvSource get_s_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_S_EUCLIDEAN_OFFSET_CV]);
+  }
+
   uint8_t get_h_euclidean_length() const {
     return values_[H1200_SETTING_H_EUCLIDEAN_LENGTH];
   }
@@ -242,10 +369,14 @@ public:
     return values_[H1200_SETTING_H_EUCLIDEAN_OFFSET];
   }
 
-  H1200CvDestinations get_cv4_destination() const {
-    return static_cast<H1200CvDestinations>(values_[H1200_SETTING_CV4_DESTINATION]);
+  H1200CvSource get_h_euclidean_fill_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_H_EUCLIDEAN_FILL_CV]);
   }
 
+  H1200CvSource get_h_euclidean_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_H_EUCLIDEAN_OFFSET_CV]);
+  }
+    
   void Init() {
     InitDefaults();
     update_enabled_settings();
@@ -264,38 +395,93 @@ public:
     H1200Setting *settings = enabled_settings_;
 
     *settings++ =   H1200_SETTING_ROOT_OFFSET;
+    *settings++ =   H1200_SETTING_ROOT_OFFSET_CV;
     *settings++ =   H1200_SETTING_OCTAVE;
+    *settings++ =   H1200_SETTING_OCTAVE_CV;
     *settings++ =   H1200_SETTING_MODE;
     *settings++ =   H1200_SETTING_INVERSION;
+    *settings++ =   H1200_SETTING_INVERSION_CV;
     *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO;
+    *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO_CV;
     *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO;
+    *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO_CV;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;    
  
     switch (get_trigger_type()) {
       case H1200_TRIGGER_TYPE_EUCLIDEAN:
         *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_OFFSET;
+        if (true) {
+        // if (get_root_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_ROOT_EUCLIDEAN_OFFSET_CV;
+        }
+        *settings++ =   H1200_SETTING_OCTAVE_EUCLIDEAN_LENGTH;
+        if (true) {
+        // if (get_octave_euclidean_length() > 0) {
+           *settings++ =   H1200_SETTING_OCTAVE_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_OCTAVE_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_OCTAVE_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_OCTAVE_EUCLIDEAN_OFFSET_CV;
+        }
+        *settings++ =   H1200_SETTING_INVERSION_EUCLIDEAN_LENGTH;
+        if (true) {
+        // if (get_inversion_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_INVERSION_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_INVERSION_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_INVERSION_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_INVERSION_EUCLIDEAN_OFFSET_CV;
+        }
         *settings++ =   H1200_SETTING_P_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_P_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_P_EUCLIDEAN_OFFSET;
+        if (true) {
+        // if (get_p_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_P_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_P_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_P_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_P_EUCLIDEAN_OFFSET_CV;
+        }
         *settings++ =   H1200_SETTING_L_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_L_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_L_EUCLIDEAN_OFFSET;
+        if (true) {
+        // if (get_l_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_L_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_L_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_L_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_L_EUCLIDEAN_OFFSET_CV;
+        }
         *settings++ =   H1200_SETTING_R_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_R_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_R_EUCLIDEAN_OFFSET;
+        if (true) {
+        // if (get_r_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_R_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_R_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_R_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_R_EUCLIDEAN_OFFSET_CV;
+        }
         *settings++ =   H1200_SETTING_N_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_N_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_N_EUCLIDEAN_OFFSET;
+        if (true) {
+        // if (get_n_euclidean_length() > 0) {
+           *settings++ =   H1200_SETTING_N_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_N_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_N_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_N_EUCLIDEAN_OFFSET_CV;
+        }
         *settings++ =   H1200_SETTING_S_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_S_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_S_EUCLIDEAN_OFFSET;
+        if (true) {
+        // if (get_s_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_S_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_S_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_S_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_S_EUCLIDEAN_OFFSET_CV;
+        }
         *settings++ =   H1200_SETTING_H_EUCLIDEAN_LENGTH;
-        *settings++ =   H1200_SETTING_H_EUCLIDEAN_FILL;
-        *settings++ =   H1200_SETTING_H_EUCLIDEAN_OFFSET;
-        *settings++ =   H1200_SETTING_CV4_DESTINATION;
+        if (true) {
+        // if (get_h_euclidean_length() > 0) {
+          *settings++ =   H1200_SETTING_H_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_H_EUCLIDEAN_FILL_CV;
+          *settings++ =   H1200_SETTING_H_EUCLIDEAN_OFFSET;
+          *settings++ =   H1200_SETTING_H_EUCLIDEAN_OFFSET_CV;
+        }
         break;
       default:
         break;
@@ -343,55 +529,76 @@ const char * const mode_names[] = {
   "maj", "min"
 };
 
-const char* const h1200_cv_destinations[] = {
-  "None",
-  "RTfil", // H1200_CV_DEST_EUCL_ROOT_FILL,
-  "RToff", // H1200_CV_DEST_EUCL_ROOT_OFFSET,
-  "Pfill", // H1200_CV_DEST_EUCL_P_FILL,
-  "Poffs", // H1200_CV_DEST_EUCL_P_OFFSET,
-  "Lfill", // H1200_CV_DEST_EUCL_L_FILL,
-  "Loffs", // H1200_CV_DEST_EUCL_L_OFFSET,
-  "Rfill", // H1200_CV_DEST_EUCL_R_FILL,
-  "Roffs", // H1200_CV_DEST_EUCL_R_OFFSET,
-  "Nfill", // H1200_CV_DEST_EUCL_N_FILL,
-  "Noffs", // H1200_CV_DEST_EUCL_N_OFFSET,
-  "Sfill", // H1200_CV_DEST_EUCL_S_FILL,
-  "Soffs", // H1200_CV_DEST_EUCL_S_OFFSET,
-  "Hfill", // H1200_CV_DEST_EUCL_H_FILL,
-  "Hoffs" // H1200_CV_DEST_EUCL_H_OFFSET,
+const char* const h1200_cv_sources[5] = {
+  "Nil", "CV1", "CV2", "CV3", "CV4"
 };
 
+//const char* const euclidean_lengths[] = {
+//  "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
+//  " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
+//  " 21", " 12", " 23", " 24", " 25", " 26", " 27", " 28", " 29", " 30",
+//  " 31", " 32",
+//};
+
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
-  {0, -11, 11, "Root", NULL, settings::STORAGE_TYPE_I8},
+  {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Transpose CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Octave CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Inversion CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_PLR_LAST-1, "PLR Priority", plr_trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "PLR Prior CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "NSH Prior CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
-  { 8, 2, 32,  " ROI Eucl len", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 0, 32,  " ROI Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32,  " ROI Eucl offs", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, " P Eucl length", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32,  " P Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32,  " P Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, " L Eucl length", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, " L Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, " L Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, " R Eucl length", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, " R Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, " R Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
-  { 8, 2, 32, " N Eucl length", NULL, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, " N Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, " N Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, " S Eucl length", NULL, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, " S Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, " S Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 32, " H Eucl length", NULL, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, " H Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 5, 0, 32, " H Eucl offset", NULL, settings::STORAGE_TYPE_U8 },  
-  { H1200_CV_DEST_EUCL_N_OFFSET, H1200_CV_DEST_EUCL_NULL, H1200_CV_DEST_EUCL_LAST-1, " CV4 dest", h1200_cv_destinations, settings::STORAGE_TYPE_U8 },  
+  { 0, 0, 31,  " T'pose EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " T'pose EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  Tr EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " T'pose EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  Tr EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " Oct EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " Oct EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  Oct EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " Oct EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  Oct EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " Inv EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " Inv EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  Inv EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " Inv EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  Inv EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " P EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " P EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  P EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " P EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  P EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " L EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " L EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  L EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " L EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  L EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " R EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " R EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  R EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " R EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  R EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " N EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " N EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  N EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " N EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  N EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " S EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " S EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  S EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " S EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  S EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " H EuLeng", euclidean_lengths, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " H EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  H EuFill CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  { 0, 0, 31,  " H EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "  H EuOffs CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
 };
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
@@ -484,13 +691,55 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   if (triggers & TRIGGER_MASK_TR1) {
     h1200_state.tonnetz_state.reset(h1200_settings.mode());
   }
+
+  uint8_t plr_transform_priority_ = h1200_settings.get_transform_priority();
+  switch (h1200_settings.get_transform_priority_cv_src()) {
+    case H1200_CV_SOURCE_CV1:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV2:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV3:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV4:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+      break ;
+    default:
+      break; 
+  } 
+
+  CONSTRAIN(plr_transform_priority_, TRANSFORM_PRIO_XPLR, TRANSFORM_PRIO_PLR_LAST-1);
+  
+  uint8_t nsh_transform_priority_ = h1200_settings.get_nsh_transform_priority();
+  switch (h1200_settings.get_nsh_transform_priority_cv_src()) {
+    case H1200_CV_SOURCE_CV1:
+      nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV2:
+      nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV3:
+      nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV4:
+      nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+      break ;
+    default:
+      break; 
+  } 
+
+  CONSTRAIN(nsh_transform_priority_, TRANSFORM_PRIO_XNSH, TRANSFORM_PRIO_NSH_LAST-1);
+ 
   if (h1200_settings.get_trigger_type() == H1200_TRIGGER_TYPE_PLR) {
     
       // Since there can be simultaneous triggers, there is a definable priority.
       // Reset always has top priority
       //
       // Note: Proof-of-concept code, do not copy/paste all combinations ;)
-      switch (h1200_settings.get_transform_priority()) {
+
+      switch (plr_transform_priority_) {
         case TRANSFORM_PRIO_XPLR:
           if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
           if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
@@ -535,7 +784,8 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       // Reset always has top priority
       //
       // Note: Proof-of-concept code, do not copy/paste all combinations ;)
-      switch (h1200_settings.get_nsh_transform_priority()) {
+      
+      switch (nsh_transform_priority_) {
         case TRANSFORM_PRIO_XNSH:
           if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
           if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
@@ -580,6 +830,22 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 
       uint8_t root_euclidean_fill_ = h1200_settings.get_root_euclidean_fill() ;
       uint8_t root_euclidean_offset_ = h1200_settings.get_root_euclidean_offset() ;
+  switch (h1200_settings.get_transform_priority_cv_src()) {
+    case H1200_CV_SOURCE_CV1:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV2:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV3:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+      break ;
+    case H1200_CV_SOURCE_CV4:
+      plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+      break ;
+    default:
+      break; 
+  } 
       uint8_t p_euclidean_fill_ = h1200_settings.get_p_euclidean_fill() ;
       uint8_t p_euclidean_offset_ = h1200_settings.get_p_euclidean_offset() ;
       uint8_t l_euclidean_fill_ = h1200_settings.get_l_euclidean_fill() ;
@@ -593,72 +859,76 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       uint8_t h_euclidean_fill_ = h1200_settings.get_h_euclidean_fill() ;
       uint8_t h_euclidean_offset_ = h1200_settings.get_h_euclidean_offset() ;
 
-      int channel_4_cv = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 8);
-      switch(h1200_settings.get_cv4_destination()) {
-        case H1200_CV_DEST_EUCL_ROOT_FILL:
-          root_euclidean_fill_ = root_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(root_euclidean_fill_, 0, h1200_settings.get_root_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_ROOT_OFFSET:
-          root_euclidean_offset_ = root_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(root_euclidean_offset_, 0, h1200_settings.get_root_euclidean_length()-1);
-          break;
-        case H1200_CV_DEST_EUCL_P_FILL:
-          p_euclidean_fill_ = p_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(p_euclidean_fill_, 0, h1200_settings.get_p_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_P_OFFSET:
-          p_euclidean_offset_ = p_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(p_euclidean_offset_, 0, h1200_settings.get_p_euclidean_length()-1);
-          break;
-        case H1200_CV_DEST_EUCL_L_FILL:
-          l_euclidean_fill_ = l_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(l_euclidean_fill_, 0, h1200_settings.get_l_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_L_OFFSET:
-          l_euclidean_offset_ = l_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(l_euclidean_offset_, 0, h1200_settings.get_l_euclidean_length()-1);
-          break;
-        case H1200_CV_DEST_EUCL_R_FILL:
-          r_euclidean_fill_ = r_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(r_euclidean_fill_, 0, h1200_settings.get_r_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_R_OFFSET:
-          r_euclidean_offset_ = r_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(r_euclidean_offset_, 0, h1200_settings.get_r_euclidean_length()-1);
-          break;
-        case H1200_CV_DEST_EUCL_N_FILL:
-          n_euclidean_fill_ = n_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(n_euclidean_fill_, 0, h1200_settings.get_n_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_N_OFFSET:
-          n_euclidean_offset_ = n_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(n_euclidean_offset_, 0, h1200_settings.get_n_euclidean_length()-1);
-          break;
-        case H1200_CV_DEST_EUCL_S_FILL:
-          s_euclidean_fill_ = s_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(s_euclidean_fill_, 0, h1200_settings.get_s_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_S_OFFSET:
-          s_euclidean_offset_ = s_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(s_euclidean_offset_, 0, h1200_settings.get_s_euclidean_length()-1);
-          break;
-        case H1200_CV_DEST_EUCL_H_FILL:
-          h_euclidean_fill_ = h_euclidean_fill_ + channel_4_cv;
-          CONSTRAIN(h_euclidean_fill_, 0, h1200_settings.get_h_euclidean_length());
-          break;
-        case H1200_CV_DEST_EUCL_H_OFFSET:
-          h_euclidean_offset_ = h_euclidean_offset_ + channel_4_cv;
-          CONSTRAIN(h_euclidean_offset_, 0, h1200_settings.get_h_euclidean_length()-1);
-          break;
-        default: break;
-      }
+      int channel_1_cv = ((OC::ADC::value<ADC_CHANNEL_1>() + 127) >> 8);
+      int channel_2_cv = ((OC::ADC::value<ADC_CHANNEL_2>() + 127) >> 8);
+      int channel_3_cv = ((OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
+      int channel_4_cv = ((OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8);
+
+//      switch(h1200_settings.get_cv4_destination()) {
+//        case H1200_CV_DEST_EUCL_ROOT_FILL:
+//          root_euclidean_fill_ = root_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(root_euclidean_fill_, 0, h1200_settings.get_root_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_ROOT_OFFSET:
+//          root_euclidean_offset_ = root_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(root_euclidean_offset_, 0, h1200_settings.get_root_euclidean_length()-1);
+//          break;
+//        case H1200_CV_DEST_EUCL_P_FILL:
+//          p_euclidean_fill_ = p_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(p_euclidean_fill_, 0, h1200_settings.get_p_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_P_OFFSET:
+//          p_euclidean_offset_ = p_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(p_euclidean_offset_, 0, h1200_settings.get_p_euclidean_length()-1);
+//          break;
+//        case H1200_CV_DEST_EUCL_L_FILL:
+//          l_euclidean_fill_ = l_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(l_euclidean_fill_, 0, h1200_settings.get_l_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_L_OFFSET:
+//          l_euclidean_offset_ = l_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(l_euclidean_offset_, 0, h1200_settings.get_l_euclidean_length()-1);
+//          break;
+//        case H1200_CV_DEST_EUCL_R_FILL:
+//          r_euclidean_fill_ = r_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(r_euclidean_fill_, 0, h1200_settings.get_r_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_R_OFFSET:
+//          r_euclidean_offset_ = r_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(r_euclidean_offset_, 0, h1200_settings.get_r_euclidean_length()-1);
+//          break;
+//        case H1200_CV_DEST_EUCL_N_FILL:
+//          n_euclidean_fill_ = n_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(n_euclidean_fill_, 0, h1200_settings.get_n_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_N_OFFSET:
+//          n_euclidean_offset_ = n_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(n_euclidean_offset_, 0, h1200_settings.get_n_euclidean_length()-1);
+//          break;
+//        case H1200_CV_DEST_EUCL_S_FILL:
+//          s_euclidean_fill_ = s_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(s_euclidean_fill_, 0, h1200_settings.get_s_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_S_OFFSET:
+//          s_euclidean_offset_ = s_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(s_euclidean_offset_, 0, h1200_settings.get_s_euclidean_length()-1);
+//          break;
+//        case H1200_CV_DEST_EUCL_H_FILL:
+//          h_euclidean_fill_ = h_euclidean_fill_ + channel_4_cv;
+//          CONSTRAIN(h_euclidean_fill_, 0, h1200_settings.get_h_euclidean_length());
+//          break;
+//        case H1200_CV_DEST_EUCL_H_OFFSET:
+//          h_euclidean_offset_ = h_euclidean_offset_ + channel_4_cv;
+//          CONSTRAIN(h_euclidean_offset_, 0, h1200_settings.get_h_euclidean_length()-1);
+//          break;
+//        default: break;
+//      }
       
       ++h1200_state.euclidean_counter_;
       
       if (EuclideanFilter(h1200_settings.get_root_euclidean_length(), root_euclidean_fill_, root_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.root_sample_ = true;
 
-      switch (h1200_settings.get_transform_priority()) {
+      switch (plr_transform_priority_) {
         case TRANSFORM_PRIO_XPLR:
           if (EuclideanFilter(h1200_settings.get_p_euclidean_length(), p_euclidean_fill_, p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
           if (EuclideanFilter(h1200_settings.get_l_euclidean_length(), l_euclidean_fill_, l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
@@ -693,7 +963,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
         default: break;
       }
         
-      switch (h1200_settings.get_nsh_transform_priority()) {
+      switch (nsh_transform_priority_) {
         case TRANSFORM_PRIO_XNSH:
           if (EuclideanFilter(h1200_settings.get_n_euclidean_length(), n_euclidean_fill_, n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
           if (EuclideanFilter(h1200_settings.get_s_euclidean_length(), s_euclidean_fill_, s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
