@@ -64,7 +64,6 @@ enum NshTransformPriority {
 };
 
 enum H1200Setting {
-  H1200_SETTING_CV_SAMPLING,
   H1200_SETTING_ROOT_OFFSET,
   H1200_SETTING_ROOT_OFFSET_CV,
   H1200_SETTING_OCTAVE,
@@ -76,6 +75,7 @@ enum H1200Setting {
   H1200_SETTING_PLR_TRANSFORM_PRIO_CV,
   H1200_SETTING_NSH_TRANSFORM_PRIO,
   H1200_SETTING_NSH_TRANSFORM_PRIO_CV,
+  H1200_SETTING_CV_SAMPLING,
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_TRIGGER_TYPE,
   H1200_SETTING_EUCLIDEAN_CV1_MAPPING,
@@ -313,7 +313,6 @@ public:
     
     H1200Setting *settings = enabled_settings_;
 
-    *settings++ =   H1200_SETTING_CV_SAMPLING;
     *settings++ =   H1200_SETTING_ROOT_OFFSET;
     *settings++ =   H1200_SETTING_ROOT_OFFSET_CV;
     *settings++ =   H1200_SETTING_OCTAVE;
@@ -325,6 +324,7 @@ public:
     *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO_CV;
     *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO;
     *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO_CV;
+    *settings++ =   H1200_SETTING_CV_SAMPLING;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;    
  
@@ -418,7 +418,6 @@ const char* const h1200_eucl_cv_mappings[] = {
 };
 
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
-  {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U4},
   {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
   {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Transpose CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
@@ -430,6 +429,7 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "PLR Prior CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "NSH Prior CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U4},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV1 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
@@ -669,8 +669,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   uint8_t plr_transform_priority_ = h1200_settings.get_transform_priority();
   uint8_t nsh_transform_priority_ = h1200_settings.get_nsh_transform_priority();
 
-  if ((h1200_settings.get_trigger_type() == H1200_TRIGGER_TYPE_PLR || h1200_settings.get_trigger_type() == H1200_TRIGGER_TYPE_NSH) &&
-      (h1200_settings.get_cv_sampling() == H1200_CV_SAMPLING_CONT || triggers)) {
+  if (true) {
         switch (h1200_settings.get_root_offset_cv_src()) {
           case H1200_CV_SOURCE_CV1:
             root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1));
@@ -691,16 +690,16 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       
         switch (h1200_settings.get_octave_cv_src()) {
           case H1200_CV_SOURCE_CV1:
-            octave_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 511) >> 10);
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
             break ;
           case H1200_CV_SOURCE_CV2:
-            octave_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 511) >> 10);
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
             break ;
           case H1200_CV_SOURCE_CV3:
-            octave_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 511) >> 10);
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
             break ;
           case H1200_CV_SOURCE_CV4:
-            octave_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 511) >> 10);
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
             break ;
           default:
             break; 
@@ -854,7 +853,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
       }
   } else {
 
-    if (triggers & TRIGGER_MASK_P) {
+    if (triggers) {
 
       h1200_state.p_euclidean_length_ = h1200_settings.get_p_euclidean_length() ;
       h1200_state.p_euclidean_fill_ = h1200_settings.get_p_euclidean_fill() ;
@@ -962,7 +961,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
  }
 
   // Finally, we're ready to actually render the triad transformation!
-  h1200_state.Render(root_, inversion_, octave_, h1200_settings.output_mode());
+  if (triggers || (h1200_settings.get_cv_sampling() == H1200_CV_SAMPLING_CONT)) h1200_state.Render(root_, inversion_, octave_, h1200_settings.output_mode());
 
   if (triggers)
     MENU_REDRAW = 1;
