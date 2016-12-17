@@ -13,6 +13,8 @@ extern void BBGEN_debug();
 // extern void ENVGEN_debug();
 extern void BYTEBEATGEN_debug();
 extern void H1200_debug();
+extern void QQ_debug();
+extern void ASR_debug();
 
 namespace OC {
 
@@ -102,7 +104,9 @@ static const DebugMenu debug_menus[] = {
   { " BBGEN", BBGEN_debug },
   { " BYTEBEATGEN", BYTEBEATGEN_debug },
   { " H1200", H1200_debug },
-  { nullptr, nullptr }
+  { " QQ", QQ_debug },
+  { " ASR", ASR_debug },
+ { nullptr, nullptr }
 };
 
 void Ui::DebugStats() {

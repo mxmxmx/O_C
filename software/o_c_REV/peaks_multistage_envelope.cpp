@@ -46,6 +46,9 @@ void MultistageEnvelope::Init() {
   attack_shape_ = ENV_SHAPE_QUARTIC;
   decay_shape_ = ENV_SHAPE_EXPONENTIAL;
   release_shape_ = ENV_SHAPE_EXPONENTIAL;
+  attack_multiplier_ = 0;
+  decay_multiplier_ = 0;
+  release_multiplier_ = 0;
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
@@ -73,7 +76,7 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
       control & CONTROL_GATE;
 
   phase_increment_ =
-      sustained || done ? 0 : lut_env_increments[time_[segment_] >> 8];
+      sustained || done ? 0 : lut_env_increments[time_[segment_] >> 8] >> time_multiplier_[segment_];
 
   int32_t a = start_value_;
   int32_t b = level_[segment_ + 1];
