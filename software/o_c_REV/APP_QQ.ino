@@ -328,6 +328,7 @@ public:
     last_sample_ = 0;
     clock_ = 0;
     int_seq_reset_ = false;
+    continuous_offset_ = false;
 
     trigger_delay_.Init();
     turing_machine_.Init();
@@ -654,14 +655,14 @@ public:
             // offset when TR source = continuous ?
             if (!continuous)
               continuous_offset_ = 0;
-            else if (continuous && last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
+            else if (last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
       
                if (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) 
                 continuous_offset_ = 1;
                else 
                 continuous_offset_ = -1;
             }
-            else if (continuous && last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index)))
+            else if (last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index)))
               continuous_offset_ = 0;
               
             // run quantizer again -- presumably could be made more efficient... 
@@ -673,7 +674,7 @@ public:
         }
     } // end switch  
 
-    bool changed = 0;
+    bool changed = false;
     
     if (continuous)
       changed = last_sample_ != temp_sample;

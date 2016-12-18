@@ -274,12 +274,14 @@ public:
 
     force_update_ = true;
     instant_update_ = false;
+    
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
       last_mask_[i] = 0;
     }
     last_sample_ = 0;
     clock_ = 0;
+    continuous_offset_ = 0;
 
     trigger_delay_.Init();
     quantizer_.Init();
@@ -407,14 +409,14 @@ public:
       // offset when TR source = continuous ?
       if (!continuous)
         continuous_offset_ = 0;
-      else if (continuous && last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1))) {
+      else if (last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1))) {
 
          if (trigger_source == DQ_CHANNEL_TRIGGER_CONTINUOUS_UP) 
           continuous_offset_ = 1;
          else 
           continuous_offset_ = -1;
       }
-      else if (continuous && last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1)))
+      else if (last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1)))
         continuous_offset_ = 0;
         
       // run quantizer again -- presumably could be made more efficient... 
@@ -435,9 +437,9 @@ public:
         last_raw_sample_ = pitch;
       }
     }
-
-    // 
-    bool changed = 0;
+ 
+    bool changed = false;
+    
     if (continuous)
       changed = last_sample_ != temp_sample;
     else
