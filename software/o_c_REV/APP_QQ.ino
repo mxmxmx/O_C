@@ -356,8 +356,8 @@ public:
 
     ChannelSource source = get_source();
     ChannelTriggerSource trigger_source = get_trigger_source();
-    bool continous = CHANNEL_TRIGGER_CONTINUOUS_UP == trigger_source || CHANNEL_TRIGGER_CONTINUOUS_DOWN == trigger_source;
-    bool triggered = !continous &&
+    bool continuous = CHANNEL_TRIGGER_CONTINUOUS_UP == trigger_source || CHANNEL_TRIGGER_CONTINUOUS_DOWN == trigger_source;
+    bool triggered = !continuous &&
       (triggers & DIGITAL_INPUT_MASK(trigger_source - CHANNEL_TRIGGER_TR1));
 
     if (source == CHANNEL_SOURCE_INT_SEQ) {
@@ -379,11 +379,12 @@ public:
       }
     }
 
-    bool update = continous || triggered;
+    bool update = continuous || triggered;
     if (update_scale(forced_update) && instant_update_ == true)
        update = true;
        
     int32_t sample = last_sample_;
+    int32_t temp_sample = 0;
     int32_t history_sample = 0;
 
     switch (source) {
@@ -648,31 +649,47 @@ public:
             
             CONSTRAIN(transpose, -12, 12); 
             const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
-            sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
+            sample = temp_sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
 
             // offset when TR source = continuous ?
-            if (trigger_source > CHANNEL_TRIGGER_TR4 && last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
-
+            if (!continuous)
+              continuous_offset_ = 0;
+            else if (continuous && last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
+      
                if (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) 
-                octave++;
+                continuous_offset_ = 1;
                else 
-                octave--;
-              // run quantizer again -- presumably could be made more efficient...  
-              sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
+                continuous_offset_ = -1;
             }
-            history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);
+            else if (continuous && last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index)))
+              continuous_offset_ = 0;
+              
+            // run quantizer again -- presumably could be made more efficient... 
+            if (continuous && continuous_offset_) 
+              sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+                 
+            history_sample = quantized + ((OC::DAC::kOctaveZero + octave + continuous_offset_) * 12 << 7);
           }
         }
     } // end switch  
 
-    bool changed = last_sample_ != sample;
+    bool changed = 0;
+    
+    if (continuous)
+      changed = last_sample_ != temp_sample;
+    else
+      changed = last_sample_ != sample;
+      
     if (changed) {
       MENU_REDRAW = 1;
-      last_sample_ = sample;
+      if (continuous)
+        last_sample_ = temp_sample;
+      else
+        last_sample_ = sample;
     }
     OC::DAC::set(dac_channel, sample + get_fine());
 
-    if (triggered || (continous && changed)) {
+    if (triggered || (continuous && changed)) {
       scrolling_history_.Push(history_sample);
       trigger_display_.Update(1, true);
     } else {
@@ -878,6 +895,7 @@ private:
   int32_t last_sample_;
   uint8_t clock_;
   bool int_seq_reset_;
+  int8_t continuous_offset_;
   
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
@@ -929,7 +947,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 11, "Root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 },
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U4 },
-  { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U4 },
+  { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 1, 1, 16, "Clock div", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "Transpose", NULL, settings::STORAGE_TYPE_I8 },

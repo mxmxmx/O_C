@@ -68,7 +68,8 @@ enum DQ_ChannelTriggerSource {
   DQ_CHANNEL_TRIGGER_TR2,
   DQ_CHANNEL_TRIGGER_TR3,
   DQ_CHANNEL_TRIGGER_TR4,
-  DQ_CHANNEL_TRIGGER_CONTINUOUS,
+  DQ_CHANNEL_TRIGGER_CONTINUOUS_UP,
+  DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN,
   DQ_CHANNEL_TRIGGER_LAST
 };
 
@@ -305,8 +306,8 @@ public:
 
     DQ_ChannelSource source = get_source();
     DQ_ChannelTriggerSource trigger_source = get_trigger_source();
-    bool continous = DQ_CHANNEL_TRIGGER_CONTINUOUS == trigger_source;
-    bool triggered = !continous &&
+    bool continuous = DQ_CHANNEL_TRIGGER_CONTINUOUS_UP == trigger_source || DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN == trigger_source;
+    bool triggered = !continuous &&
       (triggers & DIGITAL_INPUT_MASK(trigger_source - DQ_CHANNEL_TRIGGER_TR1));
 
     trigger_delay_.Update();
@@ -343,11 +344,12 @@ public:
       schedule_scale_update_ = true;
     }
 
-    bool update = continous || triggered;
+    bool update = continuous || triggered;
     if (get_aux_cv_dest() != DQ_DEST_MASK && update_scale(forced_update, active_scale_slot_, false) && instant_update_ == true)
       update = true;
        
     int32_t sample = last_sample_;
+    int32_t temp_sample = 0;
     int32_t history_sample = 0;
     uint8_t aux_mode = get_aux_mode();
 
@@ -400,8 +402,26 @@ public:
       }  
        
       const int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
-      sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
-      history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);  
+      sample = temp_sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
+      
+      // offset when TR source = continuous ?
+      if (!continuous)
+        continuous_offset_ = 0;
+      else if (continuous && last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1))) {
+
+         if (trigger_source == DQ_CHANNEL_TRIGGER_CONTINUOUS_UP) 
+          continuous_offset_ = 1;
+         else 
+          continuous_offset_ = -1;
+      }
+      else if (continuous && last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1)))
+        continuous_offset_ = 0;
+        
+      // run quantizer again -- presumably could be made more efficient... 
+      if (continuous && continuous_offset_) 
+        sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+           
+      history_sample = quantized + ((OC::DAC::kOctaveZero + octave + continuous_offset_) * 12 << 7);  
      
       if (aux_mode == DQ_COPY) {
         int octave_offset = octave + get_aux_octave();
@@ -417,14 +437,21 @@ public:
     }
 
     // 
-    bool changed = last_sample_ != sample;
-    
+    bool changed = 0;
+    if (continuous)
+      changed = last_sample_ != temp_sample;
+    else
+     changed = last_sample_ != sample;
+     
     if (changed) {
       
       MENU_REDRAW = 1;
-      last_sample_ = sample;
+      if (continuous)
+        last_sample_ = temp_sample;
+      else 
+        last_sample_ = sample;  
       
-      if (continous && aux_mode == DQ_GATE) {
+      if (continuous && aux_mode == DQ_GATE) {
         gate_state_ = ON;
         ticks_ = 0x0;
       } 
@@ -444,14 +471,14 @@ public:
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
     
-            if (_pulsewidth || continous) { // don't echo
+            if (_pulsewidth || continuous) { // don't echo
     
                 bool _gates = false;
              
                 if (_pulsewidth == PULSEW_MAX)
                   _gates = true;
                 // we-can't-echo-hack  
-                if (continous && !_pulsewidth)
+                if (continuous && !_pulsewidth)
                   _pulsewidth = 0x1;
                 // CV?
                 /*
@@ -508,7 +535,7 @@ public:
     OC::DAC::set(dac_channel, sample);
     OC::DAC::set(aux_channel, gate_state_);
 
-    if (triggered || (continous && changed)) {
+    if (triggered || (continuous && changed)) {
       scrolling_history_.Push(history_sample);
       trigger_display_.Update(1, true);
     } else {
@@ -610,7 +637,7 @@ public:
     *settings++ = DQ_CHANNEL_SETTING_AUX_CV_DEST;
     *settings++ = DQ_CHANNEL_SETTING_TRIGGER;
     
-    if (DQ_CHANNEL_TRIGGER_CONTINUOUS != get_trigger_source()) 
+    if (get_trigger_source() < DQ_CHANNEL_TRIGGER_CONTINUOUS_UP) 
       *settings++ = DQ_CHANNEL_SETTING_DELAY;
 
     *settings++ = DQ_CHANNEL_SETTING_OCTAVE;
@@ -654,6 +681,7 @@ private:
   bool schedule_scale_update_;
   int32_t last_sample_;
   int32_t last_raw_sample_;
+  int8_t continuous_offset_;
   uint8_t clock_;
   uint16_t gate_state_;
   uint8_t prev_pulsewidth_;
@@ -690,7 +718,7 @@ private:
 };
 
 const char* const dq_channel_trigger_sources[DQ_CHANNEL_TRIGGER_LAST] = {
-  "TR1", "TR2", "TR3", "TR4", "cont"
+  "TR1", "TR2", "TR3", "TR4", "cnt+", "cnt-"
 };
 
 const char* const dq_channel_input_sources[DQ_CHANNEL_SOURCE_LAST] = {
@@ -726,7 +754,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 3, "seq_mode", dq_seq_modes, settings::STORAGE_TYPE_U4 },
   { DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_LAST - 1, "CV source", dq_channel_input_sources, settings::STORAGE_TYPE_U4 },
-  { DQ_CHANNEL_TRIGGER_CONTINUOUS, 0, DQ_CHANNEL_TRIGGER_LAST - 1, "trigger source", dq_channel_trigger_sources, settings::STORAGE_TYPE_U4 },
+  { DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, DQ_CHANNEL_TRIGGER_LAST - 1, "trigger source", dq_channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
