@@ -100,12 +100,8 @@ void FASTRUN CORE_timer_ISR() {
 /*       ---------------------------------------------------------         */
 
 void setup() {
-<<<<<<< HEAD
   delay(400);
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
-=======
-  delay(10);
->>>>>>> FETCH_HEAD
   SPI_init();
   delay(100);
   SERIAL_PRINTLN("* O&C BOOTING...");
