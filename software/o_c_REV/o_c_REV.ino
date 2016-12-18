@@ -37,7 +37,7 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 #include "OC_version.h"
-#include "drivers/display.h"
+#include "src/drivers/display.h"
 #include "util/util_debugpins.h"
 
 unsigned long LAST_REDRAW_TIME = 0;
@@ -81,6 +81,10 @@ void FASTRUN CORE_timer_ISR() {
   // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
   OC::ADC::Scan();
 
+  // Pin changes are tracked in separate ISRs, so depending on prio it might
+  // need extra precautions.
+  OC::DigitalInputs::Scan();
+
 #ifndef OC_UI_SEPARATE_ISR
   TODO needs a counter
   UI_timer_ISR();
@@ -96,8 +100,12 @@ void FASTRUN CORE_timer_ISR() {
 /*       ---------------------------------------------------------         */
 
 void setup() {
+<<<<<<< HEAD
   delay(400);
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
+=======
+  delay(10);
+>>>>>>> FETCH_HEAD
   SPI_init();
   delay(100);
   SERIAL_PRINTLN("* O&C BOOTING...");

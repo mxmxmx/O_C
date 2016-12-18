@@ -79,6 +79,10 @@ class MultistageEnvelope {
   inline void set_time(uint16_t segment, uint16_t time) {
     time_[segment] = time;
   }
+
+  inline void set_time_multiplier(uint16_t segment, uint16_t time_multiplier) {
+    time_multiplier_[segment] = time_multiplier;
+  }
   
   inline void set_level(uint16_t segment, int16_t level) {
     level_[segment] = level;
@@ -113,7 +117,11 @@ class MultistageEnvelope {
     shape_[0] = attack_shape_;
     shape_[1] = decay_shape_;
     shape_[2] = release_shape_;
-    
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = release_multiplier_;
+
     loop_start_ = loop_end_ = 0;
   }
   
@@ -131,6 +139,9 @@ class MultistageEnvelope {
     
     shape_[0] = attack_shape_;
     shape_[1] = decay_shape_;
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -156,6 +167,10 @@ class MultistageEnvelope {
     shape_[0] = attack_shape_;
     shape_[1] = decay_shape_;
     shape_[2] = release_shape_;
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = release_multiplier_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -174,6 +189,9 @@ class MultistageEnvelope {
     
     shape_[0] = attack_shape_;
     shape_[1] = release_shape_;
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = release_multiplier_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -202,6 +220,11 @@ class MultistageEnvelope {
     shape_[1] = decay_shape_;
     shape_[2] = attack_shape_;
     shape_[3] = release_shape_;
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = attack_multiplier_;
+    time_multiplier_[3] = release_multiplier_;
     
     loop_start_ = loop_end_ = 0;
   }
@@ -230,6 +253,11 @@ class MultistageEnvelope {
     shape_[1] = decay_shape_;
     shape_[2] = attack_shape_;
     shape_[3] = release_shape_;
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = attack_multiplier_;
+    time_multiplier_[3] = release_multiplier_;
    
     loop_start_ = loop_end_ = 0;
   }
@@ -248,7 +276,10 @@ class MultistageEnvelope {
     
     shape_[0] = attack_shape_;
     shape_[1] = decay_shape_;
-    
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+   
     loop_start_ = 0;
     loop_end_ = 2;
   }
@@ -274,7 +305,11 @@ class MultistageEnvelope {
     shape_[0] = attack_shape_;
     shape_[1] = decay_shape_;
     shape_[2] = release_shape_;
-    
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = release_multiplier_;
+
     loop_start_ = 0;
     loop_end_ = 3;
   }
@@ -304,6 +339,11 @@ class MultistageEnvelope {
     shape_[2] = attack_shape_;
     shape_[3] = release_shape_;
 
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = attack_multiplier_;
+    time_multiplier_[3] = release_multiplier_;
+
     loop_start_ = 0;
     loop_end_ = 4;
   }
@@ -332,6 +372,18 @@ class MultistageEnvelope {
     release_shape_ = shape;
   }
 
+  inline void set_attack_time_multiplier(uint16_t mult) {
+    attack_multiplier_ = mult;
+  }
+
+  inline void set_decay_time_multiplier(uint16_t mult) {
+    decay_multiplier_ = mult;
+  }
+
+  inline void set_release_time_multiplier(uint16_t mult) {
+    release_multiplier_ = mult;
+  }
+
   // Render preview, normalized to kPreviewWidth pixels width
   // NOTE Lives dangerously and uses live values that might be updated by ISR
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const;
@@ -344,6 +396,7 @@ class MultistageEnvelope {
  private:
   int16_t level_[kMaxNumSegments];
   uint16_t time_[kMaxNumSegments];
+  uint16_t time_multiplier_[kMaxNumSegments];
   EnvelopeShape shape_[kMaxNumSegments];
   
   int16_t segment_;
@@ -363,6 +416,10 @@ class MultistageEnvelope {
   EnvelopeShape decay_shape_;
   EnvelopeShape release_shape_;
   uint16_t sustain_index_;
+  uint16_t attack_multiplier_;
+  uint16_t decay_multiplier_;
+  uint16_t release_multiplier_;
+
   
   DISALLOW_COPY_AND_ASSIGN(MultistageEnvelope);
 };

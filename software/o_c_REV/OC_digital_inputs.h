@@ -27,39 +27,21 @@ public:
 
   static void Init();
 
+  static void Scan();
+
   // @return mask of all pins cloked since last call, reset state
   static inline uint32_t clocked() {
-    return
-      clocked<DIGITAL_INPUT_1>() |
-      clocked<DIGITAL_INPUT_2>() |
-      clocked<DIGITAL_INPUT_3>() |
-      clocked<DIGITAL_INPUT_4>();
+    return clocked_mask_;
   }
 
   // @return mask if pin clocked since last call and reset state
   template <DigitalInput input> static inline uint32_t clocked() {
-    // This leaves a very small window where a ::clock() might interrupt.
-    // With LDREX/STREX it should be possible to close the window, but maybe
-    // not necessary
-    uint32_t clk = clocked_[input];
-    clocked_[input] = 0;
-    return clk << input;
+    return clocked_mask_ & (0x1 << input);
   }
 
   // @return mask if pin clocked since last call, reset state
   static inline uint32_t clocked(DigitalInput input) {
-    uint32_t clk = clocked_[input];
-    clocked_[input] = 0;
-    return clk << input;
-  }
-
-  static inline uint32_t peek() {
-    uint32_t mask = 0;
-    if (clocked_[DIGITAL_INPUT_1]) mask |= DIGITAL_INPUT_1_MASK;
-    if (clocked_[DIGITAL_INPUT_2]) mask |= DIGITAL_INPUT_2_MASK;
-    if (clocked_[DIGITAL_INPUT_3]) mask |= DIGITAL_INPUT_3_MASK;
-    if (clocked_[DIGITAL_INPUT_4]) mask |= DIGITAL_INPUT_4_MASK;
-    return mask;
+    return clocked_mask_ & (0x1 << input);
   }
 
   template <DigitalInput input> static inline bool read_immediate() {
@@ -75,7 +57,19 @@ public:
   }
 
 private:
+
+  static uint32_t clocked_mask_;
   static volatile uint32_t clocked_[DIGITAL_INPUT_LAST];
+
+  template <DigitalInput input>
+  static uint32_t ScanInput() {
+    if (clocked_[input]) {
+      clocked_[input] = 0;
+      return DIGITAL_INPUT_MASK(input);
+    } else {
+      return 0;
+    }
+  }
 };
 
 // Helper class for visualizing digital inputs with decay

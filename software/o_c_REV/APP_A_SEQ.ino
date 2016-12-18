@@ -1565,3 +1565,4 @@ void SEQ_screensaver() {
   seq_channel[0].RenderScreensaver();
   seq_channel[1].RenderScreensaver();
 }
+

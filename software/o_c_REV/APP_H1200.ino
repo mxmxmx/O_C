@@ -50,28 +50,125 @@ enum TransformPriority {
   TRANSFORM_PRIO_XPRL,
   TRANSFORM_PRIO_XRLP,
   TRANSFORM_PRIO_XLPR,
-  TRANSFORM_PRIO_LAST
+  TRANSFORM_PRIO_PLR_LAST
+};
+
+enum NshTransformPriority {
+  TRANSFORM_PRIO_XNSH,
+  TRANSFORM_PRIO_XSHN,
+  TRANSFORM_PRIO_XHNS,
+  TRANSFORM_PRIO_XNHS,
+  TRANSFORM_PRIO_XHSN,
+  TRANSFORM_PRIO_XSNH,
+  TRANSFORM_PRIO_NSH_LAST
 };
 
 enum H1200Setting {
   H1200_SETTING_ROOT_OFFSET,
+  H1200_SETTING_ROOT_OFFSET_CV,
   H1200_SETTING_OCTAVE,
+  H1200_SETTING_OCTAVE_CV,
   H1200_SETTING_MODE,
   H1200_SETTING_INVERSION,
-  H1200_SETTING_TRANFORM_PRIO,
+  H1200_SETTING_INVERSION_CV,
+  H1200_SETTING_PLR_TRANSFORM_PRIO,
+  H1200_SETTING_PLR_TRANSFORM_PRIO_CV,
+  H1200_SETTING_NSH_TRANSFORM_PRIO,
+  H1200_SETTING_NSH_TRANSFORM_PRIO_CV,
+  H1200_SETTING_CV_SAMPLING,
   H1200_SETTING_OUTPUT_MODE,
+  H1200_SETTING_TRIGGER_TYPE,
+  H1200_SETTING_EUCLIDEAN_CV1_MAPPING,
+  H1200_SETTING_EUCLIDEAN_CV2_MAPPING,
+  H1200_SETTING_EUCLIDEAN_CV3_MAPPING,
+  H1200_SETTING_EUCLIDEAN_CV4_MAPPING,
+  H1200_SETTING_P_EUCLIDEAN_LENGTH,
+  H1200_SETTING_P_EUCLIDEAN_FILL,
+  H1200_SETTING_P_EUCLIDEAN_OFFSET,
+  H1200_SETTING_L_EUCLIDEAN_LENGTH,
+  H1200_SETTING_L_EUCLIDEAN_FILL,
+  H1200_SETTING_L_EUCLIDEAN_OFFSET,
+  H1200_SETTING_R_EUCLIDEAN_LENGTH,
+  H1200_SETTING_R_EUCLIDEAN_FILL,
+  H1200_SETTING_R_EUCLIDEAN_OFFSET,
+  H1200_SETTING_N_EUCLIDEAN_LENGTH,
+  H1200_SETTING_N_EUCLIDEAN_FILL,
+  H1200_SETTING_N_EUCLIDEAN_OFFSET,
+  H1200_SETTING_S_EUCLIDEAN_LENGTH,
+  H1200_SETTING_S_EUCLIDEAN_FILL,
+  H1200_SETTING_S_EUCLIDEAN_OFFSET,
+  H1200_SETTING_H_EUCLIDEAN_LENGTH,
+  H1200_SETTING_H_EUCLIDEAN_FILL,
+  H1200_SETTING_H_EUCLIDEAN_OFFSET,
   H1200_SETTING_LAST
 };
 
+enum H1200CvSampling {
+  H1200_CV_SAMPLING_CONT,
+  H1200_CV_SAMPLING_TRIG,
+  H1200_CV_SAMPLING_LAST
+};
+
+enum H1200CvSource {
+  H1200_CV_SOURCE_NONE,
+  H1200_CV_SOURCE_CV1,
+  H1200_CV_SOURCE_CV2,
+  H1200_CV_SOURCE_CV3,
+  H1200_CV_SOURCE_CV4,
+  H1200_CV_SOURCE_LAST
+};
+
+enum H1200TriggerTypes {
+  H1200_TRIGGER_TYPE_PLR,
+  H1200_TRIGGER_TYPE_NSH,
+  H1200_TRIGGER_TYPE_EUCLIDEAN,
+  H1200_TRIGGER_TYPE_LAST
+};
+
+enum H1200EuclCvMappings {
+  H1200_EUCL_CV_MAPPING_NONE,
+  H1200_EUCL_CV_MAPPING_P_EUCLIDEAN_LENGTH,
+  H1200_EUCL_CV_MAPPING_P_EUCLIDEAN_FILL,
+  H1200_EUCL_CV_MAPPING_P_EUCLIDEAN_OFFSET,
+  H1200_EUCL_CV_MAPPING_L_EUCLIDEAN_LENGTH,
+  H1200_EUCL_CV_MAPPING_L_EUCLIDEAN_FILL,
+  H1200_EUCL_CV_MAPPING_L_EUCLIDEAN_OFFSET,
+  H1200_EUCL_CV_MAPPING_R_EUCLIDEAN_LENGTH,
+  H1200_EUCL_CV_MAPPING_R_EUCLIDEAN_FILL,
+  H1200_EUCL_CV_MAPPING_R_EUCLIDEAN_OFFSET,
+  H1200_EUCL_CV_MAPPING_N_EUCLIDEAN_LENGTH,
+  H1200_EUCL_CV_MAPPING_N_EUCLIDEAN_FILL,
+  H1200_EUCL_CV_MAPPING_N_EUCLIDEAN_OFFSET,
+  H1200_EUCL_CV_MAPPING_S_EUCLIDEAN_LENGTH,
+  H1200_EUCL_CV_MAPPING_S_EUCLIDEAN_FILL,
+  H1200_EUCL_CV_MAPPING_S_EUCLIDEAN_OFFSET,
+  H1200_EUCL_CV_MAPPING_H_EUCLIDEAN_LENGTH,
+  H1200_EUCL_CV_MAPPING_H_EUCLIDEAN_FILL,
+  H1200_EUCL_CV_MAPPING_H_EUCLIDEAN_OFFSET,
+  H1200_EUCL_CV_MAPPING_LAST
+} ;
+
 class H1200Settings : public settings::SettingsBase<H1200Settings, H1200_SETTING_LAST> {
 public:
+
+  H1200CvSampling get_cv_sampling() const {
+    return static_cast<H1200CvSampling>(values_[H1200_SETTING_CV_SAMPLING]);
+  }
 
   int root_offset() const {
     return values_[H1200_SETTING_ROOT_OFFSET];
   }
 
+  H1200CvSource get_root_offset_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_ROOT_OFFSET_CV]);
+  }
+
   int octave() const {
     return values_[H1200_SETTING_OCTAVE];
+  }
+
+  H1200CvSource get_octave_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_OCTAVE_CV]);
   }
 
   EMode mode() const {
@@ -82,25 +179,199 @@ public:
     return values_[H1200_SETTING_INVERSION];
   }
 
-  TransformPriority get_transform_priority() const {
-    return static_cast<TransformPriority>(values_[H1200_SETTING_TRANFORM_PRIO]);
+  H1200CvSource get_inversion_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_INVERSION_CV]);
+  }
+
+  uint8_t get_transform_priority() const {
+    return values_[H1200_SETTING_PLR_TRANSFORM_PRIO];
+  }
+
+  H1200CvSource get_transform_priority_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_PLR_TRANSFORM_PRIO_CV]);
+  }
+
+  uint8_t get_nsh_transform_priority() const {
+    return values_[H1200_SETTING_NSH_TRANSFORM_PRIO];
+  }
+
+  H1200CvSource get_nsh_transform_priority_cv_src() const {
+    return static_cast<H1200CvSource>(values_[H1200_SETTING_NSH_TRANSFORM_PRIO_CV]);
   }
 
   OutputMode output_mode() const {
     return static_cast<OutputMode>(values_[H1200_SETTING_OUTPUT_MODE]);
   }
 
+  H1200TriggerTypes get_trigger_type() const {
+    return static_cast<H1200TriggerTypes>(values_[H1200_SETTING_TRIGGER_TYPE]);
+  }
+
+  uint8_t get_euclidean_cv1_mapping() const {
+    return values_[H1200_SETTING_EUCLIDEAN_CV1_MAPPING];
+  }
+
+  uint8_t get_euclidean_cv2_mapping() const {
+    return values_[H1200_SETTING_EUCLIDEAN_CV2_MAPPING];
+  }
+
+  uint8_t get_euclidean_cv3_mapping() const {
+    return values_[H1200_SETTING_EUCLIDEAN_CV3_MAPPING];
+  }
+
+  uint8_t get_euclidean_cv4_mapping() const {
+    return values_[H1200_SETTING_EUCLIDEAN_CV4_MAPPING];
+  }
+
+  uint8_t get_p_euclidean_length() const {
+    return values_[H1200_SETTING_P_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_p_euclidean_fill() const {
+    return values_[H1200_SETTING_P_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_p_euclidean_offset() const {
+    return values_[H1200_SETTING_P_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_l_euclidean_length() const {
+    return values_[H1200_SETTING_L_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_l_euclidean_fill() const {
+    return values_[H1200_SETTING_L_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_l_euclidean_offset() const {
+    return values_[H1200_SETTING_L_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_r_euclidean_length() const {
+    return values_[H1200_SETTING_R_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_r_euclidean_fill() const {
+    return values_[H1200_SETTING_R_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_r_euclidean_offset() const {
+    return values_[H1200_SETTING_R_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_n_euclidean_length() const {
+    return values_[H1200_SETTING_N_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_n_euclidean_fill() const {
+    return values_[H1200_SETTING_N_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_n_euclidean_offset() const {
+    return values_[H1200_SETTING_N_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_s_euclidean_length() const {
+    return values_[H1200_SETTING_S_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_s_euclidean_fill() const {
+    return values_[H1200_SETTING_S_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_s_euclidean_offset() const {
+    return values_[H1200_SETTING_S_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_h_euclidean_length() const {
+    return values_[H1200_SETTING_H_EUCLIDEAN_LENGTH];
+  }
+
+  uint8_t get_h_euclidean_fill() const {
+    return values_[H1200_SETTING_H_EUCLIDEAN_FILL];
+  }
+
+  uint8_t get_h_euclidean_offset() const {
+    return values_[H1200_SETTING_H_EUCLIDEAN_OFFSET];
+  }
+
+    
   void Init() {
     InitDefaults();
+    update_enabled_settings();
   }
+
+  H1200Setting enabled_setting_at(int index) const {
+    return enabled_settings_[index];
+  }
+
+  int num_enabled_settings() const {
+    return num_enabled_settings_;
+  }
+
+  void update_enabled_settings() {
+    
+    H1200Setting *settings = enabled_settings_;
+
+    *settings++ =   H1200_SETTING_ROOT_OFFSET;
+    *settings++ =   H1200_SETTING_ROOT_OFFSET_CV;
+    *settings++ =   H1200_SETTING_OCTAVE;
+    *settings++ =   H1200_SETTING_OCTAVE_CV;
+    *settings++ =   H1200_SETTING_MODE;
+    *settings++ =   H1200_SETTING_INVERSION;
+    *settings++ =   H1200_SETTING_INVERSION_CV;
+    *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO;
+    *settings++ =   H1200_SETTING_PLR_TRANSFORM_PRIO_CV;
+    *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO;
+    *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO_CV;
+    *settings++ =   H1200_SETTING_CV_SAMPLING;
+    *settings++ =   H1200_SETTING_OUTPUT_MODE;
+    *settings++ =   H1200_SETTING_TRIGGER_TYPE;    
+ 
+    switch (get_trigger_type()) {
+      case H1200_TRIGGER_TYPE_EUCLIDEAN:
+        *settings++ =   H1200_SETTING_EUCLIDEAN_CV1_MAPPING;
+        *settings++ =   H1200_SETTING_EUCLIDEAN_CV2_MAPPING;
+        *settings++ =   H1200_SETTING_EUCLIDEAN_CV3_MAPPING;
+        *settings++ =   H1200_SETTING_EUCLIDEAN_CV4_MAPPING;
+        *settings++ =   H1200_SETTING_P_EUCLIDEAN_LENGTH;
+          *settings++ =   H1200_SETTING_P_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_P_EUCLIDEAN_OFFSET;
+        *settings++ =   H1200_SETTING_L_EUCLIDEAN_LENGTH;
+          *settings++ =   H1200_SETTING_L_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_L_EUCLIDEAN_OFFSET;
+        *settings++ =   H1200_SETTING_R_EUCLIDEAN_LENGTH;
+          *settings++ =   H1200_SETTING_R_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_R_EUCLIDEAN_OFFSET;
+        *settings++ =   H1200_SETTING_N_EUCLIDEAN_LENGTH;
+           *settings++ =   H1200_SETTING_N_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_N_EUCLIDEAN_OFFSET;
+        *settings++ =   H1200_SETTING_S_EUCLIDEAN_LENGTH;
+          *settings++ =   H1200_SETTING_S_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_S_EUCLIDEAN_OFFSET;
+        *settings++ =   H1200_SETTING_H_EUCLIDEAN_LENGTH;
+          *settings++ =   H1200_SETTING_H_EUCLIDEAN_FILL;
+          *settings++ =   H1200_SETTING_H_EUCLIDEAN_OFFSET;
+        break;
+      default:
+        break;
+     }
+    
+    num_enabled_settings_ = settings - enabled_settings_;
+  }
+
+private:
+  int num_enabled_settings_;
+  H1200Setting enabled_settings_[H1200_SETTING_LAST];
+  
 };
 
 const char * const output_mode_names[] = {
-  "chord",
-  "tune"
+  "Chord",
+  "Tune"
 };
 
-const char * const trigger_mode_names[] = {
+const char * const plr_trigger_mode_names[] = {
   "P>L>R",
   "L>R>P",
   "R>P>L",
@@ -109,23 +380,89 @@ const char * const trigger_mode_names[] = {
   "L>P>R",
 };
 
+const char * const nsh_trigger_mode_names[] = {
+  "N>S>H",
+  "S>H>N",
+  "H>N>S",
+  "N>H>S",
+  "H>S>N",
+  "S>N>H",
+};
+
+const char * const trigger_type_names[] = {
+  "PLR",
+  "NSH",
+  "Eucl",
+};
+
 const char * const mode_names[] = {
-  "maj", "min"
+  "Maj", "Min"
+};
+
+const char* const h1200_cv_sources[5] = {
+  "None", "CV1", "CV2", "CV3", "CV4"
+};
+
+const char* const h1200_cv_sampling[2] = {
+  "Cont", "Trig"
+};
+
+const char* const h1200_eucl_cv_mappings[] = {
+  "None", 
+  "Plen", "Pfil", "Poff",
+  "Llen", "Lfil", "Loff",
+  "Rlen", "Rfil", "Roff",
+  "Nlen", "Nfil", "Noff",
+  "Slen", "Sfil", "Soff",
+  "Hlen", "Hfil", "Hoff",  
 };
 
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Transpose CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Octave CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
-  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_LAST-1, "Priority", trigger_mode_names, settings::STORAGE_TYPE_U8},
-  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8}
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Inversion CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_PLR_LAST-1, "PLR Priority", plr_trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "PLR Prior CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "NSH Prior CV", h1200_cv_sources, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U4},
+  {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
+  {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
+  {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV1 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
+  {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV2 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
+  {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV3 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
+  {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV4 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
+  { 8, 2, 32,  " P EuLeng", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " P EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31,  " P EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32,  " L EuLeng", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " L EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31,  " L EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32,  " R EuLeng", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " R EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31,  " R EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32,  " N EuLeng", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " N EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31,  " N EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32,  " S EuLeng", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " S EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31,  " S EuOffs", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, 32,  " H EuLeng", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32,  " H EuFill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 31,  " H EuOffs", NULL, settings::STORAGE_TYPE_U8 },
 };
 
 static constexpr uint32_t TRIGGER_MASK_TR1 = OC::DIGITAL_INPUT_1_MASK;
 static constexpr uint32_t TRIGGER_MASK_P = OC::DIGITAL_INPUT_2_MASK;
 static constexpr uint32_t TRIGGER_MASK_L = OC::DIGITAL_INPUT_3_MASK;
 static constexpr uint32_t TRIGGER_MASK_R = OC::DIGITAL_INPUT_4_MASK;
+static constexpr uint32_t TRIGGER_MASK_N = OC::DIGITAL_INPUT_2_MASK;
+static constexpr uint32_t TRIGGER_MASK_S = OC::DIGITAL_INPUT_3_MASK;
+static constexpr uint32_t TRIGGER_MASK_H = OC::DIGITAL_INPUT_4_MASK;
 static constexpr uint32_t TRIGGER_MASK_DIRTY = 0x10;
 static constexpr uint32_t TRIGGER_MASK_RESET = TRIGGER_MASK_TR1 | TRIGGER_MASK_DIRTY;
 
@@ -148,6 +485,108 @@ public:
 
     quantizer.Init();
     tonnetz_state.init();
+
+    euclidean_counter_ = 0;
+    root_sample_ = false;
+    root_ = 0;
+    p_euclidean_length_ = 8 ;
+    p_euclidean_fill_ = 0 ;
+    p_euclidean_offset_ = 0 ;
+    l_euclidean_length_ = 8 ;
+    l_euclidean_fill_ = 0 ;
+    l_euclidean_offset_ = 0 ;
+    r_euclidean_length_ = 8 ;
+    r_euclidean_fill_ = 0 ;
+    r_euclidean_offset_ = 0 ;
+    n_euclidean_length_ = 8 ;
+    n_euclidean_fill_ = 0 ;
+    n_euclidean_offset_ = 0 ;
+    s_euclidean_length_ = 8 ;
+    s_euclidean_fill_ = 0 ;
+    s_euclidean_offset_ = 0 ;
+    h_euclidean_length_ = 8 ;
+    h_euclidean_fill_ = 0 ;
+    h_euclidean_offset_ = 0 ;
+    
+  }
+
+  void map_euclidean_cv(uint8_t cv_mapping, int channel_cv) {
+    switch(cv_mapping) {
+      case H1200_EUCL_CV_MAPPING_P_EUCLIDEAN_LENGTH:
+        p_euclidean_length_ = p_euclidean_length_ + channel_cv;
+        CONSTRAIN(p_euclidean_length_, 2, 32);
+        break;
+      case H1200_EUCL_CV_MAPPING_P_EUCLIDEAN_FILL:
+        p_euclidean_fill_ = p_euclidean_fill_ + channel_cv;
+        CONSTRAIN(p_euclidean_fill_, 0, 32);
+        break;
+     case H1200_EUCL_CV_MAPPING_P_EUCLIDEAN_OFFSET:
+        p_euclidean_offset_ = p_euclidean_offset_ + channel_cv;
+        CONSTRAIN(p_euclidean_offset_, 0, 31);
+        break;
+      case H1200_EUCL_CV_MAPPING_L_EUCLIDEAN_LENGTH:
+        l_euclidean_length_ = l_euclidean_length_ + channel_cv;
+        CONSTRAIN(l_euclidean_length_, 2, 32);
+        break;
+      case H1200_EUCL_CV_MAPPING_L_EUCLIDEAN_FILL:
+        l_euclidean_fill_ = l_euclidean_fill_ + channel_cv;
+        CONSTRAIN(l_euclidean_fill_, 0, 32);
+        break;
+     case H1200_EUCL_CV_MAPPING_L_EUCLIDEAN_OFFSET:
+        l_euclidean_offset_ = l_euclidean_offset_ + channel_cv;
+        CONSTRAIN(l_euclidean_offset_, 0, 31);
+        break;
+      case H1200_EUCL_CV_MAPPING_R_EUCLIDEAN_LENGTH:
+        r_euclidean_length_ = r_euclidean_length_ + channel_cv;
+        CONSTRAIN(r_euclidean_length_, 2, 32);
+        break;
+      case H1200_EUCL_CV_MAPPING_R_EUCLIDEAN_FILL:
+        r_euclidean_fill_ = r_euclidean_fill_ + channel_cv;
+        CONSTRAIN(r_euclidean_fill_, 0, 32);
+        break;
+     case H1200_EUCL_CV_MAPPING_R_EUCLIDEAN_OFFSET:
+        r_euclidean_offset_ = r_euclidean_offset_ + channel_cv;
+        CONSTRAIN(r_euclidean_offset_, 0, 31);
+        break;
+       case H1200_EUCL_CV_MAPPING_N_EUCLIDEAN_LENGTH:
+        n_euclidean_length_ = n_euclidean_length_ + channel_cv;
+        CONSTRAIN(n_euclidean_length_, 2, 32);
+        break;
+      case H1200_EUCL_CV_MAPPING_N_EUCLIDEAN_FILL:
+        n_euclidean_fill_ = n_euclidean_fill_ + channel_cv;
+        CONSTRAIN(n_euclidean_fill_, 0, 32);
+        break;
+     case H1200_EUCL_CV_MAPPING_N_EUCLIDEAN_OFFSET:
+        n_euclidean_offset_ = n_euclidean_offset_ + channel_cv;
+        CONSTRAIN(n_euclidean_offset_, 0, 31);
+        break;
+      case H1200_EUCL_CV_MAPPING_S_EUCLIDEAN_LENGTH:
+        s_euclidean_length_ = s_euclidean_length_ + channel_cv;
+        CONSTRAIN(s_euclidean_length_, 2, 32);
+        break;
+      case H1200_EUCL_CV_MAPPING_S_EUCLIDEAN_FILL:
+        s_euclidean_fill_ = s_euclidean_fill_ + channel_cv;
+        CONSTRAIN(s_euclidean_fill_, 0, 32);
+        break;
+     case H1200_EUCL_CV_MAPPING_S_EUCLIDEAN_OFFSET:
+        s_euclidean_offset_ = s_euclidean_offset_ + channel_cv;
+        CONSTRAIN(s_euclidean_offset_, 0, 31);
+        break;
+      case H1200_EUCL_CV_MAPPING_H_EUCLIDEAN_LENGTH:
+        h_euclidean_length_ = h_euclidean_length_ + channel_cv;
+        CONSTRAIN(h_euclidean_length_, 2, 32);
+        break;
+      case H1200_EUCL_CV_MAPPING_H_EUCLIDEAN_FILL:
+        h_euclidean_fill_ = h_euclidean_fill_ + channel_cv;
+        CONSTRAIN(h_euclidean_fill_, 0, 32);
+        break;
+     case H1200_EUCL_CV_MAPPING_H_EUCLIDEAN_OFFSET:
+        h_euclidean_offset_ = h_euclidean_offset_ + channel_cv;
+        CONSTRAIN(h_euclidean_offset_, 0, 31);
+        break;
+    default:
+        break;
+    }
   }
 
   void force_update() {
@@ -181,11 +620,38 @@ public:
   }
 
   menu::ScreenCursor<menu::kScreenLines> cursor;
+  menu::ScreenCursor<menu::kScreenLines> cursor_state;
   bool display_notes;
+
+  inline int cursor_pos() const {
+    return cursor.cursor_pos();
+  }
 
   OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
   util::RingBuffer<H1200::UiAction, 4> ui_actions;
+  uint32_t euclidean_counter_;
+  bool root_sample_ ;
+  int32_t root_ ;
+  uint8_t p_euclidean_length_  ;
+  uint8_t p_euclidean_fill_  ;
+  uint8_t p_euclidean_offset_  ;
+  uint8_t l_euclidean_length_  ;
+  uint8_t l_euclidean_fill_  ;
+  uint8_t l_euclidean_offset_  ;
+  uint8_t r_euclidean_length_  ;
+  uint8_t r_euclidean_fill_  ;
+  uint8_t r_euclidean_offset_  ;
+  uint8_t n_euclidean_length_  ;
+  uint8_t n_euclidean_fill_  ;
+  uint8_t n_euclidean_offset_  ;
+  uint8_t s_euclidean_length_  ;
+  uint8_t s_euclidean_fill_  ;
+  uint8_t s_euclidean_offset_  ;
+  uint8_t h_euclidean_length_  ;
+  uint8_t h_euclidean_fill_  ;
+  uint8_t h_euclidean_offset_  ;
+ 
 };
 
 H1200Settings h1200_settings;
@@ -196,64 +662,306 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   if (triggers & TRIGGER_MASK_TR1) {
     h1200_state.tonnetz_state.reset(h1200_settings.mode());
   }
-  // Since there can be simultaneous triggers, there is a definable priority.
-  // Reset always has top priority
-  //
-  // Note: Proof-of-concept code, do not copy/paste all combinations ;)
-  switch (h1200_settings.get_transform_priority()) {
-    case TRANSFORM_PRIO_XPLR:
-      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      break;
 
-    case TRANSFORM_PRIO_XLRP:
-      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      break;
+  int32_t root_ = h1200_settings.root_offset();
+  int8_t octave_ = h1200_settings.octave();
+  int inversion_ = h1200_settings.inversion();
+  uint8_t plr_transform_priority_ = h1200_settings.get_transform_priority();
+  uint8_t nsh_transform_priority_ = h1200_settings.get_nsh_transform_priority();
 
-    case TRANSFORM_PRIO_XRPL:
-      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      break;
-
-    case TRANSFORM_PRIO_XPRL:
-      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      break;
-
-    case TRANSFORM_PRIO_XRLP:
-      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      break;
-
-    case TRANSFORM_PRIO_XLPR:
-      if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
-      if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
-      if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
-      break;
-
-    default: break;
+  if (true) {
+        switch (h1200_settings.get_root_offset_cv_src()) {
+          case H1200_CV_SOURCE_CV1:
+            root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1));
+            break ;
+          case H1200_CV_SOURCE_CV2:
+            root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_2));
+            break ;
+          case H1200_CV_SOURCE_CV3:
+            root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_3));
+            break ;
+          case H1200_CV_SOURCE_CV4:
+            root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_4));
+            break ;
+          default:
+            break; 
+        } 
+      
+      
+        switch (h1200_settings.get_octave_cv_src()) {
+          case H1200_CV_SOURCE_CV1:
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV2:
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV3:
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV4:
+            octave_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+            break ;
+          default:
+            break; 
+        } 
+        CONSTRAIN(octave_, -3, 3);
+      
+        switch (h1200_settings.get_inversion_cv_src()) {
+          case H1200_CV_SOURCE_CV1:
+            inversion_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV2:
+            inversion_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV3:
+            inversion_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV4:
+            inversion_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+            break ;
+          default:
+            break; 
+        } 
+        CONSTRAIN(inversion_,-H1200State::kMaxInversion, H1200State::kMaxInversion);
+      
+        switch (h1200_settings.get_transform_priority_cv_src()) {
+          case H1200_CV_SOURCE_CV1:
+            plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV2:
+            plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV3:
+            plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV4:
+            plr_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+            break ;
+          default:
+            break; 
+        } 
+      
+        CONSTRAIN(plr_transform_priority_, TRANSFORM_PRIO_XPLR, TRANSFORM_PRIO_PLR_LAST-1);
+        
+        switch (h1200_settings.get_nsh_transform_priority_cv_src()) {
+          case H1200_CV_SOURCE_CV1:
+            nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_1>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV2:
+            nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_2>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV3:
+            nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_3>() + 255) >> 9);
+            break ;
+          case H1200_CV_SOURCE_CV4:
+            nsh_transform_priority_ += ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+            break ;
+          default:
+            break; 
+        } 
+      
+        CONSTRAIN(nsh_transform_priority_, TRANSFORM_PRIO_XNSH, TRANSFORM_PRIO_NSH_LAST-1);
   }
 
-  // Skip the quantizer since we just want semitones
-  int transpose = h1200_settings.root_offset() + ((OC::ADC::value<ADC_CHANNEL_3>() + 63) >> 7);
-  CONSTRAIN(transpose, -24, 24);
-  int32_t root =
-      h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1))
-      + transpose;
+  if (h1200_settings.get_trigger_type() == H1200_TRIGGER_TYPE_PLR) {
+    
+      // Since there can be simultaneous triggers, there is a definable priority.
+      // Reset always has top priority
 
-  int octave = h1200_settings.octave() + ((OC::ADC::value<ADC_CHANNEL_2>() + 511) >> 10);
-  CONSTRAIN(octave, -3, 3);
+      switch (plr_transform_priority_) {
+        case TRANSFORM_PRIO_XPLR:
+          if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          break;
+    
+        case TRANSFORM_PRIO_XLRP:
+          if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          break;
+    
+        case TRANSFORM_PRIO_XRPL:
+          if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          break;
+    
+        case TRANSFORM_PRIO_XPRL:
+          if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          break;
+    
+        case TRANSFORM_PRIO_XRLP:
+          if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          break;
+    
+        case TRANSFORM_PRIO_XLPR:
+          if (triggers & TRIGGER_MASK_L) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (triggers & TRIGGER_MASK_P) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (triggers & TRIGGER_MASK_R) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          break;
+    
+        default: break;
+      }
+  } else if (h1200_settings.get_trigger_type() == H1200_TRIGGER_TYPE_NSH) {
+    
+      // Since there can be simultaneous triggers, there is a definable priority.
+      // Reset always has top priority
+      
+      switch (nsh_transform_priority_) {
+        case TRANSFORM_PRIO_XNSH:
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
 
-  int inversion = h1200_settings.inversion() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
-  CONSTRAIN(inversion, -H1200State::kMaxInversion, H1200State::kMaxInversion);
+        case TRANSFORM_PRIO_XSHN:
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+    
+        case TRANSFORM_PRIO_XHNS:
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+    
+        case TRANSFORM_PRIO_XNHS:
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+    
+        case TRANSFORM_PRIO_XHSN:
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+    
+        case TRANSFORM_PRIO_XSNH:
+          if (triggers & TRIGGER_MASK_S) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (triggers & TRIGGER_MASK_N) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (triggers & TRIGGER_MASK_H) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+    
+        default: break;
+      }
+  } else {
 
-  h1200_state.Render(root, inversion, octave, h1200_settings.output_mode());
+    if (triggers) {
+
+      h1200_state.p_euclidean_length_ = h1200_settings.get_p_euclidean_length() ;
+      h1200_state.p_euclidean_fill_ = h1200_settings.get_p_euclidean_fill() ;
+      h1200_state.p_euclidean_offset_ = h1200_settings.get_p_euclidean_offset() ;
+      h1200_state.l_euclidean_length_ = h1200_settings.get_l_euclidean_length() ;
+      h1200_state.l_euclidean_fill_ = h1200_settings.get_l_euclidean_fill() ;
+      h1200_state.l_euclidean_offset_ = h1200_settings.get_l_euclidean_offset() ;
+      h1200_state.r_euclidean_length_ = h1200_settings.get_r_euclidean_length() ;
+      h1200_state.r_euclidean_fill_ = h1200_settings.get_r_euclidean_fill() ;
+      h1200_state.r_euclidean_offset_ = h1200_settings.get_r_euclidean_offset() ;
+      h1200_state.n_euclidean_length_ = h1200_settings.get_n_euclidean_length() ;
+      h1200_state.n_euclidean_fill_ = h1200_settings.get_n_euclidean_fill() ;
+      h1200_state.n_euclidean_offset_ = h1200_settings.get_n_euclidean_offset() ;
+      h1200_state.s_euclidean_length_ = h1200_settings.get_s_euclidean_length() ;
+      h1200_state.s_euclidean_fill_ = h1200_settings.get_s_euclidean_fill() ;
+      h1200_state.s_euclidean_offset_ = h1200_settings.get_s_euclidean_offset() ;
+      h1200_state.h_euclidean_length_ = h1200_settings.get_h_euclidean_length() ;
+      h1200_state.h_euclidean_fill_ = h1200_settings.get_h_euclidean_fill() ;
+      h1200_state.h_euclidean_offset_ = h1200_settings.get_h_euclidean_offset() ;
+
+      int channel_1_cv_ = ((OC::ADC::value<ADC_CHANNEL_1>() + 127) >> 8);
+      int channel_2_cv_ = ((OC::ADC::value<ADC_CHANNEL_2>() + 127) >> 8);
+      int channel_3_cv_ = ((OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
+      int channel_4_cv_ = ((OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8);
+
+ 
+      h1200_state.map_euclidean_cv(h1200_settings.get_euclidean_cv1_mapping(), channel_1_cv_) ;
+      h1200_state.map_euclidean_cv(h1200_settings.get_euclidean_cv2_mapping(), channel_2_cv_) ;
+      h1200_state.map_euclidean_cv(h1200_settings.get_euclidean_cv3_mapping(), channel_3_cv_) ;
+      h1200_state.map_euclidean_cv(h1200_settings.get_euclidean_cv4_mapping(), channel_4_cv_) ;
+          
+      ++h1200_state.euclidean_counter_;
+      
+      switch (plr_transform_priority_) {
+        case TRANSFORM_PRIO_XPLR:
+          if (EuclideanFilter(h1200_state.p_euclidean_length_, h1200_state.p_euclidean_fill_, h1200_state.p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (EuclideanFilter(h1200_state.l_euclidean_length_, h1200_state.l_euclidean_fill_, h1200_state.l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (EuclideanFilter(h1200_state.r_euclidean_length_, h1200_state.r_euclidean_fill_, h1200_state.r_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          break;   
+        case TRANSFORM_PRIO_XLRP:
+          if (EuclideanFilter(h1200_state.l_euclidean_length_, h1200_state.l_euclidean_fill_, h1200_state.l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (EuclideanFilter(h1200_state.r_euclidean_length_, h1200_state.r_euclidean_fill_, h1200_state.r_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (EuclideanFilter(h1200_state.p_euclidean_length_, h1200_state.p_euclidean_fill_, h1200_state.p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          break;   
+        case TRANSFORM_PRIO_XRPL:
+          if (EuclideanFilter(h1200_state.r_euclidean_length_, h1200_state.r_euclidean_fill_, h1200_state.r_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (EuclideanFilter(h1200_state.p_euclidean_length_, h1200_state.p_euclidean_fill_, h1200_state.p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (EuclideanFilter(h1200_state.l_euclidean_length_, h1200_state.l_euclidean_fill_, h1200_state.l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          break;   
+        case TRANSFORM_PRIO_XPRL:
+          if (EuclideanFilter(h1200_state.p_euclidean_length_, h1200_state.p_euclidean_fill_, h1200_state.p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (EuclideanFilter(h1200_state.r_euclidean_length_, h1200_state.r_euclidean_fill_, h1200_state.r_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (EuclideanFilter(h1200_state.l_euclidean_length_, h1200_state.l_euclidean_fill_, h1200_state.l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          break;   
+        case TRANSFORM_PRIO_XRLP:
+          if (EuclideanFilter(h1200_state.r_euclidean_length_, h1200_state.r_euclidean_fill_, h1200_state.r_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          if (EuclideanFilter(h1200_state.l_euclidean_length_, h1200_state.l_euclidean_fill_, h1200_state.l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (EuclideanFilter(h1200_state.p_euclidean_length_, h1200_state.p_euclidean_fill_, h1200_state.p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          break;   
+        case TRANSFORM_PRIO_XLPR:
+          if (EuclideanFilter(h1200_state.l_euclidean_length_, h1200_state.l_euclidean_fill_, h1200_state.l_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_L);
+          if (EuclideanFilter(h1200_state.p_euclidean_length_, h1200_state.p_euclidean_fill_, h1200_state.p_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_P);
+          if (EuclideanFilter(h1200_state.r_euclidean_length_, h1200_state.r_euclidean_fill_, h1200_state.r_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_R);
+          break;
+    
+        default: break;
+      }
+        
+      switch (nsh_transform_priority_) {
+        case TRANSFORM_PRIO_XNSH:
+          if (EuclideanFilter(h1200_state.n_euclidean_length_, h1200_state.n_euclidean_fill_, h1200_state.n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_state.s_euclidean_length_, h1200_state.s_euclidean_fill_, h1200_state.s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_state.h_euclidean_length_, h1200_state.h_euclidean_fill_, h1200_state.h_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+        case TRANSFORM_PRIO_XSHN:
+          if (EuclideanFilter(h1200_state.s_euclidean_length_, h1200_state.s_euclidean_fill_, h1200_state.s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_state.h_euclidean_length_, h1200_state.h_euclidean_fill_, h1200_state.h_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_state.n_euclidean_length_, h1200_state.n_euclidean_fill_, h1200_state.n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+        case TRANSFORM_PRIO_XHNS:
+          if (EuclideanFilter(h1200_state.h_euclidean_length_, h1200_state.h_euclidean_fill_, h1200_state.h_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_state.n_euclidean_length_, h1200_state.n_euclidean_fill_, h1200_state.n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_state.s_euclidean_length_, h1200_state.s_euclidean_fill_, h1200_state.s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+        case TRANSFORM_PRIO_XNHS:
+          if (EuclideanFilter(h1200_state.n_euclidean_length_, h1200_state.n_euclidean_fill_, h1200_state.n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_state.h_euclidean_length_, h1200_state.h_euclidean_fill_, h1200_state.h_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_state.s_euclidean_length_, h1200_state.s_euclidean_fill_, h1200_state.s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          break;
+        case TRANSFORM_PRIO_XHSN:
+          if (EuclideanFilter(h1200_state.h_euclidean_length_, h1200_state.h_euclidean_fill_, h1200_state.h_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          if (EuclideanFilter(h1200_state.s_euclidean_length_, h1200_state.s_euclidean_fill_, h1200_state.s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_state.n_euclidean_length_, h1200_state.n_euclidean_fill_, h1200_state.n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          break;
+        case TRANSFORM_PRIO_XSNH:
+          if (EuclideanFilter(h1200_state.s_euclidean_length_, h1200_state.s_euclidean_fill_, h1200_state.s_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_S);
+          if (EuclideanFilter(h1200_state.n_euclidean_length_, h1200_state.n_euclidean_fill_, h1200_state.n_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_N);
+          if (EuclideanFilter(h1200_state.h_euclidean_length_, h1200_state.h_euclidean_fill_, h1200_state.h_euclidean_offset_, h1200_state.euclidean_counter_)) h1200_state.tonnetz_state.apply_transformation(tonnetz::TRANSFORM_H);
+          break;
+          
+         default: break;
+      }  
+       
+    }
+ }
+
+  // Finally, we're ready to actually render the triad transformation!
+  if (triggers || (h1200_settings.get_cv_sampling() == H1200_CV_SAMPLING_CONT)) h1200_state.Render(root_, inversion_, octave_, h1200_settings.output_mode());
 
   if (triggers)
     MENU_REDRAW = 1;
@@ -262,6 +970,8 @@ void FASTRUN H1200_clock(uint32_t triggers) {
 void H1200_init() {
   h1200_settings.Init();
   h1200_state.Init();
+  h1200_settings.update_enabled_settings();
+  h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);
 }
 
 size_t H1200_storageSize() {
@@ -273,6 +983,8 @@ size_t H1200_save(void *storage) {
 }
 
 size_t H1200_restore(const void *storage) {
+  h1200_settings.update_enabled_settings();
+  h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);
   return h1200_settings.Restore(storage);
 }
 
@@ -285,6 +997,8 @@ void H1200_handleAppEvent(OC::AppEvent event) {
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
     case OC::APP_EVENT_SCREENSAVER_OFF:
+      h1200_settings.update_enabled_settings();
+      h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);
       break;
   }
 }
@@ -344,8 +1058,15 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
       h1200_state.force_update();
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (h1200_state.cursor.editing()) {
-      if (h1200_settings.change_value(h1200_state.cursor.cursor_pos(), event.value))
-        h1200_state.force_update();
+      H1200Setting setting = h1200_settings.enabled_setting_at(h1200_state.cursor_pos());
+      
+      if (h1200_settings.change_value(h1200_state.cursor.cursor_pos(), event.value)) {
+          if (setting == H1200_SETTING_TRIGGER_TYPE) {
+              h1200_settings.update_enabled_settings();
+              h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);            
+          }
+          h1200_state.force_update();
+      }        
     } else {
       h1200_state.cursor.Scroll(event.value);
     }
@@ -379,8 +1100,12 @@ void H1200_menu() {
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(h1200_state.cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {
-    const int current = settings_list.Next(list_item);
-    list_item.DrawDefault(h1200_settings.get_value(current), H1200Settings::value_attr(current));
+
+    const int setting = h1200_settings.enabled_setting_at(settings_list.Next(list_item));
+    const int value = h1200_settings.get_value(setting);
+    const settings::value_attr &attr = H1200Settings::value_attr(setting); 
+
+    list_item.DrawDefault(value, attr);
   }
 }
 
@@ -424,7 +1149,7 @@ void H1200_screensaver() {
 
 void H1200_debug() {
   int cv = OC::ADC::value<ADC_CHANNEL_4>();
-  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 8);
 
   graphics.setPrintPos(2, 12);
   graphics.printf("I: %4d %4d", cv, scaled);
