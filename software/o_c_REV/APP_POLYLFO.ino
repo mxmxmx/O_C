@@ -136,8 +136,8 @@ void PolyLfo::Init() {
   frozen_= false;
 }
 
-const char* const freq_range_names[5] = {
-  "vslow", "slow", "med", "fast", "vfast",
+const char* const freq_range_names[12] = {
+  "cosm", "geol", "glacl", "snail", "sloth", "vlazy", "lazy", "vslow", "slow", "med", "fast", "vfast",
 };
 
 const char* const freq_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
@@ -155,7 +155,7 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
   { -1, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Coupling", NULL, settings::STORAGE_TYPE_I8 },
-  { 2, 0, 4, "Freq range", freq_range_names, settings::STORAGE_TYPE_U4 },
+  { 9, 0, 11, "Freq range", freq_range_names, settings::STORAGE_TYPE_U4 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
