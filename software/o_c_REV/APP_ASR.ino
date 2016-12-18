@@ -612,7 +612,7 @@ public:
           scrolling_history_[i].Push(sample);
           OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
         }
-
+        
         MENU_REDRAW = 1;
       }
 
@@ -824,6 +824,9 @@ void ASR_handleEncoderEvent(const UI::Event &event) {
             case ASR_SETTING_CV_SOURCE:
               asr.update_enabled_settings();
               asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
+              // hack/hide extra options when default CV source is selected
+              if (!asr.get_cv_source()) 
+                asr_state.cursor.Scroll(asr_state.cursor_pos());
             break;
             default:
             break;
