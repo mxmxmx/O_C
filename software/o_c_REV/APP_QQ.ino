@@ -665,21 +665,14 @@ public:
           }
         }
     } // end switch  
-
-    bool changed = false;
     
-    if (continuous)
-      changed = last_sample_ != temp_sample;
-    else
-      changed = last_sample_ != sample;
+    bool changed = continuous ? (last_sample_ != temp_sample) : (last_sample_ != sample);
       
     if (changed) {
       MENU_REDRAW = 1;
-      if (continuous)
-        last_sample_ = temp_sample;
-      else
-        last_sample_ = sample;
+      last_sample_ = continuous ? temp_sample : sample;
     }
+    
     OC::DAC::set(dac_channel, sample + get_fine());
 
     if (triggered || (continuous && changed)) {

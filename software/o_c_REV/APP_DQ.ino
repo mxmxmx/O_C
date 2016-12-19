@@ -429,21 +429,14 @@ public:
         last_raw_sample_ = pitch;
       }
     }
- 
-    bool changed = false;
-    
-    if (continuous)
-      changed = last_sample_ != temp_sample;
-    else
-     changed = last_sample_ != sample;
+
+    // in continuous mode, don't track transposed sample:
+    bool changed = continuous ? (last_sample_ != temp_sample) : (last_sample_ != sample);
      
     if (changed) {
       
       MENU_REDRAW = 1;
-      if (continuous)
-        last_sample_ = temp_sample;
-      else 
-        last_sample_ = sample;  
+      last_sample_ = continuous ? temp_sample : sample;
       
       if (continuous && aux_mode == DQ_GATE) {
         gate_state_ = ON;
