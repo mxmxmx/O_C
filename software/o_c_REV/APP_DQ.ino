@@ -268,6 +268,7 @@ public:
   }
 
   void Init(DQ_ChannelSource source, DQ_ChannelTriggerSource trigger_source) {
+    
     InitDefaults();
     apply_value(DQ_CHANNEL_SETTING_SOURCE, source);
     apply_value(DQ_CHANNEL_SETTING_TRIGGER, trigger_source);
@@ -279,10 +280,26 @@ public:
       last_scale_[i] = -1;
       last_mask_[i] = 0;
     }
+    
     last_sample_ = 0;
+    last_raw_sample_ = 0;
     clock_ = 0;
+    aux_sample_ = 0;
     continuous_offset_ = 0;
+    scale_sequence_cnt_ = 0;
+    active_scale_slot_ = 0;
+    display_scale_slot_ = 0;
+    display_root_ = 0;
+    prev_scale_slot_ = 0;
+    scale_advance_ = 0;
+    scale_advance_state_ = 0;
+    schedule_scale_update_ = 0;
 
+    prev_pulsewidth_ = 100;
+    ticks_ = 0;
+    channel_frequency_in_ticks_ = 1000;
+    pulse_width_in_ticks_ = 1000;
+    
     trigger_delay_.Init();
     quantizer_.Init();
     update_scale(true, 0, false);
@@ -320,7 +337,7 @@ public:
     if (triggered) {
       channel_frequency_in_ticks_ = ticks_;
       ticks_ = 0x0;
-      gate_state_ = ON; 
+      aux_sample_ = ON; 
     }
    
     if (get_scale_seq_mode()) {
@@ -411,21 +428,23 @@ public:
         continuous_offset_ = 0;
       else if (last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(channel_id - 1))) 
         continuous_offset_ = (trigger_source == DQ_CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
+
+      octave += continuous_offset_;
+      // ? CONSTRAIN(octave, -4, 4);
+      
       // run quantizer again -- presumably could be made more efficient... 
       if (continuous_offset_) 
-        sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+        sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
            
-      history_sample = quantized + ((OC::DAC::kOctaveZero + octave + continuous_offset_) * 12 << 7);  
-     
-      if (aux_mode == DQ_COPY) {
-        int octave_offset = octave + get_aux_octave();
-        gate_state_ = OC::DAC::pitch_to_dac(aux_channel, quantized, octave_offset);
-      }
+      history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);  
+      
+      // deal with aux output:
+      if (aux_mode == DQ_COPY) 
+        aux_sample_ = OC::DAC::pitch_to_dac(aux_channel, quantized, octave + get_aux_octave());
       else if (aux_mode == DQ_ASR) {
         // to do ... more settings
-        int octave_offset = octave + get_aux_octave();
         const int32_t quantized_aux = quantizer_.Process(last_raw_sample_, root << 7, transpose);
-        gate_state_ = OC::DAC::pitch_to_dac(aux_channel, quantized_aux, octave_offset);
+        aux_sample_ = OC::DAC::pitch_to_dac(aux_channel, quantized_aux, octave + get_aux_octave());
         last_raw_sample_ = pitch;
       }
     }
@@ -439,7 +458,7 @@ public:
       last_sample_ = continuous ? temp_sample : sample;
       
       if (continuous && aux_mode == DQ_GATE) {
-        gate_state_ = ON;
+        aux_sample_ = ON;
         ticks_ = 0x0;
       } 
     }
@@ -453,7 +472,7 @@ public:
       break;
       case DQ_GATE:
       { 
-      if (gate_state_) { 
+      if (aux_sample_) { 
            
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
@@ -504,13 +523,13 @@ public:
                   
                 // turn off output? 
                 if (ticks_ >= pulse_width_in_ticks_) 
-                  gate_state_ = OFF;
+                  aux_sample_ = OFF;
                 else // keep on 
-                  gate_state_ = ON; 
+                  aux_sample_ = ON; 
              }
              else {
                 // we simply echo the pulsewidth:
-                 gate_state_ = OC::DigitalInputs::read_immediate(get_digital_input()) ? ON : OFF;
+                 aux_sample_ = OC::DigitalInputs::read_immediate(get_digital_input()) ? ON : OFF;
              }   
          }  
       } 
@@ -520,7 +539,7 @@ public:
     }
     
     OC::DAC::set(dac_channel, sample);
-    OC::DAC::set(aux_channel, gate_state_);
+    OC::DAC::set(aux_channel, aux_sample_);
 
     if (triggered || (continuous && changed)) {
       scrolling_history_.Push(history_sample);
@@ -668,9 +687,9 @@ private:
   bool schedule_scale_update_;
   int32_t last_sample_;
   int32_t last_raw_sample_;
+  int32_t aux_sample_;
   int8_t continuous_offset_;
   uint8_t clock_;
-  uint16_t gate_state_;
   uint8_t prev_pulsewidth_;
   uint32_t ticks_;
   uint32_t channel_frequency_in_ticks_;
@@ -780,8 +799,7 @@ void DQ_init() {
 
   dq_state.Init();
   for (size_t i = 0; i < NUMCHANNELS; ++i) {
-    dq_quantizer_channels[i].Init(static_cast<DQ_ChannelSource>(DQ_CHANNEL_SOURCE_CV1 + i),
-                               static_cast<DQ_ChannelTriggerSource>(DQ_CHANNEL_TRIGGER_TR1 + i));
+    dq_quantizer_channels[i].Init(static_cast<DQ_ChannelSource>(DQ_CHANNEL_SOURCE_CV1 + 2*i), static_cast<DQ_ChannelTriggerSource>(DQ_CHANNEL_TRIGGER_TR1 + 2*i));
   }
 
   dq_state.cursor.AdjustEnd(dq_quantizer_channels[0].num_enabled_settings() - 1);
