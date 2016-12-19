@@ -655,8 +655,8 @@ public:
             // offset when TR source = continuous ?
             if (!continuous || (last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))))
               continuous_offset_ = 0;
-            else if (last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) 
-                continuous_offset_ = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
+            else if (last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index)))
+              continuous_offset_ = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
             // run quantizer again -- presumably could be made more efficient... 
             if (continuous_offset_) 
               sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
