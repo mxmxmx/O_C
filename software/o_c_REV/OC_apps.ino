@@ -37,7 +37,7 @@ OC::App available_apps[] = {
   DECLARE_APP('H','A', "Harrington 1200", H1200, H1200_isr),
   DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, Automatonnetz_isr),
   DECLARE_APP('Q','Q', "Quantermain", QQ, QQ_isr),
-  DECLARE_APP('D','Q', "Duo-Q", DQ, DQ_isr),
+  DECLARE_APP('D','Q', "Meta-Q", DQ, DQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
