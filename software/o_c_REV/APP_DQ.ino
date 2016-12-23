@@ -867,7 +867,10 @@ void DQ_menu() {
     graphics.print('#');
     graphics.print(channel.get_display_scale() + 1);
     graphics.movePrintPos(12, 0);
-    graphics.print(OC::Strings::note_names[channel.get_display_root()]);
+    if (channel.get_aux_cv_dest() == DQ_DEST_ROOT)
+      graphics.print(OC::Strings::note_names[channel.get_display_root()]);
+    else
+      graphics.print(OC::Strings::note_names[channel.get_root()]);
     int octave = channel.get_octave();
     if (octave)
       graphics.pretty_print(octave);
