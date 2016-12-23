@@ -164,7 +164,7 @@ enum MENU_PAGES {
   CV_MAPPING  
 };
 
-uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE];
+uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE + 1];
 
 class SEQ_Channel : public settings::SettingsBase<SEQ_Channel, SEQ_CHANNEL_SETTING_LAST> {
 public:
