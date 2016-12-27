@@ -819,7 +819,7 @@ public:
       *settings++ = CHANNEL_SETTING_DELAY;
     }
 
-    *settings++ = CHANNEL_SETTING_OCTAVE;
+    //*settings++ = CHANNEL_SETTING_OCTAVE;
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
 
@@ -940,28 +940,28 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, -4, 4, "Octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -999, 999, "Fine", NULL, settings::STORAGE_TYPE_I16 },
   { 16, 1, 32, "LFSR length", NULL, settings::STORAGE_TYPE_U8 },
-  { 128, 0, 255, "LFSR p", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, "LFSR prb", NULL, settings::STORAGE_TYPE_U8 },
   { 24, 2, 120, "LFSR modulus", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "LFSR p CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "LFSR mod CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "LFSR rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR prb CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR mod CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR rng CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Log r CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Log rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Log r   CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Log rng CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 15, "Bytebeat eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
-  { 12, 1, 120, "Bytebeat range", NULL, settings::STORAGE_TYPE_U8 },
+  { 12, 1, 120, "Bytebeat rng", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "Bytebeat P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "Bytebeat P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "Bytebeat P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "Bb eqn CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb P0 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb P1 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb P2 CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P0  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P1  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P2  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 24, 2, 120, "IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 2, 120, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
@@ -969,10 +969,10 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 255, "IntSeq FS prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "IntSeq FS rng", NULL, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "Fractal stride", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "IntSeq CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq CV   >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq mod CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Frctl stride CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "F. stride CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq reset", qq_reset_trigger_sources, settings::STORAGE_TYPE_U4 },
 };
  
