@@ -60,6 +60,11 @@ enum DQ_ChannelSetting {
   DQ_CHANNEL_SETTING_PULSEWIDTH,
   DQ_CHANNEL_SETTING_AUX_OCTAVE,
   DQ_CHANNEL_SETTING_AUX_CV_DEST,
+  DQ_CHANNEL_SETTING_TURING_LENGTH,
+  DQ_CHANNEL_SETTING_TURING_PROB,
+  DQ_CHANNEL_SETTING_TURING_CV_SOURCE,
+  DQ_CHANNEL_SETTING_TURING_RANGE,
+  DQ_CHANNEL_SETTING_TURING_TRIG_OUT,
   DQ_CHANNEL_SETTING_LAST
 };
 
@@ -78,6 +83,10 @@ enum DQ_ChannelSource {
   DQ_CHANNEL_SOURCE_CV2,
   DQ_CHANNEL_SOURCE_CV3,
   DQ_CHANNEL_SOURCE_CV4,
+  DQ_CHANNEL_SOURCE_TURING,
+  DQ_CHANNEL_SOURCE_LOGISTIC_MAP,
+  DQ_CHANNEL_SOURCE_BYTEBEAT,
+  DQ_CHANNEL_SOURCE_INT_SEQ,
   DQ_CHANNEL_SOURCE_LAST
 };
 
@@ -86,6 +95,13 @@ enum DQ_AUX_MODE {
   DQ_COPY,
   DQ_ASR,
   DQ_AUX_MODE_LAST
+};
+
+enum TRIG_AUX_MODE {
+  DQ_ECHO,
+  DQ_LSB,
+  DQ_CHANGE,
+  DQ_TRIG_AUX_LAST
 };
 
 enum DQ_CV_DEST {
@@ -267,6 +283,35 @@ public:
     return values_[DQ_CHANNEL_SETTING_PULSEWIDTH];
   }
 
+  uint8_t get_turing_length() const {
+    return values_[DQ_CHANNEL_SETTING_TURING_LENGTH];
+  }
+
+  uint8_t get_turing_display_length() const {
+    return turing_display_length_;
+  }
+
+  uint8_t get_turing_range() const {
+    return values_[DQ_CHANNEL_SETTING_TURING_RANGE];
+  }
+
+  uint8_t get_turing_probability() const {
+    return values_[DQ_CHANNEL_SETTING_TURING_PROB];
+  }
+ 
+
+  uint8_t get_turing_CV() const {
+    return values_[DQ_CHANNEL_SETTING_TURING_CV_SOURCE];
+  }
+
+  uint8_t get_turing_trig_out() const {
+    return values_[DQ_CHANNEL_SETTING_TURING_TRIG_OUT];
+  }
+
+  uint32_t get_shift_register() const {
+    return turing_machine_.get_shift_register();
+  }
+
   void Init(DQ_ChannelSource source, DQ_ChannelTriggerSource trigger_source) {
     
     InitDefaults();
@@ -306,6 +351,10 @@ public:
     trigger_display_.Init();
     update_enabled_settings();
 
+    turing_machine_.Init();
+    turing_display_length_ = get_turing_length();
+    last_turing_pitch_ = 0;
+
     scrolling_history_.Init(OC::DAC::kOctaveZero * 12 << 7);
   }
 
@@ -323,7 +372,6 @@ public:
     bool forced_update = force_update_;
     force_update_ = false;
 
-    DQ_ChannelSource source = get_source();
     DQ_ChannelTriggerSource trigger_source = get_trigger_source();
     bool continuous = DQ_CHANNEL_TRIGGER_CONTINUOUS_UP == trigger_source || DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN == trigger_source;
     bool triggered = !continuous &&
@@ -374,14 +422,94 @@ public:
 
     if (update) {
         
-      int32_t transpose = get_transpose();
-      int32_t pitch = quantizer_.enabled()
-          ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(source))
-          : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
+      int32_t transpose, pitch;
+      int source, cv_source, channel_id;
+      
+      source = cv_source = get_source();
+      channel_id = (dac_channel == DAC_CHANNEL_A) ? 1 : 3; // hardcoded to use CV2, CV4, for now
+      
+      transpose = get_transpose();
+
+      // internal CV source?
+      if (source > DQ_CHANNEL_SOURCE_CV4) 
+        cv_source = channel_id - 1;
+        
+      pitch = quantizer_.enabled()
+                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
+                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
+     
+              
+      switch (source) {
+
+        case DQ_CHANNEL_SOURCE_CV1:
+        case DQ_CHANNEL_SOURCE_CV2:
+        case DQ_CHANNEL_SOURCE_CV3:
+        case DQ_CHANNEL_SOURCE_CV4:
+        break;
+        case DQ_CHANNEL_SOURCE_TURING:
+        {
+          int16_t _length = get_turing_length();
+          int16_t _probability = get_turing_probability();
+          int16_t _range = get_turing_range();
+
+          // _pitch can do other things now -- 
+          switch (get_turing_CV()) {
+
+              case 1:  // LEN, 4-32
+               _length += ((pitch + 255) >> 8);
+               CONSTRAIN(_length, 2, 32);
+              break;
+               case 2:  // P
+               _probability += ((pitch + 15) >> 4);
+               CONSTRAIN(_probability, 0, 255);
+              break;
+              default: // range
+               _range += ((pitch + 63) >> 6);
+               CONSTRAIN(_range, 1, 120);
+              break;
+          }
+          
+          turing_machine_.set_length(_length);
+          turing_machine_.set_probability(_probability); 
+          turing_display_length_ = _length;
+
+          uint32_t _shift_register = turing_machine_.Clock();   
+          uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
+ 
+          pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
+          
+          // gate?
+          switch(get_turing_trig_out()) {
+            
+            case DQ_ECHO:
+            break;
+            case DQ_LSB:
+            if (!turing_machine_.get_LSB())
+              aux_sample_ = OFF;
+            break;
+            case DQ_CHANGE:
+            if (last_turing_pitch_ == pitch)
+              aux_sample_ = OFF;
+            break;
+            default:
+            break;
+          }
+          
+          last_turing_pitch_ = pitch;
+        }
+        break;
+        case DQ_CHANNEL_SOURCE_LOGISTIC_MAP:
+        break;
+        case DQ_CHANNEL_SOURCE_BYTEBEAT:
+        break;
+        case DQ_CHANNEL_SOURCE_INT_SEQ:
+        break;
+        default:
+        break;
+      }
 
       int root = get_root();
       int octave = get_octave();
-      int channel_id = (dac_channel == DAC_CHANNEL_A) ? 1 : 3; // hardcoded to use CV2, CV4, for now
       display_scale_slot_ = prev_scale_slot_ = active_scale_slot_;
       
       switch(get_aux_cv_dest()) {
@@ -640,13 +768,27 @@ public:
       *settings++ = DQ_CHANNEL_SETTING_ROOT;
     }
     *settings++ = DQ_CHANNEL_SETTING_SOURCE;
+    
+    // CV sources:
+    switch (get_source()) {
+      
+      case DQ_CHANNEL_SOURCE_TURING:
+        *settings++ = DQ_CHANNEL_SETTING_TURING_RANGE;
+        *settings++ = DQ_CHANNEL_SETTING_TURING_LENGTH;
+        *settings++ = DQ_CHANNEL_SETTING_TURING_PROB;
+        *settings++ = DQ_CHANNEL_SETTING_TURING_CV_SOURCE;
+        *settings++ = DQ_CHANNEL_SETTING_TURING_TRIG_OUT;
+       break;
+       default:
+       break;
+    }
     *settings++ = DQ_CHANNEL_SETTING_AUX_CV_DEST;
     *settings++ = DQ_CHANNEL_SETTING_TRIGGER;
     
     if (get_trigger_source() < DQ_CHANNEL_TRIGGER_CONTINUOUS_UP) 
       *settings++ = DQ_CHANNEL_SETTING_DELAY;
 
-    *settings++ = DQ_CHANNEL_SETTING_OCTAVE;
+    //*settings++ = DQ_CHANNEL_SETTING_OCTAVE;
     *settings++ = DQ_CHANNEL_SETTING_TRANSPOSE;
     *settings++ = DQ_CHANNEL_SETTING_AUX_OUTPUT;
     
@@ -699,6 +841,11 @@ private:
   braids::Quantizer quantizer_;
   OC::DigitalInputDisplay trigger_display_;
 
+  // internal CV sources;
+  util::TuringShiftRegister turing_machine_;
+  int8_t turing_display_length_;
+  int32_t last_turing_pitch_;
+  
   int num_enabled_settings_;
   DQ_ChannelSetting enabled_settings_[DQ_CHANNEL_SETTING_LAST];
 
@@ -747,6 +894,14 @@ const char* const dq_aux_cv_dest[] = {
   "-", "scl#", "root", "oct", "trns", "mask"
 };
 
+const char* const dq_tm_CV_destinations[] = {
+  "rng", "len", "prb"
+};
+
+const char* const dq_tm_trig_out[] = {
+  "echo", "lsb", "chng"
+};
+
 SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
@@ -759,15 +914,21 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 3, "seq_mode", dq_seq_modes, settings::STORAGE_TYPE_U4 },
-  { DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_LAST - 1, "CV source", dq_channel_input_sources, settings::STORAGE_TYPE_U4 },
+  //{ DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_LAST - 1, "CV source", dq_channel_input_sources, settings::STORAGE_TYPE_U4 },
+  { DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, 4, "CV source", dq_channel_input_sources, settings::STORAGE_TYPE_U4 }, /// to do ..
   { DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, DQ_CHANNEL_TRIGGER_LAST - 1, "trigger source", dq_channel_trigger_sources, settings::STORAGE_TYPE_U8 },
-  { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, 0, DQ_AUX_MODE_LAST-1, "aux.output", dq_aux_outputs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, DQ_AUX_MODE_LAST-1, "aux.output", dq_aux_outputs, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "--> pw", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "--> aux +/-", NULL, settings::STORAGE_TYPE_I8 }, // aux octave
-  { 0, 0, DQ_DEST_LAST-1, "CV aux.", dq_aux_cv_dest, settings::STORAGE_TYPE_U8 }
+  { 0, 0, DQ_DEST_LAST-1, "CV aux.", dq_aux_cv_dest, settings::STORAGE_TYPE_U8 },
+  { 16, 2, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 2, " > LFSR CV", dq_tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
+  { 15, 1, 120, " > LFSR range", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, DQ_TRIG_AUX_LAST-1, " > LFSR TRIG", dq_tm_trig_out, settings::STORAGE_TYPE_U8 }
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
@@ -908,6 +1069,18 @@ void DQ_menu() {
         menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_mask(channel.get_display_scale()), OC::Scales::GetScale(channel.get_scale(channel.get_display_scale())).num_notes); 
         list_item.DrawNoValue<false>(value, attr);
         break;
+      case DQ_CHANNEL_SETTING_SOURCE:
+      if (channel.get_source() == DQ_CHANNEL_SOURCE_TURING) {
+       
+          int turing_length = channel.get_turing_display_length();
+          int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
+
+          menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_shift_register(), turing_length);
+          list_item.valuex = menu::kDisplayWidth - w - 1;
+          list_item.DrawNoValue<true>(value, attr);
+       } else
+       list_item.DrawDefault(value, attr);
+      break;  
       default:
         list_item.DrawDefault(value, attr);
     }
@@ -1072,7 +1245,10 @@ void DQ_QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
   menu::DrawGateIndicator(start_x + 1, 2, getTriggerState());
   const DQ_ChannelSource source = get_source();
   switch (source) {
-  
+
+    case DQ_CHANNEL_SOURCE_TURING:
+      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_shift_register(), get_turing_display_length());
+      break;
     default: {
       graphics.setPixel(start_x + 31 - 16, 4);
       int32_t cv = OC::ADC::value(static_cast<ADC_CHANNEL>(source));

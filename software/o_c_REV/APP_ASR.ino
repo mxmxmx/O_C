@@ -33,6 +33,7 @@ enum ASRSettings {
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
+  ASR_SETTING_TURING_RANGE,
   ASR_SETTING_TURING_CV_SOURCE,
   ASR_SETTING_BYTEBEAT_EQUATION,
   ASR_SETTING_BYTEBEAT_P0,
@@ -46,6 +47,7 @@ enum ASRSettings {
   ASR_SETTING_INT_SEQ_DIR,
   ASR_SETTING_FRACTAL_SEQ_STRIDE,
   ASR_SETTING_INT_SEQ_CV_SOURCE,
+  ASR_SETTING_DUMMY,
   ASR_SETTING_LAST
 };
 
@@ -129,6 +131,10 @@ public:
 
   uint8_t get_turing_probability() const {
     return values_[ASR_SETTING_TURING_PROB];
+  }
+
+  uint8_t get_turing_range() const {
+    return values_[ASR_SETTING_TURING_RANGE];
   }
 
   uint8_t get_turing_CV() const {
@@ -311,12 +317,13 @@ public:
     
     ASRSettings *settings = enabled_settings_;
 
-    //*settings++ = ASR_SETTING_SCALE;
-    //*settings++ = ASR_SETTING_OCTAVE;
     *settings++ = ASR_SETTING_ROOT;
     *settings++ = ASR_SETTING_MASK;
     *settings++ = ASR_SETTING_INDEX; 
-    *settings++ = ASR_SETTING_MULT;
+    if (get_cv_source() != ASR_CHANNEL_SOURCE_TURING)
+      *settings++ = ASR_SETTING_MULT;
+    else 
+      *settings++ = ASR_SETTING_DUMMY;
     *settings++ = ASR_SETTING_DELAY;
     *settings++ = ASR_SETTING_CV_SOURCE;
     
@@ -325,6 +332,7 @@ public:
       case ASR_CHANNEL_SOURCE_TURING:
         *settings++ = ASR_SETTING_TURING_LENGTH;
         *settings++ = ASR_SETTING_TURING_PROB;
+        *settings++ = ASR_SETTING_TURING_RANGE;
         *settings++ = ASR_SETTING_TURING_CV_SOURCE;
        break;
       case ASR_CHANNEL_SOURCE_BYTEBEAT:
@@ -459,12 +467,13 @@ public:
                   {
                   int16_t _length = get_turing_length();
                   int16_t _probability = get_turing_probability();
+                  int16_t _range = get_turing_range();
   
                   // _pitch can do other things now -- 
                   switch (get_turing_CV()) {
   
                       case 1:  // LEN, 4-32
-                       _length += ((_pitch + 127) >> 7);
+                       _length += ((_pitch + 255) >> 8);
                        CONSTRAIN(_length, 4, 32);
                       break;
                        case 2:  // P
@@ -472,23 +481,19 @@ public:
                        CONSTRAIN(_probability, 0, 255);
                       break;
                       default: // mult
-                       _mult += ((_pitch + 255) >> 8);
+                       _range += ((_pitch + 63) >> 6);
+                       CONSTRAIN(_range, 1, 120);
                       break;
                   }
                   
                   turing_machine_.set_length(_length);
                   turing_machine_.set_probability(_probability); 
                   turing_display_length_ = _length;
-    
-                  int32_t _shift_register = (static_cast<int16_t>(turing_machine_.Clock()) & 0xFFF); 
                   
-                 // return useful values for small values of _length:
-                 if (_length < 12) {
-                     _shift_register = _shift_register << (12 -_length);
-                     _shift_register = _shift_register & 0xFFF;
-                  }
+                  uint32_t _shift_register = turing_machine_.Clock();   
+                  uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
+                  _pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);  
                   
-                  _pitch = _shift_register;  
                   }
                   break;      
  
@@ -658,7 +663,7 @@ const char* const asr_input_sources[] = {
 };
 
 const char* const tm_CV_destinations[] = {
-  "M/A", "LEN", "P(x)"
+  "rng", "len", "p"
 };
 
 const char* const bb_CV_destinations[] = {
@@ -682,7 +687,8 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 4, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U4 },
+  { 15, 1, 120, "> LFSR range", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
@@ -694,7 +700,8 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 },   
+  { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY  
 };
 
 /* -------------------------------------------------------------------*/
@@ -744,6 +751,8 @@ size_t ASR_restore(const void *storage) {
   // hack ahead -- update the scale display value:
   size_t storage_size = asr.Restore(storage);
   asr_state.left_encoder_value = asr.get_scale(DUMMY); 
+  asr.update_enabled_settings();
+  asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
   return storage_size;
 }
 
@@ -766,7 +775,6 @@ void ASR_loop() {
 }
 
 void ASR_isr() {
-  
   asr.update();
 }
 
@@ -862,6 +870,8 @@ void ASR_rightButton() {
           asr_state.scale_editor.Edit(&asr, scale);
         }
       break;
+      case ASR_SETTING_DUMMY:
+      break;
       default:
         asr_state.cursor.toggle_editing();
       break;
@@ -930,6 +940,9 @@ void ASR_menu() {
           list_item.DrawNoValue<true>(value, attr);
        } else
        list_item.DrawDefault(value, attr);
+      break;
+      case ASR_SETTING_DUMMY:
+      list_item.DrawNoValue<false>(value, attr);
       break;
       default:
       list_item.DrawDefault(value, attr);
