@@ -53,8 +53,10 @@ void Input_Map::Configure(const int8_t num_slots, const int16_t* ranges, uint8_t
 
   if (enabled_) {
   
+    int16_t delta = ranges[range];
+
     for (int32_t i = 0; i < 16; ++i) {
-      codebook_[i] = ranges[range]*i;
+      codebook_[i] = delta*i;
     }
     update_ = true;
     num_slots_ = num_slots;
@@ -63,15 +65,15 @@ void Input_Map::Configure(const int8_t num_slots, const int16_t* ranges, uint8_t
 
 int8_t Input_Map::Process(int32_t input) {
 
-  int8_t output = 0;
+  int8_t _slot = 0;
 
   if (!enabled_) {
-    return output;
+    return _slot;
   }
 
   if (!update_ && input >= previous_boundary_ && input <= next_boundary_) {
     // We're still in the voronoi cell for the active codeword.
-    output = code_index_;
+    _slot = code_index_;
   } else {
     // Search for the nearest neighbour in the codebook.
     int16_t upper_bound_index = std::upper_bound(
@@ -96,10 +98,10 @@ int8_t Input_Map::Process(int32_t input) {
 
     if (q < 0) q = 0;
     else if (q > num_slots_) q = num_slots_;
-    code_index_ = output = q;
+    code_index_ = _slot = q;
     update_ = false;
   }
-  return output;
+  return _slot;
 }
 
 

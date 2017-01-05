@@ -175,6 +175,10 @@ enum PLAY_MODES {
   PM_TR1,
   PM_TR2,
   PM_TR3,
+  PM_SH1,
+  PM_SH2,
+  PM_SH3,
+  PM_SH4,
   PM_CV1,
   PM_CV2,
   PM_CV3,
@@ -195,7 +199,7 @@ public:
     menu_page_ = _menu_page;  
   }
   
-  uint8_t get_mode() const {
+  uint8_t get_aux_mode() const {
     return values_[SEQ_CHANNEL_SETTING_MODE];
   }
 
@@ -501,6 +505,10 @@ public:
     input_map_.Configure(OC::InputMaps::GetInputMap(num_slots), range);
   }
 
+  int get_cv_input_range() const {
+    return values_[SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES];
+  }
+
   template <DAC_CHANNEL dac_channel>
   uint16_t get_zero() const {
     return OC::DAC::get_zero_offset(dac_channel);
@@ -519,7 +527,6 @@ public:
     gate_state_ = step_state_ = OFF;
     step_pitch_ = 0;
     step_pitch_aux_ = 0;
-    ticks_ = 0;
     subticks_ = 0;
     tickjitter_ = 10000;
     clk_cnt_ = 0;
@@ -530,8 +537,8 @@ public:
     prev_multiplier_ = get_multiplier();
     prev_pulsewidth_ = get_pulsewidth();
  
-    ext_frequency_in_ticks_ = get_pulsewidth() << 15; // init to something...
-    channel_frequency_in_ticks_ = get_pulsewidth() << 15;
+    ext_frequency_in_ticks_ = 0xFFFFFFFF;
+    channel_frequency_in_ticks_ = 0xFFFFFFFF;
     pulse_width_in_ticks_ = get_pulsewidth() << 10;
 
     // TODO this needs to be per channel, not just 0 
@@ -582,32 +589,25 @@ public:
      // increment channel ticks .. 
      subticks_++; 
      
-     int8_t _clock_source, _reset_source, _mode, _playmode;
-     int8_t _multiplier;
-     bool _none, _triggered, _tock, _sync;
-     uint32_t prev_channel_frequency_in_ticks_ = 0x0;
+     int8_t _clock_source, _reset_source = 0x0, _mode, _playmode;
+     int8_t _multiplier = 0x0;
+     bool _none, _triggered, _tock, _sync, _continuous;
+     uint32_t _subticks = 0x0, prev_channel_frequency_in_ticks_ = 0x0;
 
      // core channel parameters -- 
      // 1. clock source:
      _clock_source = get_clock_source();
    
-     // 2. multiplication:
-     _multiplier = get_multiplier();
-
-     if (get_mult_cv_source()) {
-        _multiplier += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_mult_cv_source() - 1)) + 127) >> 8;             
-        CONSTRAIN(_multiplier, 0, MULT_MAX);
-     }
-     // 3. sequencer aux channel mode? 
-     _mode = get_mode();
+     // 2. sequencer aux channel / play modes - 
+     _mode = get_aux_mode();
+     _playmode = get_playmode();
+     _continuous = _playmode >= PM_SH1 ? true : false;
      // clocked ?
      _none = SEQ_CHANNEL_TRIGGER_NONE == _clock_source;
      // TR1 or TR3?
      _triggered = _clock_source ? (!_none && (triggers & (1 << OC::DIGITAL_INPUT_3))) : (!_none && (triggers & (1 << OC::DIGITAL_INPUT_1)));
      _tock = false;
      _sync = false;
-
-     _playmode = get_playmode();
 
      // new tick frequency:
      if (_clock_source <= SEQ_CHANNEL_TRIGGER_TR2) {
@@ -620,107 +620,121 @@ public:
      }    
      // store clock source:
      clk_src_ = _clock_source;
- 
-     // new multiplier ?
-     if (prev_multiplier_ != _multiplier)
-       _tock |= true;  
-     prev_multiplier_ = _multiplier; 
 
-     // if so, recalculate channel frequency and corresponding jitter-thresholds:
-     if (_tock) {
+     if (!_continuous) {
 
-        // when multiplying, skip too closely spaced triggers:
-        if (_multiplier > MULT_BY_ONE) {
-           prev_channel_frequency_in_ticks_ = multiply_u32xu32_rshift32(channel_frequency_in_ticks_, TICK_SCALE);
-           // new frequency:    
-           channel_frequency_in_ticks_ = multiply_u32xu32_rshift32(ext_frequency_in_ticks_, multipliers_[_multiplier-MULT_BY_ONE]); 
-        }
-        else {
-           prev_channel_frequency_in_ticks_ = 0x0;
-           // new frequency (used for pulsewidth):
-           channel_frequency_in_ticks_ = multiply_u32xu32_rshift32(ext_frequency_in_ticks_, pw_scale_[_multiplier]) << 6;
-        }
+         _multiplier = get_multiplier();
+    
+         if (get_mult_cv_source()) {
+            _multiplier += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_mult_cv_source() - 1)) + 127) >> 8;             
+            CONSTRAIN(_multiplier, 0, MULT_MAX);
+         }
+        
+         // new multiplier ?
+         if (prev_multiplier_ != _multiplier)
+           _tock |= true;  
+         prev_multiplier_ = _multiplier; 
+    
+         // if so, recalculate channel frequency and corresponding jitter-thresholds:
+         if (_tock) {
+    
+            // when multiplying, skip too closely spaced triggers:
+            if (_multiplier > MULT_BY_ONE) {
+               prev_channel_frequency_in_ticks_ = multiply_u32xu32_rshift32(channel_frequency_in_ticks_, TICK_SCALE);
+               // new frequency:    
+               channel_frequency_in_ticks_ = multiply_u32xu32_rshift32(ext_frequency_in_ticks_, multipliers_[_multiplier-MULT_BY_ONE]); 
+            }
+            else {
+               prev_channel_frequency_in_ticks_ = 0x0;
+               // new frequency (used for pulsewidth):
+               channel_frequency_in_ticks_ = multiply_u32xu32_rshift32(ext_frequency_in_ticks_, pw_scale_[_multiplier]) << 6;
+            }
+               
+            tickjitter_ = multiply_u32xu32_rshift32(channel_frequency_in_ticks_, TICK_JITTER);  
+         }
+         // limit frequency to > 0
+         if (!channel_frequency_in_ticks_)  
+            channel_frequency_in_ticks_ = 1u;
+              
+         // reset? 
+         _reset_source = get_reset_source();
+         
+         if (_reset_source < SEQ_CHANNEL_TRIGGER_NONE && reset_me_) {
+    
+            uint8_t reset_state_ = !_reset_source ? digitalReadFast(TR2) : digitalReadFast(TR4); // TR1, TR3 are main clock sources
+    
+            // ?
+            if (reset_state_ < reset_) {
+               div_cnt_ = 0x0;
+               reset_counter_ = true; // reset clock counter below
+               reset_me_ = false;
+            }
+            reset_ = reset_state_;
+         } 
+    
+         //  do we advance sequences by TR2/4?
+         if (_playmode) {
+    
+            uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
+            // ?
+            if (_advance_trig < sequence_advance_state_) 
+              sequence_advance_ = true;
+              
+            sequence_advance_state_ = _advance_trig;  
            
-        tickjitter_ = multiply_u32xu32_rshift32(channel_frequency_in_ticks_, TICK_JITTER);  
+         }
+        /*             
+         *  brute force ugly sync hack:
+         *  this, presumably, is needlessly complicated. 
+         *  but seems to work ok-ish, w/o too much jitter and missing clocks... 
+         */
+         _subticks = subticks_;
+    
+         if (_multiplier <= MULT_BY_ONE && _triggered && div_cnt_ <= 0) { 
+            // division, so we track
+            _sync = true;
+            div_cnt_ = divisors_[_multiplier]; 
+            subticks_ = channel_frequency_in_ticks_; // force sync
+         }
+         else if (_multiplier <= MULT_BY_ONE && _triggered) {
+            // division, mute output:
+            step_state_ = _ZERO;
+         }
+         else if (_multiplier > MULT_BY_ONE && _triggered)  {
+            // multiplication, force sync, if clocked:
+            _sync = true;
+            subticks_ = channel_frequency_in_ticks_; 
+         }
+         else if (_multiplier > MULT_BY_ONE)
+            _sync = true;   
+         // end of ugly hack
      }
-     // limit frequency to > 0
-     if (!channel_frequency_in_ticks_)  
-        channel_frequency_in_ticks_ = 1u;
-          
-     // reset? 
-     _reset_source = get_reset_source();
-     
-     if (_reset_source < SEQ_CHANNEL_TRIGGER_NONE && reset_me_) {
-
-        uint8_t reset_state_ = !_reset_source ? digitalReadFast(TR2) : digitalReadFast(TR4); // TR1, TR3 are main clock sources
-
-        // ?
-        if (reset_state_ < reset_) {
-           div_cnt_ = 0x0;
-           reset_counter_ = true; // reset clock counter below
-           reset_me_ = false;
+     else { 
+     // CV mode 
+        if (_playmode <= PM_SH4 && !_triggered) {
+          _continuous = _sync = false; // don't trigger, if no trigger - see below
+          // new frequency (used for pulsewidth):
+          channel_frequency_in_ticks_ = ext_frequency_in_ticks_;
         }
-        reset_ = reset_state_;
-     } 
-
-     //  do we advance sequences by TR2/4?
-     if (_playmode > PM_SEQ3 && _playmode < PM_CV1) {
-
-        uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
-        // ?
-        if (_advance_trig < sequence_advance_state_) 
-          sequence_advance_ = true;
-          
-        sequence_advance_state_ = _advance_trig;  
-       
      }
-
+    
      // update scale? 
      int32_t _rotate = 0;
      if (get_scale_mask_cv_source()) {
        _rotate += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_scale_mask_cv_source() - 1)) + 127) >> 8; 
        force_scale_update_ = true;
      }
-     update_scale(force_scale_update_, _rotate); //
-       
-    /*             
-     *  brute force ugly sync hack:
-     *  this, presumably, is needlessly complicated. 
-     *  but seems to work ok-ish, w/o too much jitter and missing clocks... 
-     */
-     uint32_t _subticks = subticks_;
-
-     if (_multiplier <= MULT_BY_ONE && _triggered && div_cnt_ <= 0) { 
-        // division, so we track
-        _sync = true;
-        div_cnt_ = divisors_[_multiplier]; 
-        subticks_ = channel_frequency_in_ticks_; // force sync
-     }
-     else if (_multiplier <= MULT_BY_ONE && _triggered) {
-        // division, mute output:
-        step_state_ = _ZERO;
-     }
-     else if (_multiplier > MULT_BY_ONE && _triggered)  {
-        // multiplication, force sync, if clocked:
-        _sync = true;
-        subticks_ = channel_frequency_in_ticks_; 
-     }
-     else if (_multiplier > MULT_BY_ONE)
-        _sync = true;   
-     // end of ugly hack
+     update_scale(force_scale_update_, _rotate); 
+     
      
      // time to output ? 
-     if (subticks_ >= channel_frequency_in_ticks_ && _sync) { 
-         
-         // if so, reset ticks: 
-         subticks_ = 0x0;
-         // if tempo changed, reset _internal_ clock counter:
-         if (_tock)
-            ticks_ = 0x0;
-     
+     if ((subticks_ >= channel_frequency_in_ticks_ && _sync) || _continuous) { 
+       
          //reject, if clock is too jittery or skip quasi-double triggers when ext. frequency increases:
-         if (_subticks < tickjitter_ || (_subticks < prev_channel_frequency_in_ticks_ && reset_me_)) 
-            return;
+         if (!_continuous) {
+           if (_subticks < tickjitter_ || (_subticks < prev_channel_frequency_in_ticks_ && reset_me_)) 
+              return;
+         }
             
          // mute output ?
          bool mute = 0;
@@ -760,17 +774,22 @@ public:
          // clear for reset:
          reset_me_ = true;
          reset_counter_ = false;
-         // finally, process trigger + output
-         step_state_ = gate_state_ = process_seq_channel(); // = gate ...either ON, OFF
          
-         if (step_state_ == ON) {
-          
+         // finally, process trigger + output:
+         if (process_seq_channel(_playmode)) {
+
+            // if so, reset ticks: 
+            subticks_ = 0x0;
+            // and turn on gate
+            gate_state_ = ON;
+            
             int8_t _octave = get_octave();        
             if (get_transpose_cv_source()) 
               _octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv_source() - 1)) + 255) >> 9;             
      
-            // use the current sequence, updated in  process_seq_channel():
-            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); /// 
+            // use the current sequence, updated in process_seq_channel():
+            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); //
+     
             // update output:
             step_pitch_ = quantizer_.Process(step_pitch_, 0, 0);  
 
@@ -792,7 +811,7 @@ public:
                 default:
                 break;
             }
-         }
+         }  
      }
   
      /*
@@ -803,8 +822,9 @@ public:
        
         // pulsewidth setting -- 
         int16_t _pulsewidth = get_pulsewidth();
+        bool _we_cannot_echo = _playmode >= PM_CV1 ? true : false;
 
-        if (_pulsewidth || _multiplier > MULT_BY_ONE) {
+        if (_pulsewidth || _multiplier > MULT_BY_ONE || _we_cannot_echo) {
 
             bool _gates = false;
 
@@ -825,7 +845,7 @@ public:
             }
             // recalculate (in ticks), if new pulsewidth setting:
             if (prev_pulsewidth_ != _pulsewidth || ! subticks_) {
-                if (!_gates) {
+                if (!_gates || _we_cannot_echo) {
                   int32_t _fraction = signed_multiply_32x16b(TICKS_TO_MS, static_cast<int32_t>(_pulsewidth)); // = * 0.6667f
                   _fraction = signed_saturate_rshift(_fraction, 16, 0);
                   pulse_width_in_ticks_  = (_pulsewidth << 4) + _fraction;
@@ -863,73 +883,108 @@ public:
      }
   } // end update
 
-  /* details re: trigger processing happens (mostly) here: */
-  inline uint16_t process_seq_channel() {
+  /* details re: sequence processing happens (mostly) here: */
+  inline bool process_seq_channel(uint8_t _playmode) {
  
-      uint16_t _out = ON;
+      bool _out = true;
+      bool _change = true;
       int16_t _seq = get_sequence();
       
       if (get_sequence_cv_source()) {
         _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
         CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
       }
-
-      uint8_t _playmode = get_playmode();
       
-      if (_playmode && _playmode < PM_CV1) {
+      switch (_playmode) {
 
-        // concatenate sequences:
-        if (_playmode <= PM_SEQ3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
-          sequence_cnt_++;
-          sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
-          clk_cnt_ = 0; 
-        }
-        else if (_playmode > PM_SEQ3 && sequence_advance_) {
-          _playmode -= PM_SEQ3;
-          sequence_cnt_++;
-          sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
-          clk_cnt_ = 0;
-          sequence_advance_ = false; 
-        }
-       
-        if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
-          sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
-      }
-      else 
+        case PM_NONE:
         sequence_last_ = _seq;
-                 
+        // reset counter ?
+        if (clk_cnt_ >= get_sequence_length(_seq))
+           clk_cnt_ = 0; 
+        break;
+        case PM_SEQ1:
+        case PM_SEQ2:
+        case PM_SEQ3:
+        {
+        // concatenate sequences:
+          if (clk_cnt_ >= get_sequence_length(sequence_last_)) {
+            sequence_cnt_++;
+            sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+            clk_cnt_ = 0; 
+          }
+          // reset counter ?
+          if (clk_cnt_ >= get_sequence_length(sequence_last_))
+            clk_cnt_ = 0; 
+        }
+        break;
+        case PM_TR1:
+        case PM_TR2:
+        case PM_TR3:
+        {
+        // advance by trigger:
+          if (sequence_advance_) {
+            _playmode -= PM_SEQ3;
+            sequence_cnt_++;
+            sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+            clk_cnt_ = 0;
+            sequence_advance_ = false; 
+          }
+          if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
+            sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
+          // reset counter ?
+          if (clk_cnt_ >= get_sequence_length(sequence_last_))
+            clk_cnt_ = 0; 
+        }
+        break;
+        case PM_SH1:
+        case PM_SH2:
+        case PM_SH3:
+        case PM_SH4: 
+        {
+           sequence_last_ = _seq;
+           int len = get_sequence_length(_seq);
+           // length changed ? 
+           if (sequence_last_length_ != len) 
+              // to do - deal w/ range:
+              update_inputmap(len, get_cv_input_range()); 
+           sequence_last_length_ = len;
+           clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_SH1)));
+        }
+        break;
+        case PM_CV1:
+        case PM_CV2:
+        case PM_CV3:
+        case PM_CV4:
+        {
+           sequence_last_ = _seq;
+           prev_slot_ = clk_cnt_ - 1;
+           int len = get_sequence_length(_seq);
+           // length changed ? 
+           if (sequence_last_length_ != len) 
+              update_inputmap(len, get_cv_input_range());
+           sequence_last_length_ = len; 
+           clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1)));
+           if (prev_slot_ == clk_cnt_)
+             _change = false;
+        }
+        break;
+        default:
+        break;
+      }
+      // end switch
+        
       _seq = sequence_last_;
-      // this is the sequence # (USER1-USER4):
+      // this is the current sequence # (USER1-USER4):
       display_sequence_ = _seq;
       // and corresponding pattern mask:
-      uint16_t _mask = get_mask(_seq);
-      // rotating the mask doesn't really make sense .... length might
-      //if (get_mask_cv_source())
-      //  _mask = update_sequence((OC::ADC::value(static_cast<ADC_CHANNEL>(get_mask_cv_source() - 1)) + 127) >> 8, _seq, _mask);
-      display_mask_ = _mask;
-      // reset counter ?
-      if (clk_cnt_ >= get_sequence_length(_seq))
-        clk_cnt_ = 0; 
-
-         
-      // temp. brute S/H version
-      if (_playmode >= PM_CV1) {
-        
-        int len = get_sequence_length(_seq);
-
-        if (sequence_last_length_ != len) 
-          update_inputmap(len, 0); // to do: ranges
-
-        sequence_last_length_ = len;
-        int cv_val = OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1));
-        int slot = input_map_.Process(cv_val);
-        clk_cnt_ = slot;
-       }
-       //
-         
-      // output slot at current position:  
-      _out = (_mask >> clk_cnt_) & 1u;
-      _out = _out ? ON : OFF;   
+      display_mask_ = get_mask(_seq);
+                 
+      // slot at current position:  
+      _out = (display_mask_ >> clk_cnt_) & 1u;
+      step_state_ = _out ? ON : OFF;  
+      // 
+      _out = (_out && _change) ? true : false;   
       // return step:  
       return _out; 
   }
@@ -969,13 +1024,13 @@ public:
           }
          
          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
-         if (get_playmode() < PM_CV1)
+         if (get_playmode() < PM_SH1)
             *settings++ = SEQ_CHANNEL_SETTING_MULT;
          else 
             *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
-         switch (get_mode()) {
+         switch (get_aux_mode()) {
       
             case 0: 
               *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
@@ -1000,13 +1055,13 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = TD: rotate mask
          
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = playmode
-         if (get_playmode() < PM_CV1)
+         if (get_playmode() < PM_SH1)
             *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
          else 
             *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
 
-         switch (get_mode()) {
+         switch (get_aux_mode()) {
       
             case 0: 
               *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE;
@@ -1040,7 +1095,7 @@ public:
   void update_aux_channel()
   {
 
-      int8_t _mode = get_mode();
+      int8_t _mode = get_aux_mode();
       uint32_t _output = 0;
       
       switch (_mode) {
@@ -1071,10 +1126,10 @@ private:
   bool reset_;
   bool reset_me_;
   bool reset_counter_;
-  uint32_t ticks_;
   uint32_t subticks_;
   uint32_t tickjitter_;
   uint32_t clk_cnt_;
+  uint32_t prev_slot_;
   int16_t div_cnt_;
   uint32_t ext_frequency_in_ticks_;
   uint32_t channel_frequency_in_ticks_;
