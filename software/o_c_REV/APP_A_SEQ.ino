@@ -29,6 +29,8 @@
 #include "OC_patterns.h"
 #include "OC_scales.h"
 #include "OC_scale_edit.h"
+#include "OC_input_map.h"
+#include "OC_input_maps.h"
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "extern/dspinst.h"
@@ -124,6 +126,7 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_SEQUENCE_LEN3,
   SEQ_CHANNEL_SETTING_SEQUENCE_LEN4,
   SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE,
+  SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES,
   // cv sources
   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
   SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE,
@@ -162,6 +165,21 @@ enum SEQ_CLOCKSTATES {
 enum MENU_PAGES {
   PARAMETERS,
   CV_MAPPING  
+};
+
+enum PLAY_MODES {
+  PM_NONE,
+  PM_SEQ1,
+  PM_SEQ2,
+  PM_SEQ3,
+  PM_TR1,
+  PM_TR2,
+  PM_TR3,
+  PM_CV1,
+  PM_CV2,
+  PM_CV3,
+  PM_CV4,
+  PM_LAST
 };
 
 uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE + 1];
@@ -479,6 +497,10 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK, mask); // Should automatically be updated
   }
 
+  void update_inputmap(int num_slots, uint8_t range) {
+    input_map_.Configure(OC::InputMaps::GetInputMap(num_slots), range);
+  }
+
   template <DAC_CHANNEL dac_channel>
   uint16_t get_zero() const {
     return OC::DAC::get_zero_offset(dac_channel);
@@ -491,6 +513,7 @@ public:
     menu_page_ = PARAMETERS;
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
     quantizer_.Init();  
+    input_map_.Init();
     force_update_ = true;
     force_scale_update_ = true;
     gate_state_ = step_state_ = OFF;
@@ -559,7 +582,7 @@ public:
      // increment channel ticks .. 
      subticks_++; 
      
-     int8_t _clock_source, _reset_source, _mode;
+     int8_t _clock_source, _reset_source, _mode, _playmode;
      int8_t _multiplier;
      bool _none, _triggered, _tock, _sync;
      uint32_t prev_channel_frequency_in_ticks_ = 0x0;
@@ -575,7 +598,7 @@ public:
         _multiplier += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_mult_cv_source() - 1)) + 127) >> 8;             
         CONSTRAIN(_multiplier, 0, MULT_MAX);
      }
-     // 3. sequencer_channel mode? 
+     // 3. sequencer aux channel mode? 
      _mode = get_mode();
      // clocked ?
      _none = SEQ_CHANNEL_TRIGGER_NONE == _clock_source;
@@ -583,7 +606,9 @@ public:
      _triggered = _clock_source ? (!_none && (triggers & (1 << OC::DIGITAL_INPUT_3))) : (!_none && (triggers & (1 << OC::DIGITAL_INPUT_1)));
      _tock = false;
      _sync = false;
-     
+
+     _playmode = get_playmode();
+
      // new tick frequency:
      if (_clock_source <= SEQ_CHANNEL_TRIGGER_TR2) {
       
@@ -639,7 +664,7 @@ public:
      } 
 
      //  do we advance sequences by TR2/4?
-     if (get_playmode() > 3) {
+     if (_playmode > PM_SEQ3 && _playmode < PM_CV1) {
 
         uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
         // ?
@@ -851,16 +876,16 @@ public:
 
       uint8_t _playmode = get_playmode();
       
-      if (_playmode) {
+      if (_playmode && _playmode < PM_CV1) {
 
         // concatenate sequences:
-        if (_playmode <= 3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
+        if (_playmode <= PM_SEQ3 && clk_cnt_ >= get_sequence_length(sequence_last_)) {
           sequence_cnt_++;
           sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
           clk_cnt_ = 0; 
         }
-        else if (_playmode > 3 && sequence_advance_) {
-          _playmode -= 3;
+        else if (_playmode > PM_SEQ3 && sequence_advance_) {
+          _playmode -= PM_SEQ3;
           sequence_cnt_++;
           sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
           clk_cnt_ = 0;
@@ -885,6 +910,23 @@ public:
       // reset counter ?
       if (clk_cnt_ >= get_sequence_length(_seq))
         clk_cnt_ = 0; 
+
+         
+      // temp. brute S/H version
+      if (_playmode >= PM_CV1) {
+        
+        int len = get_sequence_length(_seq);
+
+        if (sequence_last_length_ != len) 
+          update_inputmap(len, 0); // to do: ranges
+
+        sequence_last_length_ = len;
+        int cv_val = OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1));
+        int slot = input_map_.Process(cv_val);
+        clk_cnt_ = slot;
+       }
+       //
+         
       // output slot at current position:  
       _out = (_mask >> clk_cnt_) & 1u;
       _out = _out ? ON : OFF;   
@@ -927,7 +969,10 @@ public:
           }
          
          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
-         *settings++ = SEQ_CHANNEL_SETTING_MULT;
+         if (get_playmode() < PM_CV1)
+            *settings++ = SEQ_CHANNEL_SETTING_MULT;
+         else 
+            *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
          switch (get_mode()) {
@@ -955,7 +1000,10 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = TD: rotate mask
          
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = playmode
-         *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
+         if (get_playmode() < PM_CV1)
+            *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
+         else 
+            *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
 
          switch (get_mode()) {
@@ -1040,6 +1088,7 @@ private:
   uint8_t display_sequence_;
   uint16_t display_mask_;
   int8_t sequence_last_;
+  int8_t sequence_last_length_;
   int32_t sequence_cnt_;
   int8_t sequence_advance_;
   int8_t sequence_advance_state_;
@@ -1049,6 +1098,7 @@ private:
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
   braids::Quantizer quantizer_; 
+  OC::Input_Map input_map_;
   OC::DigitalInputDisplay clock_display_;
 };
 
@@ -1070,6 +1120,10 @@ const char* const cv_sources[] = {
 
 const char* const modes[] = {
   "gate", "copy"
+};
+
+const char* const cv_ranges[] = {
+  "+/+", "-/+"
 };
 
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
@@ -1094,7 +1148,8 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 2
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 3
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 4
-  { 0, 0, 6, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, PM_LAST - 1, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "CV range", cv_ranges, settings::STORAGE_TYPE_U4 },
   // cv sources
   { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "transpose   ->", cv_sources, settings::STORAGE_TYPE_U4 },
@@ -1310,6 +1365,7 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
               }
               break;
               case SEQ_CHANNEL_SETTING_MODE:
+              case SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE:
                  selected.update_enabled_settings(seq_state.selected_channel);
                  seq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
               break;
@@ -1326,6 +1382,7 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
 void SEQ_upButton() {
 
   SEQ_Channel &selected = seq_channel[seq_state.selected_channel];
+  
   if (selected.get_menu_page() == PARAMETERS) 
     selected.change_value(SEQ_CHANNEL_SETTING_OCTAVE, 1);
   else  {
