@@ -252,7 +252,7 @@ public:
   }
 
   void set_display_sequence(uint8_t seq) {
-    display_sequence_ = seq;
+    display_sequence_ = seq;  
   }
 
   int get_display_mask() const {
@@ -271,6 +271,9 @@ public:
     
     switch (_seq) {
 
+    case 0:
+    return values_[SEQ_CHANNEL_SETTING_SEQUENCE_LEN1];
+    break;
     case 1:
     return values_[SEQ_CHANNEL_SETTING_SEQUENCE_LEN2];
     break;
@@ -454,8 +457,11 @@ public:
 
   void pattern_changed(uint16_t mask) {
     force_update_ = true;
-    if (get_sequence() == sequence_last_)
-      display_mask_ = mask;
+    display_mask_ = mask;
+  }
+
+  void reset_sequence() {
+    sequence_reset_ = true;
   }
 
   void sync() {
@@ -580,6 +586,11 @@ public:
  
   void force_update() {
     force_update_ = true;
+  }
+
+  bool update_timeout() {
+    // wait for ~ 1 sec 
+    return (subticks_ > 20000) ? true : false;
   }
 
   /* main channel update below: */
@@ -894,14 +905,14 @@ public:
         _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
         CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
       }
-      
+              
       switch (_playmode) {
 
         case PM_NONE:
-        sequence_last_ = _seq;
         // reset counter ?
         if (clk_cnt_ >= get_sequence_length(_seq))
            clk_cnt_ = 0; 
+        sequence_last_ = _seq;     
         break;
         case PM_SEQ1:
         case PM_SEQ2:
@@ -910,12 +921,15 @@ public:
         // concatenate sequences:
           if (clk_cnt_ >= get_sequence_length(sequence_last_)) {
             sequence_cnt_++;
-            sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+            sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1)); // %2, %3, %4
             clk_cnt_ = 0; 
           }
+          
+          if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
+            sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
           // reset counter ?
           if (clk_cnt_ >= get_sequence_length(sequence_last_))
-            clk_cnt_ = 0; 
+            clk_cnt_ = 0;  
         }
         break;
         case PM_TR1:
@@ -923,18 +937,28 @@ public:
         case PM_TR3:
         {
         // advance by trigger:
+          _playmode -= PM_SEQ3;
+          
+          if (sequence_reset_) {
+          // manual change?
+            sequence_reset_ = false;
+            sequence_last_ = _seq;
+          }
+          
           if (sequence_advance_) {
-            _playmode -= PM_SEQ3;
             sequence_cnt_++;
-            sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1));
+            sequence_last_ = _seq + (sequence_cnt_ % (_playmode + 1)); // %2, %3, %4
             clk_cnt_ = 0;
             sequence_advance_ = false; 
           }
+          
           if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
             sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
+            
           // reset counter ?
           if (clk_cnt_ >= get_sequence_length(sequence_last_))
-            clk_cnt_ = 0; 
+            clk_cnt_ = 0;
+            
         }
         break;
         case PM_SH1:
@@ -942,8 +966,8 @@ public:
         case PM_SH3:
         case PM_SH4: 
         {
-           sequence_last_ = _seq;
            int len = get_sequence_length(_seq);
+           sequence_last_ = _seq; 
            // length changed ? 
            if (sequence_last_length_ != len) 
               // to do - deal w/ range:
@@ -957,9 +981,9 @@ public:
         case PM_CV3:
         case PM_CV4:
         {
-           sequence_last_ = _seq;
            prev_slot_ = clk_cnt_ - 1;
            int len = get_sequence_length(_seq);
+           sequence_last_ = _seq; 
            // length changed ? 
            if (sequence_last_length_ != len) 
               update_inputmap(len, get_cv_input_range());
@@ -1042,8 +1066,10 @@ public:
             break; 
          }
          
-         *settings++ = SEQ_CHANNEL_SETTING_RESET; 
-         *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
+         if (get_playmode() < PM_SH1) {
+           *settings++ = SEQ_CHANNEL_SETTING_RESET; 
+           *settings++ = SEQ_CHANNEL_SETTING_CLOCK;
+         }
       }
       break;  
       
@@ -1072,9 +1098,11 @@ public:
             default:
             break; 
          }
-       
-         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // =  TD: toggle clock source
-         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = reset source
+
+         if (get_playmode() < PM_SH1) {
+           *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // =  TD: toggle clock source
+           *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = reset source
+         }
       }
       break;
       default:
@@ -1145,6 +1173,7 @@ private:
   int8_t sequence_last_;
   int8_t sequence_last_length_;
   int32_t sequence_cnt_;
+  int8_t sequence_reset_;
   int8_t sequence_advance_;
   int8_t sequence_advance_state_;
   int last_scale_;
@@ -1266,10 +1295,16 @@ size_t SEQ_save(void *storage) {
   }
   return used;
 }
+
 size_t SEQ_restore(const void *storage) {
+  
   size_t used = 0;
+  
   for (size_t i = 0; i < NUM_CHANNELS; ++i) {
     used += seq_channel[i].Restore(static_cast<const char*>(storage) + used);
+    // update display
+    seq_channel[i].pattern_changed(seq_channel[i].get_mask(seq_channel[i].get_sequence()));
+    seq_channel[i].set_display_sequence(seq_channel[i].get_sequence()); 
     seq_channel[i].update_enabled_settings(i);
   }
   seq_state.cursor.AdjustEnd(seq_channel[0].num_enabled_settings() - 1);
@@ -1412,11 +1447,15 @@ void SEQ_handleEncoderEvent(const UI::Event &event) {
               
               case SEQ_CHANNEL_SETTING_SEQUENCE:
               {
-                if (!selected.get_playmode()) {
-                    uint8_t seq = selected.get_sequence();
-                    selected.pattern_changed(selected.get_mask(seq));
-                    selected.set_display_sequence(seq);
-                } 
+                uint8_t seq = selected.get_sequence();
+                uint8_t playmode = selected.get_playmode();
+                // details: update mask/sequence, depending on mode.
+                if (!playmode || playmode >= PM_CV1 || selected.update_timeout()) {
+                  selected.set_display_sequence(seq); 
+                  selected.pattern_changed(selected.get_mask(seq)); 
+                }
+                // force update, when TR+1 etc
+                selected.reset_sequence();
               }
               break;
               case SEQ_CHANNEL_SETTING_MODE:
