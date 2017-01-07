@@ -44,6 +44,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_ROOT,
   CHANNEL_SETTING_MASK,
   CHANNEL_SETTING_SOURCE,
+  CHANNEL_SETTING_AUX_SOURCE_DEST,
   CHANNEL_SETTING_TRIGGER,
   CHANNEL_SETTING_CLKDIV,
   CHANNEL_SETTING_DELAY,
@@ -110,6 +111,15 @@ enum ChannelSource {
   CHANNEL_SOURCE_LAST
 };
 
+enum QQ_CV_DEST {
+  QQ_DEST_NONE,
+  QQ_DEST_ROOT,
+  QQ_DEST_OCTAVE,
+  QQ_DEST_TRANSPOSE,
+  QQ_DEST_MASK,
+  QQ_DEST_LAST
+};
+
 class QuantizerChannel : public settings::SettingsBase<QuantizerChannel, CHANNEL_SETTING_LAST> {
 public:
 
@@ -144,12 +154,20 @@ public:
     return values_[CHANNEL_SETTING_MASK];
   }
 
+  uint16_t get_rotated_scale_mask() const {
+    return last_mask_;
+  }
+
   ChannelSource get_source() const {
     return static_cast<ChannelSource>(values_[CHANNEL_SETTING_SOURCE]);
   }
 
   ChannelTriggerSource get_trigger_source() const {
     return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_TRIGGER]);
+  }
+
+  uint8_t get_channel_index() const {
+    return channel_index_;
   }
 
   uint8_t get_clkdiv() const {
@@ -170,6 +188,10 @@ public:
 
   int get_fine() const {
     return values_[CHANNEL_SETTING_FINE];
+  }
+
+  uint8_t get_aux_cv_dest() const {
+    return values_[CHANNEL_SETTING_AUX_SOURCE_DEST];
   }
 
   uint8_t get_turing_length() const {
@@ -316,11 +338,21 @@ public:
     return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER]);
   }
 
+  void clear_dest() {
+    // ...
+    schedule_mask_rotate_ = 0x0;
+    continuous_offset_ = 0x0;
+    prev_transpose_cv_ = 0x0;
+    prev_transpose_cv_ = 0x0;
+    prev_root_cv_ = 0x0;          
+  }
+
   void Init(ChannelSource source, ChannelTriggerSource trigger_source) {
     InitDefaults();
     apply_value(CHANNEL_SETTING_SOURCE, source);
     apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
 
+    channel_index_ = source;
     force_update_ = true;
     instant_update_ = false;
     last_scale_ = -1;
@@ -329,6 +361,11 @@ public:
     clock_ = 0;
     int_seq_reset_ = false;
     continuous_offset_ = false;
+    schedule_mask_rotate_ = false;
+    prev_octave_cv_ = 0;
+    prev_transpose_cv_ = 0;
+    prev_root_cv_ = 0;
+    prev_destination_ = 0;
 
     trigger_delay_.Init();
     turing_machine_.Init();
@@ -336,7 +373,7 @@ public:
     bytebeat_.Init();
     int_seq_.Init(get_int_seq_start(), get_int_seq_length());
     quantizer_.Init();
-    update_scale(true);
+    update_scale(true, false);
     trigger_display_.Init();
     update_enabled_settings();
 
@@ -351,8 +388,10 @@ public:
     instant_update_ = (~instant_update_) & 1u;
   }
 
-  inline void Update(uint32_t triggers, size_t index, DAC_CHANNEL dac_channel) {
+  inline void Update(uint32_t triggers, DAC_CHANNEL dac_channel) {
+    
     bool forced_update = force_update_;
+    uint8_t index = channel_index_;
     force_update_ = false;
 
     ChannelSource source = get_source();
@@ -381,15 +420,21 @@ public:
     }
 
     bool update = continuous || triggered;
-    if (update_scale(forced_update) && instant_update_ == true)
-       update = true;
-       
+    
+    if (update)
+      update_scale(forced_update, schedule_mask_rotate_);
+
     int32_t sample = last_sample_;
     int32_t temp_sample = 0;
     int32_t history_sample = 0;
 
+
     switch (source) {
       case CHANNEL_SOURCE_TURING: {
+          // this doesn't make sense when continuously quantizing; should be hidden via the menu ... 
+          if (continuous)
+            break;
+            
           turing_machine_.set_length(get_turing_length());
           int32_t probability = get_turing_prob();
           if (get_turing_prob_cv_source()) {
@@ -442,6 +487,10 @@ public:
         }
         break;
       case CHANNEL_SOURCE_BYTEBEAT: {
+           // this doesn't make sense when continuously quantizing; should be hidden via the menu ... 
+            if (continuous)
+              break;
+              
             int32_t bytebeat_eqn = get_bytebeat_equation() << 12;
             if (get_bytebeat_equation_cv_source()) {
               bytebeat_eqn += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_equation_cv_source() - 1)) << 4);
@@ -504,6 +553,10 @@ public:
           }
           break;        
       case CHANNEL_SOURCE_LOGISTIC_MAP: {
+          // this doesn't make sense when continuously quantizing; should be hidden via the menu ... 
+          if (continuous)
+            break;
+            
           logistic_map_.set_seed(123);
           int32_t logistic_map_r = get_logistic_map_r();
           if (get_logistic_map_r_cv_source()) {
@@ -539,6 +592,10 @@ public:
         }
         break;
       case CHANNEL_SOURCE_INT_SEQ: {
+            // this doesn't make sense when continuously quantizing; should be hidden via the menu ... 
+            if (continuous)
+              break;
+            
             int_seq_.set_loop_direction(get_int_seq_dir());
             int16_t int_seq_index = get_int_seq_index();
             int16_t int_seq_stride = get_int_seq_stride();
@@ -638,28 +695,121 @@ public:
 
       default: {
           if (update) {
-            int32_t transpose = get_transpose();
+            
+            int32_t transpose = get_transpose() + prev_transpose_cv_;
+            int octave = get_octave() + prev_octave_cv_;
+            int root = get_root() + prev_root_cv_;
+            
             int32_t pitch = quantizer_.enabled()
                 ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(source))
                 : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
-            if (index != source) {
-              transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+
+            // repurpose channel CV input? -- 
+            uint8_t _aux_cv_destination = get_aux_cv_dest();
+
+            if (_aux_cv_destination != prev_destination_)
+              clear_dest();
+            prev_destination_ = _aux_cv_destination;
+              
+            if (!continuous && index != source) {
+              // this doesn't really work all that well for continuous quantizing...
+              // see below
+          
+              switch(_aux_cv_destination) {
+
+                case QQ_DEST_NONE:
+                break;
+                case QQ_DEST_TRANSPOSE:
+                  transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                break;
+                case QQ_DEST_ROOT:
+                  root += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                break;
+                case QQ_DEST_OCTAVE:
+                  octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                break;
+                case  QQ_DEST_MASK:
+                  update_scale(false, (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8);
+                break;
+                default:
+                break;
+              }
             }
 
-            int octave = get_octave();
-            
+            // limit:
+            CONSTRAIN(octave, -4, 4);
+            CONSTRAIN(root, 0, 11);
             CONSTRAIN(transpose, -12, 12); 
-            const int32_t quantized = quantizer_.Process(pitch, get_root() << 7, transpose);
-            sample = temp_sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave);
+            
+            int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
+            sample = temp_sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
 
-            // offset when TR source = continuous ?
-            if (!continuous || (last_sample_ != sample && !OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))))
-              continuous_offset_ = 0;
-            else if (last_sample_ != sample && OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index)))
-              continuous_offset_ = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
-            // run quantizer again -- presumably could be made more efficient... 
-            if (continuous_offset_) 
-              sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+            // continuous mode needs special treatment to give useful results.
+            // basically, update on note change only
+            
+            if (continuous && last_sample_ != sample) {
+
+              bool _re_quantize = false;
+              int _aux_cv = 0;
+
+              if (index != source) {
+                  
+                  switch(_aux_cv_destination) {
+                    
+                    case QQ_DEST_NONE:
+                    break;
+                    case QQ_DEST_TRANSPOSE:
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      if (_aux_cv != prev_transpose_cv_) {
+                          transpose += _aux_cv;
+                          CONSTRAIN(transpose, -12, 12); 
+                          prev_transpose_cv_ = _aux_cv;
+                          _re_quantize = true;
+                      }
+                    break;
+                    case QQ_DEST_ROOT:
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      if (_aux_cv != prev_root_cv_) {
+                          root += _aux_cv;
+                          CONSTRAIN(root, 0, 11);
+                          prev_root_cv_ = _aux_cv;
+                          _re_quantize = true;
+                      }
+                    break;
+                    case QQ_DEST_OCTAVE:
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      if (_aux_cv != prev_octave_cv_) {
+                          octave += _aux_cv;
+                          CONSTRAIN(octave, -4, 4);
+                          prev_octave_cv_ = _aux_cv;
+                          _re_quantize = true;
+                      }
+                    break;   
+                    case QQ_DEST_MASK:
+                     // hack ahead -- update mask next time
+                    schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
+                    break;
+                    default:
+                    break; 
+                  } 
+                  // end switch
+              }
+              
+              // offset when TR source = continuous ?
+              if (OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
+                 continuous_offset_ = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
+              }
+              else 
+                 continuous_offset_  = 0;
+              
+              // run quantizer again -- presumably could be made more efficient...
+              if (_re_quantize) 
+                quantized = quantizer_.Process(pitch, root << 7, transpose);
+              if (_re_quantize || continuous_offset_ )
+                sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+              
+            } 
+            // end special treatment
                  
             history_sample = quantized + ((OC::DAC::kOctaveZero + octave + continuous_offset_) * 12 << 7);
           }
@@ -767,6 +917,13 @@ public:
     }
     *settings++ = CHANNEL_SETTING_SOURCE;
     switch (get_source()) {
+      case CHANNEL_SOURCE_CV1:
+      case CHANNEL_SOURCE_CV2:
+      case CHANNEL_SOURCE_CV3:
+      case CHANNEL_SOURCE_CV4:
+        if (get_source() != get_channel_index())
+         *settings++ = CHANNEL_SETTING_AUX_SOURCE_DEST;
+      break;
       case CHANNEL_SOURCE_TURING:
         *settings++ = CHANNEL_SETTING_TURING_LENGTH;
         *settings++ = CHANNEL_SETTING_TURING_MODULUS;
@@ -818,8 +975,6 @@ public:
       *settings++ = CHANNEL_SETTING_CLKDIV;
       *settings++ = CHANNEL_SETTING_DELAY;
     }
-
-    //*settings++ = CHANNEL_SETTING_OCTAVE;
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
 
@@ -882,6 +1037,12 @@ private:
   uint8_t clock_;
   bool int_seq_reset_;
   int8_t continuous_offset_;
+  int8_t channel_index_;
+  int32_t schedule_mask_rotate_;
+  int8_t prev_destination_;
+  int8_t prev_octave_cv_;
+  int8_t prev_transpose_cv_;
+  int8_t prev_root_cv_;
   
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
@@ -896,9 +1057,14 @@ private:
 
   OC::vfx::ScrollingHistory<int32_t, 5> scrolling_history_;
 
-  bool update_scale(bool force) {
+  bool update_scale(bool force, int32_t mask_rotate) {
+    
     const int scale = get_scale(DUMMY);
-    const uint16_t mask = get_mask();
+    uint16_t mask = get_mask();
+
+    if (mask_rotate)
+      mask = OC::ScaleEditor<QuantizerChannel>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
+
     if (force || (last_scale_ != scale || last_mask_ != mask)) {
       last_scale_ = scale;
       last_mask_ = mask;
@@ -926,13 +1092,16 @@ const char* const qq_reset_trigger_sources[5] = {
   "None", "TR1", "TR2", "TR3", "TR4"
 };
 
-
+const char* const aux_cv_dest[5] = {
+  "-", "root", "oct", "trns", "mask"
+};
 
 SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "Root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 },
-  { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U4 },
+  { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U8 },
+  { QQ_DEST_NONE, QQ_DEST_NONE, QQ_DEST_LAST - 1, "CV aux >", aux_cv_dest, settings::STORAGE_TYPE_U8 },
   { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 1, 1, 16, "Clock div", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
@@ -1049,10 +1218,10 @@ void QQ_handleAppEvent(OC::AppEvent event) {
 
 void QQ_isr() {
   uint32_t triggers = OC::DigitalInputs::clocked();
-  quantizer_channels[0].Update(triggers, 0, DAC_CHANNEL_A);
-  quantizer_channels[1].Update(triggers, 1, DAC_CHANNEL_B);
-  quantizer_channels[2].Update(triggers, 2, DAC_CHANNEL_C);
-  quantizer_channels[3].Update(triggers, 3, DAC_CHANNEL_D);
+  quantizer_channels[0].Update(triggers, DAC_CHANNEL_A);
+  quantizer_channels[1].Update(triggers, DAC_CHANNEL_B);
+  quantizer_channels[2].Update(triggers, DAC_CHANNEL_C);
+  quantizer_channels[3].Update(triggers, DAC_CHANNEL_D);
 }
 
 void QQ_loop() {
@@ -1096,7 +1265,7 @@ void QQ_menu() {
         list_item.DrawCustom();
         break;
       case CHANNEL_SETTING_MASK:
-        menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
+        menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHANNEL_SETTING_SOURCE:
@@ -1239,9 +1408,10 @@ void QQ_leftButtonLong() {
 }
 
 void QQ_downButtonLong() {
-
+   /*
    for (int i = 0; i < 4; ++i) 
       quantizer_channels[i].instant_update();
+   */   
 }
 
 int32_t history[5];
