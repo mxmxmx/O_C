@@ -618,7 +618,7 @@ public:
             case DQ_DEST_TRANSPOSE:
               _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
               if (_aux_cv != prev_transpose_cv_) {
-                  transpose += _aux_cv;
+                  transpose = get_transpose() + _aux_cv;
                   CONSTRAIN(transpose, -12, 12); 
                   prev_transpose_cv_ = _aux_cv;
                   _re_quantize = true;
@@ -627,7 +627,7 @@ public:
             case DQ_DEST_ROOT:
               _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
               if (_aux_cv != prev_root_cv_) {
-                  root += _aux_cv;
+                  root = get_root() + _aux_cv;
                   CONSTRAIN(root, 0, 11);
                   prev_root_cv_ = _aux_cv;
                   _re_quantize = true;
@@ -636,7 +636,7 @@ public:
             case DQ_DEST_OCTAVE:
               _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
               if (_aux_cv != prev_octave_cv_) {
-                  octave += _aux_cv;
+                  octave = get_octave() + _aux_cv;
                   CONSTRAIN(octave, -4, 4);
                   prev_octave_cv_ = _aux_cv;
                   _re_quantize = true;
