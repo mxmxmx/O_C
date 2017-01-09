@@ -643,8 +643,8 @@ public:
               }
             break;   
             case DQ_DEST_MASK:
-             // hack ahead -- update mask next time
-            schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
+              schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
+              update_scale(force_update_, active_scale_slot_, schedule_mask_rotate_);
             break;
             default:
             break; 

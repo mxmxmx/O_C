@@ -697,7 +697,7 @@ public:
             int32_t transpose = get_transpose() + prev_transpose_cv_;
             int octave = get_octave() + prev_octave_cv_;
             int root = get_root() + prev_root_cv_;
-            
+
             int32_t pitch = quantizer_.enabled()
                 ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(source))
                 : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(source));
@@ -751,7 +751,7 @@ public:
               int _aux_cv = 0;
 
               if (index != source) {
-                  
+     
                   switch(_aux_cv_destination) {
                     
                     case QQ_DEST_NONE:
@@ -784,15 +784,15 @@ public:
                       }
                     break;   
                     case QQ_DEST_MASK:
-                     // hack ahead -- update mask next time
-                    schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
+                      schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
+                      update_scale(force_update_, schedule_mask_rotate_);
                     break;
                     default:
                     break; 
                   } 
                   // end switch
               }
-              
+                
               // offset when TR source = continuous ?
               if (OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
                  continuous_offset_ = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
