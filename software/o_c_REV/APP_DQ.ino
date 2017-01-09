@@ -320,6 +320,10 @@ public:
     prev_root_cv_ = 0x0;   
     prev_scale_cv_ = 0x0;       
   }
+
+  void reset_scale() {
+    scale_reset_ = true;
+  }
   
   void Init(DQ_ChannelSource source, DQ_ChannelTriggerSource trigger_source) {
     
@@ -341,6 +345,7 @@ public:
     aux_sample_ = 0;
     continuous_offset_ = 0;
     scale_sequence_cnt_ = 0;
+    scale_reset_ = 0;
     active_scale_slot_ = 0;
     display_scale_slot_ = 0;
     display_root_ = 0;
@@ -376,6 +381,10 @@ public:
     force_update_ = true;
   }
 
+  void schedule_scale_update() {
+    schedule_scale_update_ = true;
+  }
+       
   void instant_update() {
     instant_update_ = (~instant_update_) & 1u;
   }
@@ -383,8 +392,6 @@ public:
   inline void Update(uint32_t triggers, DAC_CHANNEL dac_channel, DAC_CHANNEL aux_channel) {
 
     ticks_++;
-    bool forced_update = force_update_;
-    force_update_ = false;
 
     DQ_ChannelTriggerSource trigger_source = get_trigger_source();
     bool continuous = DQ_CHANNEL_TRIGGER_CONTINUOUS_UP == trigger_source || DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN == trigger_source;
@@ -401,14 +408,20 @@ public:
       ticks_ = 0x0;
       aux_sample_ = ON; 
     }
-   
+         
     if (get_scale_seq_mode()) {
         // to do, don't hardcode .. 
       uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
       if (_advance_trig < scale_advance_state_) 
         scale_advance_ = true;
-          
-      scale_advance_state_ = _advance_trig;     
+      scale_advance_state_ = _advance_trig;  
+
+      if (scale_reset_) {
+       // manual change?
+       scale_reset_ = false;
+       active_scale_slot_ = get_scale_select();
+       prev_scale_slot_ = active_scale_slot_;
+      }
     }
     else if (prev_scale_slot_ != get_scale_select()) {
       active_scale_slot_ = get_scale_select();
@@ -417,7 +430,7 @@ public:
           
     if (scale_advance_) {
       scale_sequence_cnt_++;
-      active_scale_slot_ = get_scale_select() + (scale_sequence_cnt_ % (get_scale_seq_mode()+1));
+      active_scale_slot_ = get_scale_select() + (scale_sequence_cnt_ % (get_scale_seq_mode() + 1));
       
       if (active_scale_slot_ >= NUM_SCALE_SLOTS)
         active_scale_slot_ -= NUM_SCALE_SLOTS;
@@ -428,7 +441,7 @@ public:
     bool update = continuous || triggered;
     
     if (update) 
-      update_scale(forced_update, active_scale_slot_, schedule_mask_rotate_);
+      update_scale(force_update_, active_scale_slot_, schedule_mask_rotate_);
        
     int32_t sample = last_sample_;
     int32_t temp_sample = 0;
@@ -534,6 +547,7 @@ public:
         break;
       }
 
+      // S/H 
       if (!continuous) {
         
         switch(_aux_cv_destination) {
@@ -781,19 +795,24 @@ public:
     switch (scale_select) {
       case 0:  
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
+        last_mask_[0] = mask;
       break;
       case 1:  
         apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
+        last_mask_[1] = mask;
       break;
       case 2:  
         apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
+        last_mask_[2] = mask;
       break;
       case 3: 
         apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
+        last_mask_[3] = mask;
       break;
       default:
       break;
     }
+    force_update_ = true;
   }
   //
 
@@ -915,6 +934,7 @@ private:
   int prev_scale_slot_;
   int8_t scale_advance_;
   int8_t scale_advance_state_;
+  bool scale_reset_;
   bool schedule_scale_update_;
   int32_t schedule_mask_rotate_;
   int32_t last_sample_;
@@ -948,7 +968,8 @@ private:
   OC::vfx::ScrollingHistory<int32_t, 5> scrolling_history_;
 
   bool update_scale(bool force, uint8_t scale_select, int32_t mask_rotate) {
-      
+
+    force_update_ = false;  
     const int scale = get_scale(scale_select);
     uint16_t mask = get_mask(scale_select);
     
@@ -1243,13 +1264,16 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
           case DQ_CHANNEL_SETTING_SCALE2:
           case DQ_CHANNEL_SETTING_SCALE3:
           case DQ_CHANNEL_SETTING_SCALE4:
-          case DQ_CHANNEL_SETTING_SCALE_SEQ:
           case DQ_CHANNEL_SETTING_TRIGGER:
           case DQ_CHANNEL_SETTING_SOURCE:
           case DQ_CHANNEL_SETTING_AUX_OUTPUT:
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
           break;
+            case DQ_CHANNEL_SETTING_SCALE_SEQ:
+            selected.update_enabled_settings();
+            dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
+            selected.reset_scale();
           default:
           break;
         }
@@ -1314,10 +1338,10 @@ void DQ_leftButtonLong() {
 }
 
 void DQ_downButtonLong() {
-   // to do...
-   // CV menu
-   //for (int i = 0; i < NUMCHANNELS; ++i) 
-   //  dq_quantizer_channels[i].instant_update();
+  // reset mask
+  DQ_QuantizerChannel &selected_channel = dq_quantizer_channels[dq_state.selected_channel];
+  int scale_slot = selected_channel.get_scale_select();
+  selected_channel.set_scale_at_slot(selected_channel.get_scale(scale_slot), 0xFFFF, scale_slot);
 }
 
 int32_t dq_history[5];

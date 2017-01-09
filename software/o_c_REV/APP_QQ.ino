@@ -390,9 +390,7 @@ public:
 
   inline void Update(uint32_t triggers, DAC_CHANNEL dac_channel) {
     
-    bool forced_update = force_update_;
     uint8_t index = channel_index_;
-    force_update_ = false;
 
     ChannelSource source = get_source();
     ChannelTriggerSource trigger_source = get_trigger_source();
@@ -422,7 +420,7 @@ public:
     bool update = continuous || triggered;
     
     if (update)
-      update_scale(forced_update, schedule_mask_rotate_);
+      update_scale(force_update_, schedule_mask_rotate_);
 
     int32_t sample = last_sample_;
     int32_t temp_sample = 0;
@@ -845,6 +843,8 @@ public:
 
   void update_scale_mask(uint16_t mask, uint16_t dummy) {
     apply_value(CHANNEL_SETTING_MASK, mask); // Should automatically be updated
+    last_mask_ = mask;
+    force_update_ = true;
   }
   //
 
@@ -1058,7 +1058,8 @@ private:
   OC::vfx::ScrollingHistory<int32_t, 5> scrolling_history_;
 
   bool update_scale(bool force, int32_t mask_rotate) {
-    
+
+    force_update_ = false;
     const int scale = get_scale(DUMMY);
     uint16_t mask = get_mask();
 
@@ -1408,10 +1409,9 @@ void QQ_leftButtonLong() {
 }
 
 void QQ_downButtonLong() {
-   /*
-   for (int i = 0; i < 4; ++i) 
-      quantizer_channels[i].instant_update();
-   */   
+  
+  QuantizerChannel &selected_channel = quantizer_channels[qq_state.selected_channel];
+  selected_channel.update_scale_mask(0xFFFF, 0x0);
 }
 
 int32_t history[5];
