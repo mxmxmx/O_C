@@ -794,16 +794,19 @@ public:
               }
                 
               // offset when TR source = continuous ?
+              int8_t _trigger_offset = 0;
+              bool _trigger_update = false;
               if (OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(index))) {
-                 continuous_offset_ = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
+                 _trigger_offset = (trigger_source == CHANNEL_TRIGGER_CONTINUOUS_UP) ? 1 : -1;
               }
-              else 
-                 continuous_offset_  = 0;
-              
+              if (_trigger_offset != continuous_offset_)
+                 _trigger_update = true;
+              continuous_offset_ = _trigger_offset;
+                 
               // run quantizer again -- presumably could be made more efficient...
               if (_re_quantize) 
                 quantized = quantizer_.Process(pitch, root << 7, transpose);
-              if (_re_quantize || continuous_offset_ ) 
+              if (_re_quantize || _trigger_update) 
                 sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
             } 
             // end special treatment
