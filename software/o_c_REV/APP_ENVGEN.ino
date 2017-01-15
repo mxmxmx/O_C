@@ -59,7 +59,7 @@ enum EnvelopeSettings {
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
-  ENV_SETTING_HARD_RESET,
+  ENV_SETTING_RESET_BEHAVIOUR,
   ENV_SETTING_GATE_HIGH,
   ENV_SETTING_ATTACK_SHAPE,
   ENV_SETTING_DECAY_SHAPE,
@@ -142,6 +142,10 @@ public:
     return static_cast<TriggerDelayMode>(values_[ENV_SETTING_TRIGGER_DELAY_MODE]);
   }
 
+  peaks::EnvResetBehaviour get_reset_behaviour() const {
+    return static_cast<peaks::EnvResetBehaviour>(values_[ENV_SETTING_RESET_BEHAVIOUR]);
+  }
+
   uint8_t get_euclidean_length() const {
     return values_[ENV_SETTING_EUCLIDEAN_LENGTH];
   }
@@ -187,9 +191,9 @@ public:
     return static_cast<CVMapping>(values_[ENV_SETTING_CV4]);
   }
 
-  bool get_hard_reset() const {
-    return values_[ENV_SETTING_HARD_RESET];
-  }
+//  bool get_hard_reset() const {
+//    return values_[ENV_SETTING_HARD_RESET];
+//  }
 
   bool get_gate_high() const {
     return values_[ENV_SETTING_GATE_HIGH];
@@ -302,7 +306,7 @@ public:
     *settings++ = ENV_SETTING_CV2;
     *settings++ = ENV_SETTING_CV3;
     *settings++ = ENV_SETTING_CV4;
-    *settings++ = ENV_SETTING_HARD_RESET;
+    *settings++ = ENV_SETTING_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_GATE_HIGH;
 
     num_enabled_settings_ = settings - enabled_settings_;
@@ -374,8 +378,8 @@ public:
       env_.reset();
     }
 
-    // hard reset forces the envelope to start at level_[0] on rising gate.
-    env_.set_hard_reset(get_hard_reset());
+    // set the specified reset behaviour
+    env_.set_reset_behaviour(get_reset_behaviour());
 
     // set the envelope segment shapes
     env_.set_attack_shape(get_attack_shape());
@@ -543,6 +547,10 @@ const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
   "Off", "Queue", "Ring"
 };
 
+const char* const reset_behaviours[peaks::RESET_BEHAVIOUR_LAST] = {
+  "Levl", "Phase", "Segmt", "L&P", "Cont"
+};
+
 const char* const euclidean_lengths[] = {
   "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
   " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
@@ -572,7 +580,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
+  { peaks::RESET_BEHAVIOUR_CARRY_ON, peaks::RESET_BEHAVIOUR_LEVEL, peaks::RESET_BEHAVIOUR_LAST - 1, "Reset behav", reset_behaviours, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },

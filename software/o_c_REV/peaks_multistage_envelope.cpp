@@ -42,7 +42,7 @@ void MultistageEnvelope::Init() {
   phase_increment_ = 0;
   start_value_ = 0;
   value_ = 0;
-  hard_reset_ = false;
+  reset_behaviour_ = RESET_BEHAVIOUR_CARRY_ON;
   attack_shape_ = ENV_SHAPE_QUARTIC;
   decay_shape_ = ENV_SHAPE_EXPONENTIAL;
   release_shape_ = ENV_SHAPE_EXPONENTIAL;
@@ -52,12 +52,40 @@ void MultistageEnvelope::Init() {
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
+  
   if (control & CONTROL_GATE_RISING) {
-    start_value_ = (segment_ == num_segments_ || hard_reset_)
-        ? level_[0]
-        : value_;
-    segment_ = 0;
-    phase_ = 0;
+    if (segment_ == num_segments_) {
+      start_value_ = level_[0];
+      segment_ = 0;
+      phase_ = 0 ;
+    } else {
+      switch(reset_behaviour_) {
+        case RESET_BEHAVIOUR_LEVEL:
+          start_value_ = level_[0];
+          segment_ = 0 ;
+          break ;
+        case RESET_BEHAVIOUR_SEGMENT:
+          start_value_ = value_;
+          segment_ = 0 ;
+          break ;
+        case RESET_BEHAVIOUR_PHASE:
+          segment_ = 0;
+          phase_ = 0;
+          start_value_ = value_;
+          break ;
+        case RESET_BEHAVIOUR_PHASE_AND_LEVEL:
+          segment_ = 0;
+          phase_ = 0;
+          start_value_ = level_[0];
+          break ;
+        case RESET_BEHAVIOUR_CARRY_ON:
+          // segment_ = 0;
+          // start_value_ = value_;
+          break ;
+        default:
+          break;              
+      }
+    }
   } else if (control & CONTROL_GATE_FALLING && sustain_point_) {
     start_value_ = value_;
     segment_ = sustain_point_;

@@ -51,6 +51,15 @@ enum EnvelopeShape {
   ENV_SHAPE_LAST
 };
 
+enum EnvResetBehaviour {
+  RESET_BEHAVIOUR_LEVEL,
+  RESET_BEHAVIOUR_PHASE,
+  RESET_BEHAVIOUR_SEGMENT,
+  RESET_BEHAVIOUR_PHASE_AND_LEVEL,
+  RESET_BEHAVIOUR_CARRY_ON,
+  RESET_BEHAVIOUR_LAST
+};
+
 const uint16_t kMaxNumSegments = 8;
 const uint32_t kPreviewWidth = 128;
 const uint32_t kFastPreviewWidth = 64;
@@ -348,8 +357,8 @@ class MultistageEnvelope {
     loop_end_ = 4;
   }
   
-  inline void set_hard_reset(bool hard_reset) {
-    hard_reset_ = hard_reset;
+  inline void set_reset_behaviour(EnvResetBehaviour reset_behaviour) {
+    reset_behaviour_ = reset_behaviour;
   }
 
   inline void reset() {
@@ -411,7 +420,7 @@ class MultistageEnvelope {
   uint16_t loop_start_;
   uint16_t loop_end_;
   
-  bool hard_reset_;
+  EnvResetBehaviour reset_behaviour_;
   EnvelopeShape attack_shape_;
   EnvelopeShape decay_shape_;
   EnvelopeShape release_shape_;
