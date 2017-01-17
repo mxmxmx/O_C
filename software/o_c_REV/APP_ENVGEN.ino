@@ -68,6 +68,7 @@ enum EnvelopeSettings {
   ENV_SETTING_ATTACK_TIME_MULTIPLIER,
   ENV_SETTING_DECAY_TIME_MULTIPLIER,
   ENV_SETTING_RELEASE_TIME_MULTIPLIER,
+  ENV_SETTING_LEVEL,
   ENV_SETTING_LAST
 };
 
@@ -81,6 +82,8 @@ enum CVMapping {
   CV_MAPPING_EUCLIDEAN_FILL,
   CV_MAPPING_EUCLIDEAN_OFFSET,
   CV_MAPPING_DELAY_MSEC,
+  CV_MAPPING_LEVEL_CONT,
+  CV_MAPPING_LEVEL_SH,
   CV_MAPPING_LAST
 };
 
@@ -161,6 +164,10 @@ public:
 
   uint8_t get_euclidean_offset() const {
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
+  }
+
+  uint8_t get_level() const {
+    return values_[ENV_SETTING_LEVEL];
   }
 
   // Debug only
@@ -314,6 +321,7 @@ public:
     *settings++ = ENV_SETTING_ATTACK_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_GATE_HIGH;
+    *settings++ = ENV_SETTING_LEVEL;
 
     num_enabled_settings_ = settings - enabled_settings_;
   }
@@ -547,7 +555,7 @@ const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay"
+  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay", "Level", "LvlSH"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
@@ -596,6 +604,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 13, "Attack mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   { 0, 0, 13, "Decay mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   {0, 0, 13, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  {127, 0, 127, "Amplitude", time_multipliers, settings::STORAGE_TYPE_U8 },
 };
 
 class QuadEnvelopeGenerator {
