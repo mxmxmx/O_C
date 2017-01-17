@@ -42,7 +42,9 @@ void MultistageEnvelope::Init() {
   phase_increment_ = 0;
   start_value_ = 0;
   value_ = 0;
-  reset_behaviour_ = RESET_BEHAVIOUR_CARRY_ON;
+  attack_reset_behaviour_ = RESET_BEHAVIOUR_NULL;
+  decay_release_reset_behaviour_ = RESET_BEHAVIOUR_SEGMENT_PHASE;
+  reset_behaviour_ = RESET_BEHAVIOUR_NULL;
   attack_shape_ = ENV_SHAPE_QUARTIC;
   decay_shape_ = ENV_SHAPE_EXPONENTIAL;
   release_shape_ = ENV_SHAPE_EXPONENTIAL;
@@ -59,28 +61,28 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
       segment_ = 0;
       phase_ = 0 ;
     } else {
+      if (segment_ == 0) reset_behaviour_ = attack_reset_behaviour_ ;
+      else reset_behaviour_ = decay_release_reset_behaviour_;
       switch(reset_behaviour_) {
-        case RESET_BEHAVIOUR_LEVEL:
-          start_value_ = level_[0];
-          segment_ = 0 ;
+        case RESET_BEHAVIOUR_NULL:
           break ;
-        case RESET_BEHAVIOUR_SEGMENT:
+        case RESET_BEHAVIOUR_SEGMENT_PHASE:
+          segment_ = 0;
+          phase_ = 0;
           start_value_ = value_;
+          break ;
+        case RESET_BEHAVIOUR_SEGMENT_LEVEL_PHASE:
+          segment_ = 0;
+          phase_ = 0;
+          start_value_ = level_[0];
+          break ;
+        case RESET_BEHAVIOUR_SEGMENT_LEVEL:
+          start_value_ = level_[0];
           segment_ = 0 ;
           break ;
         case RESET_BEHAVIOUR_PHASE:
-          segment_ = 0;
-          phase_ = 0;
           start_value_ = value_;
-          break ;
-        case RESET_BEHAVIOUR_PHASE_AND_LEVEL:
-          segment_ = 0;
-          phase_ = 0;
-          start_value_ = level_[0];
-          break ;
-        case RESET_BEHAVIOUR_CARRY_ON:
-          // segment_ = 0;
-          // start_value_ = value_;
+          phase_ = 0 ;
           break ;
         default:
           break;              

@@ -52,11 +52,11 @@ enum EnvelopeShape {
 };
 
 enum EnvResetBehaviour {
-  RESET_BEHAVIOUR_LEVEL,
+  RESET_BEHAVIOUR_NULL,
+  RESET_BEHAVIOUR_SEGMENT_PHASE,
+  RESET_BEHAVIOUR_SEGMENT_LEVEL_PHASE,
+  RESET_BEHAVIOUR_SEGMENT_LEVEL,
   RESET_BEHAVIOUR_PHASE,
-  RESET_BEHAVIOUR_SEGMENT,
-  RESET_BEHAVIOUR_PHASE_AND_LEVEL,
-  RESET_BEHAVIOUR_CARRY_ON,
   RESET_BEHAVIOUR_LAST
 };
 
@@ -357,8 +357,12 @@ class MultistageEnvelope {
     loop_end_ = 4;
   }
   
-  inline void set_reset_behaviour(EnvResetBehaviour reset_behaviour) {
-    reset_behaviour_ = reset_behaviour;
+  inline void set_attack_reset_behaviour(EnvResetBehaviour reset_behaviour) {
+    attack_reset_behaviour_ = reset_behaviour;
+  }
+
+  inline void set_decay_release_reset_behaviour(EnvResetBehaviour reset_behaviour) {
+    decay_release_reset_behaviour_ = reset_behaviour;
   }
 
   inline void reset() {
@@ -420,6 +424,8 @@ class MultistageEnvelope {
   uint16_t loop_start_;
   uint16_t loop_end_;
   
+  EnvResetBehaviour attack_reset_behaviour_;
+  EnvResetBehaviour decay_release_reset_behaviour_;
   EnvResetBehaviour reset_behaviour_;
   EnvelopeShape attack_shape_;
   EnvelopeShape decay_shape_;
