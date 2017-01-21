@@ -51,6 +51,10 @@ void MultistageEnvelope::Init() {
   attack_multiplier_ = 0;
   decay_multiplier_ = 0;
   release_multiplier_ = 0;
+  amplitude_ = 65535 ;
+  sampled_amplitude_ = 65535 ;
+  amplitude_sampled_ = false ;
+  scaled_value_ = 0 ;
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
@@ -88,6 +92,7 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
           break;              
       }
     }
+    if (segment_ == 0 and amplitude_sampled_) sampled_amplitude_ = amplitude_ ;
   } else if (control & CONTROL_GATE_FALLING && sustain_point_) {
     start_value_ = value_;
     segment_ = sustain_point_;
@@ -114,7 +119,13 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
       lookup_table_table[LUT_ENV_LINEAR + shape_[segment_]], phase_);
   value_ = a + ((b - a) * (t >> 1) >> 15);
   phase_ += phase_increment_;
-  return value_;
+  if (amplitude_sampled_) {
+    scaled_value_ = (value_ * sampled_amplitude_) >> 16 ;
+  } else {
+    scaled_value_ = (value_ * amplitude_) >> 16 ;
+  }
+  return(static_cast<uint16_t>(scaled_value_)) ;
+  // return(value_) ;
 }
 
 uint16_t MultistageEnvelope::RenderPreview(
