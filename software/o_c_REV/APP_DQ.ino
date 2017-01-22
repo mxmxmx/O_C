@@ -1102,6 +1102,8 @@ size_t DQ_restore(const void *storage) {
   size_t used = 0;
   for (size_t i = 0; i < NUMCHANNELS; ++i) {
     used += dq_quantizer_channels[i].Restore(static_cast<const char*>(storage) + used);
+    int scale = dq_quantizer_channels[i].get_scale_select();
+    dq_quantizer_channels[i].update_scale_mask(dq_quantizer_channels[i].get_mask(scale), scale);
     dq_quantizer_channels[i].update_enabled_settings();
   }
   dq_state.cursor.AdjustEnd(dq_quantizer_channels[0].num_enabled_settings() - 1);
