@@ -741,7 +741,7 @@ public:
          // end of ugly hack
      }
      else { 
-     // CV mode 
+     // S+H mode 
         if (_playmode <= PM_SH4) {
           if (_triggered) {
             // new frequency (used for pulsewidth):
@@ -1053,23 +1053,41 @@ public:
           clk_cnt_ = sequence_length - 1;
         break;
         case PENDULUM1:
-        if (pendulum_fwd_)
-          clk_cnt_++;  
-        else 
-          clk_cnt_--;    
-        if (reset)
-          clk_cnt_ = 0x0;
+        {
+          if (pendulum_fwd_) {
+            clk_cnt_++;  
+            if (reset)
+              clk_cnt_ = 0x0;
+            pendulum_fwd_ = (clk_cnt_ >= sequence_length - 1) ? false : true;
+          }
+          else {
+            clk_cnt_--; 
+            if (reset)  
+              clk_cnt_ = sequence_length - 1;
+            pendulum_fwd_ = (clk_cnt_ <= 0) ? true : false;
+          }
+          CONSTRAIN(clk_cnt_, 0, sequence_length - 1);  
+        }
         break;
         case PENDULUM2:
-        if (pendulum_fwd_)
-          clk_cnt_++;  
-        else 
-          clk_cnt_--;
-        if (reset)
-          clk_cnt_ = 0x0;
+        {
+          if (pendulum_fwd_) {
+            clk_cnt_++;  
+            if (reset)
+              clk_cnt_ = 0x0;
+            pendulum_fwd_ = (clk_cnt_ >= sequence_length) ? false : true;
+          }
+          else {
+            clk_cnt_--; 
+            if (reset)  
+              clk_cnt_ = sequence_length - 1;
+            pendulum_fwd_ = (clk_cnt_ < 0) ? true : false;
+          }
+          CONSTRAIN(clk_cnt_, 0, sequence_length - 1); 
+        }
         break;
         case RANDOM:
-        clk_cnt_ = random(get_sequence_length(get_sequence()));
+        clk_cnt_ = random(sequence_length);
         if (reset)
           clk_cnt_ = 0x0;
         break;
