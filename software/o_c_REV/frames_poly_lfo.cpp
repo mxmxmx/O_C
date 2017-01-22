@@ -43,11 +43,13 @@ using namespace std;
 using namespace stmlib;
 
 void PolyLfo::Init() {
-  freq_range_ = 2;
+  freq_range_ = 9;
   spread_ = 0;
   shape_ = 0;
   shape_spread_ = 0;
   coupling_ = 0;
+  attenuation_ = 58880;
+  offset_ = 0 ;
   freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_DIV_NONE ;
   phase_reset_flag_ = false;
   std::fill(&value_[0], &value_[kNumChannels], 0);
@@ -189,6 +191,8 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     } else {
       dac_code_[i] = wt_value_[i] + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }
+    dac_code_[i] = ((dac_code_[i] * attenuation_) >> 16) + offset_ ;
+    // dac_code_[i] += offset_ ;
     wavetable_index += shape_spread_;
   }
 }

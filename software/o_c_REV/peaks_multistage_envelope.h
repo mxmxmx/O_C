@@ -51,6 +51,15 @@ enum EnvelopeShape {
   ENV_SHAPE_LAST
 };
 
+enum EnvResetBehaviour {
+  RESET_BEHAVIOUR_NULL,
+  RESET_BEHAVIOUR_SEGMENT_PHASE,
+  RESET_BEHAVIOUR_SEGMENT_LEVEL_PHASE,
+  RESET_BEHAVIOUR_SEGMENT_LEVEL,
+  RESET_BEHAVIOUR_PHASE,
+  RESET_BEHAVIOUR_LAST
+};
+
 const uint16_t kMaxNumSegments = 8;
 const uint32_t kPreviewWidth = 128;
 const uint32_t kFastPreviewWidth = 64;
@@ -348,8 +357,12 @@ class MultistageEnvelope {
     loop_end_ = 4;
   }
   
-  inline void set_hard_reset(bool hard_reset) {
-    hard_reset_ = hard_reset;
+  inline void set_attack_reset_behaviour(EnvResetBehaviour reset_behaviour) {
+    attack_reset_behaviour_ = reset_behaviour;
+  }
+
+  inline void set_decay_release_reset_behaviour(EnvResetBehaviour reset_behaviour) {
+    decay_release_reset_behaviour_ = reset_behaviour;
   }
 
   inline void reset() {
@@ -384,6 +397,23 @@ class MultistageEnvelope {
     release_multiplier_ = mult;
   }
 
+  inline void set_amplitude(uint16_t amp, bool sampled) {
+    amplitude_ = amp;
+    amplitude_sampled_ = sampled;
+  }
+
+  inline uint16_t get_amplitude_value() {
+    return(amplitude_) ;
+  }
+
+   inline uint16_t get_sampled_amplitude_value() {
+    return(sampled_amplitude_) ;
+  }
+
+   inline bool get_is_amplitude_sampled() {
+    return(amplitude_sampled_) ;
+  }
+
   // Render preview, normalized to kPreviewWidth pixels width
   // NOTE Lives dangerously and uses live values that might be updated by ISR
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const;
@@ -411,7 +441,9 @@ class MultistageEnvelope {
   uint16_t loop_start_;
   uint16_t loop_end_;
   
-  bool hard_reset_;
+  EnvResetBehaviour attack_reset_behaviour_;
+  EnvResetBehaviour decay_release_reset_behaviour_;
+  EnvResetBehaviour reset_behaviour_;
   EnvelopeShape attack_shape_;
   EnvelopeShape decay_shape_;
   EnvelopeShape release_shape_;
@@ -419,8 +451,11 @@ class MultistageEnvelope {
   uint16_t attack_multiplier_;
   uint16_t decay_multiplier_;
   uint16_t release_multiplier_;
+  uint16_t amplitude_;
+  bool amplitude_sampled_ ;
+  uint16_t sampled_amplitude_;
+  uint32_t scaled_value_ ;
 
-  
   DISALLOW_COPY_AND_ASSIGN(MultistageEnvelope);
 };
 

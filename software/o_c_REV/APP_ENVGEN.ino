@@ -59,7 +59,8 @@ enum EnvelopeSettings {
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
-  ENV_SETTING_HARD_RESET,
+  ENV_SETTING_ATTACK_RESET_BEHAVIOUR,
+  ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR,
   ENV_SETTING_GATE_HIGH,
   ENV_SETTING_ATTACK_SHAPE,
   ENV_SETTING_DECAY_SHAPE,
@@ -67,6 +68,8 @@ enum EnvelopeSettings {
   ENV_SETTING_ATTACK_TIME_MULTIPLIER,
   ENV_SETTING_DECAY_TIME_MULTIPLIER,
   ENV_SETTING_RELEASE_TIME_MULTIPLIER,
+  ENV_SETTING_AMPLITUDE,
+  ENV_SETTING_SAMPLED_AMPLITUDE,
   ENV_SETTING_LAST
 };
 
@@ -80,6 +83,7 @@ enum CVMapping {
   CV_MAPPING_EUCLIDEAN_FILL,
   CV_MAPPING_EUCLIDEAN_OFFSET,
   CV_MAPPING_DELAY_MSEC,
+  CV_MAPPING_AMPLITUDE,
   CV_MAPPING_LAST
 };
 
@@ -109,6 +113,7 @@ public:
   static constexpr int kMaxSegments = 4;
   static constexpr int kEuclideanParams = 3;
   static constexpr int kDelayParams = 1;
+  static constexpr int kAmplitudeParams = 1;
   static constexpr size_t kMaxDelayedTriggers = 32;
 
   struct DelayedTrigger {
@@ -142,6 +147,14 @@ public:
     return static_cast<TriggerDelayMode>(values_[ENV_SETTING_TRIGGER_DELAY_MODE]);
   }
 
+  peaks::EnvResetBehaviour get_attack_reset_behaviour() const {
+    return static_cast<peaks::EnvResetBehaviour>(values_[ENV_SETTING_ATTACK_RESET_BEHAVIOUR]);
+  }
+
+  peaks::EnvResetBehaviour get_decay_release_reset_behaviour() const {
+    return static_cast<peaks::EnvResetBehaviour>(values_[ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR]);
+  }
+
   uint8_t get_euclidean_length() const {
     return values_[ENV_SETTING_EUCLIDEAN_LENGTH];
   }
@@ -152,6 +165,14 @@ public:
 
   uint8_t get_euclidean_offset() const {
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
+  }
+
+  uint16_t get_amplitude() const {
+    return values_[ENV_SETTING_AMPLITUDE] << 9 ;
+  }
+
+  bool is_amplitude_sampled() const {
+     return static_cast<bool>(values_[ENV_SETTING_SAMPLED_AMPLITUDE]);
   }
 
   // Debug only
@@ -187,9 +208,9 @@ public:
     return static_cast<CVMapping>(values_[ENV_SETTING_CV4]);
   }
 
-  bool get_hard_reset() const {
-    return values_[ENV_SETTING_HARD_RESET];
-  }
+//  bool get_hard_reset() const {
+//    return values_[ENV_SETTING_HARD_RESET];
+//  }
 
   bool get_gate_high() const {
     return values_[ENV_SETTING_GATE_HIGH];
@@ -242,7 +263,7 @@ public:
     return 0;
   }
 
-  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams + kDelayParams]) {
+  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams + kDelayParams + kAmplitudeParams]) {
     int mapping = values_[cv_setting];
     switch (mapping) {
       case CV_MAPPING_SEG1:
@@ -258,6 +279,9 @@ public:
         break;
       case CV_MAPPING_DELAY_MSEC:
         segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 2;
+        break;
+      case  CV_MAPPING_AMPLITUDE:
+        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1] << 5 ;
         break;
        default:
         break;
@@ -302,8 +326,11 @@ public:
     *settings++ = ENV_SETTING_CV2;
     *settings++ = ENV_SETTING_CV3;
     *settings++ = ENV_SETTING_CV4;
-    *settings++ = ENV_SETTING_HARD_RESET;
+    *settings++ = ENV_SETTING_ATTACK_RESET_BEHAVIOUR;
+    *settings++ = ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_GATE_HIGH;
+    *settings++ = ENV_SETTING_AMPLITUDE;
+    *settings++ = ENV_SETTING_SAMPLED_AMPLITUDE;
 
     num_enabled_settings_ = settings - enabled_settings_;
   }
@@ -325,7 +352,7 @@ public:
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
-    int32_t s[kMaxSegments + kEuclideanParams + kDelayParams];
+    int32_t s[kMaxSegments + kEuclideanParams + kDelayParams + kAmplitudeParams];
     s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
     s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
     s[2] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
@@ -334,6 +361,7 @@ public:
     s[5] = static_cast<int32_t>(get_euclidean_fill());
     s[6] = static_cast<int32_t>(get_euclidean_offset());
     s[7] = get_trigger_delay_ms();
+    s[8] = get_amplitude();
 
     apply_cv_mapping(ENV_SETTING_CV1, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV2, cvs, s);
@@ -348,6 +376,7 @@ public:
     CONSTRAIN(s[5], 0, 32);
     CONSTRAIN(s[6], 0, 32);
     CONSTRAIN(s[7], 0, 65535);
+    CONSTRAIN(s[8], 0, 65535);
 
     // debug only
     // s_euclidean_length_ = s[4];
@@ -369,13 +398,17 @@ public:
       break;
     }
 
+    // set the amplitude
+    env_.set_amplitude(s[8], is_amplitude_sampled()) ;
+    
     if (type != last_type_) {
       last_type_ = type;
       env_.reset();
     }
 
-    // hard reset forces the envelope to start at level_[0] on rising gate.
-    env_.set_hard_reset(get_hard_reset());
+    // set the specified reset behaviour
+    env_.set_attack_reset_behaviour(get_attack_reset_behaviour());
+    env_.set_decay_release_reset_behaviour(get_decay_release_reset_behaviour());
 
     // set the envelope segment shapes
     env_.set_attack_shape(get_attack_shape());
@@ -452,6 +485,18 @@ public:
 
   inline void get_next_trigger(DelayedTrigger &trigger) const {
     trigger = delayed_triggers_[delayed_triggers_next_];
+  }
+
+  inline uint16_t get_amplitude_value() {
+    return(env_.get_amplitude_value()) ;
+  }
+
+  inline uint16_t get_sampled_amplitude_value() {
+    return(env_.get_sampled_amplitude_value()) ;
+  }
+
+  inline bool get_is_amplitude_sampled() {
+    return(env_.get_is_amplitude_sampled()) ;
   }
 
 private:
@@ -536,11 +581,15 @@ const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay"
+  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay", "Ampl"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
   "Off", "Queue", "Ring"
+};
+
+const char* const reset_behaviours[peaks::RESET_BEHAVIOUR_LAST] = {
+  "None",  "SP", "SLP", "SL", "P", 
 };
 
 const char* const euclidean_lengths[] = {
@@ -572,7 +621,8 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "Hard reset", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
+  { peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "Attack reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
+  { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "DecRel reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
@@ -580,6 +630,8 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 13, "Attack mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   { 0, 0, 13, "Decay mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   {0, 0, 13, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
+  {127, 0, 127, "Amplitude", NULL, settings::STORAGE_TYPE_U8 },
+  {0, 0, 1, "Sampled Ampl", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
 };
 
 class QuadEnvelopeGenerator {
@@ -927,17 +979,17 @@ void ENVGEN_screensaver() {
 #endif
 }
 
-//void ENVGEN_debug() {
-//  for (int i = 0; i < 4; ++i) { 
-//    uint8_t ypos = 10*(i + 1) + 2 ; 
-//    graphics.setPrintPos(2, ypos);
-//    graphics.print(envgen.envelopes_[i].get_s_euclidean_length()) ;
-//    graphics.setPrintPos(50, ypos);
-//    graphics.print(envgen.envelopes_[i].get_s_euclidean_fill()) ;
-//    graphics.setPrintPos(100, ypos);
-//    graphics.print(envgen.envelopes_[i].get_s_euclidean_offset()) ;
-//  }
-//}
+void ENVGEN_debug() {
+  for (int i = 0; i < 4; ++i) { 
+    uint8_t ypos = 10*(i + 1) + 2 ; 
+    graphics.setPrintPos(2, ypos);
+    graphics.print(envgen.envelopes_[i].get_amplitude_value()) ;
+    graphics.setPrintPos(50, ypos);
+    graphics.print(envgen.envelopes_[i].get_sampled_amplitude_value()) ;
+    graphics.setPrintPos(100, ypos);
+    graphics.print(envgen.envelopes_[i].get_is_amplitude_sampled()) ;
+  }
+}
 
 void FASTRUN ENVGEN_isr() {
   envgen.ISR();
