@@ -39,6 +39,8 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_SHAPE_SPREAD,
   POLYLFO_SETTING_SPREAD,
   POLYLFO_SETTING_COUPLING,
+  POLYLFO_SETTING_ATTENUATION,
+  POLYLFO_SETTING_OFFSET,
   POLYLFO_SETTING_FREQ_RANGE,
   POLYLFO_SETTING_FREQ_DIV_B,
   POLYLFO_SETTING_FREQ_DIV_C,
@@ -78,6 +80,14 @@ public:
 
   uint16_t get_coupling() const {
     return values_[POLYLFO_SETTING_COUPLING];
+  }
+
+  uint16_t get_attenuation() const {
+    return values_[POLYLFO_SETTING_ATTENUATION];
+  }
+
+  int16_t get_offset() const {
+    return values_[POLYLFO_SETTING_OFFSET];
   }
 
   frames::PolyLfoFreqDivisions get_freq_div_b() const {
@@ -155,6 +165,8 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
   { -1, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Coupling", NULL, settings::STORAGE_TYPE_I8 },
+  { 230, 0, 230, "Attenuation", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, -128, 127, "Offset", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 11, "Freq range", freq_range_names, settings::STORAGE_TYPE_U4 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
@@ -200,6 +212,9 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_coupling(USAT16(coupling));
 
   poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread() + 128));
+
+  poly_lfo.lfo.set_attenuation(SCALE8_16(poly_lfo.get_attenuation()));
+  poly_lfo.lfo.set_offset(SCALE8_16(poly_lfo.get_offset()));
 
   poly_lfo.lfo.set_freq_div_b(poly_lfo.get_freq_div_b());
   poly_lfo.lfo.set_freq_div_c(poly_lfo.get_freq_div_c());

@@ -127,6 +127,15 @@ class PolyLfo {
     
   }
 
+  inline void set_attenuation(uint16_t attenuation) {
+    attenuation_ = attenuation;
+    // attenuation_ = 65535;
+  }
+
+  inline void set_offset(int16_t offs) {
+    offset_ = offs;
+  }
+
   inline void set_freq_div_b(PolyLfoFreqDivisions div) {
     if (div != freq_div_b_) {
       freq_div_b_ = div;
@@ -180,6 +189,7 @@ class PolyLfo {
   inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
+
   static uint32_t FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng);
 
  private:
@@ -189,6 +199,8 @@ class PolyLfo {
   int16_t shape_spread_;
   int32_t spread_;
   int16_t coupling_;
+  int32_t attenuation_;
+  int32_t offset_;
   PolyLfoFreqDivisions freq_div_b_;
   PolyLfoFreqDivisions freq_div_c_;
   PolyLfoFreqDivisions freq_div_d_;
