@@ -921,33 +921,35 @@ public:
 
         case PM_NONE:
         // reset counter ?
-        _clock(get_sequence_length(_seq), _reset, 0x0);
+        _clock(get_sequence_length(_seq), _reset, 0, 0);
         sequence_last_ = _seq;     
         break;
         case PM_SEQ1:
         case PM_SEQ2:
         case PM_SEQ3:
         {
+          int8_t sequence_max_ = _playmode;
+          
           if (sequence_reset_) {
           // manual change?
             sequence_reset_ = false;
             sequence_last_ = _seq;
           }
           // concatenate sequences:
-          int8_t next_sequence = _clock(get_sequence_length(sequence_last_), _reset, sequence_cnt_);
+          int8_t next_sequence = _clock(get_sequence_length(sequence_last_), _reset, sequence_cnt_, sequence_max_);
 
           sequence_cnt_ += next_sequence;
           
           if (next_sequence) {
             // reset sequencer counter ?
-            sequence_cnt_ = sequence_cnt_ > _playmode ? 0x0 : sequence_cnt_;
+            sequence_cnt_ = sequence_cnt_ > sequence_max_ ? 0x0 : sequence_cnt_;
             // update current sequence:
             sequence_last_ = _seq + sequence_cnt_;
             // wrap around last sequence:
             if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
               sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
             // reset counter:
-            _clock(get_sequence_length(sequence_last_), true, 0x0);  
+            _clock(get_sequence_length(sequence_last_), true, 0, sequence_max_);  
           }
         }
         break;
@@ -955,8 +957,8 @@ public:
         case PM_TR2:
         case PM_TR3:
         {
-        // advance by trigger:
-          _playmode -= PM_SEQ3;
+          // advance by trigger:
+          int8_t sequence_max_ = _playmode - PM_SEQ3;
           
           if (sequence_reset_) {
           // manual change?
@@ -964,20 +966,23 @@ public:
             sequence_last_ = _seq;
           }
           
+          // jump to next sequence ? 
           if (sequence_advance_) {
+            // increment:
             sequence_cnt_++;
-            sequence_last_ = _seq + (sequence_cnt_ % (_playmode + 1)); // %2, %3, %4
-            clk_cnt_ = 0;
+             // reset sequencer counter ?
+            sequence_cnt_ = sequence_cnt_ > sequence_max_ ? 0x0 : sequence_cnt_;
+            // update current sequence:
+            sequence_last_ = _seq + sequence_cnt_;
+            // wrap around last sequence:
+            if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
+              sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
+            // reset  
+            _clock(get_sequence_length(sequence_last_), true, 0, 0);  
             sequence_advance_ = false; 
           }
-          
-          if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
-            sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
-            
-          // reset counter ?
-          if (clk_cnt_ >= get_sequence_length(sequence_last_))
-            clk_cnt_ = 0;
-            
+          else // update clock
+            _clock(get_sequence_length(sequence_last_), _reset, 0, 0);
         }
         break;
         case PM_SH1:
@@ -1038,7 +1043,7 @@ public:
 
   // update sequencer clock, return -1, 0, 1 when EoS is reached:
 
-  int8_t _clock(uint8_t sequence_length, bool reset, uint8_t sequence_count) {
+  int8_t _clock(uint8_t sequence_length, bool reset, uint8_t sequence_count, uint8_t sequence_max) {
 
         int8_t EoS = 0x0;
         
@@ -1076,7 +1081,7 @@ public:
                 clk_cnt_ = 0x0;
               else if (clk_cnt_ >= sequence_length) {
                 // end of sequence ? 
-                if (sequence_count >= get_playmode()) {
+                if (sequence_count >= sequence_max) {
                   pendulum_fwd_ = false;
                   clk_cnt_ = sequence_length - 2; // reset / don't repeat last step
                 }
@@ -1109,7 +1114,7 @@ public:
                 clk_cnt_ = 0x0;
               else if (clk_cnt_ >= sequence_length) {
                 // end of sequence ? 
-                if (sequence_count >= get_playmode()) {
+                if (sequence_count >= sequence_max) {
                   pendulum_fwd_ = false;
                   clk_cnt_--; // repeat last step
                 }
