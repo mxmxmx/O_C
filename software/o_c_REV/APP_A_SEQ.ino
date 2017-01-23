@@ -563,6 +563,7 @@ public:
     reset_pending_ = false;
     prev_multiplier_ = get_multiplier();
     prev_pulsewidth_ = get_pulsewidth();
+    prev_input_range_ = 0;
  
     ext_frequency_in_ticks_ = 0xFFFFFFFF;
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
@@ -990,13 +991,19 @@ public:
         case PM_SH3:
         case PM_SH4: 
         {
-           int len = get_sequence_length(_seq);
-           sequence_last_ = _seq; 
-           // length changed ? 
-           if (sequence_last_length_ != len) 
-              // to do - deal w/ range:
-              update_inputmap(len, get_cv_input_range()); 
+           int len, input_range;
+           
+           len = get_sequence_length(_seq);
+           input_range =  get_cv_input_range();
+         
+           // length or range changed ? 
+           if (sequence_last_length_ != len || input_range != prev_input_range_) 
+              update_inputmap(len, input_range); 
+           // store values:  
+           sequence_last_ = _seq;    
            sequence_last_length_ = len;
+           prev_input_range_ = input_range;
+           // process input:
            clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_SH1)));
         }
         break;
@@ -1005,12 +1012,18 @@ public:
         case PM_CV3:
         case PM_CV4:
         {
-           int len = get_sequence_length(_seq);
-           sequence_last_ = _seq; 
+           int len, input_range;
+           
+           len = get_sequence_length(_seq);
+           input_range =  get_cv_input_range();
            // length changed ? 
-           if (sequence_last_length_ != len) 
-              update_inputmap(len, get_cv_input_range());
-           sequence_last_length_ = len; 
+           if (sequence_last_length_ != len || input_range != prev_input_range_) 
+              update_inputmap(len, input_range);
+           // store values:   
+           sequence_last_length_ = len;
+           prev_input_range_ = input_range;
+           sequence_last_ = _seq; 
+           // process input: 
            clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1)));
            // update, if slot changed:
            if (prev_slot_ == clk_cnt_) 
@@ -1322,6 +1335,7 @@ private:
   int8_t pendulum_fwd_;
   int last_scale_;
   uint16_t last_scale_mask_;
+  uint8_t prev_input_range_;
   
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
@@ -1351,7 +1365,7 @@ const char* const modes[] = {
 };
 
 const char* const cv_ranges[] = {
-  "+/+", "-/+"
+  " 5V", "10V"
 };
 
 const char* const directions[] = {
@@ -1382,7 +1396,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 4
   { 0, 0, PM_LAST - 1, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U8 },
   { 0, 0, SEQ_DIRECTIONS_LAST - 1, "direction", directions, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "CV range", cv_ranges, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "CV adr. range", cv_ranges, settings::STORAGE_TYPE_U4 },
   // cv sources
   { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "transpose   ->", cv_sources, settings::STORAGE_TYPE_U4 },
