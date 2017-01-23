@@ -1003,8 +1003,12 @@ public:
            sequence_last_ = _seq;    
            sequence_last_length_ = len;
            prev_input_range_ = input_range;
-           // process input:
-           clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_SH1)));
+           
+           // process input: 
+           if (!input_range) 
+              clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_SH1)));
+           else    
+              clk_cnt_ = input_map_.Process(0xFFF - OC::ADC::smoothed_raw_value(static_cast<ADC_CHANNEL>(_playmode - PM_SH1)));
         }
         break;
         case PM_CV1:
@@ -1023,9 +1027,14 @@ public:
            sequence_last_length_ = len;
            prev_input_range_ = input_range;
            sequence_last_ = _seq; 
+           
            // process input: 
-           clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1)));
-           // update, if slot changed:
+           if (!input_range) 
+              clk_cnt_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1))); // = 5V
+           else
+              clk_cnt_ = input_map_.Process(0xFFF - OC::ADC::smoothed_raw_value(static_cast<ADC_CHANNEL>(_playmode - PM_CV1))); // = 10V
+              
+           // update output, if slot # changed:
            if (prev_slot_ == clk_cnt_) 
              _change = false;
            else {
