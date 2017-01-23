@@ -196,6 +196,11 @@ enum SEQ_DIRECTIONS {
   SEQ_DIRECTIONS_LAST
 };
 
+enum SQ_AUX_MODES {
+  GATE,
+  COPY,
+  SQ_AUX_MODES_LAST
+};
 
 uint64_t ext_frequency[SEQ_CHANNEL_TRIGGER_NONE + 1];
 
@@ -554,9 +559,8 @@ public:
     tickjitter_ = 10000;
     clk_cnt_ = 0;
     clk_src_ = get_clock_source();
-    reset_ = false;
-    reset_counter_ = false;
-    reset_me_ = false;
+    prev_reset_state_ = false;
+    reset_pending_ = false;
     prev_multiplier_ = get_multiplier();
     prev_pulsewidth_ = get_pulsewidth();
  
@@ -618,8 +622,8 @@ public:
      // increment channel ticks .. 
      subticks_++; 
      
-     int8_t _clock_source, _reset_source = 0x0, _mode, _playmode, _direction = FORWARD;
-     int8_t _multiplier = 0x0;
+     int8_t _clock_source, _reset_source = 0x0, _aux_mode, _playmode;
+     int8_t _multiplier = 0x0, _rotate = 0x0;;
      bool _none, _triggered, _tock, _sync, _continuous;
      uint32_t _subticks = 0x0, prev_channel_frequency_in_ticks_ = 0x0;
 
@@ -628,9 +632,16 @@ public:
      _clock_source = get_clock_source();
    
      // 2. sequencer aux channel / play modes - 
-     _mode = get_aux_mode();
+     _aux_mode = get_aux_mode();
      _playmode = get_playmode();
      _continuous = _playmode >= PM_SH1 ? true : false;
+
+     // 3. update scale? 
+     if (get_scale_mask_cv_source()) {
+       _rotate += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_scale_mask_cv_source() - 1)) + 127) >> 8;
+       force_scale_update_ = true;
+     }
+     update_scale(force_scale_update_, _rotate); 
      
      // clocked ?
      _none = SEQ_CHANNEL_TRIGGER_NONE == _clock_source;
@@ -654,8 +665,7 @@ public:
      if (!_continuous) {
 
          _multiplier = get_multiplier();
-         _direction = get_direction();
-    
+   
          if (get_mult_cv_source()) {
             _multiplier += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_mult_cv_source() - 1)) + 127) >> 8;             
             CONSTRAIN(_multiplier, 0, MULT_MAX);
@@ -690,17 +700,16 @@ public:
          // reset? 
          _reset_source = get_reset_source();
          
-         if (_reset_source < SEQ_CHANNEL_TRIGGER_NONE && reset_me_) {
+         if (_reset_source < SEQ_CHANNEL_TRIGGER_NONE && !reset_pending_) {
     
             uint8_t reset_state_ = !_reset_source ? digitalReadFast(TR2) : digitalReadFast(TR4); // TR1, TR3 are main clock sources
     
             // ?
-            if (reset_state_ < reset_) {
+            if (reset_state_ < prev_reset_state_) {
                div_cnt_ = 0x0;
-               reset_counter_ = true; // reset clock counter below
-               reset_me_ = false;
+               reset_pending_ = true; // reset clock counter below
             }
-            reset_ = reset_state_;
+            prev_reset_state_ = reset_state_;
          } 
     
          //  do we advance sequences by TR2/4?
@@ -753,16 +762,7 @@ public:
             _continuous = _sync = false; 
         }
      }
-    
-     // update scale? 
-     int32_t _rotate = 0;
-     if (get_scale_mask_cv_source()) {
-       _rotate += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_scale_mask_cv_source() - 1)) + 127) >> 8; 
-       force_scale_update_ = true;
-     }
-     update_scale(force_scale_update_, _rotate); 
-     
-     
+         
      // time to output ? 
      if ((subticks_ >= channel_frequency_in_ticks_ && _sync) || _continuous) { 
        
@@ -770,7 +770,7 @@ public:
            // reset ticks       
            subticks_ = 0x0;
            //reject, if clock is too jittery or skip quasi-double triggers when ext. frequency increases:
-           if (_subticks < tickjitter_ || (_subticks < prev_channel_frequency_in_ticks_ && reset_me_)) 
+           if (_subticks < tickjitter_ || (_subticks < prev_channel_frequency_in_ticks_ && !reset_pending_)) 
               return;
          }
     
@@ -803,26 +803,23 @@ public:
            return;
                               
          // finally, process trigger + output:
-         if (process_seq_channel(_playmode, _direction, reset_counter_)) {
+         if (process_seq_channel(_playmode, reset_pending_)) {
 
             // turn on gate
             gate_state_ = ON;
             
             int8_t _octave = get_octave();        
             if (get_transpose_cv_source()) 
-              _octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv_source() - 1)) + 255) >> 9;             
+              _octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv_source() - 1)) + 255) >> 9;
      
             // use the current sequence, updated in process_seq_channel():
             step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); //
-     
             // update output:
             step_pitch_ = quantizer_.Process(step_pitch_, 0, 0);  
 
-            switch (_mode) {
+            switch (_aux_mode) {
 
-                case 0: // gates .. 
-                break;
-                case 1: // copy
+                case COPY:
                 {
                   int8_t _octave_aux = get_octave_aux();
                   if (get_octave_aux_cv_source())
@@ -831,22 +828,19 @@ public:
                   step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, 0); 
                 }
                 break;
-                case 2: // oct+
-                  
                 default:
                 break;
             }
          } 
          // clear for reset:
-         reset_me_ = true;
-         reset_counter_ = false;  
+         reset_pending_ = false;  
      }
   
      /*
       *  below: pulsewidth stuff
       */
       
-     if (!_mode && gate_state_) { 
+     if (!_aux_mode && gate_state_) { 
        
         // pulsewidth setting -- 
         int16_t _pulsewidth = get_pulsewidth();
@@ -912,7 +906,7 @@ public:
   } // end update
 
   /* details re: sequence processing happens (mostly) here: */
-  inline bool process_seq_channel(uint8_t _playmode, uint8_t _direction, uint8_t _reset) {
+  inline bool process_seq_channel(uint8_t _playmode, uint8_t _reset) {
  
       bool _out = true;
       bool _change = true;
@@ -927,7 +921,7 @@ public:
 
         case PM_NONE:
         // reset counter ?
-        _clock(_direction, get_sequence_length(_seq), _reset);
+        _clock(get_sequence_length(_seq), _reset, 0x0);
         sequence_last_ = _seq;     
         break;
         case PM_SEQ1:
@@ -940,17 +934,21 @@ public:
             sequence_last_ = _seq;
           }
           // concatenate sequences:
-          if (clk_cnt_ >= get_sequence_length(sequence_last_)) {
-            sequence_cnt_++;
-            sequence_last_ = _seq + (sequence_cnt_ % (_playmode+1)); // %2, %3, %4
-            clk_cnt_ = 0; 
-          }
+          int8_t next_sequence = _clock(get_sequence_length(sequence_last_), _reset, sequence_cnt_);
+
+          sequence_cnt_ += next_sequence;
           
-          if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
-            sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
-          // reset counter ?
-          if (clk_cnt_ >= get_sequence_length(sequence_last_))
-            clk_cnt_ = 0;  
+          if (next_sequence) {
+            // reset sequencer counter ?
+            sequence_cnt_ = sequence_cnt_ > _playmode ? 0x0 : sequence_cnt_;
+            // update current sequence:
+            sequence_last_ = _seq + sequence_cnt_;
+            // wrap around last sequence:
+            if (sequence_last_ >= OC::Patterns::PATTERN_USER_LAST)
+              sequence_last_ -= OC::Patterns::PATTERN_USER_LAST;
+            // reset counter:
+            _clock(get_sequence_length(sequence_last_), true, 0x0);  
+          }
         }
         break;
         case PM_TR1:
@@ -1038,62 +1036,116 @@ public:
       return _out; 
   }
 
-  void _clock(uint8_t direction, uint8_t sequence_length, bool reset) {
+  // update sequencer clock, return -1, 0, 1 when EoS is reached:
 
-        switch (direction) {
+  int8_t _clock(uint8_t sequence_length, bool reset, uint8_t sequence_count) {
 
-        case FORWARD:
-        clk_cnt_++;
-        if (clk_cnt_ >= sequence_length || reset)
-          clk_cnt_ = 0x0;
-        break;
-        case REVERSE:
-        clk_cnt_--; 
-        if (clk_cnt_ < 0 || reset)
-          clk_cnt_ = sequence_length - 1;
-        break;
-        case PENDULUM1:
-        {
-          if (pendulum_fwd_) {
-            clk_cnt_++;  
+        int8_t EoS = 0x0;
+        
+        switch (get_direction()) {
+
+          case FORWARD:
+          {
+            clk_cnt_++;
             if (reset)
               clk_cnt_ = 0x0;
-            pendulum_fwd_ = (clk_cnt_ >= sequence_length - 1) ? false : true;
-          }
-          else {
-            clk_cnt_--; 
-            if (reset)  
-              clk_cnt_ = sequence_length - 1;
-            pendulum_fwd_ = (clk_cnt_ <= 0) ? true : false;
-          }
-          CONSTRAIN(clk_cnt_, 0, sequence_length - 1);  
-        }
-        break;
-        case PENDULUM2:
-        {
-          if (pendulum_fwd_) {
-            clk_cnt_++;  
-            if (reset)
+            // end of sequence?  
+            else if (clk_cnt_ >= sequence_length) {
               clk_cnt_ = 0x0;
-            pendulum_fwd_ = (clk_cnt_ >= sequence_length) ? false : true;
+              EoS = 0x1;
+            }
           }
-          else {
-            clk_cnt_--; 
-            if (reset)  
+          break;
+          case REVERSE:
+          {
+            clk_cnt_--;
+            if (reset)
               clk_cnt_ = sequence_length - 1;
-            pendulum_fwd_ = (clk_cnt_ < 0) ? true : false;
+            // end of sequence? 
+            else if (clk_cnt_ < 0) {
+              clk_cnt_ = sequence_length - 1;
+              EoS = 0x1;
+            }
           }
-          CONSTRAIN(clk_cnt_, 0, sequence_length - 1); 
+          break;
+          case PENDULUM1:
+          {
+            if (pendulum_fwd_) {
+              clk_cnt_++;  
+              if (reset)
+                clk_cnt_ = 0x0;
+              else if (clk_cnt_ >= sequence_length) {
+                // end of sequence ? 
+                if (sequence_count >= get_playmode()) {
+                  pendulum_fwd_ = false;
+                  clk_cnt_ = sequence_length - 2; // reset / don't repeat last step
+                }
+                else
+                  EoS = 0x1;  
+              }
+            }
+            // reverse direction:
+            else {
+              clk_cnt_--; 
+              if (reset)  
+                clk_cnt_ = sequence_length - 1;
+              else if (clk_cnt_ < 0) {
+                // end of sequence ? 
+                if (sequence_count == 0x0) {
+                  pendulum_fwd_ = true;
+                  clk_cnt_ = 0x1; // reset / don't repeat first step
+                }
+                else
+                  EoS = -0x1;  
+              }
+            }
+          }
+          break;
+          case PENDULUM2:
+          {
+            if (pendulum_fwd_) {
+              clk_cnt_++;  
+              if (reset)
+                clk_cnt_ = 0x0;
+              else if (clk_cnt_ >= sequence_length) {
+                // end of sequence ? 
+                if (sequence_count >= get_playmode()) {
+                  pendulum_fwd_ = false;
+                  clk_cnt_--; // repeat last step
+                }
+                else
+                  EoS = 0x1;  
+              }
+            }
+            // reverse direction:
+            else {
+              clk_cnt_--; 
+              if (reset)  
+                clk_cnt_ = sequence_length - 1;
+              else if (clk_cnt_ < 0) {
+                // end of sequence ? 
+                if (sequence_count == 0x0) {
+                  pendulum_fwd_ = true;
+                  clk_cnt_++; // repeat first step
+                }
+                else
+                  EoS = -0x1;  
+              }
+            }
+          }
+          break;
+          case RANDOM:
+          clk_cnt_ = random(sequence_length);
+          if (reset)
+            clk_cnt_ = 0x0;
+          // jump to next sequence if we happen to hit the last note:  
+          else if (clk_cnt_ >= sequence_length - 1)
+            EoS = random(0x2);  
+          break;
+          default:
+          break;
         }
-        break;
-        case RANDOM:
-        clk_cnt_ = random(sequence_length);
-        if (reset)
-          clk_cnt_ = 0x0;
-        break;
-        default:
-        break;
-        }
+        return EoS;
   }
 
   SEQ_ChannelSetting enabled_setting_at(int index) const {
@@ -1238,9 +1290,8 @@ private:
   bool force_scale_update_;
   uint16_t _ZERO;
   uint8_t clk_src_;
-  bool reset_;
-  bool reset_me_;
-  bool reset_counter_;
+  bool prev_reset_state_;
+  bool reset_pending_;
   uint32_t subticks_;
   uint32_t tickjitter_;
   int32_t clk_cnt_;
