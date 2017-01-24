@@ -52,7 +52,6 @@ IntervalTimer UI_timer;
 void FASTRUN UI_timer_ISR() {
   OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::UI_cycles);
   OC::ui.Poll();
-
   OC_DEBUG_RESET_CYCLES(OC::ui.ticks(), 2048, OC::DEBUG::UI_cycles);
 }
 

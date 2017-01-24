@@ -126,6 +126,7 @@ void save_app_data() {
       }
 
       AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
+      SERIAL_PRINTLN("*");
       chunk->id = app.id;
       chunk->length = storage_size;
       size_t used = app.Save(chunk + 1);
@@ -297,7 +298,7 @@ void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
     graphics.print(available_apps[current].name);
     if (global_settings.current_app_id == available_apps[current].id)
        graphics.drawBitmap8(item.x + 2, item.y + 1, 4, bitmap_indicator_4x8);
-     item.DrawCustom();
+    item.DrawCustom();
   }
 
   GRAPHICS_END_FRAME();

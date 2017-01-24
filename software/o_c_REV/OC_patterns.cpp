@@ -15,7 +15,7 @@ namespace OC {
       for (size_t i = 0; i < OC::Patterns::PATTERN_USER_ALL ; ++i)
         memcpy(&user_patterns[i], &OC::patterns[0], sizeof(Pattern));
     }
-
+    
     const char* const pattern_names_short[] = {
         "SEQ-1",
         "SEQ-2",

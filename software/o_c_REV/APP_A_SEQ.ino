@@ -914,7 +914,7 @@ public:
       int16_t _seq = get_sequence();
       
       if (get_sequence_cv_source()) {
-        _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;             
+        _seq += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_sequence_cv_source() - 1)) + 255) >> 9;
         CONSTRAIN(_seq, 0, OC::Patterns::PATTERN_USER_LAST-1); 
       }
               
