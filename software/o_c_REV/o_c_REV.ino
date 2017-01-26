@@ -43,6 +43,7 @@
 unsigned long LAST_REDRAW_TIME = 0;
 uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
+const bool DUMMY = 0;
 
 /*  --------------------- UI timer ISR -------------------------   */
 
@@ -51,7 +52,6 @@ IntervalTimer UI_timer;
 void FASTRUN UI_timer_ISR() {
   OC_DEBUG_PROFILE_SCOPE(OC::DEBUG::UI_cycles);
   OC::ui.Poll();
-
   OC_DEBUG_RESET_CYCLES(OC::ui.ticks(), 2048, OC::DEBUG::UI_cycles);
 }
 
@@ -99,9 +99,10 @@ void FASTRUN CORE_timer_ISR() {
 /*       ---------------------------------------------------------         */
 
 void setup() {
-  delay(10);
+  delay(400);
+  NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
   SPI_init();
-  delay(500);
+  delay(100);
   SERIAL_PRINTLN("* O&C BOOTING...");
   SERIAL_PRINTLN("* %s", OC_VERSION);
 

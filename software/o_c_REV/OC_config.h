@@ -34,18 +34,19 @@ static constexpr unsigned long SPLASHSCREEN_DELAY_MS = 1000;
 static constexpr unsigned long SPLASHSCREEN_TIMEOUT_MS = 2048;
 
 static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
+static constexpr unsigned long SETTINGS_SAVE_TIMEOUT_MS = 1000;
 
 #define EEPROM_CALIBRATIONDATA_START 0
 #define EEPROM_CALIBRATIONDATA_END 128
 
 #define EEPROM_GLOBALSETTINGS_START EEPROM_CALIBRATIONDATA_END
-#define EEPROM_GLOBALSETTINGS_END 512
+#define EEPROM_GLOBALSETTINGS_END 576
 
 #define EEPROM_APPDATA_START EEPROM_GLOBALSETTINGS_END
 #define EEPROM_APPDATA_END EEPROMStorage::LENGTH
 
 // This is the available space for all apps' settings (\sa OC_apps.ino)
-#define EEPROM_APPDATA_BINARY_SIZE (500 - 4)
+#define EEPROM_APPDATA_BINARY_SIZE (1000 - 4)
 
 #define OC_UI_DEBUG
 #define OC_UI_SEPARATE_ISR
@@ -54,6 +55,7 @@ static constexpr unsigned long APP_SELECTION_TIMEOUT_MS = 25000;
 
 #define OC_CALIBRATION_DEFAULT_FLAGS (0)
 
+#define QQ_DEBUG
 //#define QQ_DEBUG_SCREENSAVER
 //#define ENVGEN_DEBUG_SCREENSAVER
 

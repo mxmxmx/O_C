@@ -37,9 +37,11 @@ OC::App available_apps[] = {
   DECLARE_APP('H','A', "Harrington 1200", H1200, H1200_isr),
   DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, Automatonnetz_isr),
   DECLARE_APP('Q','Q', "Quantermain", QQ, QQ_isr),
+  DECLARE_APP('D','Q', "Meta-Q", DQ, DQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
+  DECLARE_APP('S','Q', "Sequins", SEQ, SEQ_isr),
   DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
   DECLARE_APP('R','F', "References", REFS, REFS_isr)
@@ -60,6 +62,7 @@ struct GlobalSettings {
 
   uint16_t current_app_id;
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
+  OC::Pattern user_patterns[OC::Patterns::PATTERN_USER_ALL];
 };
 
 // App settings are packed into a single blob of binary data; each app's chunk
@@ -96,6 +99,7 @@ void save_global_settings() {
   SERIAL_PRINTLN("Saving global settings...");
 
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
+  memcpy(global_settings.user_patterns, OC::user_patterns, sizeof(OC::user_patterns));
 
   global_settings_storage.Save(global_settings);
   SERIAL_PRINTLN("Saved global settings in page_index %d", global_settings_storage.page_index());
@@ -122,6 +126,7 @@ void save_app_data() {
       }
 
       AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
+      SERIAL_PRINTLN("* storing: ");
       chunk->id = app.id;
       chunk->length = storage_size;
       size_t used = app.Save(chunk + 1);
@@ -243,6 +248,7 @@ void Init(bool reset_settings) {
       SERIAL_PRINTLN("Loaded settings from page_index %d, current_app_id is %02x",
                     global_settings_storage.page_index(),global_settings.current_app_id);
       memcpy(user_scales, global_settings.user_scales, sizeof(user_scales));
+      memcpy(user_patterns, global_settings.user_patterns, sizeof(user_patterns));
     }
 
     SERIAL_PRINTLN("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
@@ -292,9 +298,19 @@ void draw_app_menu(const menu::ScreenCursor<5> &cursor) {
     graphics.print(available_apps[current].name);
     if (global_settings.current_app_id == available_apps[current].id)
        graphics.drawBitmap8(item.x + 2, item.y + 1, 4, bitmap_indicator_4x8);
-     item.DrawCustom();
+    item.DrawCustom();
   }
 
+  GRAPHICS_END_FRAME();
+}
+
+void draw_save_message(uint8_t c) {
+  
+  GRAPHICS_BEGIN_FRAME(true);
+  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
+  graphics.print("saving ");
+  for (int i = 0; i < c; i++)
+    graphics.print(".");
   GRAPHICS_END_FRAME();
 }
 
@@ -346,6 +362,10 @@ void Ui::AppSettings() {
     if (save) {
       save_global_settings();
       save_app_data();
+      // draw message:
+      int cnt = 0;
+      while(idle_time() < SETTINGS_SAVE_TIMEOUT_MS)
+        draw_save_message((cnt++) >> 7);
     }
   }
 

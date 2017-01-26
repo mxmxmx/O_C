@@ -54,11 +54,20 @@ public:
     else
       shift_register = (shift_register >> 1) & ~lsb_mask;
 
+    // hack... don't turn all zero ...
+    if (!shift_register)
+      shift_register |= (random(0x2) << (length_ - 1));
+
     shift_register_ = shift_register;
+
     return shift_register & ~(0xffffffff << length_);
   }
 
   void set_length(uint8_t length) {
+    // hack... don't turn all zero ...
+    if (length > length_) 
+      shift_register_ |= (random(0x2) << length_);
+
     length_ = length;
   }
 
@@ -68,6 +77,10 @@ public:
 
   uint32_t get_shift_register() const {
     return shift_register_;
+  }
+
+  bool get_LSB() const {
+    return (shift_register_ & 1u);
   }
 
 private:
