@@ -34,6 +34,7 @@
 #include "braids_quantizer.h"
 #include "braids_quantizer_scales.h"
 #include "extern/dspinst.h"
+#include "util/util_arp.h"
 
 namespace menu = OC::menu; 
 
@@ -128,6 +129,8 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE,
   SEQ_CHANNEL_SETTING_SEQUENCE_DIRECTION,
   SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES,
+  SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION,
+  SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE,
   // cv sources
   SEQ_CHANNEL_SETTING_MULT_CV_SOURCE,
   SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE,
@@ -176,6 +179,7 @@ enum PLAY_MODES {
   PM_TR1,
   PM_TR2,
   PM_TR3,
+  PM_ARP,
   PM_SH1,
   PM_SH2,
   PM_SH3,
@@ -265,6 +269,14 @@ public:
 
   int get_playmode() const {
     return values_[SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE];
+  }
+
+  int get_arp_direction() const {
+    return values_[SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION];
+  }
+
+  int get_arp_range() const {
+    return values_[SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE];
   }
 
   int get_display_sequence() const {
@@ -480,6 +492,12 @@ public:
     force_update_ = force_update;
     if (force_update)
       display_mask_ = mask;
+
+    if (get_playmode() == PM_ARP) {
+      // update note stack
+      uint8_t seq = sequence_last_;
+      arpeggiator_.UpdateArpeggiator(channel_id_, seq, get_mask(seq), get_sequence_length(seq)); 
+    } 
   }
 
   void reset_sequence() {
@@ -569,8 +587,7 @@ public:
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
     pulse_width_in_ticks_ = get_pulsewidth() << 10;
 
-    // TODO this needs to be per channel, not just 0 
-    _ZERO = OC::calibration_data.dac.calibrated_octaves[0][OC::DAC::kOctaveZero];
+    _ZERO = OC::calibration_data.dac.calibrated_octaves[(id * 2)][OC::DAC::kOctaveZero];
 
     display_sequence_ = get_sequence();
     display_mask_ = get_mask(display_sequence_);
@@ -581,6 +598,7 @@ public:
     uint32_t _seed = OC::ADC::value<ADC_CHANNEL_1>() + OC::ADC::value<ADC_CHANNEL_2>() + OC::ADC::value<ADC_CHANNEL_3>() + OC::ADC::value<ADC_CHANNEL_4>();
     randomSeed(_seed);
     clock_display_.Init();
+    arpeggiator_.Init();
     update_enabled_settings(0);  
   }
 
@@ -714,7 +732,7 @@ public:
          } 
     
          //  do we advance sequences by TR2/4?
-         if (_playmode) {
+         if (_playmode < PM_ARP) {
     
             uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
             // ?
@@ -812,9 +830,29 @@ public:
             int8_t _octave = get_octave();        
             if (get_transpose_cv_source()) 
               _octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv_source() - 1)) + 255) >> 9;
-     
-            // use the current sequence, updated in process_seq_channel():
-            step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); //
+
+            if (_playmode != PM_ARP) {
+              // use the current sequence, updated in process_seq_channel():
+              step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); 
+            }
+            else {
+              
+              int8_t arp_range = get_arp_range();
+              int8_t arp_direction = get_arp_direction();
+              
+              if (arp_range!= arp_range_last_)
+                arpeggiator_.set_range(arp_range);
+              arp_range_last_ = arp_range;
+
+              if (arp_direction!= arp_direction_last_)  
+                arpeggiator_.set_direction(arp_direction);
+              arp_direction_last_ = arp_direction;
+                
+              step_pitch_ = arpeggiator_.ClockArpeggiator() + (_octave * 12 << 7);
+              // mute ? 
+              if (step_pitch_ == 0xFFFFFF)
+                gate_state_ = step_state_ = OFF;
+            }
             // update output:
             step_pitch_ = quantizer_.Process(step_pitch_, 0, 0);  
 
@@ -825,6 +863,7 @@ public:
                   int8_t _octave_aux = get_octave_aux();
                   if (get_octave_aux_cv_source())
                     _octave_aux += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_aux_cv_source() - 1)) + 255) >> 9;  
+                  // to do: arp  
                   step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave_aux * 12 << 7);
                   step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, 0); 
                 }
@@ -924,6 +963,14 @@ public:
         // reset counter ?
         _clock(get_sequence_length(_seq), _reset, 0, 0);
         sequence_last_ = _seq;     
+        break;
+        case PM_ARP:
+        clk_cnt_ = 0x0;
+        if (sequence_last_ != _seq)
+          arpeggiator_.UpdateArpeggiator(channel_id_, _seq, get_mask(_seq), get_sequence_length(_seq));
+        sequence_last_ = _seq;
+        if (_reset)
+          arpeggiator_.reset();
         break;
         case PM_SEQ1:
         case PM_SEQ2:
@@ -1055,10 +1102,14 @@ public:
       display_mask_ = get_mask(_seq);
                  
       // slot at current position:  
-      _out = (display_mask_ >> clk_cnt_) & 1u;
-      step_state_ = _out ? ON : OFF;  
-      // 
-      _out = (_out && _change) ? true : false;   
+      if (_playmode != PM_ARP) {
+        _out = (display_mask_ >> clk_cnt_) & 1u;
+        step_state_ = _out ? ON : OFF;  
+        _out = (_out && _change) ? true : false;   
+      }
+      else {
+         step_state_ = ON;
+      }
       // return step:  
       return _out; 
   }
@@ -1210,9 +1261,14 @@ public:
           }
          
          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
+         
+         
          if (get_playmode() < PM_SH1) {
-            *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_DIRECTION;
-            *settings++ = SEQ_CHANNEL_SETTING_MULT;
+          
+             *settings++ = (get_playmode() == PM_ARP) ? SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION : SEQ_CHANNEL_SETTING_SEQUENCE_DIRECTION;
+             if (get_playmode() == PM_ARP)
+               *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE;
+             *settings++ = SEQ_CHANNEL_SETTING_MULT;
          }
          else 
             *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
@@ -1247,7 +1303,10 @@ public:
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = playmode
          if (get_playmode() < PM_SH1) {
             *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = directions
+            if (get_playmode() == PM_ARP)
+               *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
             *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
+           
          }
          else 
             *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
@@ -1329,8 +1388,8 @@ private:
   uint32_t pulse_width_in_ticks_;
   uint16_t gate_state_;
   uint16_t step_state_;
-  uint32_t step_pitch_;
-  uint32_t step_pitch_aux_;
+  int32_t step_pitch_;
+  int32_t step_pitch_aux_;
   uint8_t prev_multiplier_;
   uint8_t prev_pulsewidth_;
   uint8_t display_sequence_;
@@ -1345,6 +1404,10 @@ private:
   int last_scale_;
   uint16_t last_scale_mask_;
   uint8_t prev_input_range_;
+  int8_t arp_direction_last_;
+  int8_t arp_range_last_;
+
+  util::Arpeggiator arpeggiator_;
   
   int num_enabled_settings_;
   SEQ_ChannelSetting enabled_settings_[SEQ_CHANNEL_SETTING_LAST];
@@ -1381,6 +1444,14 @@ const char* const directions[] = {
   "fwd", "rev", "pnd1", "pnd2", "rnd"
 };
 
+const char* const arp_directions[] = {
+  "up", "down", "u/d", "rnd"
+};
+
+const char* const arp_range[] = {
+  "1", "2", "3", "4"
+};
+
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
   { 0, 0, 1, "mode", modes, settings::STORAGE_TYPE_U4 },
@@ -1406,6 +1477,8 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, PM_LAST - 1, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U8 },
   { 0, 0, SEQ_DIRECTIONS_LAST - 1, "direction", directions, settings::STORAGE_TYPE_U8 },
   { 0, 0, 1, "CV adr. range", cv_ranges, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 3, "direction", arp_directions, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 3, "arp.range", arp_range, settings::STORAGE_TYPE_U4 },
   // cv sources
   { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "transpose   ->", cv_sources, settings::STORAGE_TYPE_U4 },
