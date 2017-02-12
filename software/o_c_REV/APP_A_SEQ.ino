@@ -1866,9 +1866,14 @@ void SEQ_menu() {
     menu::DualTitleBar::DrawGateIndicator(i, gate);
 
     graphics.movePrintPos(5, 0);
+    // channel id:
     graphics.print("#");
-    graphics.print((char)('1' + i));
-    graphics.movePrintPos(30, 0);
+    graphics.print((char)('A' + i));
+    // sequence id:
+    graphics.print("/");
+    graphics.print(1 + channel.get_display_sequence());
+    // octave:
+    graphics.movePrintPos(20, 0);
     int octave = channel.get_octave();
     if (octave >= 0)
       graphics.print("+");

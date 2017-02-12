@@ -138,7 +138,7 @@ void UpdateArpeggiator(int channel_id, int sequence_id, int sequence_mask, int s
     // sort notes:
     uint8_t _channel_offset = !channel_id ? 0x0 : OC::Patterns::NUM_PATTERNS;
     OC::Pattern *arp_pattern_ = &OC::user_patterns[sequence_id + _channel_offset];
-    for (int i = 0; i < 16; i++) 
+    for (int i = 0; i < sequence_length; i++) 
       note_stack_[i] = arp_pattern_->notes[i];
     //memcpy(note_stack_, arp_pattern_->notes, sizeof(OC::Pattern)); // ??
     arp_num_notes_ = sort_notes(note_stack_, sequence_length, sequence_mask);
@@ -147,7 +147,7 @@ void UpdateArpeggiator(int channel_id, int sequence_id, int sequence_mask, int s
 void set_direction(int8_t direction) {
 
   if (arp_direction_setting_ != direction) {
-    
+
     switch (direction) {
 
       case ARPEGGIATOR_DIRECTION_UP:
