@@ -1877,7 +1877,7 @@ void SEQ_menu() {
     graphics.print("/");
     graphics.print(1 + channel.get_display_sequence());
     // octave:
-    graphics.movePrintPos(20, 0);
+    graphics.movePrintPos(19, 0);
     int octave = channel.get_octave();
     if (octave >= 0)
       graphics.print("+");
@@ -1935,7 +1935,7 @@ void SEQ_Channel::RenderScreensaver() const {
 
       // reposition ARP:
       if (seq_channel[seq_id].get_playmode() == PM_ARP)
-        clock_x_pos = 0x6;
+        clock_x_pos = 0x6 + (seq_id << 2);
         
       clock_x_pos = (seq_id << 6) + (clock_x_pos << 2);
 
