@@ -876,8 +876,12 @@ public:
                   int8_t _octave_aux = get_octave_aux();
                   if (get_octave_aux_cv_source())
                     _octave_aux += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_aux_cv_source() - 1)) + 255) >> 9;  
-                  // to do: arp  
-                  step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave_aux * 12 << 7);
+                    
+                  if (_playmode != PM_ARP)
+                    step_pitch_aux_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave_aux * 12 << 7);
+                  else 
+                  // this *might* not be quite a copy...
+                    step_pitch_aux_ = step_pitch_ + (_octave_aux * 12 << 7);
                   step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, 0); 
                 }
                 break;
