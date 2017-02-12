@@ -1923,7 +1923,11 @@ void SEQ_Channel::RenderScreensaver() const {
       uint8_t seq_id = channel_id_;
       uint8_t clock_x_pos = seq_channel[seq_id].get_clock_cnt();
       int32_t _dac_value = seq_channel[seq_id].get_step_pitch();
-      
+
+      // reposition ARP:
+      if (seq_channel[seq_id].get_playmode() == PM_ARP)
+        clock_x_pos = 0x6;
+        
       clock_x_pos = (seq_id << 6) + (clock_x_pos << 2);
 
       // clock/step indicator:
