@@ -138,6 +138,8 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_DUMMY,
   SEQ_CHANNEL_SETTING_LAST
 };
@@ -343,6 +345,14 @@ public:
 
   uint8_t get_octave_aux_cv_source() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE]; 
+  }
+
+  uint8_t get_arp_direction_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION_CV_SOURCE];
+  }
+
+  uint8_t get_arp_range_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE_CV_SOURCE];
   }
   
   void update_pattern_mask(uint16_t mask, uint8_t sequence) {
@@ -836,18 +846,21 @@ public:
               step_pitch_ = get_pitch_at_step(display_sequence_, clk_cnt_) + (_octave * 12 << 7); 
             }
             else {
-              
-              int8_t arp_range = get_arp_range();
-              int8_t arp_direction = get_arp_direction();
-              
-              if (arp_range!= arp_range_last_)
-                arpeggiator_.set_range(arp_range);
-              arp_range_last_ = arp_range;
 
-              if (arp_direction!= arp_direction_last_)  
-                arpeggiator_.set_direction(arp_direction);
-              arp_direction_last_ = arp_direction;
-                
+              int8_t arp_range = get_arp_range();
+              if (get_arp_range_cv_source()) {
+                arp_range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_arp_range_cv_source() - 1)) + 255) >> 9;
+                CONSTRAIN(arp_range, 0, 4); 
+              }
+              arpeggiator_.set_range(arp_range);
+
+              int8_t arp_direction = get_arp_direction();
+              if (get_arp_direction_cv_source()) {
+                arp_direction += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_arp_direction_cv_source() - 1)) + 255) >> 9;
+                CONSTRAIN(arp_direction, 0, 4);
+              } 
+              arpeggiator_.set_direction(arp_direction);
+              
               step_pitch_ = arpeggiator_.ClockArpeggiator() + (_octave * 12 << 7);
               // mute ? 
               if (step_pitch_ == 0xFFFFFF)
@@ -1302,9 +1315,13 @@ public:
          
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = playmode
          if (get_playmode() < PM_SH1) {
-            *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = directions
-            if (get_playmode() == PM_ARP)
-               *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
+            
+            if (get_playmode() == PM_ARP) {
+               *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION_CV_SOURCE; 
+               *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE_CV_SOURCE; 
+            }
+            else *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = directions
+               
             *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
            
          }
@@ -1404,8 +1421,6 @@ private:
   int last_scale_;
   uint16_t last_scale_mask_;
   uint8_t prev_input_range_;
-  int8_t arp_direction_last_;
-  int8_t arp_range_last_;
 
   util::Arpeggiator arpeggiator_;
   
@@ -1486,6 +1501,8 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "--> aux +/- ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "sequence #  ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "mask rotate ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "direction   ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "arp.range   ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY
 };
   

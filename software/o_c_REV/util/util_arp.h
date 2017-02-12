@@ -146,21 +146,23 @@ void UpdateArpeggiator(int channel_id, int sequence_id, int sequence_mask, int s
 
 void set_direction(int8_t direction) {
 
+  if (arp_direction_setting_ != direction) {
+    
+    switch (direction) {
+
+      case ARPEGGIATOR_DIRECTION_UP:
+      case ARPEGGIATOR_DIRECTION_UP_DOWN:
+      case ARPEGGIATOR_DIRECTION_RANDOM:
+      arp_direction_ = 0x1;
+      break; 
+      case ARPEGGIATOR_DIRECTION_DOWN:
+      arp_direction_ = -0x1;
+      break; 
+      default:
+      break;
+      }
+  }
   arp_direction_setting_ = direction;
-
-  switch (direction) {
-
-    case ARPEGGIATOR_DIRECTION_UP:
-    case ARPEGGIATOR_DIRECTION_UP_DOWN:
-    case ARPEGGIATOR_DIRECTION_RANDOM:
-    arp_direction_ = 0x1;
-    break; 
-    case ARPEGGIATOR_DIRECTION_DOWN:
-    arp_direction_ = -0x1;
-    break; 
-    default:
-    break;
-    }
   
 }
 
