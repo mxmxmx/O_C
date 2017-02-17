@@ -680,10 +680,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "Scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 65535, 1, 65535, "active notes", NULL, settings::STORAGE_TYPE_U16 }, // mask
+  { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
-  { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
-  { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 9, 0, 19, "s.gain", mult, settings::STORAGE_TYPE_U8 },
+  { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 4, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },

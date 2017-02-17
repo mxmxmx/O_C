@@ -596,8 +596,8 @@ public:
     ext_frequency_in_ticks_ = 0xFFFFFFFF;
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
     pulse_width_in_ticks_ = get_pulsewidth() << 10;
-
-    _ZERO = OC::calibration_data.dac.calibrated_octaves[(id * 2)][OC::DAC::kOctaveZero];
+    // zero volts (for outputs C/D):
+    _ZERO = OC::calibration_data.dac.calibrated_octaves[(id + 0x2)][OC::DAC::kOctaveZero];
 
     display_sequence_ = get_sequence();
     display_mask_ = get_mask(display_sequence_);
