@@ -1356,7 +1356,7 @@ inline int32_t dq_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coord_t
   CONSTRAIN(pitch, 0, 120 << 7);
   int32_t octave = pitch / (12 << 7);
   pitch -= (octave * 12 << 7);
-  graphics.drawHLine(x, dq_kBottom - ((pitch * 4) >> 7), width);
+  graphics.drawHLine(x, dq_kBottom - ((pitch * 4) >> 7), width << 1);
   return octave;
 }
 
@@ -1369,31 +1369,31 @@ void DQ_QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
   // Top: Show gate & CV (or register bits)
   menu::DrawGateIndicator(start_x + 1, 2, getTriggerState());
   const DQ_ChannelSource source = get_source();
+  
   switch (source) {
-
     case DQ_CHANNEL_SOURCE_TURING:
-      menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_shift_register(), get_turing_display_length());
+      menu::DrawMask<true, 16, 8, 1>(start_x + 58, 1, get_shift_register(), get_turing_display_length());
       break;
     default: {
-      graphics.setPixel(start_x + 31 - 16, 4);
+      graphics.setPixel(start_x + 47 - 16, 4);
       int32_t cv = OC::ADC::value(static_cast<ADC_CHANNEL>(source));
-      cv = (cv * 24 + 2047) >> 12;
+      cv = (cv * 20 + 2047) >> 11;
       if (cv < 0)
-        graphics.drawRect(start_x + 31 - 16 + cv, 6, -cv, 2);
+        graphics.drawRect(start_x + 47 - 16 + cv, 6, -cv, 2);
       else if (cv > 0)
-        graphics.drawRect(start_x + 31 - 16, 6, cv, 2);
+        graphics.drawRect(start_x + 47 - 16, 6, cv, 2);
       else
-        graphics.drawRect(start_x + 31 - 16, 6, 1, 2);
+        graphics.drawRect(start_x + 47 - 16, 6, 1, 2);
     }
     break;
   }
 
 #ifdef DQ_DEBUG_SCREENSAVER
-  graphics.drawVLinePattern(start_x + 31, 0, 64, 0x55);
+  graphics.drawVLinePattern(start_x + 56, 0, 64, 0x55);
 #endif
 
   // Draw semitone intervals, 4px apart
-  weegfx::coord_t x = start_x + 26;
+  weegfx::coord_t x = start_x + 56;
   weegfx::coord_t y = dq_kBottom;
   for (int i = 0; i < 12; ++i, y -= 4)
     graphics.setPixel(x, y);
@@ -1405,7 +1405,7 @@ void DQ_QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
   dq_render_pitch(dq_history[3], x, 6); x += 6;
 
   int32_t octave = dq_render_pitch(dq_history[4], x, 6 - scroll_pos);
-  graphics.drawBitmap8(start_x + 28, dq_kBottom - octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
+  graphics.drawBitmap8(start_x + 58, dq_kBottom - octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
 }
 
 void DQ_screensaver() {

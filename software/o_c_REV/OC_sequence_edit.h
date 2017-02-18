@@ -341,10 +341,9 @@ void PatternEditor<Owner>::copy_sequence() {
 
 template <typename Owner>
 void PatternEditor<Owner>::paste_sequence() {
-  
-     uint8_t newslots = owner_->paste_seq(edit_this_sequence_);
-     num_slots_ = newslots ? newslots  : num_slots_;
-     mask_ = owner_->get_mask(edit_this_sequence_);
+  uint8_t newslots = owner_->paste_seq(edit_this_sequence_);
+  num_slots_ = newslots ? newslots  : num_slots_;
+  mask_ = owner_->get_mask(edit_this_sequence_);
 }
 
 template <typename Owner>

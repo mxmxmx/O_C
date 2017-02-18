@@ -746,11 +746,10 @@ size_t ASR_storageSize() {
 }
 
 size_t ASR_restore(const void *storage) {
-  asr.update_enabled_settings();
-  asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
-  // hack ahead -- update the scale display value:
+  // init nicely
   size_t storage_size = asr.Restore(storage);
   asr_state.left_encoder_value = asr.get_scale(DUMMY); 
+  asr.set_scale(asr_state.left_encoder_value);
   asr.update_enabled_settings();
   asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
   return storage_size;

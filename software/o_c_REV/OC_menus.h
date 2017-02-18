@@ -30,6 +30,7 @@
 #include "util/util_macros.h"
 #include "util/util_misc.h"
 #include "util/util_settings.h"
+#include "OC_chords.h"
 
 namespace OC {
 
@@ -161,6 +162,28 @@ inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, const 
     src += OC::kBitmapEditIndicatorW;
 
   graphics.drawBitmap8(x - 5, y + 1, OC::kBitmapEditIndicatorW, src);
+}
+
+inline void DrawChord(weegfx::coord_t x, weegfx::coord_t y, int width, int value) {
+  
+   OC::Chord *active_chord = &OC::user_chords[value];
+   int8_t _quality = active_chord->quality;
+   int8_t _voicing = active_chord->voicing;
+   
+   // draw root:
+   graphics.drawRect(x, y, width, width);
+   x += 8;
+   y -= OC::qualities[_quality][1];
+   // draw b:
+   graphics.drawRect(x, y + (OC::voicing[_voicing][1] << 3), width, width);
+   x += 8;
+   y -= OC::qualities[_quality][2];
+   //draw c:
+   graphics.drawRect(x, y + (OC::voicing[_voicing][2] << 3), width, width);
+   x += 8;
+   y -= OC::qualities[_quality][3];
+   //draw d:
+   graphics.drawRect(x, y + (OC::voicing[_voicing][3] << 3), width, width);
 }
 
 template <bool rtl, size_t max_bits, weegfx::coord_t height, weegfx::coord_t padding>
