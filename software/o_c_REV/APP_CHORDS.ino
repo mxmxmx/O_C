@@ -113,8 +113,16 @@ public:
     return values_[CHORDS_SETTING_CHORD_SLOT];
   }
 
+  void set_chord_slot(int8_t slot) {
+    apply_value(CHORDS_SETTING_CHORD_SLOT, slot);
+  }
+
   int get_num_chords() const {
     return values_[CHORDS_SETTING_NUM_CHORDS];
+  }
+
+  void set_num_chords(int8_t num_chords) {
+    apply_value(CHORDS_SETTING_NUM_CHORDS, num_chords);
   }
 
   int active_chord() const {
@@ -427,8 +435,8 @@ public:
     CHORDS_SETTINGS *settings = enabled_settings_;
 
     *settings++ = CHORDS_SETTING_MASK;
-    //*settings++ = CHORDS_SETTING_CHORD_SLOT;
-    *settings++ = CHORDS_SETTING_NUM_CHORDS;
+    *settings++ = CHORDS_SETTING_CHORD_SLOT;
+    //*settings++ = CHORDS_SETTING_NUM_CHORDS;
     *settings++ = CHORDS_SETTING_CHORD_EDIT;
       
     if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
@@ -520,8 +528,8 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "chord:", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", chords_slots, settings::STORAGE_TYPE_U8 },
+  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "chord:", chords_slots, settings::STORAGE_TYPE_U8 },
+  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 },
   {0, 0, 0, "--> edit", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
   {0, 0, 4, "root cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
@@ -648,7 +656,11 @@ void CHORDS_menu() {
       case CHORDS_SETTING_DUMMY:
       case CHORDS_SETTING_CHORD_EDIT: //todo: draw some chord
         list_item.DrawNoValue<false>(value, attr);
-        break;     
+        break;
+      case CHORDS_SETTING_CHORD_SLOT: 
+        //special case:
+        list_item.DrawValueMax(value, attr, chords.get_num_chords());
+        break;    
       default:
         list_item.DrawDefault(value, attr);
         break;
@@ -726,6 +738,11 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
             chords.update_enabled_settings();
             chords_state.cursor.AdjustEnd(chords.num_enabled_settings() - 1);
             break;
+          case CHORDS_SETTING_CHORD_SLOT:
+            // special case, slot shouldn't be > num.chords
+            if (chords.get_chord_slot() > chords.get_num_chords())
+              chords.set_chord_slot(chords.get_num_chords());
+            break;  
           default:
             break;
         }
