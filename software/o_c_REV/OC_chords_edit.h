@@ -125,15 +125,18 @@ void ChordEditor<Owner>::Draw() {
   		//}
 
   		x += 2; y += 10;
-  		uint16_t mask = 0xFFF; //todo
-  		for (size_t i = 0; i < max_chords; ++i, x += 12, mask >>= 1) {
-    		if (mask & 0x1)
-      			graphics.drawRect(x, y, 8, 8);
-    		else
-      			graphics.drawFrame(x, y, 8, 8);
-
-    		if (i == cursor_pos_)
-      			graphics.drawFrame(x - 2, y - 2, 12, 12);
+      int8_t indicator = owner_->active_chord();
+      
+  		for (size_t i = 0; i < max_chords; ++i, x += 12) {
+  		  
+  		  if (i == indicator)
+  		    graphics.drawFrame(x, y, 8, 8);
+        else 
+          graphics.drawRect(x, y, 8, 8);  
+        // cursor:  
+        if (i == cursor_pos_)
+          graphics.drawFrame(x - 2, y - 2, 12, 12);
+        
   		}
   		graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
    	    if (cursor_pos_ == max_chords)

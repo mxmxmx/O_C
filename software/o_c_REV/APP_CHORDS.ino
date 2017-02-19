@@ -362,7 +362,7 @@ public:
       
       if (_advance_trig < chord_advance_last_) 
         active_chord_ = active_chord_++ > (get_num_chords() - 1) ? 0x0 : active_chord_; // increment/reset
-      else if (! get_num_chords()) 
+      else if (!get_num_chords()) 
         active_chord_ = 0x0; 
       chord_advance_last_ = _advance_trig;
       
@@ -435,7 +435,7 @@ public:
     CHORDS_SETTINGS *settings = enabled_settings_;
 
     *settings++ = CHORDS_SETTING_MASK;
-    *settings++ = CHORDS_SETTING_CHORD_SLOT;
+    //*settings++ = CHORDS_SETTING_CHORD_SLOT;
     //*settings++ = CHORDS_SETTING_NUM_CHORDS;
     *settings++ = CHORDS_SETTING_CHORD_EDIT;
       
@@ -522,7 +522,7 @@ const char* const chords_slots[] = {
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
-  { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // mask
+  { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_sources, settings::STORAGE_TYPE_U4 }, /// to do ..
   { 0, 0, CHORDS_TRIGGER_SOURCE_LAST - 1, "trigger source", chords_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
@@ -530,7 +530,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "chord:", chords_slots, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 },
-  {0, 0, 0, "--> edit", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
+  {0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
   {0, 0, 4, "root cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "mask cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
@@ -546,7 +546,7 @@ public:
     cursor.Init(CHORDS_SETTING_SCALE, CHORDS_SETTING_LAST - 1);
     scale_editor.Init();
     chord_editor.Init();
-    left_encoder_value = 0;
+    left_encoder_value = OC::Scales::SCALE_SEMI;
   }
 
   inline bool editing() const {
@@ -622,15 +622,12 @@ void CHORDS_menu() {
 
   // print scale
   int scale = chords_state.left_encoder_value;
-  graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
+  graphics.movePrintPos(5, 0);
   graphics.print(OC::scale_names[scale]);
   if (chords.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
-  graphics.setPrintPos(72, 2);
-  graphics.print("#");
-  graphics.print(chords.active_chord() + 1);
-  graphics.print(":");
+  graphics.setPrintPos(95, 2);
   OC::Chord *active_chord = &OC::user_chords[chords.active_chord()];
   graphics.print(OC::quality_short_names[active_chord->quality]);
 
@@ -654,7 +651,9 @@ void CHORDS_menu() {
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHORDS_SETTING_DUMMY:
-      case CHORDS_SETTING_CHORD_EDIT: //todo: draw some chord
+      case CHORDS_SETTING_CHORD_EDIT: 
+        // to do: draw something that makes sense, presumably some pre-made icons would work best.
+        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(), chords.active_chord());
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHORDS_SETTING_CHORD_SLOT: 

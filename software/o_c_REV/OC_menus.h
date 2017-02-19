@@ -186,6 +186,17 @@ inline void DrawChord(weegfx::coord_t x, weegfx::coord_t y, int width, int value
    graphics.drawRect(x, y + (OC::voicing[_voicing][3] << 3), width, width);
 }
 
+inline void DrawMiniChord(weegfx::coord_t x, weegfx::coord_t y, uint8_t count, uint8_t indicator) {
+  int8_t _x = x - count * 3 - 4;
+  int8_t _y = y + 4;
+  int8_t _w = 2;
+  for (int i = 0; i < count + 1; i++, _x += 3) {
+    graphics.drawRect(_x, _y, _w, _w);
+    if (i == indicator)
+      graphics.drawRect(_x, _y + 3, _w, _w);
+  }
+}
+
 template <bool rtl, size_t max_bits, weegfx::coord_t height, weegfx::coord_t padding>
 void DrawMask(weegfx::coord_t x, weegfx::coord_t y, uint32_t mask, size_t count) {
   weegfx::coord_t dx;
