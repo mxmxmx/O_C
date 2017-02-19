@@ -242,6 +242,7 @@ public:
     
     force_update_ = false;
     last_scale_ = -1;
+    set_scale(OC::Scales::SCALE_SEMI);
     last_root_ = 0;
     last_mask_ = 0;
     quantizer_.Init();
@@ -712,7 +713,7 @@ public:
   void Init() {
     cursor.Init(ASR_SETTING_SCALE, ASR_SETTING_LAST - 1);
     scale_editor.Init();
-    left_encoder_value = 0;
+    left_encoder_value = OC::Scales::SCALE_SEMI;
   }
   
   inline bool editing() const {
