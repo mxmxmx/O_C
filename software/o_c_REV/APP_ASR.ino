@@ -568,7 +568,7 @@ public:
                       break;
                        case 5:  // fractal sequence modulus
                        _int_seq_modulus += ((_pitch + 15) >> 9);
-                       CONSTRAIN(_fractal_seq_stride, 2, 120);
+                       CONSTRAIN(_int_seq_modulus, 2, 121);
                       break;
                       default: // mult
                        _mult += ((_pitch + 255) >> 8);

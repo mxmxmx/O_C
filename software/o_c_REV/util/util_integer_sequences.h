@@ -126,7 +126,7 @@ public:
       default:
         break;
     }
-    x_ = (x_  << 8) % modulus_;
+    x_ = (x_ % modulus_) << 8 ;
     return static_cast<uint16_t>(x_);
   }
 
