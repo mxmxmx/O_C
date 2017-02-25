@@ -126,8 +126,8 @@ public:
       default:
         break;
     }
-    x_ = x_ % modulus_;
-    return static_cast<uint16_t>(x_ << 8);
+    x_ = (x_  << 8) % modulus_;
+    return static_cast<uint16_t>(x_);
   }
 
   uint16_t get_register() const {

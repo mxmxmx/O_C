@@ -451,18 +451,15 @@ public:
             uint8_t modulus = get_turing_modulus();
             if (get_turing_modulus_cv_source()) {
               modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) >> 5);
-              CONSTRAIN(range, 1, 120);
+              CONSTRAIN(modulus, 2, 121);
             }
-
-            // apply modulus
-            shift_register = shift_register % modulus ;
 
             if (quantizer_.enabled()) {
     
               // To use full range of bits is something like:
               // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
-              // Since our range is limited anyway, just grab the last byte
-              uint32_t scaled = ((shift_register & 0xff) * range) >> 8;
+              // Since our range is limited anyway, just grab the last byte, and apply the modulus
+              uint32_t scaled = (((shift_register & 0xff) * range) >> 8) % modulus ;
     
               // The quantizer uses a lookup codebook with 128 entries centered
               // about 0, so we use the range/scaled output to lookup a note
@@ -607,7 +604,7 @@ public:
             int16_t int_seq_modulus_ = get_int_seq_modulus();
             if (get_int_seq_modulus_cv_source()) {
                 int_seq_modulus_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_modulus_cv_source() - 1)) >> 6);
-                CONSTRAIN(int_seq_modulus_, 1, 120);
+                CONSTRAIN(int_seq_modulus_, 2, 121);
             }
             int_seq_.set_int_seq_modulus(int_seq_modulus_);
 
@@ -1113,7 +1110,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, -999, 999, "Fine", NULL, settings::STORAGE_TYPE_I16 },
   { 16, 1, 32, "LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "LFSR prb", NULL, settings::STORAGE_TYPE_U8 },
-  { 24, 2, 120, "LFSR modulus", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 2, 121, "LFSR modulus", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "LFSR prb CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "LFSR mod CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
@@ -1133,7 +1130,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P1  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 24, 2, 120, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 2, 121, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
