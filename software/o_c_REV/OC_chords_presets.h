@@ -20,18 +20,32 @@ namespace OC {
     { 0, 0, 0, OC::Scales::SCALE_SEMI}
   };
 
+//  const int8_t qualities[][4] = 
+//  {
+//  	{ 0, 4, 7, 11}, // major 7
+//  	{ 0, 3, 7, 10}, // minor 7
+//  	{ 0, 4, 7, 10}, // dominant 7
+//  	{ 0, 3, 6, 10}, // half diminished
+//  	{ 0, 4, 7, 0 }, // major triad
+//  	{ 0, 3, 7, 0 }, // minor triad
+//  	{ 0, 4, 7, 0 }, // dominant 
+//  	{ 0, 3, 6, 0 }, // diminished triad
+//  	{ 0, 0, 0, 0 }, // unisono
+//  };
+
   const int8_t qualities[][4] = 
-  {
-  	{ 0, 4, 7, 11}, // major 7
-  	{ 0, 3, 7, 10}, // minor 7
-  	{ 0, 4, 7, 10}, // dominant 7
-  	{ 0, 3, 6, 10}, // half diminished
-  	{ 0, 4, 7, 0 }, // major triad
-  	{ 0, 3, 7, 0 }, // minor triad
-  	{ 0, 4, 7, 0 }, // dominant 
-  	{ 0, 3, 6, 0 }, // diminished triad
-  	{ 0, 0, 0, 0 }, // unisono
-  };
+{
+    { 0, 0, 4, 0 },  // fifth
+    { 0, 2, 2, 0 },  // triad 
+    { 0, 2, 2, 2 },  // seventh
+    { 0, 3, 1, 0 },  // suspended
+    { 0, 3, 1, 2 },  // susp. seventh
+    { 0, 2, 2, 1 }, // sixth
+    { 0, 2, 2, 4 }, // added ninth
+    { 0, 2, 2, 6 }, // added eleventh
+    { 0, 0, 0, 0 }, // unisono
+};
+
 
   const int8_t voicing[][4] = 
   {
@@ -46,12 +60,20 @@ namespace OC {
   	{ -1, 1, 1, 1}   // spread
   };
 
+//  const char* const quality_names[] {
+//  	"major 7", "minor 7", "dominant 7", "half dimin.", "major triad", "minor triad", "dominant", "dimin. triad", "unisono"
+//  };
+//
+//  const char* const quality_short_names[] {
+//  	"maj7", "min7", "dom7", "hdim", "maj", "min", "dom", "dim", "uni"
+//  };
+
   const char* const quality_names[] {
-  	"major 7", "minor 7", "dominant 7", "half dimin.", "major triad", "minor triad", "dominant", "dimin. triad", "unisono"
+    "fifth", "triad", "seventh", "suspended.", "susp 7th", "sixth", "added 9th", "added 11th", "unisono"
   };
 
   const char* const quality_short_names[] {
-  	"maj7", "min7", "dom7", "hdim", "maj", "min", "dom", "dim", "uni"
+    "5th", "triad", "7th", "susp", "sus7", "6th",  "+9th", "+11th", "uni"
   };
 
   const char* const voicing_names[] {

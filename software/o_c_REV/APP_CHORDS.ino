@@ -856,10 +856,13 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
   int32_t octave = chords_render_pitch(chords_history[4], x, 6 - scroll_pos);
   graphics.drawBitmap8(start_x + 58, chords_kBottom - octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
 
-  graphics.setPrintPos(64, 55);
+  graphics.setPrintPos(64, 0);
   OC::Chord *active_chord = &OC::user_chords[chords.active_chord()];
-  graphics.print(OC::quality_short_names[active_chord->quality]);
-  
+  graphics.print(OC::quality_names[active_chord->quality]);
+
+  graphics.setPrintPos(64, 55);
+  graphics.print(OC::voicing_names[active_chord->voicing]);
+
   menu::DrawChord(85, 40, 6, chords.active_chord());
 }
 
