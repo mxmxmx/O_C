@@ -569,7 +569,7 @@ public:
                       break;
                        case 5:  // fractal sequence modulus
                        _int_seq_modulus += ((_pitch + 15) >> 9);
-                       CONSTRAIN(_fractal_seq_stride, 2, 120);
+                       CONSTRAIN(_int_seq_modulus, 2, 121);
                       break;
                       default: // mult
                        _mult += ((_pitch + 255) >> 8);
@@ -696,7 +696,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "> BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
-  { 24, 2, 120, "> IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
+  { 24, 2, 121, "> IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
