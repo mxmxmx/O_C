@@ -22,14 +22,15 @@ namespace OC {
     extern const char * const integer_sequence_names[];
     extern const char * const integer_sequence_dirs[];
     extern const char * const trigger_delay_times[kNumDelayTimes];
-  // Not strings but are constant integer sequences
-  extern const uint8_t pi_digits[256];
-  extern const uint8_t phi_digits[256];
-  extern const uint8_t tau_digits[256];
-  extern const uint8_t eul_digits[256];
-  extern const uint8_t rt2_digits[256];
-  extern const uint8_t van_eck[256];
-  extern const uint8_t sum_of_squares_of_digits_of_n[256];
+    extern const char* const chord_property_names[];
+    // Not strings but are constant integer sequences
+    extern const uint8_t pi_digits[256];
+    extern const uint8_t phi_digits[256];
+    extern const uint8_t tau_digits[256];
+    extern const uint8_t eul_digits[256];
+    extern const uint8_t rt2_digits[256];
+    extern const uint8_t van_eck[256];
+    extern const uint8_t sum_of_squares_of_digits_of_n[256];
  };
 
   // Not a string, but needs to be closer to trigger_delay_times

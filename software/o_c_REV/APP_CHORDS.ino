@@ -627,10 +627,6 @@ void CHORDS_menu() {
   if (chords.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
-  graphics.setPrintPos(95, 2);
-  OC::Chord *active_chord = &OC::user_chords[chords.active_chord()];
-  graphics.print(OC::quality_short_names[active_chord->quality]);
-
   uint8_t clock_state = (chords.clockState() + 3) >> 2;
   if (clock_state)
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
