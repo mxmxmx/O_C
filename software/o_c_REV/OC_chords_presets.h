@@ -20,6 +20,7 @@ namespace OC {
     { 0, 0, 0, OC::Scales::SCALE_SEMI}
   };
 
+// these intervals are for semitones pitch classes
 //  const int8_t qualities[][4] = 
 //  {
 //  	{ 0, 4, 7, 11}, // major 7
@@ -33,18 +34,20 @@ namespace OC {
 //  	{ 0, 0, 0, 0 }, // unisono
 //  };
 
-  const int8_t qualities[][4] = 
+// these intervals are for notes-in-scale/key, last element is the chord type
+  const int8_t qualities[][5] = 
 {
-    { 0, 0, 4, 0 },  // fifth
-    { 0, 2, 2, 0 },  // triad 
-    { 0, 2, 2, 2 },  // seventh
-    { 0, 3, 1, 0 },  // suspended
-    { 0, 3, 1, 2 },  // susp. seventh
-    { 0, 2, 2, 1 }, // sixth
-    { 0, 2, 2, 4 }, // added ninth
-    { 0, 2, 2, 6 }, // added eleventh
-    { 0, 0, 0, 0 }, // unisono
+    { 0, 0, 4, 0, CHORD_TYPE_DYAD   },  // fifth
+    { 0, 2, 2, 0, CHORD_TYPE_TRIAD  },  // triad 
+    { 0, 2, 2, 2, CHORD_TYPE_TETRAD },  // seventh
+    { 0, 3, 1, 0, CHORD_TYPE_TRIAD  },  // suspended
+    { 0, 3, 1, 2, CHORD_TYPE_TETRAD },  // susp. seventh
+    { 0, 2, 2, 1, CHORD_TYPE_TETRAD }, // sixth
+    { 0, 2, 2, 4, CHORD_TYPE_TETRAD }, // added ninth
+    { 0, 2, 2, 6, CHORD_TYPE_TETRAD }, // added eleventh
+    { 0, 0, 0, 0, CHORD_TYPE_MONAD }, // unisono
 };
+
 
 
   const int8_t voicing[][4] = 
