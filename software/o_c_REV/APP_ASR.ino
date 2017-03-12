@@ -465,35 +465,47 @@ public:
              switch (get_cv_source()) {
                 case ASR_CHANNEL_SOURCE_TURING:
                   {
-                  int16_t _length = get_turing_length();
-                  int16_t _probability = get_turing_probability();
-                  int16_t _range = get_turing_range();
+                    int16_t _length = get_turing_length();
+                    int16_t _probability = get_turing_probability();
+                    int16_t _range = get_turing_range();
+    
+                    // _pitch can do other things now -- 
+                    switch (get_turing_CV()) {
+    
+                        case 1:  // LEN, 1-32
+                         _length += ((_pitch + 255) >> 8);
+                         CONSTRAIN(_length, 1, 32);
+                        break;
+                         case 2:  // P
+                         _probability += ((_pitch + 15) >> 4);
+                         CONSTRAIN(_probability, 0, 255);
+                        break;
+                        default: // mult
+                         _range += ((_pitch + 63) >> 6);
+                         CONSTRAIN(_range, 1, 120);
+                        break;
+                    }
+                    
+                    turing_machine_.set_length(_length);
+                    turing_machine_.set_probability(_probability); 
+                    turing_display_length_ = _length;
+                    
+                    uint32_t _shift_register = turing_machine_.Clock();   
+                    // uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
+                    // _pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);  
   
-                  // _pitch can do other things now -- 
-                  switch (get_turing_CV()) {
-  
-                      case 1:  // LEN, 4-32
-                       _length += ((_pitch + 255) >> 8);
-                       CONSTRAIN(_length, 4, 32);
-                      break;
-                       case 2:  // P
-                       _probability += ((_pitch + 15) >> 4);
-                       CONSTRAIN(_probability, 0, 255);
-                      break;
-                      default: // mult
-                       _range += ((_pitch + 63) >> 6);
-                       CONSTRAIN(_range, 1, 120);
-                      break;
-                  }
-                  
-                  turing_machine_.set_length(_length);
-                  turing_machine_.set_probability(_probability); 
-                  turing_display_length_ = _length;
-                  
-                  uint32_t _shift_register = turing_machine_.Clock();   
-                  uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
-                  _pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);  
-                  
+                    // Since our range is limited anyway, just grab the last byte for lengths > 8,
+                    // otherwise scale to use bits. And apply the modulus
+                    uint32_t shift = turing_machine_.length();
+                    uint32_t _scaled = (_shift_register & 0xff) * _range;
+                    _scaled = _scaled >> (shift > 7 ? 8 : shift);
+           
+                    // The quantizer uses a lookup codebook with 128 entries centered
+                    // about 0, so we use the range/scaled output to lookup a note
+                    // directly instead of changing to pitch first.
+                    _pitch =
+                        quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
+              
                   }
                   break;      
  
@@ -685,7 +697,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
-  { 16, 4, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
   { 15, 1, 120, "> LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??

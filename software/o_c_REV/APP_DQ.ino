@@ -494,9 +494,9 @@ public:
           // _pitch can do other things now -- 
           switch (get_turing_CV()) {
 
-              case 1:  // LEN, 4-32
+              case 1:  // LEN, 1-32
                _length += ((pitch + 255) >> 8);
-               CONSTRAIN(_length, 2, 32);
+               CONSTRAIN(_length, 1, 32);
               break;
                case 2:  // P
                _probability += ((pitch + 15) >> 4);
@@ -513,10 +513,18 @@ public:
           turing_display_length_ = _length;
 
           uint32_t _shift_register = turing_machine_.Clock();   
-          uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
+          // Since our range is limited anyway, just grab the last byte for lengths > 8,
+          // otherwise scale to use bits. And apply the modulus
+          uint32_t shift = turing_machine_.length();
+          uint32_t _scaled = (_shift_register & 0xff) * _range;
+          _scaled = _scaled >> (shift > 7 ? 8 : shift);
  
-          pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
-          
+          // The quantizer uses a lookup codebook with 128 entries centered
+          // about 0, so we use the range/scaled output to lookup a note
+          // directly instead of changing to pitch first.
+          pitch =
+              quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
+        
           // gate?
           switch(get_turing_trig_out()) {
             
@@ -1044,7 +1052,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 25, 0, PULSEW_MAX, "--> pw", OC::Strings::pulsewidth_ms, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "--> aux +/-", NULL, settings::STORAGE_TYPE_I8 }, // aux octave
   { 0, 0, DQ_DEST_LAST-1, "CV aux.", dq_aux_cv_dest, settings::STORAGE_TYPE_U8 },
-  { 16, 2, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
+  { 16, 1, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, " > LFSR CV", dq_tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 15, 1, 120, " > LFSR range", NULL, settings::STORAGE_TYPE_U8 },
