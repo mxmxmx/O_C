@@ -24,14 +24,15 @@ public:
     owner_ = nullptr;
     chord_ = &dummy_chord;
     cursor_pos_ = 0;
+    cursor_quality_pos_ = 0;
     edit_this_chord_ = 0;
-    chord_property_ = 0;
     edit_page_ = CHORD_SELECT;
     //
     chord_quality_ = 0;
     chord_voicing_ = 0;
     chord_inversion_ = 0;
-    chord_interchange_ = 0;
+    chord_base_note_ = 0;
+    chord_octave_ = 0;
     max_chords_ = OC::Chords::CHORDS_USER_LAST - 1;
   }
 
@@ -46,9 +47,7 @@ public:
 
     chord_ = &OC::user_chords[chord];
     max_chords_ = num_chords;
-    //Serial.print("Editing user chord "); Serial.println(chord);
     owner_ = owner;
-
     BeginEditing();
   }
 
@@ -63,16 +62,17 @@ private:
   const OC::Chord *chord_;
   int8_t edit_this_chord_;
   size_t cursor_pos_;
-  int8_t chord_property_;
+  size_t cursor_quality_pos_;
   int8_t chord_quality_;
   int8_t chord_voicing_;
   int8_t chord_inversion_;
-  int8_t chord_interchange_;
+  int8_t chord_base_note_;
+  int8_t chord_octave_;
   int8_t max_chords_;
   bool edit_page_;
 
   void BeginEditing();
-  void move_cursor(int offset);
+  void move_cursor(int offset, int page);
   void copy_chord(); 
   void paste_chord(); 
   
@@ -98,7 +98,7 @@ void ChordEditor<Owner>::Draw() {
   		if (w < kMinWidth) w = kMinWidth;
 
   		weegfx::coord_t x = 64 - (w + 1)/ 2;
-  		weegfx::coord_t y = 16 - 3;
+  		weegfx::coord_t y = 16 - 2;
   		weegfx::coord_t h = 36;
 
   		graphics.clearRect(x, y, w + 4, h);
@@ -119,10 +119,6 @@ void ChordEditor<Owner>::Draw() {
   		}
 
   		graphics.setPrintPos(x, y + 24);
-	    
-	    //if (cursor_pos_ != max_chords) {
-    	//	graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-  		//}
 
   		x += 2; y += 10;
       int8_t indicator = owner_->active_chord();
@@ -143,66 +139,83 @@ void ChordEditor<Owner>::Draw() {
       		graphics.drawFrame(x - 2, y - 2, 8, 12);
   	}	
   	break;
+    
   	case CHORD_EDIT: 
   	{
-	  //todo
-	  const weegfx::coord_t w = 95;
-	  const weegfx::coord_t x_offset = 8;
-	  const weegfx::coord_t h = 36;
+    
+      weegfx::coord_t w = 128;
+      weegfx::coord_t x = 0;
+      weegfx::coord_t y = 16 - 2;
+      weegfx::coord_t h = 45;
 
-	  weegfx::coord_t x = 64 - (w + 1)/ 2;
-	  weegfx::coord_t y = 16 - 3;
-
-	  graphics.clearRect(x, y, w + 4, h);
-	  graphics.drawFrame(x, y, w + 5, h);
-
-	  x += x_offset;
-	  y += 4;
-
-	  graphics.setPrintPos(x, y);
-	  graphics.print("#");
-	  graphics.print(edit_this_chord_ + 1);
-
-	  switch(chord_property_) {
-
-	    case 0: // quality
-	    graphics.print(" -- quality");
-	    break;
-	    case 1: // voicing
-	    graphics.print(" -- voicing");
-	    break;
-	    case 2: // inversion
-	    graphics.print(" - inversion");
-	    break;
-	    case 3: // interchange
-	    graphics.print(" interchange");
-	    break;
-	    default:
-	    break;
+      graphics.clearRect(x, y, w, h + 10);
+      graphics.drawFrame(x, y, w, h);
+      // chord:
+      graphics.setPrintPos(85, 2);
+      graphics.print("chord#");
+      graphics.print((int)edit_this_chord_ + 1); 
+      
+      x += 6;
+      y += 5;
+      
+      for (size_t i = 0; i < sizeof(Chord); ++i, x += 24) {
+        
+        // draw value
+      
+        switch(i) {
+          
+            case 0: // quality
+            graphics.setPrintPos(x + 1, y + 7);
+            graphics.print(OC::quality_very_short_names[chord_quality_]);
+            break;
+            case 1: // voicing
+            graphics.setPrintPos(x + 1, y + 7);
+            graphics.print(voicing_names_short[chord_voicing_]);
+            break;
+            case 2: // inversion
+            graphics.setPrintPos(x + 7, y + 7);
+            graphics.print(inversion_names[chord_inversion_]);
+            break;
+            case 3: // base note
+            {
+            if (chord_base_note_ >= 9)
+              graphics.setPrintPos(x + 4, y + 7);
+            else
+              graphics.setPrintPos(x + 7, y + 7);
+            graphics.print((int)chord_base_note_ + 1);
+            }
+            break;
+            case 4: // octave 
+            {
+            if (chord_octave_ < 0)
+               graphics.setPrintPos(x + 4, y + 7);
+            else
+              graphics.setPrintPos(x + 7, y + 7);
+            graphics.print((int)chord_octave_);
+            }
+            break;
+            default:
+            break;
+        }
+        // draw property name
+        graphics.setPrintPos(x + 7, y + 26);
+        graphics.print(OC::Strings::chord_property_names[i]);
+        
+        // cursor:  
+        if (i == cursor_quality_pos_) {
+          graphics.invertRect(x, y, 21, 21); 
+          graphics.invertRect(x, y + 22, 21, 14); 
+        }
+        else {
+          graphics.drawFrame(x, y, 21, 21);
+          graphics.drawFrame(x, y + 22, 21, 14);  
+        }
+      }
 	  }
-
-	  x = (64 - (w + 1)/ 2) + x_offset;
-	  y += 13;
-	  graphics.setPrintPos(x, y);
-	  graphics.setPrintPos(x, y);
-	  graphics.print("> ");
-
-	  switch(chord_property_) {
-
-	    case 0: // quality
-	    graphics.print(OC::quality_names[chord_quality_]);
-	    break;
-	    case 1: // voicing
-	    graphics.print(OC::voicing_names[chord_voicing_]);
-	    break;
-	    default:
-	    graphics.print(" - ");
-	    break;
-	  }
-	}
-	break;
+	  break;
+    
 	default:
-	break;
+	  break;
   }
 }
 
@@ -249,26 +262,12 @@ template <typename Owner>
 void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
  
   if (OC::CONTROL_ENCODER_L == event.control) {
-   
-   	if (edit_page_ == CHORD_SELECT)
-   		move_cursor(event.value);
-	else {
-	     // edit next chord
-		 edit_this_chord_ += event.value;
-		 CONSTRAIN(edit_this_chord_, 0, max_chords_);
-		 cursor_pos_ = edit_this_chord_;
-		 const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_);
- 	     chord_quality_ = chord_def.quality;
-     	 chord_voicing_ = chord_def.voicing;
-		 chord_inversion_ = chord_def.inversion;
-		 chord_interchange_ = chord_def.parallel_scale;
-	}
-	
+    move_cursor(event.value, edit_page_);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
 
   	if (edit_page_ == CHORD_EDIT) {
 
-	    switch(chord_property_) {
+	    switch(cursor_quality_pos_) {
 
 	      case 0: // quality:
 	      {
@@ -294,14 +293,23 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
 	        edit_user_chord_->inversion = chord_inversion_;
 	      }
 	      break;
-	      case 3: // parallel scale/interchange
+	      case 3: // base note
 	      {
-	        chord_interchange_ += event.value;
-	        CONSTRAIN(chord_interchange_, 0, OC::Scales::NUM_SCALES - 1);
+	        chord_base_note_ += event.value;
+          const OC::Scale &scale_def = OC::Scales::GetScale(owner_->get_scale(DUMMY));
+	        CONSTRAIN(chord_base_note_, 0, scale_def.num_notes - 1);
 	        OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_];
-	        edit_user_chord_->parallel_scale = chord_interchange_;
+	        edit_user_chord_->base_note = chord_base_note_;
 	      }
 	      break;
+        case 4: // octave
+        {
+          chord_octave_ += event.value;
+          CONSTRAIN(chord_octave_, -4, 4); //todo
+          OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_];
+          edit_user_chord_->octave = chord_octave_;
+        }
+        break;
 	      default:
 	      break;
 	    }
@@ -310,39 +318,73 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
 
 		if (cursor_pos_ == max_chords_ + 1) {
 
-          int max_chords = max_chords_;
-          max_chords += event.value;
-          CONSTRAIN(max_chords, 0, 7);
+        int max_chords = max_chords_;
+        max_chords += event.value;
+        CONSTRAIN(max_chords, 0, 7);
 
-          max_chords_ = max_chords;
-          cursor_pos_ = max_chords_ + 1;
-          owner_->set_num_chords(max_chords);
+        max_chords_ = max_chords;
+        cursor_pos_ = max_chords_ + 1;
+        owner_->set_num_chords(max_chords);
       }
-	}
+	  }
   }
 }
 
 template <typename Owner>
-void ChordEditor<Owner>::move_cursor(int offset) {
+void ChordEditor<Owner>::move_cursor(int offset, int page) {
 
-  int cursor_pos = cursor_pos_ + offset;
-  //CONSTRAIN(cursor_pos, 0, OC::Chords::NUM_CHORDS_PROPERTIES);
-  CONSTRAIN(cursor_pos, 0, max_chords_ + 1);  
-  cursor_pos_ = cursor_pos;
+  if (page == CHORD_SELECT) {
+    int cursor_pos = cursor_pos_ + offset;
+    CONSTRAIN(cursor_pos, 0, max_chords_ + 1);  
+    cursor_pos_ = cursor_pos;
+  }
+  else {
+    int cursor_quality_pos = cursor_quality_pos_ + offset;
+    CONSTRAIN(cursor_quality_pos, 0, sizeof(Chord) - 1); 
+    cursor_quality_pos_ = cursor_quality_pos;
+  }
 }
 
 template <typename Owner>
 void ChordEditor<Owner>::handleButtonUp(const UI::Event &event) {
+  
+ if (edit_page_ == CHORD_SELECT) {
+  // to do: go to next sequence
+ }
+ else {
+   // go to next chord
+   edit_this_chord_++;
+   if (edit_this_chord_ > max_chords_)
+      edit_this_chord_ = 0;
+   const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_);
+   chord_quality_ = chord_def.quality;
+   chord_voicing_ = chord_def.voicing;
+   chord_inversion_ = chord_def.inversion;
+   chord_base_note_ = chord_def.base_note;
+   chord_octave_ = chord_def.octave;
+ }
 
-  chord_property_++;
-  CONSTRAIN(chord_property_, 0, sizeof(Chord) - 1);
 }
 
 template <typename Owner>
 void ChordEditor<Owner>::handleButtonDown(const UI::Event &event) {
 
-    chord_property_--;
-    CONSTRAIN(chord_property_, 0, sizeof(Chord) - 1);
+  if (edit_page_ == CHORD_SELECT) {
+  // to do: go to prev. sequence
+ }
+ else {
+   // go to previous chord
+   edit_this_chord_--;
+   if (edit_this_chord_ < 0)
+      edit_this_chord_ = max_chords_;
+   const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_);
+   chord_quality_ = chord_def.quality;
+   chord_voicing_ = chord_def.voicing;
+   chord_inversion_ = chord_def.inversion;
+   chord_base_note_ = chord_def.base_note;
+   chord_octave_ = chord_def.octave;
+ }
+
 }
 
 template <typename Owner>
@@ -355,8 +397,10 @@ void ChordEditor<Owner>::handleButtonLeft(const UI::Event &) {
     const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_);
     chord_quality_ = chord_def.quality;
     chord_voicing_ = chord_def.voicing;
-	chord_inversion_ = chord_def.inversion;
-	chord_interchange_ = chord_def.parallel_scale;
+    chord_inversion_ = chord_def.inversion;
+    chord_base_note_ = chord_def.base_note;
+    chord_octave_ = chord_def.octave;
+    cursor_quality_pos_ = 0;
   }
   else
   	edit_page_ = CHORD_SELECT;
@@ -380,7 +424,8 @@ void ChordEditor<Owner>::BeginEditing() {
   chord_quality_ = chord_def.quality;
   chord_voicing_ = chord_def.voicing;
   chord_inversion_ = chord_def.inversion;
-  chord_interchange_ = chord_def.parallel_scale;
+  chord_base_note_ = chord_def.base_note;
+  chord_octave_ = chord_def.octave;
   edit_page_ = CHORD_SELECT;
 }
 
