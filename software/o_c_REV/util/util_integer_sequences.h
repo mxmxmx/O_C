@@ -43,6 +43,7 @@ public:
     k_ = i_; // current index
     x_ = 3; // first digit of pi
     s_ = 1; // stride for fractal sequance
+    brownian_prob_ = 0 ;
     loop_ = true;
     pass_go_ = true;
     up_ = true;
@@ -50,9 +51,14 @@ public:
   	// msb_pos_ = 0;
   	bit_sum_ = 0;
   	pending_bit_ = 0;
+  	uint32_t _seed = OC::ADC::value<ADC_CHANNEL_1>() + OC::ADC::value<ADC_CHANNEL_2>() + OC::ADC::value<ADC_CHANNEL_3>() + OC::ADC::value<ADC_CHANNEL_4>();
+    randomSeed(_seed);
   }
 
   uint16_t Clock() {
+  	// Compare Brownian probability and reverse direction if needed
+  	if (static_cast<int16_t>(random(0,256)) < brownian_prob_) up_ = !up_; 
+		 	
   	if (loop_ || up_) {
   		k_ += 1;
   	} else {
@@ -172,6 +178,10 @@ public:
     s_ = s; 
   }
 
+  void set_brownian_prob(int16_t p) {
+    brownian_prob_ = p; 
+  }
+
   void reset_loop() {
     k_ = i_;
   }
@@ -224,6 +234,7 @@ private:
   bool loop_;
   bool pass_go_;
   bool up_ ;
+  int16_t brownian_prob_ ;
 };
 
 }; // namespace util

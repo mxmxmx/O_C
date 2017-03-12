@@ -76,6 +76,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_INT_SEQ_MODULUS,
   CHANNEL_SETTING_INT_SEQ_RANGE,
   CHANNEL_SETTING_INT_SEQ_DIRECTION,
+  CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB,
   CHANNEL_SETTING_INT_SEQ_LOOP_START,
   CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH,
   CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB,
@@ -304,6 +305,10 @@ public:
 
   bool get_int_seq_dir() const {
     return static_cast<bool>(values_[CHANNEL_SETTING_INT_SEQ_DIRECTION]);
+  }
+
+  int16_t get_int_seq_brownian_prob() const {
+    return static_cast<int16_t>(values_[CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB]);
   }
 
   uint8_t get_int_seq_index_cv_source() const {
@@ -591,6 +596,7 @@ public:
               break;
             
             int_seq_.set_loop_direction(get_int_seq_dir());
+            int_seq_.set_brownian_prob(get_int_seq_brownian_prob());
             int16_t int_seq_index = get_int_seq_index();
             int16_t int_seq_stride = get_int_seq_stride();
 
@@ -955,6 +961,7 @@ public:
         *settings++ = CHANNEL_SETTING_INT_SEQ_MODULUS;
         *settings++ = CHANNEL_SETTING_INT_SEQ_RANGE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_DIRECTION;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_START;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH;
         *settings++ = CHANNEL_SETTING_INT_SEQ_STRIDE;
@@ -1007,6 +1014,7 @@ public:
       case CHANNEL_SETTING_INT_SEQ_MODULUS:
       case CHANNEL_SETTING_INT_SEQ_RANGE:
       case CHANNEL_SETTING_INT_SEQ_DIRECTION:
+      case CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB:
       case CHANNEL_SETTING_INT_SEQ_LOOP_START:
       case CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH:
       case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB:
@@ -1133,6 +1141,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 24, 2, 121, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 255, "> Brownian prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "IntSeq FS prob", NULL, settings::STORAGE_TYPE_U8 },
