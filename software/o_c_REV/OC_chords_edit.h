@@ -150,6 +150,7 @@ void ChordEditor<Owner>::Draw() {
 
       graphics.clearRect(x, y, w, h + 10);
       graphics.drawFrame(x, y, w, h);
+     
       // chord:
       graphics.setPrintPos(85, 2);
       graphics.print("chord#");
@@ -211,6 +212,8 @@ void ChordEditor<Owner>::Draw() {
           graphics.drawFrame(x, y + 22, 21, 14);  
         }
       }
+      if(edit_this_chord_ == owner_->active_chord())
+        graphics.drawLine(0, 62, 128, 62);
 	  }
 	  break;
     
