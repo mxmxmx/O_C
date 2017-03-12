@@ -448,19 +448,20 @@ public:
               CONSTRAIN(range, 1, 120);
             }
 
-            uint8_t modulus = get_turing_modulus();
-            if (get_turing_modulus_cv_source()) {
-              modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) >> 5);
-              CONSTRAIN(modulus, 2, 121);
-            }
-
             if (quantizer_.enabled()) {
     
-              // To use full range of bits is something like:
-              // uint32_t scaled = (static_cast<uint64_t>(shift_register) * static_cast<uint64_t>(range)) >> turing_length;
-              // Since our range is limited anyway, just grab the last byte, and apply the modulus
-              uint32_t scaled = (((shift_register & 0xff) * range) >> 8) % modulus ;
-    
+              uint8_t modulus = get_turing_modulus();
+              if (get_turing_modulus_cv_source()) {
+                 modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) >> 5);
+                 CONSTRAIN(modulus, 2, 121);
+              }
+ 
+              // Since our range is limited anyway, just grab the last byte for lengths > 8,
+              // otherwise scale to use bits. And apply the modulus
+              uint32_t shift = turing_machine_.length();
+              uint32_t scaled = (shift_register & 0xff) * range;
+              scaled = (scaled >> (shift > 7 ? 8 : shift)) % modulus;
+     
               // The quantizer uses a lookup codebook with 128 entries centered
               // about 0, so we use the range/scaled output to lookup a note
               // directly instead of changing to pitch first.
@@ -469,15 +470,13 @@ public:
               sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
-              // We dont' need a calibrated value here, really
-              int octave = get_octave();
-              CONSTRAIN(octave, 0, 6);
-              sample = OC::DAC::get_octave_offset(dac_channel, octave) + (get_transpose() << 7); 
-              // range is actually 120 (10 oct) but 65535 / 128 is close enough
-              sample += multiply_u32xu32_rshift32((static_cast<uint32_t>(range) * 65535U) >> 7, shift_register << (32 - get_turing_length()));
-              sample = USAT16(sample);
-              history_sample = sample;
-            }
+              // Scale range by 128, so 12 steps = 1V
+              // We dont' need a calibrated value here, really.
+              uint32_t scaled = multiply_u32xu32_rshift(range << 7, shift_register, get_turing_length());
+              scaled += get_transpose() << 7;
+              sample = OC::DAC::pitch_to_dac(dac_channel, scaled, get_octave());
+              history_sample = scaled + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
+             }
           }
         }
         break;
@@ -925,11 +924,12 @@ public:
       break;
       case CHANNEL_SOURCE_TURING:
         *settings++ = CHANNEL_SETTING_TURING_LENGTH;
-        *settings++ = CHANNEL_SETTING_TURING_MODULUS;
+        if (OC::Scales::SCALE_NONE != get_scale(DUMMY))
+            *settings++ = CHANNEL_SETTING_TURING_MODULUS;
         *settings++ = CHANNEL_SETTING_TURING_RANGE;
         *settings++ = CHANNEL_SETTING_TURING_PROB;
-        *settings++ = CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE;
-        *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
+        if (OC::Scales::SCALE_NONE != get_scale(DUMMY))
+            *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_TURING_PROB_CV_SOURCE;
       break;
       case CHANNEL_SOURCE_LOGISTIC_MAP:
