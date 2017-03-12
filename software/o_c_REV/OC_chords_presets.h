@@ -21,35 +21,7 @@ namespace OC {
     { 0, 0, 0, OC::Scales::SCALE_SEMI}
   };
 
-// these intervals are for semitones pitch classes
-//  const int8_t qualities[][4] = 
-//  {
-//  	{ 0, 4, 7, 11}, // major 7
-//  	{ 0, 3, 7, 10}, // minor 7
-//  	{ 0, 4, 7, 10}, // dominant 7
-//  	{ 0, 3, 6, 10}, // half diminished
-//  	{ 0, 4, 7, 0 }, // major triad
-//  	{ 0, 3, 7, 0 }, // minor triad
-//  	{ 0, 4, 7, 0 }, // dominant 
-//  	{ 0, 3, 6, 0 }, // diminished triad
-//  	{ 0, 0, 0, 0 }, // unisono
-//  };
-
 // these intervals are for notes-in-scale/key, last element is the chord type (monad=1, dyad=2, traid=3, tetrad=4)
-/* 
-  const int8_t qualities[][5] = 
-{
-    { 0, 0, 4, 0, 2 },  // fifth
-    { 0, 2, 2, 0, 3 },  // triad 
-    { 0, 2, 2, 2, 4 },  // seventh
-    { 0, 3, 1, 0, 3 },  // suspended
-    { 0, 3, 1, 2, 4 },  // susp. seventh
-    { 0, 2, 2, 1, 4 }, // sixth
-    { 0, 2, 2, 4, 4 }, // added ninth
-    { 0, 2, 2, 6, 4 }, // added eleventh
-    { 0, 0, 0, 0, 1 }, // unisono
-};
- */
  
   const int8_t qualities[][4] = 
   {
@@ -79,7 +51,7 @@ namespace OC {
   };
 
   const char* const quality_names[] {
-    "fifth", "triad", "seventh", "suspended.", "susp 7th", "sixth", "added 9th", "added 11th", "unisono"
+    "fifth", "triad", "seventh", "suspended", "susp 7th", "sixth", "added 9th", "added 11th", "unisono"
   };
 
   const char* const quality_short_names[] {
@@ -100,6 +72,10 @@ namespace OC {
 
   const char* const inversion_names[] {
     "-", "1", "2", "3"
+  };
+
+  const char* const base_note_names[] {
+    "CV", "#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8", "#9", "#10", "#11", "#12"
   };
 }
 #endif // OC_CHORDS_PRESETS_H_

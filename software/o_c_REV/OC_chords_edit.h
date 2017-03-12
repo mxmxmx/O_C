@@ -178,11 +178,11 @@ void ChordEditor<Owner>::Draw() {
             break;
             case 3: // base note
             {
-            if (chord_base_note_ >= 9)
-              graphics.setPrintPos(x + 4, y + 7);
+            if (chord_base_note_ > 9)
+              graphics.setPrintPos(x + 1, y + 7);
             else
-              graphics.setPrintPos(x + 7, y + 7);
-            graphics.print((int)chord_base_note_ + 1);
+              graphics.setPrintPos(x + 4, y + 7);
+            graphics.print(base_note_names[chord_base_note_]);
             }
             break;
             case 4: // octave 
@@ -297,7 +297,7 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
 	      {
 	        chord_base_note_ += event.value;
           const OC::Scale &scale_def = OC::Scales::GetScale(owner_->get_scale(DUMMY));
-	        CONSTRAIN(chord_base_note_, 0, scale_def.num_notes - 1);
+	        CONSTRAIN(chord_base_note_, 0, scale_def.num_notes);
 	        OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_];
 	        edit_user_chord_->base_note = chord_base_note_;
 	      }

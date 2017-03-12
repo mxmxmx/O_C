@@ -240,10 +240,40 @@ public:
       transpose = get_transpose();
       octave = get_octave();
       root = get_root();
-        
-      pitch = quantizer_.enabled()
-                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
-                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
+
+      
+      // next chord via trigger?
+      uint8_t _advance_trig = digitalReadFast(TR2);
+      
+      if (_advance_trig < chord_advance_last_) 
+        active_chord_ = active_chord_++ > (get_num_chords() - 1) ? 0x0 : active_chord_; // increment/reset
+      else if (!get_num_chords()) 
+        active_chord_ = 0x0; 
+      chord_advance_last_ = _advance_trig;
+      
+      // active chord:
+      OC::Chord *active_chord = &OC::user_chords[active_chord_];
+      
+      int8_t _base_note = active_chord->base_note;
+      int8_t _octave = active_chord->octave;
+      int8_t _quality = active_chord->quality;
+      int8_t _voicing = active_chord->voicing;
+      //int8_t _inversion = active_chord->inversion;
+
+      octave += _octave;
+      CONSTRAIN(octave, -6, 6);
+
+      if (_base_note) {
+        // we don't use the incoming CV pitch value
+        // Q? how to deal with this in continuous mode
+        pitch = 0x0;
+        transpose += (_base_note - 0x1);
+      }     
+      else {
+        pitch = quantizer_.enabled()
+                  ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
+                  : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
+      }
               
       switch (cv_source) {
 
@@ -357,19 +387,7 @@ public:
       
       history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);
 
-      // next chord via trigger?
-      uint8_t _advance_trig = digitalReadFast(TR2);
-      
-      if (_advance_trig < chord_advance_last_) 
-        active_chord_ = active_chord_++ > (get_num_chords() - 1) ? 0x0 : active_chord_; // increment/reset
-      else if (!get_num_chords()) 
-        active_chord_ = 0x0; 
-      chord_advance_last_ = _advance_trig;
-      
-      // now derive chords... A is the root = sample
-      OC::Chord *active_chord = &OC::user_chords[active_chord_];
-      int8_t _quality = active_chord->quality;
-      int8_t _voicing = active_chord->voicing;
+      // now derive chords ...
       
       int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][1]);
       int32_t sample_c  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][2]);
@@ -628,7 +646,7 @@ void CHORDS_menu() {
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
   uint8_t clock_state = (chords.clockState() + 3) >> 2;
-  if (clock_state)
+  if (clock_state && !chords_state.chord_editor.active())
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
   
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(chords_state.cursor);
