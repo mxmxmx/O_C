@@ -71,6 +71,10 @@ public:
     length_ = length;
   }
 
+  uint8_t length() const {
+     return length_;
+  }
+
   void set_probability(uint8_t probability) {
     probability_ = probability;
   }

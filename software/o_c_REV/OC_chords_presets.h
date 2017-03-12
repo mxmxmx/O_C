@@ -34,18 +34,18 @@ namespace OC {
 //  	{ 0, 0, 0, 0 }, // unisono
 //  };
 
-// these intervals are for notes-in-scale/key, last element is the chord type
+// these intervals are for notes-in-scale/key, last element is the chord type (monad=1, dyad=2, traid=3, tetrad=4)
   const int8_t qualities[][5] = 
 {
-    { 0, 0, 4, 0, CHORD_TYPE_DYAD   },  // fifth
-    { 0, 2, 2, 0, CHORD_TYPE_TRIAD  },  // triad 
-    { 0, 2, 2, 2, CHORD_TYPE_TETRAD },  // seventh
-    { 0, 3, 1, 0, CHORD_TYPE_TRIAD  },  // suspended
-    { 0, 3, 1, 2, CHORD_TYPE_TETRAD },  // susp. seventh
-    { 0, 2, 2, 1, CHORD_TYPE_TETRAD }, // sixth
-    { 0, 2, 2, 4, CHORD_TYPE_TETRAD }, // added ninth
-    { 0, 2, 2, 6, CHORD_TYPE_TETRAD }, // added eleventh
-    { 0, 0, 0, 0, CHORD_TYPE_MONAD }, // unisono
+    { 0, 0, 4, 0, 2 },  // fifth
+    { 0, 2, 2, 0, 3 },  // triad 
+    { 0, 2, 2, 2, 4 },  // seventh
+    { 0, 3, 1, 0, 3 },  // suspended
+    { 0, 3, 1, 2, 4 },  // susp. seventh
+    { 0, 2, 2, 1, 4 }, // sixth
+    { 0, 2, 2, 4, 4 }, // added ninth
+    { 0, 2, 2, 6, 4 }, // added eleventh
+    { 0, 0, 0, 0, 1 }, // unisono
 };
 
 
