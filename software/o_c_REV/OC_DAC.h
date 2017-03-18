@@ -58,12 +58,14 @@ public:
     return pitch_to_dac(channel, semi << 7, octave_offset);
   }
 
+
   // Calculate DAC value from pitch value with 12 * 128 bit per octave.
   // 0 = C1 = 0V, C2 = 24 << 7 = 1V etc. Automatically shifts for LUT range.
   //
   // @return DAC output value
   static int32_t pitch_to_dac(DAC_CHANNEL channel, int32_t pitch, int32_t octave_offset) {
     pitch += (kOctaveZero + octave_offset) * 12 << 7;
+    
     CONSTRAIN(pitch, 0, (120 << 7));
 
     const int32_t octave = pitch / (12 << 7);
@@ -77,6 +79,38 @@ public:
 
     return sample;
   }
+
+  // Specialised version with voltage scaling
+  static int32_t pitch_to_scaled_voltage_dac(DAC_CHANNEL channel, int32_t pitch, int32_t octave_offset, uint8_t voltage_scaling ) {
+    pitch += (octave_offset * 12) << 7;
+
+    switch (voltage_scaling) {
+      case 1: // 1.2V/oct
+          pitch = (pitch * 19661) >> 14 ;
+          break;
+      case 2: // 2V/oct
+          pitch = pitch << 1 ;
+          break;
+      default: // 1V/oct
+          break;
+    }
+
+    pitch += (kOctaveZero * 12) << 7;
+   
+    CONSTRAIN(pitch, 0, (120 << 7));
+
+    const int32_t octave = pitch / (12 << 7);
+    const int32_t fractional = pitch - octave * (12 << 7);
+
+    int32_t sample = calibration_data_->calibrated_octaves[channel][octave];
+    if (fractional) {
+      int32_t span = calibration_data_->calibrated_octaves[channel][octave + 1] - sample;
+      sample += (fractional * span) / (12 << 7);
+    }
+
+    return sample;
+  }
+    
 
   // Set channel to semitone value
   template <DAC_CHANNEL channel>

@@ -30,6 +30,7 @@ enum ASRSettings {
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
+  ASR_SETTING_VOLTAGE_SCALING,
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
@@ -217,6 +218,10 @@ public:
     return int_seq_.get_n();
   }
 
+  uint8_t get_voltage_scaling() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING];
+  }
+
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
@@ -325,8 +330,9 @@ public:
     else 
       *settings++ = ASR_SETTING_DUMMY;
     *settings++ = ASR_SETTING_DELAY;
+    *settings++ = ASR_SETTING_VOLTAGE_SCALING;
     *settings++ = ASR_SETTING_CV_SOURCE;
-    
+   
  
     switch (get_cv_source()) {
       case ASR_CHANNEL_SOURCE_TURING:
@@ -625,7 +631,7 @@ public:
          }
 
         for (int i = 0; i < 4; ++i) {
-          int32_t sample = OC::DAC::pitch_to_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0);
+          int32_t sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0, get_voltage_scaling());
           scrolling_history_[i].Push(sample);
           OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
         }
@@ -696,6 +702,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
@@ -713,7 +720,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY  
+  { 0, 0, 0, "--", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY  
 };
 
 /* -------------------------------------------------------------------*/

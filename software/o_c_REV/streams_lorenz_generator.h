@@ -120,10 +120,8 @@ class LorenzGenerator {
  private:
   int32_t Lx1_, Ly1_, Lz1_;
   int32_t Rx1_, Ry1_, Rz1_;
-  int32_t rate1_;
   int32_t Lx2_, Ly2_, Lz2_;
   int32_t Rx2_, Ry2_, Rz2_;
-  int32_t rate2_;
 
   uint8_t out_a_, out_b_, out_c_, out_d_ ;
 

@@ -73,10 +73,10 @@ void LorenzGenerator::Process(
     int32_t freq2,
     bool reset1,
     bool reset2) {
-  int32_t rate1 = rate1_ + (freq1 >> 8);
+  int32_t rate1 =  (freq1 >> 8);
   if (rate1 < 0) rate1 = 0;
   if (rate1 > 255) rate1 = 255;
-  int32_t rate2 = rate2_ + (freq2 >> 8);
+  int32_t rate2 = (freq2 >> 8);
   if (rate2 < 0) rate2 = 0;
   if (rate2 > 255) rate2 = 255;
 
