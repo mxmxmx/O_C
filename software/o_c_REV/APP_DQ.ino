@@ -66,6 +66,7 @@ enum DQ_ChannelSetting {
   DQ_CHANNEL_SETTING_TURING_RANGE,
   DQ_CHANNEL_SETTING_TURING_TRIG_OUT,
   DQ_CHANNEL_SETTING_VOLTAGE_SCALING,
+  DQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX,
   DQ_CHANNEL_SETTING_LAST
 };
 
@@ -286,6 +287,10 @@ public:
 
   uint8_t get_voltage_scaling() const {
     return values_[DQ_CHANNEL_SETTING_VOLTAGE_SCALING];
+  }
+
+  uint8_t get_voltage_scaling_aux() const {
+    return values_[DQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX];
   }
 
   uint8_t get_turing_length() const {
@@ -687,11 +692,11 @@ public:
       
       // deal with aux output:
       if (aux_mode == DQ_COPY) 
-        aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), get_voltage_scaling());
+        aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), get_voltage_scaling_aux());
       else if (aux_mode == DQ_ASR) {
         // to do ... more settings
         const int32_t quantized_aux = quantizer_.Process(last_raw_sample_, root << 7, transpose);
-        aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized_aux, octave + continuous_offset_ + get_aux_octave(), get_voltage_scaling());
+        aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized_aux, octave + continuous_offset_ + get_aux_octave(), get_voltage_scaling_aux());
         last_raw_sample_ = pitch;
       }
     }
@@ -923,9 +928,11 @@ public:
       break;
       case DQ_COPY:
         *settings++ = DQ_CHANNEL_SETTING_AUX_OCTAVE;
+        *settings++ = DQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX;
       break;
       case DQ_ASR:
         *settings++ = DQ_CHANNEL_SETTING_AUX_OCTAVE; // to do
+        *settings++ = DQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX;
       break;
       default:
       break;
@@ -1064,7 +1071,8 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 2, " > LFSR CV", dq_tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 15, 1, 120, " > LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, DQ_TRIG_AUX_LAST-1, " > LFSR TRIG", dq_tm_trig_out, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 2, "Main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 2, "Aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 };
 
 // WIP refactoring to better encapsulate and for possible app interface change
