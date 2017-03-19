@@ -72,7 +72,9 @@ void LorenzGenerator::Process(
     int32_t freq1,
     int32_t freq2,
     bool reset1,
-    bool reset2) {
+    bool reset2,
+    uint8_t freq_range1,
+    uint8_t freq_range2) {
   int32_t rate1 =  (freq1 >> 8);
   if (rate1 < 0) rate1 = 0;
   if (rate1 > 255) rate1 = 255;
@@ -85,16 +87,16 @@ void LorenzGenerator::Process(
 
   // yes, yes, these should be functions...
   // Lorenz 1
-  int64_t Ldt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 5);
+  int64_t Ldt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> (5 - freq_range1)); // was 5
   int32_t Lx1 = Lx1_ + (Ldt1 * ((sigma * (Ly1_ - Lx1_)) >> 24) >> 24);
   int32_t Ly1 = Ly1_ + (Ldt1 * ((Lx1_ * (rho1_ - Lz1_) >> 24) - Ly1_) >> 24);
   int32_t Lz1 = Lz1_ + (Ldt1 * ((Lx1_ * int64_t(Ly1_) >> 24) - (beta * Lz1_ >> 24)) >> 24); 
   Lx1_ = Lx1;
   Ly1_ = Ly1;
   Lz1_ = Lz1; 
-  int32_t Lz1_scaled = (Lz1 >> 14);
-  int32_t Lx1_scaled = (Lx1 >> 14) + 32769;
-  int32_t Ly1_scaled = (Ly1 >> 14) + 32769;
+  int32_t Lz1_scaled = ((Lz1 * 3) >> 16);
+  int32_t Lx1_scaled = ((Lx1 * 3) >> 16) + 32769;
+  int32_t Ly1_scaled = ((Ly1 * 3) >> 16) + 32769;
   // Rossler 1
   int64_t Rdt1 = static_cast<int64_t>(lut_lorenz_rate[rate1] >> 0);
   int32_t Rx1 = Rx1_ + ((Rdt1 * (-Ry1_ - Rz1_ )) >> 24);
@@ -108,16 +110,16 @@ void LorenzGenerator::Process(
   int32_t Ry1_scaled = (Ry1 >> 14) + 32769;
 
   // Lorenz 2
-  int64_t Ldt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 5);
+  int64_t Ldt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> (5 - freq_range2)); // was 5
   int32_t Lx2 = Lx2_ + (Ldt2 * ((sigma * (Ly2_ - Lx2_)) >> 24) >> 24);
   int32_t Ly2 = Ly2_ + (Ldt2 * ((Lx2_ * (rho2_ - Lz2_) >> 24) - Ly2_) >> 24);
   int32_t Lz2 = Lz2_ + (Ldt2 * ((Lx2_ * int64_t(Ly2_) >> 24) - (beta * Lz2_ >> 24)) >> 24); 
   Lx2_ = Lx2;
   Ly2_ = Ly2;
   Lz2_ = Lz2; 
-  int32_t Lz2_scaled = (Lz2 >> 14);
-  int32_t Lx2_scaled = (Lx2 >> 14) + 32769;
-  int32_t Ly2_scaled = (Ly2 >> 14) + 32769;
+  int32_t Lz2_scaled = ((Lz2 * 3) >> 16);
+  int32_t Lx2_scaled = ((Lx2 * 3) >> 16) + 32769;
+  int32_t Ly2_scaled = ((Ly2 * 3) >> 16) + 32769;
   // Rossler 2
   int64_t Rdt2 = static_cast<int64_t>(lut_lorenz_rate[rate2] >> 0);
   int32_t Rx2 = Rx2_ + ((Rdt2 * (-Ry2_ - Rz2_ )) >> 24);

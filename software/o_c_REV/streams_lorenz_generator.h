@@ -76,7 +76,7 @@ class LorenzGenerator {
   
   void Init(uint8_t index);
   
-  void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2);
+  void Process(int32_t freq1, int32_t freq2, bool reset1, bool reset2, uint8_t freq_range1, uint8_t freq_range2);
  
   void set_index(uint8_t index) {
     index_ = index;
