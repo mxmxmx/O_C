@@ -32,6 +32,7 @@ enum ReferenceSetting {
   REF_SETTING_SEMI,
   REF_SETTING_RANGE,
   REF_SETTING_RATE,
+  REF_SETTING_VOLTAGE_SCALING,
   REF_SETTING_LAST
 };
 
@@ -64,6 +65,10 @@ public:
     return values_[REF_SETTING_RATE];
   }
 
+  uint8_t get_voltage_scaling() const {
+    return values_[REF_SETTING_VOLTAGE_SCALING];
+  }
+
   void Update() {
 
     int octave = get_octave();
@@ -81,7 +86,7 @@ public:
     }
 
     int32_t semitone = get_semitone();
-    OC::DAC::set(dac_channel_, OC::DAC::semitone_to_dac(dac_channel_, semitone, octave));
+    OC::DAC::set(dac_channel_, OC::DAC::semitone_to_scaled_voltage_dac(dac_channel_, semitone, octave, get_voltage_scaling()));
     last_pitch_ = (semitone + octave * 12) << 7;
   }
 
@@ -99,10 +104,11 @@ public:
     *settings++ = REF_SETTING_SEMI;
     *settings++ = REF_SETTING_RANGE;
     *settings++ = REF_SETTING_RATE;
-    num_enabled_settings_ = settings - enabled_settings_;
+    *settings++ = REF_SETTING_VOLTAGE_SCALING;
+     num_enabled_settings_ = settings - enabled_settings_;
   }
 
-  void RenderScreensaver(weegfx::coord_t start_x) const;
+  void RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) const;
 
 private:
   uint32_t rate_phase_;
@@ -119,6 +125,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 },
 };
 
 class ReferencesApp {
@@ -222,7 +229,7 @@ void print_voltage(int octave, int fraction) {
   graphics.movePrintPos(-2, 0); graphics.printf("%03d", fraction);
 }
 
-void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x) const {
+void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) const {
 
   // Mostly borrowed from QQ
 
@@ -231,27 +238,57 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x) const {
   for (int i = 0; i < 12; ++i, y -= 4)
     graphics.setPixel(x, y);
 
-  int32_t pitch = last_pitch_ + (OC::DAC::kOctaveZero * 12 << 7);
+  int32_t pitch = last_pitch_ ;
+  int32_t unscaled_pitch = last_pitch_ ;
+
+  switch (references_app.channels_[chan].get_voltage_scaling()) {
+      case 1: // 1.2V/oct
+          pitch = (pitch * 19661) >> 14 ;
+          break;
+      case 2: // 2V/oct
+          pitch = pitch << 1 ;
+          break;
+      default: // 1V/oct
+          break;
+    }
+
+  pitch += (OC::DAC::kOctaveZero * 12) << 7;
+  unscaled_pitch += (OC::DAC::kOctaveZero * 12) << 7;
+
+  
   CONSTRAIN(pitch, 0, 120 << 7);
 
   int32_t octave = pitch / (12 << 7);
+  int32_t unscaled_octave = unscaled_pitch / (12 << 7);
   pitch -= (octave * 12 << 7);
+  unscaled_pitch -= (unscaled_octave * 12 << 7);
   int semitone = pitch >> 7;
+  int unscaled_semitone = unscaled_pitch >> 7;
 
-  y = 60 - semitone * 4;
-  if (semitone < 6)
+  y = 60 - unscaled_semitone * 4;
+  if (unscaled_semitone < 6)
     graphics.setPrintPos(start_x + menu::kIndentDx, y - 7);
   else
     graphics.setPrintPos(start_x + menu::kIndentDx, y);
-  graphics.print(OC::Strings::note_names_unpadded[semitone]);
+  graphics.print(OC::Strings::note_names_unpadded[unscaled_semitone]);
 
   graphics.drawHLine(start_x + 16, y, 8);
-  graphics.drawBitmap8(start_x + 28, 60 - octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
+  graphics.drawBitmap8(start_x + 28, 60 - unscaled_octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
 
   // Try and round to 3 digits
-  semitone = (semitone * 10000 + 50) / 120;
+  switch (references_app.channels_[chan].get_voltage_scaling()) {
+      case 1: // 1.2V/oct
+          semitone = (semitone * 10000 + 40) / 100;
+          break;
+      case 2: // 2V/oct
+      default: // 1V/oct
+          semitone = (semitone * 10000 + 50) / 120;
+          break;
+    }
+  
   semitone %= 1000;
   octave -= OC::DAC::kOctaveZero;
+
 
   // We want [sign]d.ddd = 6 chars in 32px space; with the current font width
   // of 6px that's too tight, so squeeze in the mini minus...
@@ -269,10 +306,10 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x) const {
 }
 
 void REFS_screensaver() {
-  references_app.channels_[0].RenderScreensaver(0);
-  references_app.channels_[1].RenderScreensaver(32);
-  references_app.channels_[2].RenderScreensaver(64);
-  references_app.channels_[3].RenderScreensaver(96);
+  references_app.channels_[0].RenderScreensaver( 0, 0);
+  references_app.channels_[1].RenderScreensaver(32, 1);
+  references_app.channels_[2].RenderScreensaver(64, 2);
+  references_app.channels_[3].RenderScreensaver(96, 3);
 }
 
 void REFS_handleButtonEvent(const UI::Event &event) {

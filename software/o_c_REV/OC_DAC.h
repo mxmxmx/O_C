@@ -80,8 +80,13 @@ public:
     return sample;
   }
 
-  // Specialised version with voltage scaling
-  static int32_t pitch_to_scaled_voltage_dac(DAC_CHANNEL channel, int32_t pitch, int32_t octave_offset, uint8_t voltage_scaling ) {
+  // Specialised versions with voltage scaling
+
+  static int32_t semitone_to_scaled_voltage_dac(DAC_CHANNEL channel, int32_t semi, int32_t octave_offset, uint8_t voltage_scaling) {
+    return pitch_to_scaled_voltage_dac(channel, semi << 7, octave_offset, voltage_scaling);
+  }
+  
+  static int32_t pitch_to_scaled_voltage_dac(DAC_CHANNEL channel, int32_t pitch, int32_t octave_offset, uint8_t voltage_scaling) {
     pitch += (octave_offset * 12) << 7;
 
     switch (voltage_scaling) {

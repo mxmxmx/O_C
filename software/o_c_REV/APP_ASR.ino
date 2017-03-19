@@ -30,7 +30,10 @@ enum ASRSettings {
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
-  ASR_SETTING_VOLTAGE_SCALING,
+  ASR_SETTING_VOLTAGE_SCALING_A,
+  ASR_SETTING_VOLTAGE_SCALING_B,
+  ASR_SETTING_VOLTAGE_SCALING_C,
+  ASR_SETTING_VOLTAGE_SCALING_D,
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
@@ -218,8 +221,35 @@ public:
     return int_seq_.get_n();
   }
 
-  uint8_t get_voltage_scaling() const {
-    return values_[ASR_SETTING_VOLTAGE_SCALING];
+  uint8_t get_voltage_scaling(int channel_i) const {
+    uint8_t value = 0;
+    switch(channel_i) {
+      case 3:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_D];
+        break;
+      case 2:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_C];
+        break;
+      case 1:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_B];
+        break;
+      default:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_A];
+        break;
+    }
+    return value;
+  }
+
+  uint8_t get_voltage_scaling_b() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING_B];
+  }
+
+  uint8_t get_voltage_scaling_c() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING_C];
+  }
+
+  uint8_t get_voltage_scaling_d() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING_D];
   }
 
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
@@ -330,7 +360,10 @@ public:
     else 
       *settings++ = ASR_SETTING_DUMMY;
     *settings++ = ASR_SETTING_DELAY;
-    *settings++ = ASR_SETTING_VOLTAGE_SCALING;
+    *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
+    *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
+    *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
+    *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
     *settings++ = ASR_SETTING_CV_SOURCE;
    
  
@@ -631,7 +664,7 @@ public:
          }
 
         for (int i = 0; i < 4; ++i) {
-          int32_t sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0, get_voltage_scaling());
+          int32_t sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0, get_voltage_scaling(i));
           scrolling_history_[i].Push(sample);
           OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
         }
@@ -702,7 +735,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "mult/att", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 2, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 2, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 2, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 2, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
