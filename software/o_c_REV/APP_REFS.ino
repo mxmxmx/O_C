@@ -104,7 +104,8 @@ public:
     *settings++ = REF_SETTING_SEMI;
     *settings++ = REF_SETTING_RANGE;
     *settings++ = REF_SETTING_RATE;
-    *settings++ = REF_SETTING_VOLTAGE_SCALING;
+    if (BUCHLA_SUPPORT)
+        *settings++ = REF_SETTING_VOLTAGE_SCALING;
      num_enabled_settings_ = settings - enabled_settings_;
   }
 

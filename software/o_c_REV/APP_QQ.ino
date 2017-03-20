@@ -981,7 +981,8 @@ public:
     }
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
-    *settings++ = CHANNEL_SETTING_VOLTAGE_SCALING;
+    if (BUCHLA_SUPPORT) 
+        *settings++ = CHANNEL_SETTING_VOLTAGE_SCALING;
 
     num_enabled_settings_ = settings - enabled_settings_;
   }

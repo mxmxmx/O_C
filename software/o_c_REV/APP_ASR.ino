@@ -360,10 +360,12 @@ public:
     else 
       *settings++ = ASR_SETTING_DUMMY;
     *settings++ = ASR_SETTING_DELAY;
-    *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
-    *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
-    *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
-    *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
+    if (BUCHLA_SUPPORT) {
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
+    }
     *settings++ = ASR_SETTING_CV_SOURCE;
    
  
