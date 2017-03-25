@@ -1163,7 +1163,7 @@ void H1200_screensaver() {
 
 void H1200_debug() {
   int cv = OC::ADC::value<ADC_CHANNEL_4>();
-  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 8);
+  int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8);
 
   graphics.setPrintPos(2, 12);
   graphics.printf("I: %4d %4d", cv, scaled);

@@ -567,17 +567,17 @@ public:
             schedule_scale_update_ = true;
           break;
           case DQ_DEST_ROOT:
-              root += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
+              root += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
           break;
           case DQ_DEST_MASK:
               update_scale(true, active_scale_slot_, (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8);
               schedule_scale_update_ = false;
           break;
           case DQ_DEST_OCTAVE:
-            octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
+            octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;
           break;
           case DQ_DEST_TRANSPOSE:
-            transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
+            transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 64) >> 7;
           break;
           default:
           break;
@@ -624,7 +624,7 @@ public:
             }
             break;
             case DQ_DEST_TRANSPOSE:
-              _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
+              _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 63) >> 7;
               if (_aux_cv != prev_transpose_cv_) {
                   transpose = get_transpose() + _aux_cv;
                   CONSTRAIN(transpose, -12, 12); 
@@ -633,7 +633,7 @@ public:
               }
             break;
             case DQ_DEST_ROOT:
-              _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
+              _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
               if (_aux_cv != prev_root_cv_) {
                   root = get_root() + _aux_cv;
                   CONSTRAIN(root, 0, 11);
@@ -642,7 +642,7 @@ public:
               }
             break;
             case DQ_DEST_OCTAVE:
-              _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) * 12 + 2047) >> 12;
+              _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;
               if (_aux_cv != prev_octave_cv_) {
                   octave = get_octave() + _aux_cv;
                   CONSTRAIN(octave, -4, 4);

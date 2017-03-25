@@ -441,7 +441,7 @@ public:
           turing_machine_.set_length(get_turing_length());
           int32_t probability = get_turing_prob();
           if (get_turing_prob_cv_source()) {
-            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) >> 4);
+            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) + 7) >> 4;
             CONSTRAIN(probability, 0, 255);
           }
           turing_machine_.set_probability(probability);  
@@ -449,7 +449,7 @@ public:
             uint32_t shift_register = turing_machine_.Clock();
             uint8_t range = get_turing_range();
             if (get_turing_range_cv_source()) {
-              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) >> 5);
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) + 15) >> 5;
               CONSTRAIN(range, 1, 120);
             }
 
@@ -457,7 +457,7 @@ public:
     
               uint8_t modulus = get_turing_modulus();
               if (get_turing_modulus_cv_source()) {
-                 modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) >> 5);
+                 modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) + 15) >> 5;
                  CONSTRAIN(modulus, 2, 121);
               }
  
@@ -492,28 +492,28 @@ public:
               
             int32_t bytebeat_eqn = get_bytebeat_equation() << 12;
             if (get_bytebeat_equation_cv_source()) {
-              bytebeat_eqn += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_equation_cv_source() - 1)) << 4);
+              bytebeat_eqn += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_equation_cv_source() - 1)) + 7) >> 4;
               bytebeat_eqn = USAT16(bytebeat_eqn);
             }
             bytebeat_.set_equation(bytebeat_eqn);
 
             int32_t bytebeat_p0 = get_bytebeat_p0() << 8;
             if (get_bytebeat_p0_cv_source()) {
-              bytebeat_p0 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p0_cv_source() - 1)) << 4);
+              bytebeat_p0 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p0_cv_source() - 1)) + 7) >> 4;
               bytebeat_p0 = USAT16(bytebeat_p0);
             }
             bytebeat_.set_p0(bytebeat_p0);
 
             int32_t bytebeat_p1 = get_bytebeat_p1() << 8;
             if (get_bytebeat_p1_cv_source()) {
-              bytebeat_p1 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p1_cv_source() - 1)) << 4);
+              bytebeat_p1 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p1_cv_source() - 1)) + 7) >> 4;
               bytebeat_p1 = USAT16(bytebeat_p1);
             }
             bytebeat_.set_p1(bytebeat_p1);
 
             int32_t bytebeat_p2 = get_bytebeat_p2() << 8;
             if (get_bytebeat_p2_cv_source()) {
-              bytebeat_p2 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p2_cv_source() - 1)) << 4);
+              bytebeat_p2 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p2_cv_source() - 1)) + 7) >> 4;
               bytebeat_p2 = USAT16(bytebeat_p2);
             }
             bytebeat_.set_p2(bytebeat_p2);
@@ -522,7 +522,7 @@ public:
               uint32_t bb = bytebeat_.Clock();
               uint8_t range = get_bytebeat_range();
               if (get_bytebeat_range_cv_source()) {
-                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) >> 5);
+                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) + 15) >> 5;
                 CONSTRAIN(range, 1, 120);
               }
 
@@ -559,7 +559,7 @@ public:
           logistic_map_.set_seed(123);
           int32_t logistic_map_r = get_logistic_map_r();
           if (get_logistic_map_r_cv_source()) {
-            logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) >> 4);
+            logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) + 7) >> 4;
             CONSTRAIN(logistic_map_r, 0, 255);
           }
           logistic_map_.set_r(logistic_map_r);  
@@ -567,7 +567,7 @@ public:
             int64_t logistic_map_x = logistic_map_.Clock();
             uint8_t range = get_logistic_map_range();
             if (get_logistic_map_range_cv_source()) {
-              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) >> 5);
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) + 15) >> 5;
               CONSTRAIN(range, 1, 120);
             }
             
@@ -601,20 +601,20 @@ public:
             int16_t int_seq_stride = get_int_seq_stride();
 
             if (get_int_seq_index_cv_source()) {
-              int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) >> 8);
+              int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) + 127) >> 8;
             }
             if (int_seq_index < 0) int_seq_index = 0;
             if (int_seq_index > 8) int_seq_index = 8;
             int_seq_.set_int_seq(int_seq_index);
             int16_t int_seq_modulus_ = get_int_seq_modulus();
             if (get_int_seq_modulus_cv_source()) {
-                int_seq_modulus_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_modulus_cv_source() - 1)) >> 6);
+                int_seq_modulus_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_modulus_cv_source() - 1)) + 31) >> 6;
                 CONSTRAIN(int_seq_modulus_, 2, 121);
             }
             int_seq_.set_int_seq_modulus(int_seq_modulus_);
 
             if (get_int_seq_stride_cv_source()) {
-              int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) >> 6);
+              int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) + 31) >> 6;
             }
             if (int_seq_stride < 1) int_seq_stride = 1;
             if (int_seq_stride > 255) int_seq_stride = 255;
@@ -664,7 +664,7 @@ public:
               uint32_t is = int_seq_.Clock();
               int16_t range_ = get_int_seq_range();
               if (get_int_seq_range_cv_source()) {
-                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_range_cv_source() - 1)) >> 6);
+                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_range_cv_source() - 1)) + 31) >> 6;
                 CONSTRAIN(range_, 1, 120);
               }
               if (quantizer_.enabled()) {
@@ -720,13 +720,13 @@ public:
                 case QQ_DEST_NONE:
                 break;
                 case QQ_DEST_TRANSPOSE:
-                  transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                  transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 63) >> 7;
                 break;
                 case QQ_DEST_ROOT:
-                  root += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                  root += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
                 break;
                 case QQ_DEST_OCTAVE:
-                  octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                  octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 255) >> 9;
                 break;
                 case  QQ_DEST_MASK:
                   update_scale(false, (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8);
@@ -759,7 +759,7 @@ public:
                     case QQ_DEST_NONE:
                     break;
                     case QQ_DEST_TRANSPOSE:
-                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 63) >> 7;
                       if (_aux_cv != prev_transpose_cv_) {
                           transpose = get_transpose() + _aux_cv;
                           CONSTRAIN(transpose, -12, 12); 
@@ -768,7 +768,7 @@ public:
                       }
                     break;
                     case QQ_DEST_ROOT:
-                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
                       if (_aux_cv != prev_root_cv_) {
                           root = get_root() + _aux_cv;
                           CONSTRAIN(root, 0, 11);
@@ -777,7 +777,7 @@ public:
                       }
                     break;
                     case QQ_DEST_OCTAVE:
-                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 255) >> 9;
                       if (_aux_cv != prev_octave_cv_) {
                           octave = get_octave() + _aux_cv;
                           CONSTRAIN(octave, -4, 4);

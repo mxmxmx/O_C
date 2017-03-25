@@ -288,17 +288,17 @@ public:
       if (!continuous) {
         
         if (get_root_cv()) {
-            root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) * 12 + 2047) >> 12;
+            root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 128) >> 8;
             CONSTRAIN(root, 0, 11);
         }
 
         if (get_octave_cv()) {
-          octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) * 12 + 2047) >> 12;
+          octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 256) >> 9;
           CONSTRAIN(octave, -4, 4);
         }
         
         if (get_transpose_cv()) {
-          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) * 12 + 2047) >> 12;
+          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 64) >> 7;
           CONSTRAIN(transpose, -12, 12);
         }
 
@@ -327,7 +327,7 @@ public:
         
         if (get_root_cv()) {
           
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) * 12 + 2047) >> 12;
+          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 128) >> 8;
           
           if (_aux_cv != prev_root_cv_) {
               root = get_root() + _aux_cv;
@@ -339,7 +339,7 @@ public:
 
         if (get_octave_cv()) {
           
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) * 12 + 2047) >> 12;
+          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 256) >> 9;
           
           if (_aux_cv != prev_octave_cv_) {
               octave = get_octave() + _aux_cv;
@@ -351,7 +351,7 @@ public:
 
         if (get_transpose_cv()) {
           
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) * 12 + 2047) >> 12;
+          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 64) >> 7;
           
           if (_aux_cv != prev_transpose_cv_) {
               transpose = get_transpose() + _aux_cv;
