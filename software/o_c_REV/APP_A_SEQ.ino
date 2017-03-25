@@ -515,8 +515,7 @@ public:
   }
 
   void sync() {
-    clk_cnt_ = 0x0;
-    div_cnt_ = 0x0;
+    pending_sync_ = true;
   }
 
   void clear_CV_mapping() {
@@ -592,6 +591,7 @@ public:
     prev_multiplier_ = get_multiplier();
     prev_pulsewidth_ = get_pulsewidth();
     prev_input_range_ = 0;
+    pending_sync_ = false;
  
     ext_frequency_in_ticks_ = 0xFFFFFFFF;
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
@@ -757,7 +757,10 @@ public:
          *  this, presumably, is needlessly complicated. 
          *  but seems to work ok-ish, w/o too much jitter and missing clocks... 
          */
+
          _subticks = subticks_;
+         // sync? (manual)
+         div_cnt_ = pending_sync_ ? 0x0 : div_cnt_;
     
          if (_multiplier <= MULT_BY_ONE && _triggered && div_cnt_ <= 0) { 
             // division, so we track
@@ -801,6 +804,12 @@ public:
            //reject, if clock is too jittery or skip quasi-double triggers when ext. frequency increases:
            if (_subticks < tickjitter_ || (_subticks < prev_channel_frequency_in_ticks_ && !reset_pending_)) 
               return;
+         }
+         
+         // resync/clear pending sync
+         if (_triggered && pending_sync_) {
+          pending_sync_ = false;
+          clk_cnt_ = 0x0;
          }
     
          // mute output ?
@@ -1425,6 +1434,7 @@ private:
   int last_scale_;
   uint16_t last_scale_mask_;
   uint8_t prev_input_range_;
+  bool pending_sync_;
 
   util::Arpeggiator arpeggiator_;
   

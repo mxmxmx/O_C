@@ -148,7 +148,7 @@ void PatternEditor<Owner>::Draw() {
       graphics.drawFrame(x - 2, y - 2, 8, 12);
     // draw clock   
     if (i == clock_pos && (owner_->get_current_sequence() == edit_this_sequence_))
-      graphics.drawRect(x, y + 10, 2, 2);
+      graphics.drawRect(x, y + 10, 4, 2);
        
   }
   if (mutable_pattern_) {
