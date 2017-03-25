@@ -492,28 +492,28 @@ public:
               
             int32_t bytebeat_eqn = get_bytebeat_equation() << 12;
             if (get_bytebeat_equation_cv_source()) {
-              bytebeat_eqn += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_equation_cv_source() - 1)) + 7) >> 4;
+              bytebeat_eqn += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_equation_cv_source() - 1)) << 4);
               bytebeat_eqn = USAT16(bytebeat_eqn);
             }
             bytebeat_.set_equation(bytebeat_eqn);
 
             int32_t bytebeat_p0 = get_bytebeat_p0() << 8;
             if (get_bytebeat_p0_cv_source()) {
-              bytebeat_p0 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p0_cv_source() - 1)) + 7) >> 4;
+              bytebeat_p0 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p0_cv_source() - 1)) << 4);
               bytebeat_p0 = USAT16(bytebeat_p0);
             }
             bytebeat_.set_p0(bytebeat_p0);
 
             int32_t bytebeat_p1 = get_bytebeat_p1() << 8;
             if (get_bytebeat_p1_cv_source()) {
-              bytebeat_p1 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p1_cv_source() - 1)) + 7) >> 4;
+              bytebeat_p1 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p1_cv_source() - 1)) << 4);
               bytebeat_p1 = USAT16(bytebeat_p1);
             }
             bytebeat_.set_p1(bytebeat_p1);
 
             int32_t bytebeat_p2 = get_bytebeat_p2() << 8;
             if (get_bytebeat_p2_cv_source()) {
-              bytebeat_p2 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p2_cv_source() - 1)) + 7) >> 4;
+              bytebeat_p2 += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_p2_cv_source() - 1)) << 4);
               bytebeat_p2 = USAT16(bytebeat_p2);
             }
             bytebeat_.set_p2(bytebeat_p2);
