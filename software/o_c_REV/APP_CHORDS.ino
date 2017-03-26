@@ -56,7 +56,11 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_MASK_CV,
   CHORDS_SETTING_TRANSPOSE_CV,
   CHORDS_SETTING_OCTAVE_CV,
+  CHORDS_SETTING_QUALITY_CV,
+  CHORDS_SETTING_VOICING_CV,
+  CHORDS_SETTING_INVERSION_CV,
   CHORDS_SETTING_DUMMY,
+  CHORDS_SETTING_MORE_DUMMY,
   CHORDS_SETTING_LAST
 };
 
@@ -87,6 +91,12 @@ enum CHORDS_CV_DESTINATIONS {
   CHORDS_CV_DEST_TRANSPOSE,
   CHORDS_CV_DEST_MASK,
   CHORDS_CV_DEST_LAST
+};
+
+enum CHORDS_MENU_PAGES {
+  MENU_PARAMETERS,
+  MENU_CV_MAPPING,
+  MENU_PAGES_LAST  
 };
 
 class Chords : public settings::SettingsBase<Chords, CHORDS_SETTING_LAST> {
@@ -192,13 +202,45 @@ public:
     return values_[CHORDS_SETTING_OCTAVE_CV];
   }
 
+  uint8_t get_quality_cv() const {
+    return values_[CHORDS_SETTING_QUALITY_CV];
+  }
+
+  uint8_t get_inversion_cv() const {
+    return values_[CHORDS_SETTING_INVERSION_CV];
+  }
+
+  uint8_t get_voicing_cv() const {
+    return values_[CHORDS_SETTING_VOICING_CV];
+  }
+
   uint8_t clockState() const {
     return clock_display_.getState();
+  }
+
+  uint8_t get_menu_page() const {
+    return menu_page_;  
+  }
+
+  void set_menu_page(uint8_t _menu_page) {
+    menu_page_ = _menu_page;  
+  }
+
+  void clear_CV_mapping() {
+    // clear all ... 
+    apply_value(CHORDS_SETTING_ROOT_CV, 0);
+    apply_value(CHORDS_SETTING_MASK_CV, 0);
+    apply_value(CHORDS_SETTING_TRANSPOSE_CV, 0);
+    apply_value(CHORDS_SETTING_OCTAVE_CV, 0);
+    apply_value(CHORDS_SETTING_QUALITY_CV, 0);
+    apply_value(CHORDS_SETTING_VOICING_CV, 0); 
+    apply_value(CHORDS_SETTING_INVERSION_CV, 0); 
   }
 
   void Init() {
     
     InitDefaults();
+    menu_page_ = PARAMETERS;
     apply_value(CHORDS_SETTING_CV_SOURCE, 0x0);
     set_scale(OC::Scales::SCALE_SEMI);
     force_update_ = true;
@@ -208,7 +250,11 @@ public:
     schedule_mask_rotate_ = false;
     chord_advance_last_ = true;
     active_chord_ = 0;
-    
+    prev_inversion_cv_ = 0;
+    prev_root_cv_ = 0;
+    prev_octave_cv_ = 0;
+    prev_transpose_cv_ = 0;
+   
     trigger_delay_.Init();
     quantizer_.Init();
     chords_.Init();
@@ -306,18 +352,33 @@ public:
       if (!continuous) {
         
         if (get_root_cv()) {
-            root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 128) >> 8;
+            root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 127) >> 8;
             CONSTRAIN(root, 0, 11);
         }
 
         if (get_octave_cv()) {
-          octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 256) >> 9;
+          octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 255) >> 9;
           CONSTRAIN(octave, -4, 4);
         }
         
         if (get_transpose_cv()) {
-          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 64) >> 7;
+          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 63) >> 7;
           CONSTRAIN(transpose, -12, 12);
+        }
+
+        if (get_quality_cv()) {
+          _quality += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_quality_cv() - 1)) + 255) >> 9;
+          CONSTRAIN(_quality, 0,  OC::Chords::CHORDS_QUALITY_LAST - 1);
+        }
+
+        if (get_inversion_cv()) {
+          _inversion += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_inversion_cv() - 1)) + 511) >> 10;
+          CONSTRAIN(_inversion, 0,  OC::Chords::CHORDS_INVERSION_LAST - 1);
+        }
+
+        if (get_voicing_cv()) {
+          _voicing += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_voicing_cv() - 1)) + 511) >> 10;
+          CONSTRAIN(_voicing, 0,  OC::Chords::CHORDS_VOICING_LAST - 1);
         }
 
         if (get_mask_cv()) {
@@ -345,7 +406,7 @@ public:
         
         if (get_root_cv()) {
           
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 128) >> 8;
+          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 127) >> 8;
           
           if (_aux_cv != prev_root_cv_) {
               root = get_root() + _aux_cv;
@@ -357,7 +418,7 @@ public:
 
         if (get_octave_cv()) {
           
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 256) >> 9;
+          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 255) >> 9;
           
           if (_aux_cv != prev_octave_cv_) {
               octave = get_octave() + _aux_cv;
@@ -369,7 +430,7 @@ public:
 
         if (get_transpose_cv()) {
           
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 64) >> 7;
+          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 63) >> 7;
           
           if (_aux_cv != prev_transpose_cv_) {
               transpose = get_transpose() + _aux_cv;
@@ -378,6 +439,9 @@ public:
               _re_quantize = true;
           }
         }
+        /*
+        to do inversion etc. 
+        */
 
         if (get_mask_cv()) {
           // todo
@@ -467,33 +531,57 @@ public:
   }
 
   void update_enabled_settings() {
-    
+ 
     CHORDS_SETTINGS *settings = enabled_settings_;
 
     *settings++ = CHORDS_SETTING_MASK;
-    //*settings++ = CHORDS_SETTING_CHORD_SLOT;
-    //*settings++ = CHORDS_SETTING_NUM_CHORDS;
     *settings++ = CHORDS_SETTING_CHORD_EDIT;
-      
-    if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
-      *settings++ = CHORDS_SETTING_ROOT;
-    else
-      *settings++ = CHORDS_SETTING_DUMMY;   
-    // todo, hide properly
-    *settings++ = CHORDS_SETTING_TRANSPOSE;
-    *settings++ = CHORDS_SETTING_OCTAVE;
-    *settings++ = CHORDS_SETTING_CV_SOURCE;
-    *settings++ = CHORDS_SETTING_TRIGGER_SOURCE;
-    if (get_trigger_source() == CHORDS_TRIGGER_SOURCE_1) 
-      *settings++ = CHORDS_SETTING_TRIGGER_DELAY;
-    else  
-      *settings++ = CHORDS_SETTING_DUMMY;
-      
-    *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE; 
+
+    switch(get_menu_page()) {
+
+      case MENU_PARAMETERS: {      
+        // todo, hide properly
+        if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
+          *settings++ = CHORDS_SETTING_ROOT;
+        else
+           *settings++ = CHORDS_SETTING_DUMMY;
+           
+        *settings++ = CHORDS_SETTING_TRANSPOSE;
+        *settings++ = CHORDS_SETTING_OCTAVE;
+        *settings++ = CHORDS_SETTING_CV_SOURCE;
+        *settings++ = CHORDS_SETTING_TRIGGER_SOURCE;
+        
+        if (get_trigger_source() == CHORDS_TRIGGER_SOURCE_1) 
+          *settings++ = CHORDS_SETTING_TRIGGER_DELAY;
+        else  
+          *settings++ = CHORDS_SETTING_DUMMY;
+          
+        *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE; 
+      }
+      break;
+      case MENU_CV_MAPPING: {
+        
+        // destinations:
+        if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
+          *settings++ = CHORDS_SETTING_ROOT_CV;
+        else
+           *settings++ = CHORDS_SETTING_DUMMY;
+           
+        *settings++ = CHORDS_SETTING_TRANSPOSE_CV;
+        *settings++ = CHORDS_SETTING_OCTAVE_CV;
+        *settings++ = CHORDS_SETTING_QUALITY_CV;
+        *settings++ = CHORDS_SETTING_INVERSION_CV;
+        *settings++ = CHORDS_SETTING_VOICING_CV;
+        *settings++ = CHORDS_SETTING_MORE_DUMMY; // == CHORDS_ADVANCE_TRIGGER_SOURCE
+      }
+      break;
+      default:
+      break;
+    }
+    // end switch
     num_enabled_settings_ = settings - enabled_settings_;
   }
-  //
-
+  
   void RenderScreensaver(weegfx::coord_t x) const;
 
 private:
@@ -507,8 +595,10 @@ private:
   int8_t prev_octave_cv_;
   int8_t prev_transpose_cv_;
   int8_t prev_root_cv_;
+  int8_t prev_inversion_cv_;
   bool chord_advance_last_;
   int8_t active_chord_;
+  int8_t menu_page_;
 
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   braids::Quantizer quantizer_;
@@ -548,12 +638,12 @@ const char* const chords_advance_trigger_sources[] = {
   "TR1", "TR2"
 };
 
-const char* const chords_cv_sources[] = {
+const char* const chords_cv_main_source[] = {
   "CV1", "-"
 };
 
-const char* const chords_cv_dest[] = {
-  "-", "root", "oct", "trns", "mask"
+const char* const chords_cv_sources[] = {
+  "-", "CV1", "CV2", "CV3", "CV4"
 };
 
 const char* const chords_slots[] = {
@@ -564,7 +654,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
-  { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_sources, settings::STORAGE_TYPE_U4 }, /// to do ..
+  { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U4 }, /// to do ..
   { 0, 0, CHORDS_TRIGGER_SOURCE_LAST - 1, "trigger source", chords_trigger_sources, settings::STORAGE_TYPE_U8 },
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
@@ -574,11 +664,15 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 },
   {0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
-  {0, 0, 4, "root cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "mask cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "transpose cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "octave cv >", chords_cv_dest, settings::STORAGE_TYPE_U4 },
-  {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY  
+  {0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "transpose CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "octave CV    >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
+  {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
 
 
@@ -694,6 +788,9 @@ void CHORDS_menu() {
         menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(), chords.active_chord());
         list_item.DrawNoValue<false>(value, attr);
         break;
+      case CHORDS_SETTING_MORE_DUMMY:
+        list_item.DrawNoValue<false>(value, attr);
+        break;  
       case CHORDS_SETTING_CHORD_SLOT: 
         //special case:
         list_item.DrawValueMax(value, attr, chords.get_num_chords());
@@ -711,6 +808,23 @@ void CHORDS_menu() {
 }
 
 void CHORDS_handleButtonEvent(const UI::Event &event) {
+
+  if (UI::EVENT_BUTTON_LONG_PRESS == event.type) {
+     switch (event.control) {
+      case OC::CONTROL_BUTTON_UP:
+         CHORDS_upButtonLong();
+        break;
+      case OC::CONTROL_BUTTON_DOWN:
+        CHORDS_downButtonLong();
+        break;
+       case OC::CONTROL_BUTTON_L:
+        if (!(chords_state.chord_editor.active()))
+          CHORDS_leftButtonLong();
+        break;  
+      default:
+        break;
+     }
+  }
       
   if (chords_state.scale_editor.active()) {
     chords_state.scale_editor.HandleButtonEvent(event);
@@ -736,10 +850,7 @@ void CHORDS_handleButtonEvent(const UI::Event &event) {
         CHORDS_rightButton();
         break;
     }
-  } else {
-    if (OC::CONTROL_BUTTON_L == event.control)
-      CHORDS_leftButtonLong();       
-  }
+  } 
 }
 
 void CHORDS_handleEncoderEvent(const UI::Event &event) {
@@ -791,11 +902,25 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
 }
 
 void CHORDS_topButton() {
-  chords.change_value(CHORDS_SETTING_OCTAVE, 1); 
+  
+  if (chords.get_menu_page() == MENU_PARAMETERS) 
+    chords.change_value(CHORDS_SETTING_OCTAVE, 1); 
+  else  {
+    chords.set_menu_page(MENU_PARAMETERS);
+    chords.update_enabled_settings();
+    chords_state.cursor.set_editing(false);
+  }
 }
 
 void CHORDS_lowerButton() {
-  chords.change_value(CHORDS_SETTING_OCTAVE, -1); 
+  
+  if (chords.get_menu_page() == MENU_PARAMETERS) 
+    chords.change_value(CHORDS_SETTING_OCTAVE, -1); 
+  else {
+    chords.set_menu_page(MENU_PARAMETERS);
+    chords.update_enabled_settings();
+    chords_state.cursor.set_editing(false);
+  }
 }
 
 void CHORDS_rightButton() {
@@ -811,7 +936,10 @@ void CHORDS_rightButton() {
     case CHORDS_SETTING_CHORD_EDIT:
       chords_state.chord_editor.Edit(&chords, chords.get_chord_slot(), chords.get_num_chords());
     break;
-    case CHORDS_SETTING_DUMMY: 
+    case CHORDS_SETTING_DUMMY:
+    case CHORDS_SETTING_MORE_DUMMY:
+      chords.set_menu_page(MENU_PARAMETERS);
+      chords.update_enabled_settings();
     break;
     default:
       chords_state.cursor.toggle_editing();
@@ -833,6 +961,28 @@ void CHORDS_leftButtonLong() {
 }
 
 void CHORDS_downButtonLong() {
+
+  switch (chords.get_menu_page()) { 
+     
+    case MENU_PARAMETERS:  
+    {
+      if (!chords_state.chord_editor.active() && !chords_state.scale_editor.active()) {  
+        chords.set_menu_page(MENU_CV_MAPPING);
+        chords.update_enabled_settings();
+        chords_state.cursor.set_editing(false);
+      } 
+    }
+    break;
+    case MENU_CV_MAPPING:
+      chords.clear_CV_mapping();
+      chords_state.cursor.set_editing(false);
+    break;
+    default:
+    break;
+  }
+}
+
+void CHORDS_upButtonLong() {
   // todo
 }
 
