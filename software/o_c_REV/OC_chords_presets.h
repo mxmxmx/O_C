@@ -50,6 +50,13 @@ namespace OC {
   	{ -1, 1, 1, 1}   // spread
   };
 
+  const int8_t inversion[][4] {
+    { 0, 0, 0, 0 },
+    { 1, 0, 0, 0 },
+    { 1, 1, 0, 0 },
+    { 1, 1, 1, 0 } 
+  };
+
   const char* const quality_names[] {
     "fifth", "triad", "seventh", "suspended", "susp 7th", "sixth", "added 9th", "added 11th", "unisono"
   };

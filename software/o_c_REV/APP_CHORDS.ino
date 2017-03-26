@@ -44,6 +44,7 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_MASK,
   CHORDS_SETTING_CV_SOURCE,
   CHORDS_SETTING_TRIGGER_SOURCE,
+  CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE,
   CHORDS_SETTING_TRIGGER_DELAY,
   CHORDS_SETTING_TRANSPOSE,
   CHORDS_SETTING_OCTAVE,
@@ -71,6 +72,12 @@ enum CHORDS_TRIGGER_SOURCE {
   CHORDS_TRIGGER_SOURCE_CONTINUOUS_UP,
   CHORDS_TRIGGER_SOURCE_CONTINUOUS_DOWN,
   CHORDS_TRIGGER_SOURCE_LAST
+};
+
+enum CHORDS_ADVANCE_TRIGGER_SOURCE {
+  CHORDS_ADVANCE_TRIGGER_SOURCE_TR1,
+  CHORDS_ADVANCE_TRIGGER_SOURCE_TR2,
+  CHORDS_ADVANCE_TRIGGER_SOURCE_LAST
 };
 
 enum CHORDS_CV_DESTINATIONS {
@@ -160,6 +167,10 @@ public:
   int8_t get_trigger_source() const {
     return values_[CHORDS_SETTING_TRIGGER_SOURCE];
   }
+  
+  int8_t get_chords_trigger_source() const {
+    return values_[CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE];
+  }
 
   uint16_t get_trigger_delay() const {
     return values_[CHORDS_SETTING_TRIGGER_DELAY];
@@ -228,7 +239,7 @@ public:
     if (update) 
       update_scale(force_update_, schedule_mask_rotate_);
        
-    int32_t sample = last_sample_;
+    int32_t sample_a = last_sample_;
     int32_t temp_sample = 0;
     int32_t history_sample = 0;
 
@@ -243,8 +254,15 @@ public:
 
       
       // next chord via trigger?
-      uint8_t _advance_trig = digitalReadFast(TR2);
+      uint8_t _advance_trig = get_chords_trigger_source();
       
+      if (_advance_trig == CHORDS_ADVANCE_TRIGGER_SOURCE_TR2) 
+        _advance_trig = digitalReadFast(TR2);
+      else if (triggered) {
+        _advance_trig = 0x0;
+        chord_advance_last_ = 0x1;
+      }
+        
       if (_advance_trig < chord_advance_last_) 
         active_chord_ = active_chord_++ > (get_num_chords() - 1) ? 0x0 : active_chord_; // increment/reset
       else if (!get_num_chords()) 
@@ -258,7 +276,7 @@ public:
       int8_t _octave = active_chord->octave;
       int8_t _quality = active_chord->quality;
       int8_t _voicing = active_chord->voicing;
-      //int8_t _inversion = active_chord->inversion;
+      int8_t _inversion = active_chord->inversion;
 
       octave += _octave;
       CONSTRAIN(octave, -6, 6);
@@ -314,9 +332,9 @@ public:
       
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       // main sample, S/H:
-      sample = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + continuous_offset_);
+      sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + continuous_offset_ + OC::inversion[_inversion][0]);
 
-      bool _continuous_update = continuous && (last_sample_ != sample);
+      bool _continuous_update = continuous && (last_sample_ != sample_a);
       
       // special treatment, continuous update:
        
@@ -381,7 +399,7 @@ public:
           quantized = quantizer_.Process(pitch, root << 7, transpose);
         if (_re_quantize || _trigger_update)
           // main sample, continuous
-          sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + continuous_offset_);     
+          sample_a = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + continuous_offset_ + OC::inversion[_inversion][0]);     
       } 
       // end special treatment
       
@@ -394,22 +412,22 @@ public:
       int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][3]);
 
       //todo voicing for root note
-      sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + continuous_offset_ + OC::voicing[_voicing][1]);
-      sample_c = OC::DAC::pitch_to_dac(DAC_CHANNEL_C, sample_c, octave + continuous_offset_ + OC::voicing[_voicing][2]);
-      sample_d = OC::DAC::pitch_to_dac(DAC_CHANNEL_D, sample_d, octave + continuous_offset_ + OC::voicing[_voicing][3]);
+      sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + continuous_offset_ + OC::voicing[_voicing][1] + OC::inversion[_inversion][1]);
+      sample_c = OC::DAC::pitch_to_dac(DAC_CHANNEL_C, sample_c, octave + continuous_offset_ + OC::voicing[_voicing][2] + OC::inversion[_inversion][2]);
+      sample_d = OC::DAC::pitch_to_dac(DAC_CHANNEL_D, sample_d, octave + continuous_offset_ + OC::voicing[_voicing][3] + OC::inversion[_inversion][3]);
       
-      OC::DAC::set<DAC_CHANNEL_A>(sample);
+      OC::DAC::set<DAC_CHANNEL_A>(sample_a);
       OC::DAC::set<DAC_CHANNEL_B>(sample_b);
       OC::DAC::set<DAC_CHANNEL_C>(sample_c);
       OC::DAC::set<DAC_CHANNEL_D>(sample_d);
     }
 
     // in continuous mode, don't track transposed sample:
-    bool changed = continuous ? (last_sample_ != temp_sample) : (last_sample_ != sample);
+    bool changed = continuous ? (last_sample_ != temp_sample) : (last_sample_ != sample_a);
      
     if (changed) {
       MENU_REDRAW = 1;
-      last_sample_ = continuous ? temp_sample : sample;
+      last_sample_ = continuous ? temp_sample : sample_a;
     }
 
     if (triggered || (continuous && changed)) {
@@ -471,6 +489,7 @@ public:
     else  
       *settings++ = CHORDS_SETTING_DUMMY;
       
+    *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE; 
     num_enabled_settings_ = settings - enabled_settings_;
   }
   //
@@ -525,6 +544,10 @@ const char* const chords_trigger_sources[] = {
   "TR1", "cnt+", "cnt-"
 };
 
+const char* const chords_advance_trigger_sources[] = {
+  "TR1", "TR2"
+};
+
 const char* const chords_cv_sources[] = {
   "CV1", "-"
 };
@@ -543,6 +566,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_sources, settings::STORAGE_TYPE_U4 }, /// to do ..
   { 0, 0, CHORDS_TRIGGER_SOURCE_LAST - 1, "trigger source", chords_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
