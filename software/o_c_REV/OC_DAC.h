@@ -96,6 +96,18 @@ public:
       case 2: // 2V/oct
           pitch = pitch << 1 ;
           break;
+      case 3: // Wendy Carlos alpha scale - scale by 0.77996
+          pitch = (pitch * 25558) >> 15 ;
+          break;
+      case 4: // Wendy Carlos beta scale - scale by 0.63814 
+          pitch = (pitch * 20911) >> 15 ;
+          break;
+      case 5: // Wendy Carlos gamma scale - scale by 0.3509775
+          pitch = (pitch * 11501) >> 15 ;
+          break;
+      case 6: // Bohlen-Pierce macrotonal scale - scale by 1.4630
+          pitch = (pitch * 23970) >> 14 ;
+          break;
       default: // 1V/oct
           break;
     }

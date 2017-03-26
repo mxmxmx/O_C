@@ -344,10 +344,10 @@ SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
   {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OutA", outputa_mode_names, settings::STORAGE_TYPE_U4},
   {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "Clr", clear_mode_names, settings::STORAGE_TYPE_U4},
 #ifdef BUCHLA_SUPPORT
-  { 0, 0, 2, "A V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 2, "B V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 2, "C V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 2, "D V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "A V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "B V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "C V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "D V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 #else
   { 0, 0, 0, "A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
   { 0, 0, 0, "B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
