@@ -43,8 +43,8 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_ROOT,
   CHORDS_SETTING_MASK,
   CHORDS_SETTING_CV_SOURCE,
-  CHORDS_SETTING_TRIGGER_SOURCE,
   CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE,
+  CHORDS_SETTING_PLAYMODES,
   CHORDS_SETTING_TRIGGER_DELAY,
   CHORDS_SETTING_TRANSPOSE,
   CHORDS_SETTING_OCTAVE,
@@ -69,13 +69,6 @@ enum CHORDS_CV_SOURCES {
   CHORDS_CV_SOURCE_NONE,
   // todo
   CHORDS_CV_SOURCE_LAST
-};
-
-enum CHORDS_TRIGGER_SOURCE {
-  CHORDS_TRIGGER_SOURCE_1,
-  CHORDS_TRIGGER_SOURCE_CONTINUOUS_UP,
-  CHORDS_TRIGGER_SOURCE_CONTINUOUS_DOWN,
-  CHORDS_TRIGGER_SOURCE_LAST
 };
 
 enum CHORDS_ADVANCE_TRIGGER_SOURCE {
@@ -174,10 +167,6 @@ public:
     return values_[CHORDS_SETTING_CV_SOURCE];
   }
 
-  int8_t get_trigger_source() const {
-    return values_[CHORDS_SETTING_TRIGGER_SOURCE];
-  }
-  
   int8_t get_chords_trigger_source() const {
     return values_[CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE];
   }
@@ -271,25 +260,21 @@ public:
  
   inline void Update(uint32_t triggers) {
 
-    int8_t trigger_source = get_trigger_source();
-    bool continuous = trigger_source > CHORDS_TRIGGER_SOURCE_1;
-    bool triggered = !continuous && (triggers & DIGITAL_INPUT_MASK(0x0));
+    bool triggered = triggers & DIGITAL_INPUT_MASK(0x0);
 
     trigger_delay_.Update();
     if (triggered)
       trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
     triggered = trigger_delay_.triggered();
-
-    bool update = continuous || triggered;
     
-    if (update) 
+    if (triggered) 
       update_scale(force_update_, schedule_mask_rotate_);
        
     int32_t sample_a = last_sample_;
     int32_t temp_sample = 0;
     int32_t history_sample = 0;
 
-    if (update) {
+    if (triggered) {
         
       int32_t pitch, cv_source, transpose, octave, root;
       
@@ -329,7 +314,7 @@ public:
 
       if (_base_note) {
         // we don't use the incoming CV pitch value
-        // Q? how to deal with this in continuous mode
+        // to do: re-purpose CV1 (?), though can be mapped to misc parameters anyways 
         pitch = 0x0;
         transpose += (_base_note - 0x1);
       }     
@@ -348,125 +333,49 @@ public:
         break;
       }
        
-      // S/H mode
-      if (!continuous) {
-        
-        if (get_root_cv()) {
-            root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 127) >> 8;
-            CONSTRAIN(root, 0, 11);
-        }
+    // S/H mode
+      if (get_root_cv()) {
+          root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 127) >> 8;
+          CONSTRAIN(root, 0, 11);
+      }
 
-        if (get_octave_cv()) {
-          octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 255) >> 9;
-          CONSTRAIN(octave, -4, 4);
-        }
-        
-        if (get_transpose_cv()) {
-          transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 63) >> 7;
-          CONSTRAIN(transpose, -12, 12);
-        }
+      if (get_octave_cv()) {
+        octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 255) >> 9;
+        CONSTRAIN(octave, -4, 4);
+      }
+      
+      if (get_transpose_cv()) {
+        transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 63) >> 7;
+        CONSTRAIN(transpose, -12, 12);
+      }
 
-        if (get_quality_cv()) {
-          _quality += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_quality_cv() - 1)) + 255) >> 9;
-          CONSTRAIN(_quality, 0,  OC::Chords::CHORDS_QUALITY_LAST - 1);
-        }
+      if (get_quality_cv()) {
+        _quality += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_quality_cv() - 1)) + 255) >> 9;
+        CONSTRAIN(_quality, 0,  OC::Chords::CHORDS_QUALITY_LAST - 1);
+      }
 
-        if (get_inversion_cv()) {
-          _inversion += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_inversion_cv() - 1)) + 511) >> 10;
-          CONSTRAIN(_inversion, 0,  OC::Chords::CHORDS_INVERSION_LAST - 1);
-        }
+      if (get_inversion_cv()) {
+        _inversion += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_inversion_cv() - 1)) + 511) >> 10;
+        CONSTRAIN(_inversion, 0,  OC::Chords::CHORDS_INVERSION_LAST - 1);
+      }
 
-        if (get_voicing_cv()) {
-          _voicing += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_voicing_cv() - 1)) + 511) >> 10;
-          CONSTRAIN(_voicing, 0,  OC::Chords::CHORDS_VOICING_LAST - 1);
-        }
+      if (get_voicing_cv()) {
+        _voicing += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_voicing_cv() - 1)) + 255) >> 9;
+        CONSTRAIN(_voicing, 0,  OC::Chords::CHORDS_VOICING_LAST - 1);
+      }
 
-        if (get_mask_cv()) {
-          // to do
-        }
-
-        continuous_offset_ = 0x0;
-      } 
+      if (get_mask_cv()) {
+        // to do
+      }
+      
 
       display_root_ = root;
       update_scale(true, schedule_mask_rotate_);
       
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       // main sample, S/H:
-      sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + continuous_offset_ + OC::inversion[_inversion][0]);
+      sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + OC::inversion[_inversion][0]);
 
-      bool _continuous_update = continuous && (last_sample_ != sample_a);
-      
-      // special treatment, continuous update:
-       
-      if (_continuous_update) {
-        
-        bool _re_quantize = false;
-        int32_t _aux_cv = 0;
-        
-        if (get_root_cv()) {
-          
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 127) >> 8;
-          
-          if (_aux_cv != prev_root_cv_) {
-              root = get_root() + _aux_cv;
-              CONSTRAIN(root, 0, 11);
-              prev_root_cv_ = _aux_cv;
-              _re_quantize = true;
-          }
-        }
-
-        if (get_octave_cv()) {
-          
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_cv() - 1)) + 255) >> 9;
-          
-          if (_aux_cv != prev_octave_cv_) {
-              octave = get_octave() + _aux_cv;
-              CONSTRAIN(octave, -4, 4);
-              prev_octave_cv_ = _aux_cv;
-              _re_quantize = true;
-          }
-        }
-
-        if (get_transpose_cv()) {
-          
-          _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 63) >> 7;
-          
-          if (_aux_cv != prev_transpose_cv_) {
-              transpose = get_transpose() + _aux_cv;
-              CONSTRAIN(transpose, -12, 12);
-              prev_transpose_cv_ = _aux_cv;
-              _re_quantize = true;
-          }
-        }
-        /*
-        to do inversion etc. 
-        */
-
-        if (get_mask_cv()) {
-          // todo
-        }
-
-        // offset when TR source = continuous ?
-        int8_t _trigger_offset = 0;
-        bool _trigger_update = false;
-        
-        if (OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(0x0))) 
-           _trigger_offset = (trigger_source == CHORDS_TRIGGER_SOURCE_CONTINUOUS_UP) ? 1 : -1;
-        
-        if (_trigger_offset != continuous_offset_)
-          _trigger_update = true;
-        continuous_offset_ = _trigger_offset;
-
-        // run quantizer again -- presumably could be made more efficient...
-        if (_re_quantize) 
-          quantized = quantizer_.Process(pitch, root << 7, transpose);
-        if (_re_quantize || _trigger_update)
-          // main sample, continuous
-          sample_a = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + continuous_offset_ + OC::inversion[_inversion][0]);     
-      } 
-      // end special treatment
-      
       history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);
 
       // now derive chords ...
@@ -476,9 +385,9 @@ public:
       int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][3]);
 
       //todo voicing for root note
-      sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + continuous_offset_ + OC::voicing[_voicing][1] + OC::inversion[_inversion][1]);
-      sample_c = OC::DAC::pitch_to_dac(DAC_CHANNEL_C, sample_c, octave + continuous_offset_ + OC::voicing[_voicing][2] + OC::inversion[_inversion][2]);
-      sample_d = OC::DAC::pitch_to_dac(DAC_CHANNEL_D, sample_d, octave + continuous_offset_ + OC::voicing[_voicing][3] + OC::inversion[_inversion][3]);
+      sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + OC::voicing[_voicing][1] + OC::inversion[_inversion][1]);
+      sample_c = OC::DAC::pitch_to_dac(DAC_CHANNEL_C, sample_c, octave + OC::voicing[_voicing][2] + OC::inversion[_inversion][2]);
+      sample_d = OC::DAC::pitch_to_dac(DAC_CHANNEL_D, sample_d, octave + OC::voicing[_voicing][3] + OC::inversion[_inversion][3]);
       
       OC::DAC::set<DAC_CHANNEL_A>(sample_a);
       OC::DAC::set<DAC_CHANNEL_B>(sample_b);
@@ -486,15 +395,14 @@ public:
       OC::DAC::set<DAC_CHANNEL_D>(sample_d);
     }
 
-    // in continuous mode, don't track transposed sample:
-    bool changed = continuous ? (last_sample_ != temp_sample) : (last_sample_ != sample_a);
+    bool changed = (last_sample_ != sample_a);
      
     if (changed) {
       MENU_REDRAW = 1;
-      last_sample_ = continuous ? temp_sample : sample_a;
+      last_sample_ = sample_a;
     }
 
-    if (triggered || (continuous && changed)) {
+    if (triggered) {
       scrolling_history_.Push(history_sample);
       clock_display_.Update(1, true);
     } else {
@@ -534,45 +442,43 @@ public:
  
     CHORDS_SETTINGS *settings = enabled_settings_;
 
-    *settings++ = CHORDS_SETTING_MASK;
-    *settings++ = CHORDS_SETTING_CHORD_EDIT;
-
     switch(get_menu_page()) {
 
-      case MENU_PARAMETERS: {      
-        // todo, hide properly
+      case MENU_PARAMETERS: { 
+        
+        *settings++ = CHORDS_SETTING_MASK;
+        // hide root ?
         if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
           *settings++ = CHORDS_SETTING_ROOT;
         else
-           *settings++ = CHORDS_SETTING_DUMMY;
-           
+           *settings++ = CHORDS_SETTING_MORE_DUMMY;
+        
+        *settings++ = CHORDS_SETTING_CHORD_EDIT;
+        *settings++ = CHORDS_SETTING_PLAYMODES;    
         *settings++ = CHORDS_SETTING_TRANSPOSE;
         *settings++ = CHORDS_SETTING_OCTAVE;
         *settings++ = CHORDS_SETTING_CV_SOURCE;
-        *settings++ = CHORDS_SETTING_TRIGGER_SOURCE;
-        
-        if (get_trigger_source() == CHORDS_TRIGGER_SOURCE_1) 
-          *settings++ = CHORDS_SETTING_TRIGGER_DELAY;
-        else  
-          *settings++ = CHORDS_SETTING_DUMMY;
-          
-        *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE; 
+        *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE;
+        *settings++ = CHORDS_SETTING_MORE_DUMMY; // ? 
       }
       break;
       case MENU_CV_MAPPING: {
-        
+
+        *settings++ = CHORDS_SETTING_MASK;
         // destinations:
+        // hide root CV?
         if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
           *settings++ = CHORDS_SETTING_ROOT_CV;
         else
-           *settings++ = CHORDS_SETTING_DUMMY;
-           
+           *settings++ = CHORDS_SETTING_MORE_DUMMY;
+        
+        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV
+        *settings++ = CHORDS_SETTING_PLAYMODES;  // todo: CV ?
         *settings++ = CHORDS_SETTING_TRANSPOSE_CV;
         *settings++ = CHORDS_SETTING_OCTAVE_CV;
         *settings++ = CHORDS_SETTING_QUALITY_CV;
         *settings++ = CHORDS_SETTING_INVERSION_CV;
         *settings++ = CHORDS_SETTING_VOICING_CV;
-        *settings++ = CHORDS_SETTING_MORE_DUMMY; // == CHORDS_ADVANCE_TRIGGER_SOURCE
       }
       break;
       default:
@@ -591,7 +497,6 @@ private:
   int32_t schedule_mask_rotate_;
   int32_t last_sample_;
   uint8_t display_root_;
-  int8_t continuous_offset_;
   int8_t prev_octave_cv_;
   int8_t prev_transpose_cv_;
   int8_t prev_root_cv_;
@@ -630,10 +535,6 @@ private:
   }
 };
 
-const char* const chords_trigger_sources[] = {
-  "TR1", "cnt+", "cnt-"
-};
-
 const char* const chords_advance_trigger_sources[] = {
   "TR1", "TR2"
 };
@@ -655,9 +556,9 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U4 }, /// to do ..
-  { 0, 0, CHORDS_TRIGGER_SOURCE_LAST - 1, "trigger source", chords_trigger_sources, settings::STORAGE_TYPE_U8 },
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
-  { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
+  { 0, 0, PM_LAST - 5, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U8 },
+  { 0, 0, OC::kNumDelayTimes - 1, "TR1 delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "chord:", chords_slots, settings::STORAGE_TYPE_U8 },
@@ -882,10 +783,6 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
           chords.force_update();
 
         switch (setting) {
-          case CHORDS_SETTING_TRIGGER_SOURCE:
-            chords.update_enabled_settings();
-            chords_state.cursor.AdjustEnd(chords.num_enabled_settings() - 1);
-            break;
           case CHORDS_SETTING_CHORD_SLOT:
             // special case, slot shouldn't be > num.chords
             if (chords.get_chord_slot() > chords.get_num_chords())
