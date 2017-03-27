@@ -40,13 +40,9 @@ namespace OC {
   {
   	// this can't work like this, because it should operate on the inversions, too.
   	{ 0, 0, 0, 0 },  // close
-  	{ 0, 0, 0, -1},  // drop 1 ??
+  	{ 0, 0, 0, -1},  // drop 1 
   	{ 0, 0, -1, 0},  // drop 2
   	{ 0, -1, 0, 0},  // drop 3
-    // so looks as if there's no inverse operation to drop ....
-  	//{ 0, 0, 0, 1 },  // antidrop 1 ?? 
-  	//{ 0, 0, 1, 0 },  // antidrop 2 ??
-  	//{ 0, 1, 0, 0 },  // antidrop 3
   	{ -1, 1, 1, 1}   // spread
   };
 

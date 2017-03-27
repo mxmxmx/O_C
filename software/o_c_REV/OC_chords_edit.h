@@ -212,8 +212,23 @@ void ChordEditor<Owner>::Draw() {
           graphics.drawFrame(x, y + 22, 21, 14);  
         }
       }
-      if(edit_this_chord_ == owner_->active_chord())
-        graphics.drawLine(0, 62, 128, 62);
+
+      x = 4;
+      y = 60;
+
+      for (int j = 0; j < OC::Chords::NUM_CHORDS; j++) {
+
+         if (j == edit_this_chord_)
+            graphics.drawRect(x +  (j << 4), y, 8, 4);
+         else if (j <= max_chords_)
+            graphics.drawFrame(x + (j << 4), y, 8, 4);
+         else 
+            graphics.drawFrame(x + (j << 4), y + 2, 8, 2);  
+              
+        // position indicator:
+         if(j == owner_->active_chord())
+           graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
+      }
 	  }
 	  break;
     
@@ -394,7 +409,9 @@ template <typename Owner>
 void ChordEditor<Owner>::handleButtonLeft(const UI::Event &) {
 
   if (edit_page_ == CHORD_SELECT) {
+    
   	edit_page_ = CHORD_EDIT;
+    CONSTRAIN(cursor_pos_, 0, max_chords_);
   	// edit chord:
     edit_this_chord_ = cursor_pos_;
     const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_);
