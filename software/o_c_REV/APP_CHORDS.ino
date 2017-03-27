@@ -459,7 +459,7 @@ public:
         *settings++ = CHORDS_SETTING_OCTAVE;
         *settings++ = CHORDS_SETTING_CV_SOURCE;
         *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE;
-        *settings++ = CHORDS_SETTING_MORE_DUMMY; // ? 
+        *settings++ = CHORDS_SETTING_TRIGGER_DELAY;
       }
       break;
       case MENU_CV_MAPPING: {
