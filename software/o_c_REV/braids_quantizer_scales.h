@@ -132,8 +132,9 @@ const Scale scales[] = {
   { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
   { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
-};
-
-}  // namespace braids
+  // Bohlen-Pierce
+  { 12 << 7, 13, { 0, 118, 237, 355, 472, 591, 709, 827, 945, 1064,  1181,  1299,  1418} }
+  } ;
+}// namespace braids
 
 #endif  // BRAIDS_QUANTIZER_SCALES_H_

@@ -76,7 +76,8 @@ const char* const scale_names_short[] = {
     "BTOD",
     "CHAN",
     "KTOD",
-    "JOGE" };
+    "JOGE",
+    "B-P"};
 
 const char* const scale_names[] = {
     "User-defined 1",
@@ -131,7 +132,8 @@ const char* const scale_names[] = {
     "B Todi",
     "Chandradeep",
     "Kaushik Todi",
-    "Jogeshwari" };
+    "Jogeshwari",
+    "Bohlen-Pierce"};
 
 const char* const voltage_scalings[] = {
     "1", // 1V/octave
