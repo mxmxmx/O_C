@@ -105,8 +105,8 @@ public:
       case 5: // Wendy Carlos gamma scale - scale by 0.3509775
           pitch = (pitch * 11501) >> 15 ;
           break;
-      case 6: // Bohlen-Pierce macrotonal scale - scale by 1.4630
-          pitch = (pitch * 23970) >> 14 ;
+      case 6: // Bohlen-Pierce macrotonal scale - scale by 1.585
+          pitch = (pitch * 25969) >> 14 ; 
           break;
       default: // 1V/oct
           break;
