@@ -89,26 +89,30 @@ public:
   static int32_t pitch_to_scaled_voltage_dac(DAC_CHANNEL channel, int32_t pitch, int32_t octave_offset, uint8_t voltage_scaling) {
     pitch += (octave_offset * 12) << 7;
 
+ 
     switch (voltage_scaling) {
+      case 0: // 1V/oct
+          // do nothing
+          break;
       case 1: // 1.2V/oct
           pitch = (pitch * 19661) >> 14 ;
           break;
       case 2: // 2V/oct
           pitch = pitch << 1 ;
           break;
-      case 3: // Wendy Carlos alpha scale - scale by 0.77996
-          pitch = (pitch * 25558) >> 15 ;
+      case 3: // Wendy Carlos alpha scale - scale by 0.77995
+          pitch = (pitch * 25548) >> 15 ; // 2^15 * 0.77995 = 25547.571
           break;
-      case 4: // Wendy Carlos beta scale - scale by 0.63814 
-          pitch = (pitch * 20911) >> 15 ;
+      case 4: // Wendy Carlos beta scale - scale by 0.63833 
+          pitch = (pitch * 20917) >> 15 ; // 2^15 * 0.63833 = 20916.776
           break;
-      case 5: // Wendy Carlos gamma scale - scale by 0.3509775
-          pitch = (pitch * 11501) >> 15 ;
+      case 5: // Wendy Carlos gamma scale - scale by 0.35099
+          pitch = (pitch * 11501) >> 15 ; // 2^15 * 0.35099 = 11501.2403
           break;
       case 6: // Bohlen-Pierce macrotonal scale - scale by 1.585
-          pitch = (pitch * 25969) >> 14 ; 
+          pitch = (pitch * 25969) >> 14 ; // 2^14 * 1.585 = 25968.64
           break;
-      default: // 1V/oct
+      default: 
           break;
     }
 

@@ -132,8 +132,14 @@ const Scale scales[] = {
   { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
   { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
-  // Bohlen-Pierce
-  { 12 << 7, 13, { 0, 118, 237, 355, 472, 591, 709, 827, 945, 1064,  1181,  1299,  1418} }
+// #ifdef BUCHLA_SUPPORT
+  // Bohlen-Pierce (equal) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
+  { 12 << 7, 13, { 0, 118, 236, 354, 473, 591, 709, 827, 945, 1063,  1182,  1300,  1418} },
+  // Bohlen-Pierce (just) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
+  { 12 << 7, 13, { 0, 108, 244, 351, 470, 595, 714, 822, 941, 1066,  1185,  1292,  1428} },
+  // Bohlen-Pierce (lambda) - see  https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
+  { 12 << 7, 9, { 0, 244, 351, 470, 714, 822, 1066, 1185, 1428} },
+// #endif  
   } ;
 }// namespace braids
 

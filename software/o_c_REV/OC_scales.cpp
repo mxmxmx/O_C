@@ -77,7 +77,12 @@ const char* const scale_names_short[] = {
     "CHAN",
     "KTOD",
     "JOGE",
-    "B-P"};
+// #ifdef BUCHLA_SUPPORT
+    "B-Pe",
+    "B-Pj",
+    "B-Pl",
+// #endif    
+    };
 
 const char* const scale_names[] = {
     "User-defined 1",
@@ -133,7 +138,12 @@ const char* const scale_names[] = {
     "Chandradeep",
     "Kaushik Todi",
     "Jogeshwari",
-    "Bohlen-Pierce"};
+// #ifdef BUCHLA_SUPPORT
+    "Bohlen-Pierce equal",
+    "Bohlen-Pierce just",
+    "Bohlen-Pierce lambda",
+// #endif
+    };
 
 const char* const voltage_scalings[] = {
     "1", // 1V/octave
@@ -142,7 +152,7 @@ const char* const voltage_scalings[] = {
     "a", // Wendy Carlos alpha scale
     "b", // Wendy Carlos beta scale
     "g", // Wendy Carlos gamma scale
-    "bp" // Bohlen-Peirce macrotonal scale
+    "bp" // Bohlen-Pierce macrotonal scale
     } ;
 
 }; // namespace OC
