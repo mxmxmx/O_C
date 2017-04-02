@@ -132,6 +132,29 @@ const Scale scales[] = {
   { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
   { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
+  // 16-ED2 (16 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 16, { 0, 96,  192, 288, 384, 480, 576, 672, 768, 864, 960, 1056,  1152,  1248,  1344,  1440} },
+  // 15-ED2 (15 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 15, { 0, 102, 205, 307, 410, 512, 614, 717, 819, 922, 1024,  1126,  1229,  1331,  1434} },
+  // 14-ED2 (14 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 14, { 0, 110, 219, 329, 439, 549, 658, 768, 878, 987, 1097,  1207,  1317,  1426} },
+  // 13-ED2 (13 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 13, { 0, 118, 236, 354, 473, 591, 709, 827, 945, 1063,  1182,  1300,  1418} },
+  // 11-ED2 (11 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 11, { 0, 140, 279, 419, 559, 698, 838, 977, 1117,  1257,  1396} },
+  // 10-ED2 (10 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 10, { 0, 154, 307, 461, 614, 768, 922, 1075,  1229,  1382} },
+  // 9-ED2 (9 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 9, { 0,  171, 341, 512, 683, 853, 1024,  1195,  1365} },
+  // 8-ED2 (8 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 8, { 0,  192, 384, 576, 768, 960, 1152,  1344} },
+  // 7-ED2 (7 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 7, { 0,  219, 439, 658, 878, 1097,  1317} }, 
+  // 6-ED2 (6 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 6, { 0,  256, 512, 768, 1024,  1280} }, 
+  // 5-ED2 (5 step equally tempered scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 5, { 0,  307, 614, 922, 1229} }, 
+  
 // #if BUCHLA_SUPPORT==true
   // Bohlen-Pierce (equal) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
   { 12 << 7, 13, { 0, 118, 236, 354, 473, 591, 709, 827, 945, 1063,  1182,  1300,  1418} },
@@ -139,23 +162,23 @@ const Scale scales[] = {
   { 12 << 7, 13, { 0, 108, 244, 351, 470, 595, 714, 822, 941, 1066,  1185,  1292,  1428} },
   // Bohlen-Pierce (lambda) - see  https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
   { 12 << 7, 9, { 0, 244, 351, 470, 714, 822, 1066, 1185, 1428} },
-  // 16-ED3 (16 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 16-ED3 (16 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 16, { 0, 96, 192, 288, 384, 480, 576, 672, 768, 864, 960, 1056, 1152, 1248, 1344, 1440} },
-  // 15-ED3 (15 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 15-ED3 (15 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 15, { 0,  102, 205, 307, 410, 512, 614, 717, 819, 922, 1024,  1126,  1229,  1331,  1434} },
-  // 14-ED3 (14 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 14-ED3 (14 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 14, { 0, 110, 219, 329, 439, 549, 658, 768, 878, 987, 1097,  1207,  1317,  1426} },
-  // 12-ED3 (12 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 12-ED3 (12 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 12, { 0, 128, 256, 384, 512, 640, 768, 896, 1024,  1152,  1280,  1408} },
-  // 11-ED3 (11 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 11-ED3 (11 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 11, { 0, 140, 279, 419, 559, 698, 838, 977, 1117,  1257,  1396} },
-  // 10-ED3 (10 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 10-ED3 (10 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 10, { 0, 154, 307, 461, 614, 768, 922, 1075,  1229,  1382} },
-  // 9-ED3 (9 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 9-ED3 (9 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 9, { 0,  171, 341, 512, 683, 853, 1024,  1195,  1365} },
-  // 8-ED3 (8 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 8-ED3 (8 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 8, { 0,  192, 384, 576, 768, 960, 1152,  1344} },
-  // 7-ED3 (7 step equally tempered scale on the tritave) - see No Octaves Pack at http://sevish.com/music-resources/
+  // 7-ED3 (7 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 7, { 0,  219, 439, 658, 878, 1097,  1317} }, 
 // #endif  
   } ;
