@@ -77,10 +77,19 @@ const char* const scale_names_short[] = {
     "CHAN",
     "KTOD",
     "JOGE",
-// #ifdef BUCHLA_SUPPORT
+// #if BUCHLA_SUPPORT==true
     "B-Pe",
     "B-Pj",
     "B-Pl",
+    "16E3",
+    "15E3", 
+    "14E3", 
+    "12E3", 
+    "11E3", 
+    "10E3", 
+    "9E3", 
+    "8E3", 
+    "7E3", 
 // #endif    
     };
 
@@ -138,10 +147,19 @@ const char* const scale_names[] = {
     "Chandradeep",
     "Kaushik Todi",
     "Jogeshwari",
-// #ifdef BUCHLA_SUPPORT
+// #if BUCHLA_SUPPORT==true
     "Bohlen-Pierce equal",
     "Bohlen-Pierce just",
     "Bohlen-Pierce lambda",
+    "16-ED3",
+    "15-ED3", 
+    "14-ED3", 
+    "12-ED3", 
+    "11-ED3", 
+    "10-ED3", 
+    "9-ED3", 
+    "8-ED3", 
+    "7-ED3", 
 // #endif
     };
 
@@ -152,7 +170,7 @@ const char* const voltage_scalings[] = {
     "a", // Wendy Carlos alpha scale
     "b", // Wendy Carlos beta scale
     "g", // Wendy Carlos gamma scale
-    "bp" // Bohlen-Pierce macrotonal scale
+    "tri" // Tritave (as used by Bohlen-Pierce macrotonal scale)
     } ;
 
 }; // namespace OC
