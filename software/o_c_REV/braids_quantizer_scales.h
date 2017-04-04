@@ -185,6 +185,32 @@ const Scale scales[] = {
   // 4-HD2 (4 step harmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 4, { 0,  494, 899, 1240} },
 
+  // 32-16-SD2 (16 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 16, { 0, 70,  143, 218, 296, 376, 460, 547, 637, 732, 830, 933, 1042,  1155,  1275,  1402} },
+  // 30-15-SD2 (15 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 15, { 0, 75,  153, 233, 317, 404, 494, 589, 687, 790, 899, 1012,  1132,  1259,  1393} },
+  // 28-14-SD2 (14 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 14, { 0, 81,  164, 251, 342, 436, 534, 637, 746, 859, 979, 1106,  1240,  1383,  1536} },
+  // 26-13-SD2 (13 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 13, { 0, 87,  177, 272, 370, 473, 581, 695, 815, 942, 1076,  1219,  1372} },
+  // 24-12-SD2 (12 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 12, { 0, 94,  193, 296, 404, 518, 637, 764, 899, 1042,  1194,  1359} },
+  // 22-11-SD2 (11 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 11, { 0, 103, 211, 325, 445, 571, 706, 849, 1002,  1166,  1343} },
+  // 20-10-SD2 (10 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 10, { 0, 114, 233, 360, 494, 637, 790, 955, 1132,  1325} },
+  // 18-9-SD2 (9 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 9, { 0,  127, 261, 404, 557, 721, 899, 1091,  1303} },
+  // 16-8-SD2 (8 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 8, { 0,  143, 296, 460, 637, 830, 1042,  1275} },
+  // 14-7-SD2 (7 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 7, { 0,  164, 342, 534, 746, 979, 1240} },
+  // 12-6-SD2 (6 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 6, { 0,  193, 404, 637, 899, 1194} },
+  // 10-5-SD2 (5 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 5, { 0,  233, 494, 790, 1132} },
+  // 8-4-SD2 (4 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 4, { 0,  296, 637, 1042} },
   
 // #if BUCHLA_SUPPORT==true
   // Bohlen-Pierce (equal) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
@@ -225,6 +251,17 @@ const Scale scales[] = {
   { 12 << 7, 10, { 0, 255, 470, 657, 822, 969, 1102,  1224,  1336,  1440} },
   // 4-12-HD3 (8 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 8, { 0,  312, 567, 782, 969, 1134,  1281,  1414} },
+
+  // 24-8-HD3 (16 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 16, { 0, 60,  122, 187, 255, 327, 402, 482, 567, 657, 754, 857, 969, 1091,  1224,  1371} },
+  // 21-7-HD3 (14 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 14, { 0, 68,  140, 216, 295, 380, 470, 567, 671, 782, 904, 1037,  1185,  1349} },
+  // 18-6-HD3 (12 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 12, { 0, 80,  165, 255, 351, 455, 567, 689, 822, 969, 1134,  1320} },
+  // 15-5-HD3 (10 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 10, { 0, 96,  200, 312, 434, 567, 714, 879, 1066,  1281} },
+  // 12-4-HD3 (8 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+  { 12 << 7, 8, { 0,  122, 255, 402, 567, 754, 969, 1224} },
    
 // #endif  
   } ;

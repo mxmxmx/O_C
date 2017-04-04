@@ -102,6 +102,19 @@ const char* const scale_names_short[] = {
     "6H2",
     "5H2",
     "4H2",
+    "16S2",
+    "15S2",
+    "14S2",
+    "13S2",
+    "12S2",
+    "11S2",
+    "10S2",
+    "9S2",
+    "8S2",
+    "7S2",
+    "6S2",
+    "5S2",
+    "4S2",
     
 // #if BUCHLA_SUPPORT==true
     "B-Pe",
@@ -112,6 +125,11 @@ const char* const scale_names_short[] = {
     "12H3", 
     "10H3", 
     "8H3", 
+    "16S3",
+    "14S3",
+    "12S3", 
+    "10S3", 
+    "8S3", 
     
 // #endif    
     };
@@ -195,6 +213,19 @@ const char* const scale_names[] = {
     "6-HD2",
     "5-HD2",
     "4-HD2",
+    "16-SD2",
+    "15-SD2",
+    "14-SD2",
+    "13-SD2",
+    "12-SD2",
+    "11-SD2",
+    "10-SD2",
+    "9-SD2",
+    "8-SD2",
+    "7-SD2",
+    "6-SD2",
+    "5-SD2",
+    "4-SD2",
 
 // #if BUCHLA_SUPPORT==true
     "Bohlen-Pierce equal",
@@ -205,6 +236,11 @@ const char* const scale_names[] = {
     "6-18-HD3 (12 step)", 
     "5-15-HD3 (10 step)", 
     "4-12-HD3 (8 step)", 
+    "24-8-SD3 (16 step)",
+    "21-7-SD3 (14 step)",
+    "18-6-SD3 (12 step)", 
+    "15-5-SD3 (10 step)", 
+    "12-4-SD3 (8 step)", 
      
 // #endif
     };
