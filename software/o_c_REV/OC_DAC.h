@@ -112,6 +112,9 @@ public:
       case 6: // Bohlen-Pierce macrotonal scale - scale by 1.585
           pitch = (pitch * 25969) >> 14 ; // 2^14 * 1.585 = 25968.64
           break;
+      case 7: // Quartertone scaling (just down-scales to 0.5V/oct)
+          pitch = pitch >> 1 ;
+          break;
       default: 
           break;
     }

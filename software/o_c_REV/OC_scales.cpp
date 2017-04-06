@@ -314,7 +314,8 @@ const char* const voltage_scalings[] = {
     "a", // Wendy Carlos alpha scale
     "b", // Wendy Carlos beta scale
     "g", // Wendy Carlos gamma scale
-    "tri" // Tritave (as used by Bohlen-Pierce macrotonal scale)
+    "tri", // Tritave (as used by Bohlen-Pierce macrotonal scale)
+    "qtr" // quartertone scale (essentially dowbscales to 0.5V/oct)
     } ;
 
 }; // namespace OC

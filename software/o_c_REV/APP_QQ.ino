@@ -1150,7 +1150,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "IntSeq rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "F. stride CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq reset", qq_reset_trigger_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 6, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 };
  
 // WIP refactoring to better encapsulate and for possible app interface change
