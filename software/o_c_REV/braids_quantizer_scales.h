@@ -132,8 +132,71 @@ const Scale scales[] = {
   { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
   { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
+
+  // Tartini-Vallotti [12] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
+  { 12 << 7, 12, { 0, 120, 251, 381, 502, 643, 758, 893, 1019,  1144,  1280,  1395} },
+  // 13 out of 22-tET, generator = 5 [13] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
+  { 12 << 7, 13, { 0, 140, 279, 419, 489, 628, 768, 838, 977, 1117,  1187,  1327,  1466} },
+  // 13 out of 19-tET, Mandelbaum [13] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
+  { 12 << 7, 13, { 0, 162, 243, 404, 485, 647, 728, 889, 970, 1132,  1213,  1374,  1455} },
+  // Magic[16] in 145-tET [16] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
+  { 12 << 7, 16, { 0, 191, 265, 339, 413, 487, 561, 752, 826, 900, 975, 1049,  1239,  1314,  1388,  1462} },
+  // g=9 steps of 139-tET. Gene Ward Smith "Quartaminorthirds" 7-limit temperament [16] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
+  { 12 << 7, 16, { 0, 99,  199, 298, 398, 497, 597, 696, 796, 895, 995, 1094,  1193,  1293,  1392,  1492} },
+  // Armodue semi-equalizzato [16] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
+  { 12 << 7, 16, { 0, 99,  198, 297, 396, 495, 595, 694, 793, 892, 991, 1090,  1189,  1239,  1338,  1437} },
+
+  // Hirajoshi[5] - from Sevish World Scales Pack at http://sevish.com/music-resources
+  { 12 << 7, 5, { 0,  237, 431, 874, 1011} },
+  // Scottish bagpipes[7] - from Sevish World Scales Pack at http://sevish.com/music-resources
+  { 12 << 7, 7, { 0,  252, 436, 634, 900, 1092,  1292} },
+  // Thai ranat[7] - from Sevish World Scales Pack at http://sevish.com/music-resources
+  { 12 << 7, 7, { 0,  206, 443, 673, 878, 1103,  1317} },
+
   // Sevish quasi-12-equal mode from 31-EDO - see http://sevish.com/2017/mapping-microtonal-scales-keyboard-scala/
-  { 12 << 7, 12, { 0, 149, 297, 396, 545, 644, 793, 941, 1041,  1189,  1288,  1437,  1536} },
+  { 12 << 7, 12, { 0, 149, 297, 396, 545, 644, 793, 941, 1041,  1189,  1288,  1437} },
+  // 11 TET Machine[6] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 6, { 0,  279, 559, 698, 977, 1257} },
+  // 13 TET Father[8] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 8, { 0,  236, 473, 591, 827, 1063,  1182,  1418} },
+  // 15 TET Blackwood[10] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 10, { 0,  205, 307, 512, 614, 819, 922, 1126,  1229,  1434} },
+  // 16 TET Mavila[7] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 7, { 0,  192, 384, 672, 864, 1056,  1248} },
+  // 16 TET Mavila[9] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 9, { 0,  96,  288, 480, 672, 768, 960, 1152,  1344} },
+  // 17 TET Superpyth[12] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 12, { 0, 90,  181, 361, 452, 632, 723, 813, 994, 1084,  1265,  1355} },
+
+  // 22 TET Orwell[9] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 9, { 0, 140, 349, 489, 698, 838, 1047,  1187,  1396} },
+  // 22 TET Pajara[10] Static Symmetrical Maj - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 10, { 0, 140, 279, 489, 628, 768, 908, 1047,  1257,  1396} },
+  // 22 TET Pajara[10] Std Pentachordal Maj - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 10, { 0, 140, 279, 489, 628, 768, 908, 1117,  1257,  1396} },
+  // 22 TET Porcupine[7] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 7, { 0,  209, 419, 628, 908, 1117,  1327} },
+  // 26 TET Flattone[12] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 12, { 0, 59,  236, 295, 473, 650, 709, 886, 945, 1122,  1182,  1359} },
+  // 26 TET Lemba[10] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 10, { 0, 177, 295, 473, 591, 768, 945, 1063,  1241,  1359} },
+  // 46 TET Sensi[11] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 11, { 0,  167, 334, 501, 568, 735, 902, 1069,  1135,  1302,  1469} },
+  // 53 TET Orwell[9] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 9, { 0,  145, 348, 493, 696, 840, 1043,  1188,  1391} },
+  // 12 out of 72-TET scale by Prent Rodgers - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 12, { 0, 256, 341, 491, 555, 640, 704, 896, 1131,  1237,  1344,  1387} },
+  // Trivalent scale in zeus temperament[7]; thirds are all {7/6, 6/5, 5/4}; 99et tuning; - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 7, { 0, 202, 496, 698, 900, 1195,  1396} },
+  // 202 TET tempering of octone[8] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 8, { 0,  152, 449, 494, 791, 897, 1194,  1239} },
+  // 313 TET elfmadagasgar[9] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 9, { 0,  260, 319, 579, 638, 898, 957, 1217,  1276} },
+  // Marvel woo version of glumma[12] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 12, { 0, 63,  298, 406, 491, 703, 789, 897, 1131,  1194,  1239,  1492} },
+  // TOP Parapyth[12] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
+  { 12 << 7, 12, { 0, 75,  265, 340, 530, 605, 710, 901, 975, 1166,  1240,  1431} },
+
   
   // 16-ED (ED2 or ED3) (16 step equally tempered scale on the octave or the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 16, { 0, 96,  192, 288, 384, 480, 576, 672, 768, 864, 960, 1056,  1152,  1248,  1344,  1440} },
@@ -220,7 +283,7 @@ const Scale scales[] = {
   // Bohlen-Pierce (lambda) - see  https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
   { 12 << 7, 9, { 0, 244, 351, 470, 714, 822, 1066, 1185, 1428} },
 
-/* The following are redundant  
+/* The following are redundant - they are the same as the ED scales above, which can be used with both octaves and tritaves 
   // 16-ED3 (16 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
   { 12 << 7, 16, { 0, 96, 192, 288, 384, 480, 576, 672, 768, 864, 960, 1056, 1152, 1248, 1344, 1440} },
   // 15-ED3 (15 step equally tempered scale on the tritave) - see Xen-Arts VSTi microtuning library No Octaves Pack at http://sevish.com/music-resources/
