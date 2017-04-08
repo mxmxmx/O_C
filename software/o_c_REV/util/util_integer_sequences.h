@@ -87,22 +87,22 @@ public:
       case 2:
       	x_ = OC::Strings::tau_digits[k_];
       	break;
+//       case 3:
+//       	x_ = OC::Strings::eul_digits[k_];
+//       	break;
+//       case 4:
+//       	x_ = OC::Strings::rt2_digits[k_];
+//       	break;
       case 3:
-      	x_ = OC::Strings::eul_digits[k_];
-      	break;
-      case 4:
-      	x_ = OC::Strings::rt2_digits[k_];
-      	break;
-      case 5:
       	x_ = OC::Strings::van_eck[k_];
       	break;
-      case 6:
+      case 4:
       	x_ = OC::Strings::sum_of_squares_of_digits_of_n[k_];
       	break;
-      case 7: // Dress sequence
+      case 5: // Dress sequence
         x_ =  __builtin_popcountll(s_ * k_);
       	break;
-      case 8: // Per Nørgård's infinity series
+      case 6: // Per Nørgård's infinity series
       	// See http://www.pernoergaard.dk/eng/strukturer/uendelig/ukonstruktion03.html
       	sk_ = static_cast<uint32_t>(s_ * k_) ;
       	// Serial.println(sk_) ;
@@ -123,6 +123,18 @@ public:
       	x_ = 12 + bit_sum_ + pending_bit_ ; // add final bit
       	// x_ = bit_sum_ ;
       	break;
+      case 7:
+      	x_ = OC::Strings::digsum_of_n[k_];
+      	break;
+      case 8:
+      	x_ = OC::Strings::digsum_of_n_base4[k_];
+      	break;
+      case 9:
+      	x_ = OC::Strings::digsum_of_n_base5[k_];
+      	break;      	
+      case 10:
+      	x_ = OC::Strings::count_down_by_2[k_];
+      	break;      	
       default:
         break;
     }
