@@ -55,6 +55,7 @@ enum EnvelopeSettings {
   ENV_SETTING_EUCLIDEAN_LENGTH,
   ENV_SETTING_EUCLIDEAN_FILL,
   ENV_SETTING_EUCLIDEAN_OFFSET,
+  ENV_SETTING_EUCLIDEAN_RESET_INPUT,
   ENV_SETTING_CV1,
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
@@ -165,6 +166,10 @@ public:
 
   uint8_t get_euclidean_offset() const {
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
+  }
+
+ uint8_t get_euclidean_reset_trigger_input() const {
+    return values_[ENV_SETTING_EUCLIDEAN_RESET_INPUT];
   }
 
   uint16_t get_amplitude() const {
@@ -312,6 +317,7 @@ public:
     if (get_euclidean_length()) {
       *settings++ = ENV_SETTING_EUCLIDEAN_FILL;
       *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
+      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
     }
 
     *settings++ = ENV_SETTING_ATTACK_SHAPE;
@@ -342,6 +348,7 @@ public:
       case ENV_SETTING_TRIGGER_DELAY_MILLISECONDS:
       case ENV_SETTING_EUCLIDEAN_FILL:
       case ENV_SETTING_EUCLIDEAN_OFFSET:
+      case ENV_SETTING_EUCLIDEAN_RESET_INPUT:
         return true;
       default:
       break;
@@ -429,6 +436,10 @@ public:
     uint8_t euclidean_length = static_cast<uint8_t>(s[4]);
     uint8_t euclidean_fill = static_cast<uint8_t>(s[5]);
     uint8_t euclidean_offset = static_cast<uint8_t>(s[6]);
+    uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
+    bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
+    if (euclidean_reset_trigger_input & triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) euclidean_counter_ = 0;
+    
     if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
       triggered = false;
     }
@@ -617,6 +628,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 5, "Eucl reset input", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
