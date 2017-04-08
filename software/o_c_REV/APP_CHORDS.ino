@@ -897,58 +897,35 @@ inline int32_t chords_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coo
 
 void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
 
-  // History
-  scrolling_history_.Read(chords_history);
-  weegfx::coord_t scroll_pos = (scrolling_history_.get_scroll_pos() * 6) >> 8;
 
-  // Top: Show gate & CV (or register bits)
-  menu::DrawGateIndicator(start_x + 1, 2, clockState());
-  const uint8_t source = get_cv_source();
-  
-  switch (source) {
+  int _active_chord = chords.active_chord();
+  int _num_chords = get_num_chords();
+  int x = start_x + 4;
+  int y = 48; 
 
-    //to do: other sources
-    default: {
-      graphics.setPixel(start_x + 47 - 16, 4);
-      int32_t cv = OC::ADC::value(static_cast<ADC_CHANNEL>(source));
-      cv = (cv * 20 + 2047) >> 11;
-      if (cv < 0)
-        graphics.drawRect(start_x + 47 - 16 + cv, 6, -cv, 2);
-      else if (cv > 0)
-        graphics.drawRect(start_x + 47 - 16, 6, cv, 2);
-      else
-        graphics.drawRect(start_x + 47 - 16, 6, 1, 2);
-    }
-    break;
+  for (int j = 0; j <= _num_chords; j++) {
+
+    if (j == _active_chord)
+      menu::DrawChord(x + (j << 4) + 1, y, 6, j);
+    else  
+      menu::DrawChord(x + (j << 4) + 2, y, 4, j);
   }
 
-#ifdef CHORDS_DEBUG_SCREENSAVER
-  graphics.drawVLinePattern(start_x + 63, 0, 64, 0x55);
-#endif
+  // sequence: 
+  x = start_x + 4;
+  y = 58;
+  
+  for (int j = 0; j < OC::Chords::NUM_CHORDS; j++) {
 
-  // Draw semitone intervals, 4px apart
-  weegfx::coord_t x = start_x + 56;
-  weegfx::coord_t y = chords_kBottom;
-  for (int i = 0; i < 12; ++i, y -= 4)
-    graphics.setPixel(x, y);
-
-  x = start_x + 1;
-  chords_render_pitch(chords_history[0], x, scroll_pos); x += scroll_pos;
-  chords_render_pitch(chords_history[1], x, 6); x += 6;
-  chords_render_pitch(chords_history[2], x, 6); x += 6;
-  chords_render_pitch(chords_history[3], x, 6); x += 6;
-
-  int32_t octave = chords_render_pitch(chords_history[4], x, 6 - scroll_pos);
-  graphics.drawBitmap8(start_x + 58, chords_kBottom - octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
-
-  graphics.setPrintPos(64, 0);
-  OC::Chord *active_chord = &OC::user_chords[chords.active_chord()];
-  graphics.print(OC::quality_names[active_chord->quality]);
-
-  graphics.setPrintPos(64, 55);
-  graphics.print(OC::voicing_names[active_chord->voicing]);
-
-  menu::DrawChord(85, 40, 6, chords.active_chord());
+       if (j <= _num_chords)
+          graphics.drawFrame(x + (j << 4), y, 8, 4);
+       else 
+          graphics.drawFrame(x + (j << 4), y + 2, 8, 2);  
+            
+      // position indicator:
+       if(j == active_chord())
+         graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
+    }
 }
 
 void CHORDS_screensaver() {

@@ -172,18 +172,15 @@ inline void DrawChord(weegfx::coord_t x, weegfx::coord_t y, int width, int value
    
    // draw root:
    graphics.drawRect(x, y, width, width);
-   x += 8;
-   y -= OC::qualities[_quality][1];
+   y -= OC::qualities[_quality][1] + (width << 1);
    // draw b:
-   graphics.drawRect(x, y + (OC::voicing[_voicing][1] << 3), width, width);
-   x += 8;
-   y -= OC::qualities[_quality][2];
-   //draw c:
-   graphics.drawRect(x, y + (OC::voicing[_voicing][2] << 3), width, width);
-   x += 8;
-   y -= OC::qualities[_quality][3];
+   graphics.drawFrame(x, y + (OC::voicing[_voicing][1] << 3), width, width);
+   y -= OC::qualities[_quality][2] + (width << 1);
+   //draw c: 
+   graphics.drawFrame(x, y + (OC::voicing[_voicing][2] << 3), width, width);
+   y -= OC::qualities[_quality][3] + (width << 1);
    //draw d:
-   graphics.drawRect(x, y + (OC::voicing[_voicing][3] << 3), width, width);
+   graphics.drawFrame(x, y + (OC::voicing[_voicing][3] << 3), width, width);
 }
 
 inline void DrawMiniChord(weegfx::coord_t x, weegfx::coord_t y, uint8_t count, uint8_t indicator) {
