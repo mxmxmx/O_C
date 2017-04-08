@@ -45,7 +45,8 @@ uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
 const bool DUMMY = 0;
 
-#define BUCHLA_SUPPORT true
+// Change value of BUCHLA_SUPPORT to 0 if Buchla/microtonal scaling not wanted
+#define BUCHLA_SUPPORT 1
 
 /*  --------------------- UI timer ISR -------------------------   */
 

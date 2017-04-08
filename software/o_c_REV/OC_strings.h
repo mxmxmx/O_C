@@ -26,7 +26,7 @@ namespace OC {
   // Not strings but are constant integer sequences
   extern const uint8_t pi_digits[256];
   extern const uint8_t phi_digits[256];
-  extern const uint8_t tau_digits[256];
+  // extern const uint8_t tau_digits[256];
   // extern const uint8_t eul_digits[256];
   // extern const uint8_t rt2_digits[256];
   extern const uint8_t van_eck[256];
@@ -35,6 +35,7 @@ namespace OC {
   extern const uint8_t digsum_of_n_base4[256];
   extern const uint8_t digsum_of_n_base5[256];
   extern const uint8_t count_down_by_2[256];
+  extern const uint8_t interspersion_of_A163253[256];
  };
 
   // Not a string, but needs to be closer to trigger_delay_times
