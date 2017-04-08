@@ -1276,6 +1276,14 @@ void QQ_menu() {
         menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
         list_item.DrawNoValue<false>(value, attr);
         break;
+      case CHANNEL_SETTING_TRIGGER:
+      {
+        if (channel.get_source() > CHANNEL_SOURCE_CV4)
+           list_item.DrawValueMax(value, attr, CHANNEL_TRIGGER_TR4);
+        else 
+          list_item.DrawDefault(value, attr);
+      }
+        break;
       case CHANNEL_SETTING_SOURCE:
         if (CHANNEL_SOURCE_TURING == channel.get_source()) {
           int turing_length = channel.get_turing_length();
@@ -1290,7 +1298,10 @@ void QQ_menu() {
       default:
         if (QuantizerChannel::indentSetting(static_cast<ChannelSetting>(setting)))
           list_item.x += menu::kIndentDx;
-        list_item.DrawDefault(value, attr);
+        if (setting == CHANNEL_SETTING_SOURCE && channel.get_trigger_source() > CHANNEL_TRIGGER_TR4)
+          list_item.DrawValueMax(value, attr, CHANNEL_TRIGGER_TR4);
+        else list_item.DrawDefault(value, attr);
+      break;
     }
   }
 
@@ -1347,7 +1358,26 @@ void QQ_handleEncoderEvent(const UI::Event &event) {
     if (qq_state.editing()) {
       ChannelSetting setting = selected.enabled_setting_at(qq_state.cursor_pos());
       if (CHANNEL_SETTING_MASK != setting) {
-        if (selected.change_value(setting, event.value))
+
+        int event_value = event.value;
+
+        switch (setting) {
+          case CHANNEL_SETTING_TRIGGER:
+          {
+            if (selected.get_trigger_source() == CHANNEL_TRIGGER_TR4 && selected.get_source() > CHANNEL_SOURCE_CV4 && event.value > 0)
+              event_value = 0x0;
+          }
+          break;
+          case CHANNEL_SETTING_SOURCE: {
+             if (selected.get_source() == CHANNEL_SOURCE_CV4 && selected.get_trigger_source() > CHANNEL_TRIGGER_TR4 && event.value > 0)
+              event_value = 0x0;
+          }
+          break;
+          default:
+          break;
+        }
+        
+        if (selected.change_value(setting, event_value))
           selected.force_update();
 
         switch (setting) {
