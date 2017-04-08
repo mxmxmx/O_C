@@ -437,7 +437,6 @@ public:
     uint8_t euclidean_fill = static_cast<uint8_t>(s[5]);
     uint8_t euclidean_offset = static_cast<uint8_t>(s[6]);
     uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
-    bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
     if (euclidean_reset_trigger_input & triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) euclidean_counter_ = 0;
     
     if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
