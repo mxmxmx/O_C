@@ -45,6 +45,7 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_CV_SOURCE,
   CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE,
   CHORDS_SETTING_PLAYMODES,
+  CHORDS_SETTING_DIRECTION,
   CHORDS_SETTING_TRIGGER_DELAY,
   CHORDS_SETTING_TRANSPOSE,
   CHORDS_SETTING_OCTAVE,
@@ -59,6 +60,8 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_QUALITY_CV,
   CHORDS_SETTING_VOICING_CV,
   CHORDS_SETTING_INVERSION_CV,
+  CHORDS_SETTING_PLAYMODES_CV,
+  CHORDS_SETTING_DIRECTION_CV,
   CHORDS_SETTING_DUMMY,
   CHORDS_SETTING_MORE_DUMMY,
   CHORDS_SETTING_LAST
@@ -90,6 +93,30 @@ enum CHORDS_MENU_PAGES {
   MENU_PARAMETERS,
   MENU_CV_MAPPING,
   MENU_PAGES_LAST  
+};
+
+enum CHORDS_PLAYMODES {
+  _NONE,
+  _SEQ1,
+  _SEQ2,
+  _SEQ3,
+  _TR1,
+  _TR2,
+  _TR3,
+  _SH1,
+  _SH2,
+  _SH3,
+  _SH4,
+  CHORDS_PLAYMODES_LAST
+};
+
+enum CHORDS_DIRECTIONS {
+  CHORDS_FORWARD,
+  CHORDS_REVERSE,
+  CHORDS_PENDULUM1,
+  CHORDS_PENDULUM2,
+  CHORDS_RANDOM,
+  CHORDS_DIRECTIONS_LAST
 };
 
 class Chords : public settings::SettingsBase<Chords, CHORDS_SETTING_LAST> {
@@ -137,6 +164,14 @@ public:
 
   int active_chord() const {
     return active_chord_;
+  }
+
+  int get_playmode() const {
+    return values_[CHORDS_SETTING_PLAYMODES];
+  }
+
+  int get_direction() const {
+    return values_[CHORDS_SETTING_DIRECTION];
   }
   
   int get_root() const {
@@ -223,7 +258,9 @@ public:
     apply_value(CHORDS_SETTING_OCTAVE_CV, 0);
     apply_value(CHORDS_SETTING_QUALITY_CV, 0);
     apply_value(CHORDS_SETTING_VOICING_CV, 0); 
-    apply_value(CHORDS_SETTING_INVERSION_CV, 0); 
+    apply_value(CHORDS_SETTING_INVERSION_CV, 0);
+    apply_value(CHORDS_SETTING_PLAYMODES_CV, 0);  
+    apply_value(CHORDS_SETTING_DIRECTION_CV, 0);  
   }
 
   void Init() {
@@ -243,6 +280,7 @@ public:
     prev_root_cv_ = 0;
     prev_octave_cv_ = 0;
     prev_transpose_cv_ = 0;
+    chords_direction_ = true;
    
     trigger_delay_.Init();
     quantizer_.Init();
@@ -257,7 +295,121 @@ public:
   void force_update() {
     force_update_ = true;
   }
- 
+
+  int8_t _clock(uint8_t sequence_length, uint8_t sequence_count, uint8_t sequence_max) {
+
+        int8_t EoS = 0x0;
+        bool reset = !digitalReadFast(TR4);
+        int8_t _clk_cnt = active_chord_;
+        
+        switch (get_direction()) {
+
+          case CHORDS_FORWARD:
+          {
+            _clk_cnt++;
+            if (reset)
+              _clk_cnt = 0x0;
+            // end of sequence?  
+            else if (_clk_cnt > sequence_length) {
+              _clk_cnt = 0x0;
+              EoS = 0x1;
+            }
+          }
+          break;
+          case CHORDS_REVERSE:
+          {
+            _clk_cnt--;
+            if (reset)
+              _clk_cnt = sequence_length;
+            // end of sequence? 
+            else if (_clk_cnt < 0) {
+              _clk_cnt = sequence_length;
+              EoS = 0x1;
+            }
+          }
+          break;
+          case CHORDS_PENDULUM1:
+          {
+            if (chords_direction_) {
+              _clk_cnt++;  
+              if (reset)
+                _clk_cnt = 0x0;
+              else if (_clk_cnt > sequence_length) {
+                // end of sequence ? 
+                if (sequence_count >= sequence_max) {
+                  chords_direction_ = false;
+                  _clk_cnt = sequence_length - 0x1; // ... don't repeat last step
+                }
+                else
+                  EoS = 0x1;  
+              }
+            }
+            // reverse direction:
+            else {
+              _clk_cnt--; 
+              if (reset)  
+                _clk_cnt = sequence_length;
+              else if (_clk_cnt < 0) {
+                // end of sequence ? 
+                if (sequence_count == 0x0) {
+                  chords_direction_ = true;
+                  _clk_cnt = 0x1; // ... don't repeat first step
+                }
+                else
+                  EoS = -0x1;  
+              }
+            }
+          }
+          break;
+          case CHORDS_PENDULUM2:
+          {
+            if (chords_direction_) {
+              _clk_cnt++;  
+              if (reset)
+                _clk_cnt = 0x0;
+              else if (_clk_cnt > sequence_length) {
+                // end of sequence ? 
+                if (sequence_count >= sequence_max) {
+                  chords_direction_ = false;
+                  _clk_cnt--; // repeat last step
+                }
+                else
+                  EoS = 0x1;  
+              }
+            }
+            // reverse direction:
+            else {
+              _clk_cnt--; 
+              if (reset)  
+                _clk_cnt = sequence_length;
+              else if (_clk_cnt < 0x0) {
+                // end of sequence ? 
+                if (sequence_count == 0x0) {
+                  chords_direction_ = true;
+                  _clk_cnt++; // repeat first step
+                }
+                else
+                  EoS = -0x1;  
+              }
+            }
+          }
+          break;
+          case CHORDS_RANDOM:
+          _clk_cnt = random(sequence_length + 0x1);
+          if (reset)
+            _clk_cnt = 0x0;
+          // jump to next sequence if we happen to hit the last note:  
+          else if (_clk_cnt >= sequence_length)
+            EoS = random(0x2);  
+          break;
+          default:
+          break;
+        }
+        active_chord_ = _clk_cnt;
+        return EoS;
+  }
+
+  
   inline void Update(uint32_t triggers) {
 
     bool triggered = triggers & DIGITAL_INPUT_MASK(0x0);
@@ -283,7 +435,6 @@ public:
       octave = get_octave();
       root = get_root();
 
-      
       // next chord via trigger?
       uint8_t _advance_trig = get_chords_trigger_source();
       
@@ -294,10 +445,10 @@ public:
         chord_advance_last_ = 0x1;
       }
         
-      if (_advance_trig < chord_advance_last_) 
-        active_chord_ = active_chord_++ > (get_num_chords() - 1) ? 0x0 : active_chord_; // increment/reset
-      else if (!get_num_chords()) 
+      if (!get_num_chords()) 
         active_chord_ = 0x0; 
+      else if (_advance_trig < chord_advance_last_) 
+        _clock(get_num_chords(), 0x0, 0x0); // todo
       chord_advance_last_ = _advance_trig;
       
       // active chord:
@@ -454,7 +605,8 @@ public:
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
         
         *settings++ = CHORDS_SETTING_CHORD_EDIT;
-        *settings++ = CHORDS_SETTING_PLAYMODES;    
+        *settings++ = CHORDS_SETTING_PLAYMODES;
+        *settings++ = CHORDS_SETTING_DIRECTION;       
         *settings++ = CHORDS_SETTING_TRANSPOSE;
         *settings++ = CHORDS_SETTING_OCTAVE;
         *settings++ = CHORDS_SETTING_CV_SOURCE;
@@ -472,8 +624,9 @@ public:
         else
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
         
-        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV
-        *settings++ = CHORDS_SETTING_PLAYMODES;  // todo: CV ?
+        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ?
+        *settings++ = CHORDS_SETTING_PLAYMODES_CV;
+        *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         *settings++ = CHORDS_SETTING_TRANSPOSE_CV;
         *settings++ = CHORDS_SETTING_OCTAVE_CV;
         *settings++ = CHORDS_SETTING_QUALITY_CV;
@@ -504,6 +657,7 @@ private:
   bool chord_advance_last_;
   int8_t active_chord_;
   int8_t menu_page_;
+  bool chords_direction_;
 
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   braids::Quantizer quantizer_;
@@ -550,6 +704,14 @@ const char* const chords_cv_sources[] = {
 const char* const chords_slots[] = {
   "#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"
 };
+
+const char* const chord_playmodes[] = {
+  "-", "SEQ+1", "SEQ+2", "SEQ+3", "TR+1", "TR+2", "TR+3", "S+H#1", "S+H#2", "S+H#3", "S+H#4" 
+};
+
+const char* const chord_directions[] = {
+  "fwd", "rev", "pnd1", "pnd2", "rnd"
+};
   
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
@@ -557,7 +719,8 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U4 }, /// to do ..
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
-  { 0, 0, PM_LAST - 5, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U8 },
+  { 0, 0, CHORDS_PLAYMODES_LAST - 1, "playmode", chord_playmodes, settings::STORAGE_TYPE_U8 },
+  { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", chord_directions, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "TR1 delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
@@ -572,6 +735,8 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "playmodes CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
   {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
