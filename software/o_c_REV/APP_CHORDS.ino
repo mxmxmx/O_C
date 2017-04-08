@@ -444,12 +444,15 @@ public:
         _advance_trig = 0x0;
         chord_advance_last_ = 0x1;
       }
-        
-      if (!get_num_chords()) 
-        active_chord_ = 0x0; 
-      else if (_advance_trig < chord_advance_last_) 
-        _clock(get_num_chords(), 0x0, 0x0); // todo
+
+      int num_chords = get_num_chords();
+      CONSTRAIN(active_chord_, 0x0, num_chords);
+      if (num_chords && (_advance_trig < chord_advance_last_)) {
+       
+        _clock(num_chords, 0x0, 0x0); // todo
+      }
       chord_advance_last_ = _advance_trig;
+      //
       
       // active chord:
       OC::Chord *active_chord = &OC::user_chords[active_chord_];
