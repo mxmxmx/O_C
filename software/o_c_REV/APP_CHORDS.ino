@@ -65,8 +65,9 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_QUALITY_CV,
   CHORDS_SETTING_VOICING_CV,
   CHORDS_SETTING_INVERSION_CV,
-  CHORDS_SETTING_PLAYMODES_CV,
+  CHORDS_SETTING_PROGRESSION_CV,
   CHORDS_SETTING_DIRECTION_CV,
+  CHORDS_SETTING_BROWNIAN_CV,
   CHORDS_SETTING_DUMMY,
   CHORDS_SETTING_MORE_DUMMY,
   CHORDS_SETTING_LAST
@@ -154,7 +155,7 @@ public:
   void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
   }
 
-  int get_progression() {
+  int get_progression() const {
     return values_[CHORDS_SETTING_PROGRESSION];
   }
 
@@ -315,8 +316,9 @@ public:
     apply_value(CHORDS_SETTING_QUALITY_CV, 0);
     apply_value(CHORDS_SETTING_VOICING_CV, 0); 
     apply_value(CHORDS_SETTING_INVERSION_CV, 0);
-    apply_value(CHORDS_SETTING_PLAYMODES_CV, 0);  
-    apply_value(CHORDS_SETTING_DIRECTION_CV, 0);  
+    apply_value(CHORDS_SETTING_BROWNIAN_CV, 0);  
+    apply_value(CHORDS_SETTING_DIRECTION_CV, 0);
+    apply_value(CHORDS_SETTING_PROGRESSION_CV, 0);    
   }
 
   void Init() {
@@ -694,12 +696,12 @@ public:
         else
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
 
-        *settings++ = CHORDS_SETTING_MORE_DUMMY; // to do: progression CV
-        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ?
-        *settings++ = CHORDS_SETTING_PLAYMODES_CV; // really ?
+        *settings++ = CHORDS_SETTING_PROGRESSION_CV; 
+        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ? length ?
+        *settings++ = CHORDS_SETTING_DUMMY;
         *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         if (get_direction() == CHORDS_BROWNIAN)       
-          *settings++ = CHORDS_SETTING_MORE_DUMMY; 
+          *settings++ = CHORDS_SETTING_BROWNIAN_CV; 
         *settings++ = CHORDS_SETTING_TRANSPOSE_CV;
         *settings++ = CHORDS_SETTING_OCTAVE_CV;
         *settings++ = CHORDS_SETTING_QUALITY_CV;
@@ -789,7 +791,7 @@ const char* const chord_directions[] = {
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
-  { 0, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 1, "progression", chords_slots, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 1, "progression", chords_slots, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U4 }, /// to do ..
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
@@ -813,8 +815,9 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "playmodes CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "progress. CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
   {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
@@ -1146,7 +1149,8 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
 
 
   int _active_chord = chords.active_chord();
-  int _num_chords = get_num_chords(0x0);
+  int _num_progression = get_progression();
+  int _num_chords = get_num_chords(_num_progression);
   int x = start_x + 4;
   int y = 48; 
 
