@@ -46,6 +46,7 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE,
   CHORDS_SETTING_PLAYMODES,
   CHORDS_SETTING_DIRECTION,
+  CHORDS_SETTING_BROWNIAN_PROBABILITY,
   CHORDS_SETTING_TRIGGER_DELAY,
   CHORDS_SETTING_TRANSPOSE,
   CHORDS_SETTING_OCTAVE,
@@ -116,6 +117,7 @@ enum CHORDS_DIRECTIONS {
   CHORDS_PENDULUM1,
   CHORDS_PENDULUM2,
   CHORDS_RANDOM,
+  CHORDS_BROWNIAN,
   CHORDS_DIRECTIONS_LAST
 };
 
@@ -172,6 +174,10 @@ public:
 
   int get_direction() const {
     return values_[CHORDS_SETTING_DIRECTION];
+  }
+
+  uint8_t get_brownian_probability() const {
+    return values_[CHORDS_SETTING_BROWNIAN_PROBABILITY];
   }
   
   int get_root() const {
@@ -329,6 +335,11 @@ public:
           }
           break;
           case CHORDS_PENDULUM1:
+          case CHORDS_BROWNIAN:
+          if (CHORDS_BROWNIAN == get_direction()) {
+            // Compare Brownian probability and reverse direction if needed
+            if (random(0,256) < get_brownian_probability()) chords_direction_ = !chords_direction_; 
+          }
           {
             if (chords_direction_) {
               _clk_cnt++;  
@@ -610,6 +621,7 @@ public:
         *settings++ = CHORDS_SETTING_CHORD_EDIT;
         *settings++ = CHORDS_SETTING_PLAYMODES;
         *settings++ = CHORDS_SETTING_DIRECTION;       
+        *settings++ = CHORDS_SETTING_BROWNIAN_PROBABILITY;       
         *settings++ = CHORDS_SETTING_TRANSPOSE;
         *settings++ = CHORDS_SETTING_OCTAVE;
         *settings++ = CHORDS_SETTING_CV_SOURCE;
@@ -713,7 +725,7 @@ const char* const chord_playmodes[] = {
 };
 
 const char* const chord_directions[] = {
-  "fwd", "rev", "pnd1", "pnd2", "rnd"
+  "fwd", "rev", "pnd1", "pnd2", "rnd", "brwn"
 };
   
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
@@ -724,6 +736,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_PLAYMODES_LAST - 1, "playmode", chord_playmodes, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", chord_directions, settings::STORAGE_TYPE_U8 },
+  { 64, 0, 255, "brown prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "TR1 delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
