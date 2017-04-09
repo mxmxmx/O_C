@@ -124,6 +124,8 @@ enum CHORDS_DIRECTIONS {
 class Chords : public settings::SettingsBase<Chords, CHORDS_SETTING_LAST> {
 public:
 
+  static constexpr size_t kHistoryDepth = 12;
+  
   int get_scale(uint8_t selected_scale_slot_) const {
     return values_[CHORDS_SETTING_SCALE];
   } 
@@ -248,6 +250,10 @@ public:
     return clock_display_.getState();
   }
 
+  const OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> &history(int i) const {
+    return scrolling_history_[i];
+  }
+
   uint8_t get_menu_page() const {
     return menu_page_;  
   }
@@ -294,8 +300,8 @@ public:
     update_scale(true, false);
     clock_display_.Init();
     update_enabled_settings();
-
-    scrolling_history_.Init(OC::DAC::kOctaveZero * 12 << 7);
+    for (int i = 0; i < 4; i++)
+      scrolling_history_[i].Init(OC::DAC::kOctaveZero * 12 << 7);
   }
 
   void force_update() {
@@ -435,7 +441,6 @@ public:
        
     int32_t sample_a = last_sample_;
     int32_t temp_sample = 0;
-    int32_t history_sample = 0;
 
     if (triggered) {
         
@@ -541,8 +546,6 @@ public:
       // main sample, S/H:
       sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + OC::inversion[_inversion][0]);
 
-      history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);
-
       // now derive chords ...
       
       int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][1]);
@@ -558,6 +561,11 @@ public:
       OC::DAC::set<DAC_CHANNEL_B>(sample_b);
       OC::DAC::set<DAC_CHANNEL_C>(sample_c);
       OC::DAC::set<DAC_CHANNEL_D>(sample_d);
+      // store for display
+      scrolling_history_[0].Push(sample_a);
+      scrolling_history_[1].Push(sample_b);
+      scrolling_history_[2].Push(sample_c);
+      scrolling_history_[3].Push(sample_d);
     }
 
     bool changed = (last_sample_ != sample_a);
@@ -568,12 +576,13 @@ public:
     }
 
     if (triggered) {
-      scrolling_history_.Push(history_sample);
       clock_display_.Update(1, true);
     } else {
       clock_display_.Update(1, false);
     }
-    scrolling_history_.Update();
+    
+    for (auto &sh : scrolling_history_)
+        sh.Update();
   }
 
   // Wrappers for ScaleEdit
@@ -620,8 +629,9 @@ public:
         
         *settings++ = CHORDS_SETTING_CHORD_EDIT;
         *settings++ = CHORDS_SETTING_PLAYMODES;
-        *settings++ = CHORDS_SETTING_DIRECTION;       
-        *settings++ = CHORDS_SETTING_BROWNIAN_PROBABILITY;       
+        *settings++ = CHORDS_SETTING_DIRECTION;
+        if (get_direction() == CHORDS_BROWNIAN)       
+          *settings++ = CHORDS_SETTING_BROWNIAN_PROBABILITY;       
         *settings++ = CHORDS_SETTING_TRANSPOSE;
         *settings++ = CHORDS_SETTING_OCTAVE;
         *settings++ = CHORDS_SETTING_CV_SOURCE;
@@ -642,6 +652,8 @@ public:
         *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ?
         *settings++ = CHORDS_SETTING_PLAYMODES_CV;
         *settings++ = CHORDS_SETTING_DIRECTION_CV; 
+        if (get_direction() == CHORDS_BROWNIAN)       
+          *settings++ = CHORDS_SETTING_MORE_DUMMY; 
         *settings++ = CHORDS_SETTING_TRANSPOSE_CV;
         *settings++ = CHORDS_SETTING_OCTAVE_CV;
         *settings++ = CHORDS_SETTING_QUALITY_CV;
@@ -682,7 +694,7 @@ private:
   int num_enabled_settings_;
   CHORDS_SETTINGS enabled_settings_[CHORDS_SETTING_LAST];
 
-  OC::vfx::ScrollingHistory<int32_t, 5> scrolling_history_;
+  OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
 
   bool update_scale(bool force, int32_t mask_rotate) {
 
@@ -736,7 +748,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_PLAYMODES_LAST - 1, "playmode", chord_playmodes, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", chord_directions, settings::STORAGE_TYPE_U8 },
-  { 64, 0, 255, "brown prob", NULL, settings::STORAGE_TYPE_U8 },
+  { 64, 0, 255, "-->brown prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "TR1 delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
@@ -756,7 +768,6 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
   {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
-
 
 class ChordQuantizer {
 public:
@@ -965,9 +976,14 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
 
         switch (setting) {
           case CHORDS_SETTING_CHORD_SLOT:
-            // special case, slot shouldn't be > num.chords
+          // special case, slot shouldn't be > num.chords
             if (chords.get_chord_slot() > chords.get_num_chords())
               chords.set_chord_slot(chords.get_num_chords());
+            break;
+          case CHORDS_SETTING_DIRECTION:
+          // show brownian, or don't:
+            chords.update_enabled_settings();
+            chords_state.cursor.AdjustEnd(chords.num_enabled_settings() - 1);
             break;  
           default:
             break;
@@ -1064,7 +1080,7 @@ void CHORDS_upButtonLong() {
   // todo
 }
 
-int32_t chords_history[5];
+uint16_t chords_history[Chords::kHistoryDepth];
 static const weegfx::coord_t chords_kBottom = 60;
 
 inline int32_t chords_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coord_t width) {
@@ -1109,6 +1125,32 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
     }
 }
 
+/*
+void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
+  
+  int _num_chords = get_num_chords();
+
+  for (int i = 0; i < 4; ++i) {
+    
+    chords.history(i).Read(chords_history);
+  }
+  // sequence: 
+  int x = start_x + 4;
+  int y = 58;
+  
+  for (int j = 0; j < OC::Chords::NUM_CHORDS; j++) {
+
+       if (j <= _num_chords)
+          graphics.drawFrame(x + (j << 4), y, 8, 4);
+       else 
+          graphics.drawFrame(x + (j << 4), y + 2, 8, 2);  
+            
+      // position indicator:
+       if(j == active_chord())
+         graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
+    }
+}
+*/
 void CHORDS_screensaver() {
 #ifdef CHORDS_DEBUG_SCREENSAVER
   debug::CycleMeasurement render_cycles;
