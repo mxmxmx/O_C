@@ -141,6 +141,8 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_DUMMY,
+  SEQ_CHANNEL_SETTING_VOLTAGE_SCALING,
+  SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX,
   SEQ_CHANNEL_SETTING_LAST
 };
 
@@ -240,7 +242,15 @@ public:
   int get_octave_aux() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX];
   }
-  
+
+  uint8_t get_voltage_scaling() const {
+    return values_[SEQ_CHANNEL_SETTING_VOLTAGE_SCALING];
+  }
+
+  uint8_t get_voltage_scaling_aux() const {
+    return values_[SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX];
+  }
+
   int8_t get_multiplier() const {
     return values_[SEQ_CHANNEL_SETTING_MULT];
   }
@@ -1267,6 +1277,9 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_SCALE;
           *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
           *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
+          if (BUCHLA_SUPPORT) {
+              *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
+          }
           
           switch (get_sequence()) {
           
@@ -1307,6 +1320,9 @@ public:
             break;
             case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
+              if (BUCHLA_SUPPORT) {
+                  *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
+              }
             break;
             default:
             break; 
@@ -1368,8 +1384,7 @@ public:
   
   template <DAC_CHANNEL dacChannel>
   void update_main_channel() {
-
-    int32_t _output = OC::DAC::pitch_to_dac(dacChannel, get_step_pitch(), 0);
+    int32_t _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch(), 0, get_voltage_scaling());
     OC::DAC::set<dacChannel>(_output);  
     
   }
@@ -1387,7 +1402,7 @@ public:
           _output = get_step_gate();
         break;
         case 1: // copy
-          _output = OC::DAC::pitch_to_dac(dacChannel, get_step_pitch_aux(), 0);
+          _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, get_voltage_scaling_aux());
         break;
         default:
         break;
@@ -1518,6 +1533,8 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "direction   ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "arp.range   ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY
+  { 0, 0, 7, "main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "--> aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 };
   
 class SEQ_State {

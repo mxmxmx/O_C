@@ -159,6 +159,10 @@ enum GridSettings {
   GRID_SETTING_OCTAVE,
   GRID_SETTING_OUTPUTMODE,
   GRID_SETTING_CLEARMODE,
+  GRID_SETTING_VOLTAGE_SCALING_A,
+  GRID_SETTING_VOLTAGE_SCALING_B,
+  GRID_SETTING_VOLTAGE_SCALING_C,
+  GRID_SETTING_VOLTAGE_SCALING_D,
   GRID_SETTING_LAST
 };
 
@@ -254,6 +258,20 @@ public:
     return static_cast<ClearMode>(values_[GRID_SETTING_CLEARMODE]);
   }
 
+  uint8_t get_voltage_scaling_a() const {
+    return values_[GRID_SETTING_VOLTAGE_SCALING_A];
+  }
+
+  uint8_t get_voltage_scaling_b() const {
+    return values_[GRID_SETTING_VOLTAGE_SCALING_B];
+  }
+  uint8_t get_voltage_scaling_c() const {
+    return values_[GRID_SETTING_VOLTAGE_SCALING_C];
+  }
+  uint8_t get_voltage_scaling_d() const {
+    return values_[GRID_SETTING_VOLTAGE_SCALING_D];
+  }
+
   // End of settings
 
   void ISR();
@@ -325,6 +343,17 @@ SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
   {0, -3, 3, "Oct", NULL, settings::STORAGE_TYPE_I8},
   {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OutA", outputa_mode_names, settings::STORAGE_TYPE_U4},
   {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "Clr", clear_mode_names, settings::STORAGE_TYPE_U4},
+#if BUCHLA_SUPPORT
+  { 0, 0, 5, "A V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "B V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "C V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "D V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+#else
+  { 0, 0, 0, "A V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "B V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "C V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "D V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+#endif
 };
 
 AutomatonnetzState automatonnetz_state;
@@ -434,7 +463,7 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
 
   switch (output_mode()) {
     case OUTPUTA_MODE_ROOT:
-      OC::DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), octave());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), octave(), get_voltage_scaling_a());
       break;
     case OUTPUTA_MODE_TRIG:
       if (chord_changed) {
@@ -444,16 +473,16 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
       break;
     case OUTPUTA_MODE_ARP:
     case OUTPUTA_MODE_STRUM:
-      OC::DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), get_voltage_scaling_a());
       break;
     case OUTPUTA_MODE_LAST:
     default:
       break;
   }
 
-  OC::DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), octave());
-  OC::DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), octave());
-  OC::DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), octave());
+  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), octave(), get_voltage_scaling_b());
+  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), octave(), get_voltage_scaling_c());
+  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), octave(), get_voltage_scaling_d());
 }
 
 void AutomatonnetzState::update_trigger_out() {

@@ -78,6 +78,10 @@ enum H1200Setting {
   H1200_SETTING_CV_SAMPLING,
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_TRIGGER_TYPE,
+  H1200_SETTING_VOLTAGE_SCALING_A,
+  H1200_SETTING_VOLTAGE_SCALING_B,
+  H1200_SETTING_VOLTAGE_SCALING_C,
+  H1200_SETTING_VOLTAGE_SCALING_D,
   H1200_SETTING_EUCLIDEAN_CV1_MAPPING,
   H1200_SETTING_EUCLIDEAN_CV2_MAPPING,
   H1200_SETTING_EUCLIDEAN_CV3_MAPPING,
@@ -207,6 +211,20 @@ public:
     return static_cast<H1200TriggerTypes>(values_[H1200_SETTING_TRIGGER_TYPE]);
   }
 
+  uint8_t get_voltage_scaling_a() const {
+    return values_[H1200_SETTING_VOLTAGE_SCALING_A];
+  }
+
+  uint8_t get_voltage_scaling_b() const {
+    return values_[H1200_SETTING_VOLTAGE_SCALING_B];
+  }
+  uint8_t get_voltage_scaling_c() const {
+    return values_[H1200_SETTING_VOLTAGE_SCALING_C];
+  }
+  uint8_t get_voltage_scaling_d() const {
+    return values_[H1200_SETTING_VOLTAGE_SCALING_D];
+  }
+
   uint8_t get_euclidean_cv1_mapping() const {
     return values_[H1200_SETTING_EUCLIDEAN_CV1_MAPPING];
   }
@@ -326,7 +344,13 @@ public:
     *settings++ =   H1200_SETTING_NSH_TRANSFORM_PRIO_CV;
     *settings++ =   H1200_SETTING_CV_SAMPLING;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
-    *settings++ =   H1200_SETTING_TRIGGER_TYPE;    
+    *settings++ =   H1200_SETTING_TRIGGER_TYPE;
+    if (BUCHLA_SUPPORT) {
+        *settings++ = H1200_SETTING_VOLTAGE_SCALING_A;
+        *settings++ = H1200_SETTING_VOLTAGE_SCALING_B;
+        *settings++ = H1200_SETTING_VOLTAGE_SCALING_C;
+        *settings++ = H1200_SETTING_VOLTAGE_SCALING_D;
+    }
  
     switch (get_trigger_type()) {
       case H1200_TRIGGER_TYPE_EUCLIDEAN:
@@ -432,6 +456,10 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U4},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
+  { 0, 0, 5, "chan A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "chan B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "chan C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 5, "chan D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV1 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV2 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV3 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
@@ -474,6 +502,8 @@ namespace H1200 {
 
   typedef uint32_t UiAction;
 };
+
+H1200Settings h1200_settings;
 
 class H1200State {
 public:
@@ -602,17 +632,17 @@ public:
 
     switch (output_mode) {
     case OUTPUT_CHORD_VOICING: {
-      OC::DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0);
-      OC::DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), 0);
-      OC::DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), 0);
-      OC::DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), 0);
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_a());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), 0, h1200_settings.get_voltage_scaling_b());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), 0, h1200_settings.get_voltage_scaling_c());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), 0, h1200_settings.get_voltage_scaling_d());
     }
     break;
     case OUTPUT_TUNE: {
-      OC::DAC::set_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0);
-      OC::DAC::set_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(0), 0);
-      OC::DAC::set_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(0), 0);
-      OC::DAC::set_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(0), 0);
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_a());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_b());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_c());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_d());
     }
     break;
     default: break;
@@ -626,7 +656,7 @@ public:
   inline int cursor_pos() const {
     return cursor.cursor_pos();
   }
-
+  
   OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
   util::RingBuffer<H1200::UiAction, 4> ui_actions;
@@ -654,7 +684,6 @@ public:
  
 };
 
-H1200Settings h1200_settings;
 H1200State h1200_state;
 
 void FASTRUN H1200_clock(uint32_t triggers) {

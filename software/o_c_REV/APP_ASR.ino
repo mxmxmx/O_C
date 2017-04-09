@@ -30,6 +30,10 @@ enum ASRSettings {
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
+  ASR_SETTING_VOLTAGE_SCALING_A,
+  ASR_SETTING_VOLTAGE_SCALING_B,
+  ASR_SETTING_VOLTAGE_SCALING_C,
+  ASR_SETTING_VOLTAGE_SCALING_D,
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
@@ -217,6 +221,37 @@ public:
     return int_seq_.get_n();
   }
 
+  uint8_t get_voltage_scaling(int channel_i) const {
+    uint8_t value = 0;
+    switch(channel_i) {
+      case 3:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_D];
+        break;
+      case 2:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_C];
+        break;
+      case 1:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_B];
+        break;
+      default:
+        value = values_[ASR_SETTING_VOLTAGE_SCALING_A];
+        break;
+    }
+    return value;
+  }
+
+  uint8_t get_voltage_scaling_b() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING_B];
+  }
+
+  uint8_t get_voltage_scaling_c() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING_C];
+  }
+
+  uint8_t get_voltage_scaling_d() const {
+    return values_[ASR_SETTING_VOLTAGE_SCALING_D];
+  }
+
   void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
  
         _ASR->items++;
@@ -326,8 +361,14 @@ public:
     else 
       *settings++ = ASR_SETTING_DUMMY;
     *settings++ = ASR_SETTING_DELAY;
+    if (BUCHLA_SUPPORT) {
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
+    }
     *settings++ = ASR_SETTING_CV_SOURCE;
-    
+   
  
     switch (get_cv_source()) {
       case ASR_CHANNEL_SOURCE_TURING:
@@ -626,7 +667,7 @@ public:
          }
 
         for (int i = 0; i < 4; ++i) {
-          int32_t sample = OC::DAC::pitch_to_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0);
+          int32_t sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0, get_voltage_scaling(i));
           scrolling_history_[i].Push(sample);
           OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
         }
@@ -697,6 +738,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "s.gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 7, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
@@ -707,14 +752,14 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "> BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 8, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 10, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 24, 2, 121, "> IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY  
+  { 0, 0, 0, "--", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY  
 };
 
 /* -------------------------------------------------------------------*/
