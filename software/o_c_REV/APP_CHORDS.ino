@@ -37,6 +37,8 @@
 #include "OC_strings.h"
 #include "OC_chords.h"
 #include "OC_chords_edit.h"
+#include "OC_input_map.h"
+#include "OC_input_maps.h"
 
 enum CHORDS_SETTINGS {
   CHORDS_SETTING_SCALE,
@@ -113,6 +115,10 @@ enum CHORDS_PLAYMODES {
   _SH2,
   _SH3,
   _SH4,
+  _CV1,
+  _CV2,
+  _CV3,
+  _CV4,
   CHORDS_PLAYMODES_LAST
 };
 
@@ -311,6 +317,10 @@ public:
     menu_page_ = _menu_page;  
   }
 
+  void update_inputmap(int num_slots, uint8_t range) {
+    input_map_.Configure(OC::InputMaps::GetInputMap(num_slots), range);
+  }
+
   void clear_CV_mapping() {
     // clear all ... 
     apply_value(CHORDS_SETTING_ROOT_CV, 0);
@@ -339,13 +349,17 @@ public:
     chord_advance_last_ = true;
     progression_advance_last_ = true;
     active_chord_ = 0;
+    chord_repeat_ = false;
     progression_cnt_ = 0;
     active_progression_ = 0;
     playmode_last_ = 0;
     progression_last_ = 0;
+    progression_EoP_ = 0;
+    num_chords_last_ = 0;
     chords_direction_ = true;
    
     trigger_delay_.Init();
+    input_map_.Init();
     quantizer_.Init();
     chords_.Init();
     update_scale(true, false);
@@ -359,10 +373,10 @@ public:
     force_update_ = true;
   }
 
-  int8_t _clock(uint8_t sequence_length, uint8_t sequence_count, uint8_t sequence_max) {
+  int8_t _clock(uint8_t sequence_length, uint8_t sequence_count, uint8_t sequence_max, bool _reset) {
 
-        int8_t EoS = 0x0;
-        bool reset = !digitalReadFast(TR4);
+        int8_t EoP = 0x0;
+        bool reset = !digitalReadFast(TR4) | _reset;
         int8_t _clk_cnt = active_chord_;
         
         switch (get_direction()) {
@@ -373,10 +387,10 @@ public:
             if (reset)
               _clk_cnt = 0x0;
             // end of sequence?  
-            else if (_clk_cnt > sequence_length) {
+            else if (_clk_cnt > sequence_length)
               _clk_cnt = 0x0;
-              EoS = 0x1;
-            }
+            else if (_clk_cnt == sequence_length)
+               EoP = 0x1;  
           }
           break;
           case CHORDS_REVERSE:
@@ -385,10 +399,10 @@ public:
             if (reset)
               _clk_cnt = sequence_length;
             // end of sequence? 
-            else if (_clk_cnt < 0) {
+            else if (_clk_cnt < 0) 
               _clk_cnt = sequence_length;
-              EoS = 0x1;
-            }
+            else if (!_clk_cnt)  
+               EoP = 0x1;
           }
           break;
           case CHORDS_PENDULUM1:
@@ -402,62 +416,68 @@ public:
               _clk_cnt++;  
               if (reset)
                 _clk_cnt = 0x0;
-              else if (_clk_cnt > sequence_length) {
-                // end of sequence ? 
+              else if (_clk_cnt >= sequence_length) {
+                
                 if (sequence_count >= sequence_max) {
                   chords_direction_ = false;
-                  _clk_cnt = sequence_length - 0x1; // ... don't repeat last step
+                  _clk_cnt = sequence_length; 
                 }
-                else
-                  EoS = 0x1;  
-              }
+                else EoP = 0x1;
+              } 
             }
             // reverse direction:
             else {
               _clk_cnt--; 
               if (reset)  
                 _clk_cnt = sequence_length;
-              else if (_clk_cnt < 0) {
+              else if (_clk_cnt <= 0) {
                 // end of sequence ? 
                 if (sequence_count == 0x0) {
                   chords_direction_ = true;
-                  _clk_cnt = 0x1; // ... don't repeat first step
+                  _clk_cnt = 0x0; 
                 }
-                else
-                  EoS = -0x1;  
-              }
+                else EoP = -0x1;
+              } 
             }
           }
           break;
           case CHORDS_PENDULUM2:
           {
             if (chords_direction_) {
-              _clk_cnt++;  
+
+              if (!chord_repeat_)
+                _clk_cnt++;
+              chord_repeat_ = false;
+               
               if (reset)
                 _clk_cnt = 0x0;
-              else if (_clk_cnt > sequence_length) {
+              else if (_clk_cnt >= sequence_length) {
                 // end of sequence ? 
                 if (sequence_count >= sequence_max) {
                   chords_direction_ = false;
-                  _clk_cnt--; // repeat last step
+                  _clk_cnt = sequence_length;  
+                  chord_repeat_ = true; // repeat last step
                 }
-                else
-                  EoS = 0x1;  
+                else EoP = 0x1;  
               }
             }
             // reverse direction:
             else {
-              _clk_cnt--; 
+              
+              if (!chord_repeat_)
+                _clk_cnt--; 
+              chord_repeat_ = false;
+              
               if (reset)  
                 _clk_cnt = sequence_length;
-              else if (_clk_cnt < 0x0) {
+              else if (_clk_cnt <= 0x0) {
                 // end of sequence ? 
                 if (sequence_count == 0x0) {
                   chords_direction_ = true;
-                  _clk_cnt++; // repeat first step
+                  _clk_cnt = 0x0; 
+                  chord_repeat_ = true; // repeat first step
                 }
-                else
-                  EoS = -0x1;  
+                else EoP = -0x1;  
               }
             }
           }
@@ -468,13 +488,13 @@ public:
             _clk_cnt = 0x0;
           // jump to next sequence if we happen to hit the last note:  
           else if (_clk_cnt >= sequence_length)
-            EoS = random(0x2);  
+            EoP = random(0x2);  
           break;
           default:
           break;
         }
         active_chord_ = _clk_cnt;
-        return EoS;
+        return EoP;
   }
 
   
@@ -495,14 +515,19 @@ public:
 
     if (triggered) {
         
-      int32_t pitch, cv_source, transpose, octave, root, num_progression, playmode;
+      int32_t pitch, cv_source, transpose, octave, root;
+      int8_t num_progression, progression_max, progression_cnt, playmode, reset;
       
       cv_source = get_cv_source();
       transpose = get_transpose();
       octave = get_octave();
       root = get_root();
       num_progression = get_progression();
+      progression_max = 0;
+      progression_cnt = 0;
+      reset = 0;
       playmode = get_playmode();
+ 
 
       if (num_progression != progression_last_ || playmode != playmode_last_) {
         // reset progression:
@@ -511,43 +536,121 @@ public:
       }
       playmode_last_ = playmode;
       progression_last_ = num_progression;
-      
-      // progression change?
-      // todo... actually implement "playmode" param.
-      if (playmode > _SEQ3 && playmode < _SH1) {
+
+      switch (playmode) {
         
-        uint8_t _progression_advance_trig = digitalReadFast(TR3);
-        if (_progression_advance_trig  < progression_advance_last_) {
-  
-          progression_cnt_++;
-          progression_cnt_ = progression_cnt_ > (playmode - _SEQ3) ? 0x0 : progression_cnt_;
-          active_progression_ = num_progression + progression_cnt_;
-          // wrap around:
-          if (active_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
-              active_progression_ -= OC::Chords::NUM_CHORD_PROGRESSIONS;
-        }
-   
-        progression_advance_last_ = _progression_advance_trig;
-        num_progression = active_progression_;
-      }
- 
-      // next chord via trigger?
-      uint8_t _advance_trig = get_chords_trigger_source();
-      
-      if (_advance_trig == CHORDS_ADVANCE_TRIGGER_SOURCE_TR2) 
-        _advance_trig = digitalReadFast(TR2);
-      else if (triggered) {
-        _advance_trig = 0x0;
-        chord_advance_last_ = 0x1;
+          case _NONE:
+            active_progression_ = num_progression;
+          break;
+          case _SEQ1:
+          case _SEQ2:
+          case _SEQ3:
+          {
+              progression_max = playmode;
+              
+              if (progression_EoP_) {
+                
+                // increment progression #
+                progression_cnt_ += progression_EoP_;
+                // reset progression #
+                progression_cnt_ = progression_cnt_ > progression_max ? 0x0 : progression_cnt_;
+                // update progression 
+                active_progression_ = num_progression + progression_cnt_;
+                // wrap around:
+                if (active_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
+                    active_progression_ -= OC::Chords::NUM_CHORD_PROGRESSIONS;
+                // reset    
+                _clock(get_num_chords(active_progression_), 0x0, progression_max, true); 
+                reset = true;    
+              }
+              progression_cnt = progression_cnt_;
+          }
+          break;
+          case _TR1:
+          case _TR2:
+          case _TR3:
+          {
+            // get trigger
+            uint8_t _progression_advance_trig = digitalReadFast(TR3);
+            progression_max = playmode - _SEQ3;
+            
+            if (_progression_advance_trig  < progression_advance_last_) {
+              // increment progression #
+              progression_cnt_++;
+              // reset progression #
+              progression_cnt_ = progression_cnt_ > progression_max ? 0x0 : progression_cnt_;
+              // update progression 
+              active_progression_ = num_progression + progression_cnt_;
+              // wrap around:
+              if (active_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
+                  active_progression_ -= OC::Chords::NUM_CHORD_PROGRESSIONS;
+            }
+            progression_advance_last_ = _progression_advance_trig;
+            progression_max = 0x0;
+          }
+          break;
+          case _SH1:
+          case _SH2:
+          case _SH3:
+          case _SH4:
+          {
+             // SH?
+             uint8_t _progression_advance_trig = digitalReadFast(TR3);
+             if (_progression_advance_trig  < progression_advance_last_) {
+              
+               int _num_chords = get_num_chords(num_progression);          
+               // length or range changed ? 
+               if (num_chords_last_ != _num_chords) 
+                  update_inputmap(_num_chords + 0x1, 0x0); 
+               // store values:  
+               num_chords_last_ = _num_chords;    
+               active_progression_ = num_progression;
+               // process input: 
+               active_chord_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(playmode - _SH1)));
+             }
+             progression_advance_last_ = _progression_advance_trig;
+          }
+          break;
+          case _CV1:
+          case _CV2:
+          case _CV3:
+          case _CV4:
+          {
+             int _num_chords = get_num_chords(num_progression);          
+             // length or range changed ? 
+             if (num_chords_last_ != _num_chords) 
+                update_inputmap(_num_chords + 0x1, 0x0); 
+             // store values:  
+             num_chords_last_ = _num_chords;    
+             active_progression_ = num_progression;
+             // process input: 
+             active_chord_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(playmode - _CV1)));
+          }
+          break;
+          default:
+          break;
       }
 
-      int num_chords = get_num_chords(num_progression);
-      CONSTRAIN(active_chord_, 0x0, num_chords);
-      if (num_chords && (_advance_trig < chord_advance_last_)) {
-        _clock(num_chords, 0x0, 0x0); // todo
-      }
-      chord_advance_last_ = _advance_trig;
-      //
+      num_progression = active_progression_;
+
+      if (playmode < _SH1) {
+        // next chord via trigger?
+        uint8_t _advance_trig = get_chords_trigger_source();
+        
+        if (_advance_trig == CHORDS_ADVANCE_TRIGGER_SOURCE_TR2) 
+          _advance_trig = digitalReadFast(TR2);
+        else if (triggered) {
+          _advance_trig = 0x0;
+          chord_advance_last_ = 0x1;
+        }
+  
+        int num_chords = get_num_chords(num_progression);
+        CONSTRAIN(active_chord_, 0x0, num_chords);
+        
+        if (num_chords && (_advance_trig < chord_advance_last_)) 
+          progression_EoP_ = _clock(num_chords, progression_cnt, progression_max, reset); 
+        chord_advance_last_ = _advance_trig;
+      } 
       
       // active chord:
       OC::Chord *active_chord = &OC::user_chords[active_chord_ + num_progression * OC::Chords::NUM_CHORDS];
@@ -709,7 +812,8 @@ public:
         *settings++ = CHORDS_SETTING_PROGRESSION;
         *settings++ = CHORDS_SETTING_CHORD_EDIT;
         *settings++ = CHORDS_SETTING_PLAYMODES;
-        *settings++ = CHORDS_SETTING_DIRECTION;
+        if (get_playmode() < _SH1)
+          *settings++ = CHORDS_SETTING_DIRECTION;
         if (get_direction() == CHORDS_BROWNIAN)       
           *settings++ = CHORDS_SETTING_BROWNIAN_PROBABILITY;       
         *settings++ = CHORDS_SETTING_TRANSPOSE;
@@ -732,7 +836,8 @@ public:
         *settings++ = CHORDS_SETTING_PROGRESSION_CV; 
         *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ? length ?
         *settings++ = CHORDS_SETTING_DUMMY;
-        *settings++ = CHORDS_SETTING_DIRECTION_CV; 
+        if (get_playmode() < _SH1)
+          *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         if (get_direction() == CHORDS_BROWNIAN)       
           *settings++ = CHORDS_SETTING_BROWNIAN_CV; 
         *settings++ = CHORDS_SETTING_TRANSPOSE_CV;
@@ -762,14 +867,18 @@ private:
   bool progression_advance_last_;
   int8_t active_chord_;
   int8_t progression_cnt_;
+  int8_t progression_EoP_;
+  bool chord_repeat_;
   int8_t active_progression_;
   int8_t menu_page_;
   bool chords_direction_;
   int8_t playmode_last_;
   int8_t progression_last_;
+  int8_t num_chords_last_;
 
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   braids::Quantizer quantizer_;
+  OC::Input_Map input_map_;
   OC::DigitalInputDisplay clock_display_;
   OC::Chords chords_;
   
@@ -815,7 +924,7 @@ const char* const chords_slots[] = {
 };
 
 const char* const chord_playmodes[] = {
-  "-", "SEQ+1", "SEQ+2", "SEQ+3", "TR+1", "TR+2", "TR+3", "S+H#1", "S+H#2", "S+H#3", "S+H#4" 
+  "-", "SEQ+1", "SEQ+2", "SEQ+3", "TR3+1", "TR3+2", "TR3+3", "S+H#1", "S+H#2", "S+H#3", "S+H#4", "CV#1", "CV#2", "CV#3", "CV#4" 
 };
 
 const char* const chord_directions[] = {
@@ -1068,7 +1177,8 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
               chords.set_chord_slot(chords.get_num_chords(chords.get_progression()));
             break;
           case CHORDS_SETTING_DIRECTION:
-          // show brownian, or don't:
+          case CHORDS_SETTING_PLAYMODES:
+          // show options, or don't:
             chords.update_enabled_settings();
             chords_state.cursor.AdjustEnd(chords.num_enabled_settings() - 1);
             break;  

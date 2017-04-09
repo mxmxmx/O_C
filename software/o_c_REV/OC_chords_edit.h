@@ -100,12 +100,14 @@ void ChordEditor<Owner>::Draw() {
     // chord select:
     size_t max_chords = max_chords_ + 1;
     int8_t indicator = owner_->active_chord();
+    bool active = owner_->get_active_progression() == edit_this_progression_;
+    
     x = 6;
     y = 6;
 
     for (size_t i = 0; i < max_chords; ++i, x += 14) {
       
-      if (i == indicator) {
+      if (active && i == indicator) {
         graphics.drawFrame(x, y, 10, 10);
         graphics.drawRect(x + 2, y + 2, 6, 6);
       }
