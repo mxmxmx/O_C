@@ -1532,7 +1532,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "mask rotate ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "direction   ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "arp.range   ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY
   { 0, 0, 7, "main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
   { 0, 0, 7, "--> aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 };

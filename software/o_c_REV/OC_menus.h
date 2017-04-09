@@ -339,21 +339,6 @@ struct SettingsListItem {
       graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
   }
 
-  inline void DrawValueMax(int value, const settings::value_attr &attr, int16_t _max) const {
-    DrawName(attr);
-
-    graphics.setPrintPos(endx, y + kTextDy);
-    if(attr.value_names)
-      graphics.print_right(attr.value_names[value]);
-    else
-      graphics.pretty_print_right(value);
-
-    if (editing)
-      menu::DrawEditIcon(valuex, y, value, attr.min_, _max);
-    if (selected)
-      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
-  }
-
   template <bool editable>
   inline void DrawNoValue(int value, const settings::value_attr &attr) const {
     DrawName(attr);
