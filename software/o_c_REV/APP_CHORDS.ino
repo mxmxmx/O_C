@@ -159,6 +159,10 @@ public:
     return values_[CHORDS_SETTING_PROGRESSION];
   }
 
+  int get_active_progression() const {
+    return active_progression_;
+  }
+
   int get_chord_slot() const {
     return values_[CHORDS_SETTING_CHORD_SLOT];
   }
@@ -333,11 +337,12 @@ public:
     last_sample_ = 0;
     schedule_mask_rotate_ = false;
     chord_advance_last_ = true;
+    progression_advance_last_ = true;
     active_chord_ = 0;
-    prev_inversion_cv_ = 0;
-    prev_root_cv_ = 0;
-    prev_octave_cv_ = 0;
-    prev_transpose_cv_ = 0;
+    progression_cnt_ = 0;
+    active_progression_ = 0;
+    playmode_last_ = 0;
+    progression_last_ = 0;
     chords_direction_ = true;
    
     trigger_delay_.Init();
@@ -490,13 +495,42 @@ public:
 
     if (triggered) {
         
-      int32_t pitch, cv_source, transpose, octave, root;
+      int32_t pitch, cv_source, transpose, octave, root, num_progression, playmode;
       
       cv_source = get_cv_source();
       transpose = get_transpose();
       octave = get_octave();
       root = get_root();
+      num_progression = get_progression();
+      playmode = get_playmode();
 
+      if (num_progression != progression_last_ || playmode != playmode_last_) {
+        // reset progression:
+        progression_cnt_ = 0x0;
+        active_progression_ = num_progression;
+      }
+      playmode_last_ = playmode;
+      progression_last_ = num_progression;
+      
+      // progression change?
+      // todo... actually implement "playmode" param.
+      if (playmode > _SEQ3 && playmode < _SH1) {
+        
+        uint8_t _progression_advance_trig = digitalReadFast(TR3);
+        if (_progression_advance_trig  < progression_advance_last_) {
+  
+          progression_cnt_++;
+          progression_cnt_ = progression_cnt_ > (playmode - _SEQ3) ? 0x0 : progression_cnt_;
+          active_progression_ = num_progression + progression_cnt_;
+          // wrap around:
+          if (active_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
+              active_progression_ -= OC::Chords::NUM_CHORD_PROGRESSIONS;
+        }
+   
+        progression_advance_last_ = _progression_advance_trig;
+        num_progression = active_progression_;
+      }
+ 
       // next chord via trigger?
       uint8_t _advance_trig = get_chords_trigger_source();
       
@@ -507,17 +541,16 @@ public:
         chord_advance_last_ = 0x1;
       }
 
-      int num_chords = get_num_chords(get_progression());
+      int num_chords = get_num_chords(num_progression);
       CONSTRAIN(active_chord_, 0x0, num_chords);
       if (num_chords && (_advance_trig < chord_advance_last_)) {
-       
         _clock(num_chords, 0x0, 0x0); // todo
       }
       chord_advance_last_ = _advance_trig;
       //
       
       // active chord:
-      OC::Chord *active_chord = &OC::user_chords[active_chord_ + get_progression() * OC::Chords::NUM_CHORDS];
+      OC::Chord *active_chord = &OC::user_chords[active_chord_ + num_progression * OC::Chords::NUM_CHORDS];
       
       int8_t _base_note = active_chord->base_note;
       int8_t _octave = active_chord->octave;
@@ -725,14 +758,15 @@ private:
   int32_t schedule_mask_rotate_;
   int32_t last_sample_;
   uint8_t display_root_;
-  int8_t prev_octave_cv_;
-  int8_t prev_transpose_cv_;
-  int8_t prev_root_cv_;
-  int8_t prev_inversion_cv_;
   bool chord_advance_last_;
+  bool progression_advance_last_;
   int8_t active_chord_;
+  int8_t progression_cnt_;
+  int8_t active_progression_;
   int8_t menu_page_;
   bool chords_direction_;
+  int8_t playmode_last_;
+  int8_t progression_last_;
 
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   braids::Quantizer quantizer_;
@@ -931,7 +965,7 @@ void CHORDS_menu() {
       case CHORDS_SETTING_DUMMY:
       case CHORDS_SETTING_CHORD_EDIT: 
         // to do: draw something that makes sense, presumably some pre-made icons would work best.
-        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(chords.get_progression()), chords.active_chord());
+        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(chords.get_active_progression()), chords.active_chord());
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHORDS_SETTING_MORE_DUMMY:
@@ -1148,8 +1182,8 @@ inline int32_t chords_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coo
 void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
 
 
-  int _active_chord = chords.active_chord();
-  int _num_progression = get_progression();
+  int _active_chord = active_chord();
+  int _num_progression = get_active_progression();
   int _num_chords = get_num_chords(_num_progression);
   int x = start_x + 4;
   int y = 48; 
@@ -1157,9 +1191,9 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
   for (int j = 0; j <= _num_chords; j++) {
 
     if (j == _active_chord)
-      menu::DrawChord(x + (j << 4) + 1, y, 6, j);
+      menu::DrawChord(x + (j << 4) + 1, y, 6, j, _num_progression);
     else  
-      menu::DrawChord(x + (j << 4) + 2, y, 4, j);
+      menu::DrawChord(x + (j << 4) + 2, y, 4, j, _num_progression);
   }
 
   // sequence: 
