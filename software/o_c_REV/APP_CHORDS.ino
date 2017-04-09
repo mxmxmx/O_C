@@ -41,6 +41,7 @@
 enum CHORDS_SETTINGS {
   CHORDS_SETTING_SCALE,
   CHORDS_SETTING_ROOT,
+  CHORDS_SETTING_PROGRESSION,
   CHORDS_SETTING_MASK,
   CHORDS_SETTING_CV_SOURCE,
   CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE,
@@ -51,7 +52,10 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_TRANSPOSE,
   CHORDS_SETTING_OCTAVE,
   CHORDS_SETTING_CHORD_SLOT,
-  CHORDS_SETTING_NUM_CHORDS,
+  CHORDS_SETTING_NUM_CHORDS_0,
+  CHORDS_SETTING_NUM_CHORDS_1,
+  CHORDS_SETTING_NUM_CHORDS_2,
+  CHORDS_SETTING_NUM_CHORDS_3,
   CHORDS_SETTING_CHORD_EDIT,
   // CV sources
   CHORDS_SETTING_ROOT_CV,
@@ -150,6 +154,10 @@ public:
   void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
   }
 
+  int get_progression() {
+    return values_[CHORDS_SETTING_PROGRESSION];
+  }
+
   int get_chord_slot() const {
     return values_[CHORDS_SETTING_CHORD_SLOT];
   }
@@ -158,12 +166,48 @@ public:
     apply_value(CHORDS_SETTING_CHORD_SLOT, slot);
   }
 
-  int get_num_chords() const {
-    return values_[CHORDS_SETTING_NUM_CHORDS];
+  int get_num_chords(uint8_t progression) const {
+
+     int len = 0x0;
+     switch (progression) {
+      
+        case 0:
+          len = values_[CHORDS_SETTING_NUM_CHORDS_0];
+        break;
+        case 1:
+          len = values_[CHORDS_SETTING_NUM_CHORDS_1];
+        break;
+        case 2:
+          len = values_[CHORDS_SETTING_NUM_CHORDS_2];
+        break;
+        case 3:
+          len =  values_[CHORDS_SETTING_NUM_CHORDS_3];
+        break;
+        default:
+        break;
+    }
+    return len;
   }
 
-  void set_num_chords(int8_t num_chords) {
-    apply_value(CHORDS_SETTING_NUM_CHORDS, num_chords);
+  void set_num_chords(int8_t num_chords, uint8_t progression) {
+
+    // set progression length:
+    switch (progression) {
+      case 0:
+      apply_value(CHORDS_SETTING_NUM_CHORDS_0, num_chords);
+      break;
+      case 1:
+      apply_value(CHORDS_SETTING_NUM_CHORDS_1, num_chords);
+      break;
+      case 2:
+      apply_value(CHORDS_SETTING_NUM_CHORDS_2, num_chords);
+      break;
+      case 3:
+      apply_value(CHORDS_SETTING_NUM_CHORDS_3, num_chords);
+      break;
+      default:
+      break;
+    }
   }
 
   int active_chord() const {
@@ -461,7 +505,7 @@ public:
         chord_advance_last_ = 0x1;
       }
 
-      int num_chords = get_num_chords();
+      int num_chords = get_num_chords(get_progression());
       CONSTRAIN(active_chord_, 0x0, num_chords);
       if (num_chords && (_advance_trig < chord_advance_last_)) {
        
@@ -471,7 +515,7 @@ public:
       //
       
       // active chord:
-      OC::Chord *active_chord = &OC::user_chords[active_chord_];
+      OC::Chord *active_chord = &OC::user_chords[active_chord_ + get_progression() * OC::Chords::NUM_CHORDS];
       
       int8_t _base_note = active_chord->base_note;
       int8_t _octave = active_chord->octave;
@@ -626,7 +670,8 @@ public:
           *settings++ = CHORDS_SETTING_ROOT;
         else
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
-        
+
+        *settings++ = CHORDS_SETTING_PROGRESSION;
         *settings++ = CHORDS_SETTING_CHORD_EDIT;
         *settings++ = CHORDS_SETTING_PLAYMODES;
         *settings++ = CHORDS_SETTING_DIRECTION;
@@ -648,9 +693,10 @@ public:
           *settings++ = CHORDS_SETTING_ROOT_CV;
         else
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
-        
+
+        *settings++ = CHORDS_SETTING_MORE_DUMMY; // to do: progression CV
         *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ?
-        *settings++ = CHORDS_SETTING_PLAYMODES_CV;
+        *settings++ = CHORDS_SETTING_PLAYMODES_CV; // really ?
         *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         if (get_direction() == CHORDS_BROWNIAN)       
           *settings++ = CHORDS_SETTING_MORE_DUMMY; 
@@ -743,6 +789,7 @@ const char* const chord_directions[] = {
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 1, "progression", chords_slots, settings::STORAGE_TYPE_U4 },
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U4 }, /// to do ..
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
@@ -753,8 +800,11 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "chord:", chords_slots, settings::STORAGE_TYPE_U8 },
-  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 },
-  {0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
+  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 1
+  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 2
+  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 3
+  { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 4
+  { 0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
   {0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
@@ -878,7 +928,7 @@ void CHORDS_menu() {
       case CHORDS_SETTING_DUMMY:
       case CHORDS_SETTING_CHORD_EDIT: 
         // to do: draw something that makes sense, presumably some pre-made icons would work best.
-        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(), chords.active_chord());
+        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(chords.get_progression()), chords.active_chord());
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHORDS_SETTING_MORE_DUMMY:
@@ -886,7 +936,7 @@ void CHORDS_menu() {
         break;  
       case CHORDS_SETTING_CHORD_SLOT: 
         //special case:
-        list_item.DrawValueMax(value, attr, chords.get_num_chords());
+        list_item.DrawValueMax(value, attr, chords.get_num_chords(chords.get_progression()));
         break;    
       default:
         list_item.DrawDefault(value, attr);
@@ -977,8 +1027,8 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
         switch (setting) {
           case CHORDS_SETTING_CHORD_SLOT:
           // special case, slot shouldn't be > num.chords
-            if (chords.get_chord_slot() > chords.get_num_chords())
-              chords.set_chord_slot(chords.get_num_chords());
+            if (chords.get_chord_slot() > chords.get_num_chords(chords.get_progression()))
+              chords.set_chord_slot(chords.get_num_chords(chords.get_progression()));
             break;
           case CHORDS_SETTING_DIRECTION:
           // show brownian, or don't:
@@ -1028,7 +1078,7 @@ void CHORDS_rightButton() {
       }
     break;
     case CHORDS_SETTING_CHORD_EDIT:
-      chords_state.chord_editor.Edit(&chords, chords.get_chord_slot(), chords.get_num_chords());
+      chords_state.chord_editor.Edit(&chords, chords.get_chord_slot(), chords.get_num_chords(chords.get_progression()), chords.get_progression());
     break;
     case CHORDS_SETTING_DUMMY:
     case CHORDS_SETTING_MORE_DUMMY:
@@ -1096,7 +1146,7 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
 
 
   int _active_chord = chords.active_chord();
-  int _num_chords = get_num_chords();
+  int _num_chords = get_num_chords(0x0);
   int x = start_x + 4;
   int y = 48; 
 

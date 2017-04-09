@@ -26,6 +26,7 @@ public:
     cursor_pos_ = 0;
     cursor_quality_pos_ = 0;
     edit_this_chord_ = 0;
+    edit_this_progression_ = 0;
     edit_page_ = CHORD_SELECT;
     //
     chord_quality_ = 0;
@@ -33,19 +34,20 @@ public:
     chord_inversion_ = 0;
     chord_base_note_ = 0;
     chord_octave_ = 0;
-    max_chords_ = OC::Chords::CHORDS_USER_LAST - 1;
+    max_chords_ = OC::Chords::NUM_CHORDS - 1;
   }
 
   bool active() const {
     return nullptr != owner_;
   }
 
-  void Edit(Owner *owner, int chord, int num_chords) {
+  void Edit(Owner *owner, int chord, int num_chords, int num_progression) {
 
     if (chord > OC::Chords::CHORDS_USER_LAST - 1)
       return;
-
-    chord_ = &OC::user_chords[chord];
+    
+    edit_this_progression_ = num_progression;
+    chord_ = &OC::user_chords[chord + edit_this_progression_ * OC::Chords::NUM_CHORDS];
     max_chords_ = num_chords;
     owner_ = owner;
     BeginEditing();
@@ -61,6 +63,7 @@ private:
   Owner *owner_;
   const OC::Chord *chord_;
   int8_t edit_this_chord_;
+  int8_t edit_this_progression_;
   size_t cursor_pos_;
   size_t cursor_quality_pos_;
   int8_t chord_quality_;
@@ -230,8 +233,9 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
   else if (OC::CONTROL_ENCODER_R == event.control) {
 
   	if (cursor_pos_ < max_chords_ + 1) {
-
-      OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_];
+      
+      // write to the right slot, at the right index/offset (a nicer struct would be nicer, but well)
+      OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_ + edit_this_progression_ * OC::Chords::NUM_CHORDS]; 
       
 	    switch(cursor_quality_pos_) {
 
@@ -279,11 +283,11 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
         // expand/contract
         int max_chords = max_chords_;
         max_chords += event.value;
-        CONSTRAIN(max_chords, 0, 7);
+        CONSTRAIN(max_chords, 0, OC::Chords::NUM_CHORDS - 0x1);
 
         max_chords_ = max_chords;
         cursor_pos_ = max_chords_ + 1;
-        owner_->set_num_chords(max_chords);
+        owner_->set_num_chords(max_chords, edit_this_progression_);
 	  }
   }
 }
@@ -291,12 +295,13 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
 template <typename Owner>
 void ChordEditor<Owner>::update_chord(int8_t chord_num) {
    // update chord properties:
-   const OC::Chord &chord_def = OC::Chords::GetChord(chord_num);
+   const OC::Chord &chord_def = OC::Chords::GetChord(chord_num, edit_this_progression_); 
    chord_quality_ = chord_def.quality;
    chord_voicing_ = chord_def.voicing;
    chord_inversion_ = chord_def.inversion;
    chord_base_note_ = chord_def.base_note;
    chord_octave_ = chord_def.octave;
+   max_chords_ = owner_->get_num_chords(edit_this_progression_);
 }
 
 template <typename Owner>
@@ -318,12 +323,20 @@ void ChordEditor<Owner>::move_cursor(int offset, int page) {
 
 template <typename Owner>
 void ChordEditor<Owner>::handleButtonUp(const UI::Event &event) {
-   // to do : go to next sequence
+   // go to next chords progression
+   edit_this_progression_++;
+   if (edit_this_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
+    edit_this_progression_ = 0x0;
+   update_chord(cursor_pos_);
 }
 
 template <typename Owner>
 void ChordEditor<Owner>::handleButtonDown(const UI::Event &event) {
-   // to do : go to previous sequence
+   // go to previous chords progression
+   edit_this_progression_--;
+   if (edit_this_progression_ < 0x0)
+    edit_this_progression_ = OC::Chords::NUM_CHORD_PROGRESSIONS - 1;
+   update_chord(cursor_pos_);
 }
 
 template <typename Owner>
@@ -336,7 +349,6 @@ void ChordEditor<Owner>::handleButtonLeft(const UI::Event &) {
     	// edit chord:
       edit_this_chord_ = cursor_pos_;
       update_chord(cursor_pos_);
-      //cursor_quality_pos_ = 0;
     }
   }
   else {
@@ -359,7 +371,7 @@ template <typename Owner>
 void ChordEditor<Owner>::BeginEditing() {
 
   cursor_pos_ = edit_this_chord_= owner_->get_chord_slot();
-  const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_);
+  const OC::Chord &chord_def = OC::Chords::GetChord(edit_this_chord_, edit_this_progression_);
   chord_quality_ = chord_def.quality;
   chord_voicing_ = chord_def.voicing;
   chord_inversion_ = chord_def.inversion;

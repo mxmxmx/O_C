@@ -2,6 +2,7 @@
 #define OC_CHORDS_PRESETS_H_
 
 #include "OC_scales.h"
+#include "OC_chords.h"
 #include <Arduino.h>
 
 namespace OC {
@@ -14,7 +15,6 @@ namespace OC {
     int8_t base_note;
     int8_t octave;
   };
-
 
   const Chord chords[] = {
     // default

@@ -7,8 +7,10 @@ namespace OC {
     Chord dummy_chord;
 
     /*static*/
-    const int Chords::NUM_CHORDS = OC::Chords::CHORDS_USER_LAST; // = 8
+    const int Chords::NUM_CHORD_PROGRESSIONS = 0x4;
+    const int Chords::NUM_CHORDS_TOTAL = OC::Chords::CHORDS_USER_LAST; // = 8
     const int Chords::NUM_CHORDS_PROPERTIES = sizeof(Chord);
+    const int Chords::NUM_CHORDS = Chords::NUM_CHORDS_TOTAL / Chords::NUM_CHORD_PROGRESSIONS;
 
     /*static*/
     // 
@@ -17,9 +19,11 @@ namespace OC {
         memcpy(&user_chords[i], &OC::chords[0], sizeof(Chord));
     }
 
-    const Chord &Chords::GetChord(int index) {
-       if (index < CHORDS_USER_LAST) 
-        return user_chords[index];
+    const Chord &Chords::GetChord(int index, int progression) {
+
+       uint8_t _index = index + progression * Chords::NUM_CHORDS;
+       if (_index < CHORDS_USER_LAST) 
+        return user_chords[_index];
        else
         return user_chords[0x0];
     }

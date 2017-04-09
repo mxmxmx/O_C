@@ -3,7 +3,6 @@
 
 #include "OC_chords_presets.h"
 
-
 namespace OC {
 
 typedef OC::Chord Chord;
@@ -11,19 +10,45 @@ typedef OC::Chord Chord;
 class Chords {
 public:
 
+  static const int NUM_CHORDS_TOTAL;
   static const int NUM_CHORDS;
   static const int NUM_CHORDS_PROPERTIES;
+  static const int NUM_CHORD_PROGRESSIONS;
 
   enum CHORD_SLOTS
   {
-    CHORDS_USER_0,
-    CHORDS_USER_1,
-    CHORDS_USER_2,
-    CHORDS_USER_3,
-    CHORDS_USER_4,
-    CHORDS_USER_5,
-    CHORDS_USER_6,
-    CHORDS_USER_7,
+    CHORDS_USER_0_0,
+    CHORDS_USER_1_0,
+    CHORDS_USER_2_0,
+    CHORDS_USER_3_0,
+    CHORDS_USER_4_0,
+    CHORDS_USER_5_0,
+    CHORDS_USER_6_0,
+    CHORDS_USER_7_0,
+    CHORDS_USER_0_1,
+    CHORDS_USER_1_1,
+    CHORDS_USER_2_1,
+    CHORDS_USER_3_1,
+    CHORDS_USER_4_1,
+    CHORDS_USER_5_1,
+    CHORDS_USER_6_1,
+    CHORDS_USER_7_1,
+    CHORDS_USER_0_2,
+    CHORDS_USER_1_2,
+    CHORDS_USER_2_2,
+    CHORDS_USER_3_2,
+    CHORDS_USER_4_2,
+    CHORDS_USER_5_2,
+    CHORDS_USER_6_2,
+    CHORDS_USER_7_2,
+    CHORDS_USER_0_3,
+    CHORDS_USER_1_3,
+    CHORDS_USER_2_3,
+    CHORDS_USER_3_3,
+    CHORDS_USER_4_3,
+    CHORDS_USER_5_3,
+    CHORDS_USER_6_3,
+    CHORDS_USER_7_3,
     CHORDS_USER_LAST
   };
 
@@ -68,9 +93,9 @@ public:
     CHORDS_INVERSION_THIRD,
     CHORDS_INVERSION_LAST 
   };
-
+  
   static void Init();
-  static const Chord &GetChord(int index);
+  static const Chord &GetChord(int index, int progression);
 };
 
 
