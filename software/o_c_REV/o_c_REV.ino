@@ -23,7 +23,6 @@
 
 // Main startup/loop for O&C firmware
 
-#include <ADC.h>
 #include <EEPROM.h>
 
 #include "OC_apps.h"
@@ -38,6 +37,7 @@
 #include "OC_ui.h"
 #include "OC_version.h"
 #include "src/drivers/display.h"
+#include "src/drivers/ADC/OC_util_ADC.h"
 #include "util/util_debugpins.h"
 
 unsigned long LAST_REDRAW_TIME = 0;

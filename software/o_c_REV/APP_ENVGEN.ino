@@ -198,7 +198,7 @@ public:
   //    return static_cast<uint8_t>(s_euclidean_offset_);
   //  }
 
-  int get_trigger_delay_count() const {
+  uint32_t get_trigger_delay_count() const {
     return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
   }
 

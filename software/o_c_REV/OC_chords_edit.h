@@ -99,7 +99,7 @@ void ChordEditor<Owner>::Draw() {
 
     // chord select:
     size_t max_chords = max_chords_ + 1;
-    int8_t indicator = owner_->active_chord();
+    uint8_t indicator = owner_->active_chord();
     bool active = owner_->get_active_progression() == edit_this_progression_;
     
     x = 6;
@@ -234,7 +234,7 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
   } 
   else if (OC::CONTROL_ENCODER_R == event.control) {
 
-  	if (cursor_pos_ < max_chords_ + 1) {
+  	if ((uint8_t)cursor_pos_ < max_chords_ + 1) {
       
       // write to the right slot, at the right index/offset (a nicer struct would be nicer, but well)
       OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_ + edit_this_progression_ * OC::Chords::NUM_CHORDS]; 
@@ -266,7 +266,7 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
 	      {
 	        chord_base_note_ += event.value;
           const OC::Scale &scale_def = OC::Scales::GetScale(owner_->get_scale(DUMMY));
-	        CONSTRAIN(chord_base_note_, 0, scale_def.num_notes);
+	        CONSTRAIN(chord_base_note_, 0, (uint8_t)scale_def.num_notes);
 	        edit_user_chord_->base_note = chord_base_note_;
 	      }
 	      break;
@@ -318,7 +318,7 @@ void ChordEditor<Owner>::move_cursor(int offset, int page) {
   }
   else {
     int cursor_quality_pos = cursor_quality_pos_ + offset;
-    CONSTRAIN(cursor_quality_pos, 0, sizeof(Chord) - 1); 
+    CONSTRAIN(cursor_quality_pos, 0, (int8_t)(sizeof(Chord) - 1)); 
     cursor_quality_pos_ = cursor_quality_pos;
   }
 }
@@ -346,7 +346,7 @@ void ChordEditor<Owner>::handleButtonLeft(const UI::Event &) {
 
   if (edit_page_ == CHORD_SELECT) {
 
-    if (cursor_pos_ < max_chords_ + 1) {
+    if ((uint8_t)cursor_pos_ < max_chords_ + 1) {
     	edit_page_ = CHORD_EDIT;
     	// edit chord:
       edit_this_chord_ = cursor_pos_;
