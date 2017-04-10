@@ -234,7 +234,7 @@ void ChordEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
   } 
   else if (OC::CONTROL_ENCODER_R == event.control) {
 
-  	if ((uint8_t)cursor_pos_ < max_chords_ + 1) {
+  	if (cursor_pos_ < (uint8_t)(max_chords_ + 1)) {
       
       // write to the right slot, at the right index/offset (a nicer struct would be nicer, but well)
       OC::Chord *edit_user_chord_ = &OC::user_chords[edit_this_chord_ + edit_this_progression_ * OC::Chords::NUM_CHORDS]; 
@@ -346,7 +346,7 @@ void ChordEditor<Owner>::handleButtonLeft(const UI::Event &) {
 
   if (edit_page_ == CHORD_SELECT) {
 
-    if ((uint8_t)cursor_pos_ < max_chords_ + 1) {
+    if (cursor_pos_ < (uint8_t)(max_chords_ + 1)) {
     	edit_page_ = CHORD_EDIT;
     	// edit chord:
       edit_this_chord_ = cursor_pos_;
