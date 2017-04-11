@@ -26,6 +26,7 @@
 #include "OC_menus.h"
 #include "OC_strings.h"
 #include "util/util_settings.h"
+#include <FreqMeasure.h>
 
 enum ReferenceSetting {
   REF_SETTING_OCTAVE,
@@ -47,6 +48,7 @@ public:
     dac_channel_ = dac_channel;
   
     update_enabled_settings();
+
   }
 
   int get_octave() const {
@@ -88,6 +90,7 @@ public:
     int32_t semitone = get_semitone();
     OC::DAC::set(dac_channel_, OC::DAC::semitone_to_scaled_voltage_dac(dac_channel_, semitone, octave, get_voltage_scaling()));
     last_pitch_ = (semitone + octave * 12) << 7;
+          
   }
 
   int num_enabled_settings() const {
@@ -133,6 +136,8 @@ class ReferencesApp {
 public:
   ReferencesApp() { }
 
+  float frequency_ = 0.0;
+  
   void Init() {
     int dac_channel = 0;
     for (auto &channel : channels_)
@@ -140,11 +145,27 @@ public:
 
     ui.selected_channel = 0;
     ui.cursor.Init(0, channels_[0].num_enabled_settings() - 1);
+    FreqMeasure.begin();
+    freq_sum_ = 0;
+    freq_count_ = 0;
+
   }
 
   void ISR() {
     for (auto &channel : channels_)
       channel.Update();
+
+      if (FreqMeasure.available()) {
+        // average several reading together
+        freq_sum_ = freq_sum_ + FreqMeasure.read();
+        freq_count_ = freq_count_ + 1;
+        if (freq_count_ > 1000) {
+          frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
+          freq_sum_ = 0;
+          freq_count_ = 0;
+        }
+      }
+      
   }
 
   ReferenceChannel &selected_channel() {
@@ -157,6 +178,14 @@ public:
   } ui;
 
   ReferenceChannel channels_[4];
+
+float get_frequency( ) {
+  return(frequency_) ;
+}
+
+private:
+  double freq_sum_;
+  int freq_count_;
 };
 
 
@@ -311,6 +340,11 @@ void REFS_screensaver() {
   references_app.channels_[1].RenderScreensaver(32, 1);
   references_app.channels_[2].RenderScreensaver(64, 2);
   references_app.channels_[3].RenderScreensaver(96, 3);
+  char freq_string[20] = "";
+  dtostrf(references_app.get_frequency(), 7, 3, freq_string);
+  graphics.setPrintPos(32, 24);
+  graphics.print(freq_string);
+ 
 }
 
 void REFS_handleButtonEvent(const UI::Event &event) {
