@@ -159,7 +159,7 @@ public:
         freq_sum_ = freq_sum_ + FreqMeasure.read();
         freq_count_ = freq_count_ + 1;
         if (freq_count_ > (previous_frequency_ >> 1)) {
-          if (frequency_ > 1.0) previous_frequency_ = static_cast<uint32_t>(frequency_);
+          if (frequency_ >= 2.0) previous_frequency_ = static_cast<uint32_t>(frequency_);
           frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
           freq_sum_ = 0;
           freq_count_ = 0;
