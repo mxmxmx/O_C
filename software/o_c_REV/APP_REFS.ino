@@ -26,6 +26,7 @@
 #include "OC_menus.h"
 #include "OC_strings.h"
 #include "util/util_settings.h"
+#include <FreqMeasure.h>
 
 enum ReferenceSetting {
   REF_SETTING_OCTAVE,
@@ -47,6 +48,7 @@ public:
     dac_channel_ = dac_channel;
   
     update_enabled_settings();
+
   }
 
   int get_octave() const {
@@ -88,6 +90,7 @@ public:
     int32_t semitone = get_semitone();
     OC::DAC::set(dac_channel_, OC::DAC::semitone_to_scaled_voltage_dac(dac_channel_, semitone, octave, get_voltage_scaling()));
     last_pitch_ = (semitone + octave * 12) << 7;
+          
   }
 
   int num_enabled_settings() const {
@@ -132,7 +135,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
 class ReferencesApp {
 public:
   ReferencesApp() { }
-
+  
   void Init() {
     int dac_channel = 0;
     for (auto &channel : channels_)
@@ -140,11 +143,29 @@ public:
 
     ui.selected_channel = 0;
     ui.cursor.Init(0, channels_[0].num_enabled_settings() - 1);
+    freq_sum_ = 0;
+    freq_count_ = 0;
+    frequency_ = 0;
+    previous_frequency_ = 10;
+
   }
 
   void ISR() {
     for (auto &channel : channels_)
       channel.Update();
+
+      if (FreqMeasure.available()) {
+        // average several reading together
+        freq_sum_ = freq_sum_ + FreqMeasure.read();
+        freq_count_ = freq_count_ + 1;
+        if (freq_count_ > (previous_frequency_ >> 1)) {
+          if (frequency_ >= 2.0) previous_frequency_ = static_cast<uint32_t>(frequency_);
+          frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
+          freq_sum_ = 0;
+          freq_count_ = 0;
+        }
+      }
+      
   }
 
   ReferenceChannel &selected_channel() {
@@ -157,6 +178,17 @@ public:
   } ui;
 
   ReferenceChannel channels_[4];
+
+float get_frequency( ) {
+  return(frequency_) ;
+}
+
+private:
+  double freq_sum_;
+  uint32_t freq_count_;
+  float frequency_ ;
+  uint32_t previous_frequency_ ;
+
 };
 
 
@@ -187,6 +219,7 @@ void REFS_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
       references_app.ui.cursor.set_editing(false);
+      FreqMeasure.begin();
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
@@ -235,8 +268,8 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   // Mostly borrowed from QQ
 
   weegfx::coord_t x = start_x + 26;
-  weegfx::coord_t y = 60;
-  for (int i = 0; i < 12; ++i, y -= 4)
+  weegfx::coord_t y = 48; // was 60
+  for (int i = 0; i < 9; ++i, y -= 4) // was i < 12
     graphics.setPixel(x, y);
 
   int32_t pitch = last_pitch_ ;
@@ -266,7 +299,7 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   int semitone = pitch >> 7;
   int unscaled_semitone = unscaled_pitch >> 7;
 
-  y = 60 - unscaled_semitone * 4;
+  y = 48 - unscaled_semitone * 4; // was 60
   if (unscaled_semitone < 6)
     graphics.setPrintPos(start_x + menu::kIndentDx, y - 7);
   else
@@ -274,7 +307,7 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   graphics.print(OC::Strings::note_names_unpadded[unscaled_semitone]);
 
   graphics.drawHLine(start_x + 16, y, 8);
-  graphics.drawBitmap8(start_x + 28, 60 - unscaled_octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW);
+  graphics.drawBitmap8(start_x + 28, 48 - unscaled_octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW); // was 60
 
   // Try and round to 3 digits
   switch (references_app.channels_[chan].get_voltage_scaling()) {
@@ -311,6 +344,13 @@ void REFS_screensaver() {
   references_app.channels_[1].RenderScreensaver(32, 1);
   references_app.channels_[2].RenderScreensaver(64, 2);
   references_app.channels_[3].RenderScreensaver(96, 3);
+  char freq_string[11] = "";
+  dtostrf(references_app.get_frequency(), 7, 3, freq_string);
+  graphics.setPrintPos(2, 52);
+  graphics.print("TR4 Hz =") ;
+  graphics.setPrintPos(52, 52);
+  graphics.print(freq_string);
+ 
 }
 
 void REFS_handleButtonEvent(const UI::Event &event) {
