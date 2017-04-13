@@ -43,7 +43,7 @@
 unsigned long LAST_REDRAW_TIME = 0;
 uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
-const bool DUMMY = 0;
+const bool DUMMY = false;
 
 // Change value of BUCHLA_SUPPORT to 0 if Buchla/microtonal scaling not wanted
 #define BUCHLA_SUPPORT 1
