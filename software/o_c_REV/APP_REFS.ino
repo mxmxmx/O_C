@@ -27,6 +27,7 @@
 #include "OC_strings.h"
 #include "util/util_settings.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
+#include <math.h>
 
 enum ReferenceSetting {
   REF_SETTING_OCTAVE,
@@ -147,6 +148,10 @@ public:
     freq_sum_ = 0;
     freq_count_ = 0;
     frequency_ = 0;
+    freq_decicents_deviation_ = 0;
+    freq_octave_ = 0;
+    freq_note_ = 0;
+    freq_decicents_residual_ = 0;
 
   }
 
@@ -155,7 +160,7 @@ public:
       channel.Update();
 
       if (FreqMeasure.available()) {
-        // average several reading together
+        // average several readings together
         freq_sum_ = freq_sum_ + FreqMeasure.read();
         freq_count_ = freq_count_ + 1;
         if (milliseconds_since_last_freq_ > 1000) {
@@ -163,6 +168,10 @@ public:
           freq_sum_ = 0;
           freq_count_ = 0;
           milliseconds_since_last_freq_ = 0;
+          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / 16.3515)) + 500;
+          freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
+          freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
+          freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
         }
       }
       
@@ -183,12 +192,31 @@ float get_frequency( ) {
   return(frequency_) ;
 }
 
+float get_cents_deviation( ) {
+  return(static_cast<float>(freq_decicents_deviation_) / 10.0) ;
+}
+
+float get_cents_residual( ) {
+  return(static_cast<float>(freq_decicents_residual_) / 10.0) ;
+}
+
+int8_t get_octave( ) {
+  return(freq_octave_) ;
+}
+
+int8_t get_note( ) {
+  return(freq_note_) ;
+}
+
 private:
   double freq_sum_;
   uint32_t freq_count_;
   float frequency_ ;
   elapsedMillis milliseconds_since_last_freq_;
-
+  int32_t freq_decicents_deviation_;
+  int8_t freq_octave_ ;
+  int8_t freq_note_;
+  int32_t freq_decicents_residual_;
 };
 
 
@@ -268,8 +296,8 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   // Mostly borrowed from QQ
 
   weegfx::coord_t x = start_x + 26;
-  weegfx::coord_t y = 48; // was 60
-  for (int i = 0; i < 9; ++i, y -= 4) // was i < 12
+  weegfx::coord_t y = 34 ; // was 60
+  // for (int i = 0; i < 5 ; ++i, y -= 4) // was i < 12
     graphics.setPixel(x, y);
 
   int32_t pitch = last_pitch_ ;
@@ -299,7 +327,7 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   int semitone = pitch >> 7;
   int unscaled_semitone = unscaled_pitch >> 7;
 
-  y = 48 - unscaled_semitone * 4; // was 60
+  y = 34 - unscaled_semitone * 2; // was 60, multiplier was 4
   if (unscaled_semitone < 6)
     graphics.setPrintPos(start_x + menu::kIndentDx, y - 7);
   else
@@ -307,7 +335,7 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   graphics.print(OC::Strings::note_names_unpadded[unscaled_semitone]);
 
   graphics.drawHLine(start_x + 16, y, 8);
-  graphics.drawBitmap8(start_x + 28, 48 - unscaled_octave * 4 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW); // was 60
+  graphics.drawBitmap8(start_x + 28, 34 - unscaled_octave * 2 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW); // was 60
 
   // Try and round to 3 digits
   switch (references_app.channels_[chan].get_voltage_scaling()) {
@@ -344,13 +372,14 @@ void REFS_screensaver() {
   references_app.channels_[1].RenderScreensaver(32, 1);
   references_app.channels_[2].RenderScreensaver(64, 2);
   references_app.channels_[3].RenderScreensaver(96, 3);
-  char freq_string[11] = "";
-  dtostrf(references_app.get_frequency(), 7, 3, freq_string);
-  graphics.setPrintPos(2, 52);
-  graphics.print("TR4 Hz =") ;
-  graphics.setPrintPos(52, 52);
-  graphics.print(freq_string);
- 
+  graphics.setPrintPos(2, 44);
+  graphics.printf("TR4 %7.3fHz", references_app.get_frequency()) ;
+  graphics.setPrintPos(2, 56);
+  if (references_app.get_frequency() >= 16.3515) {
+    graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
+  } else {
+    graphics.print("                    ");
+  }
 }
 
 void REFS_handleButtonEvent(const UI::Event &event) {
