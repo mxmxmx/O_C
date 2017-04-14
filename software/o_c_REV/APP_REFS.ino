@@ -143,10 +143,10 @@ public:
 
     ui.selected_channel = 0;
     ui.cursor.Init(0, channels_[0].num_enabled_settings() - 1);
+
     freq_sum_ = 0;
     freq_count_ = 0;
     frequency_ = 0;
-    previous_frequency_ = 10;
 
   }
 
@@ -158,11 +158,11 @@ public:
         // average several reading together
         freq_sum_ = freq_sum_ + FreqMeasure.read();
         freq_count_ = freq_count_ + 1;
-        if (freq_count_ > (previous_frequency_ >> 1)) {
-          if (frequency_ >= 2.0) previous_frequency_ = static_cast<uint32_t>(frequency_);
+        if (milliseconds_since_last_freq_ > 1000) {
           frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
           freq_sum_ = 0;
           freq_count_ = 0;
+          milliseconds_since_last_freq_ = 0;
         }
       }
       
@@ -187,7 +187,7 @@ private:
   double freq_sum_;
   uint32_t freq_count_;
   float frequency_ ;
-  uint32_t previous_frequency_ ;
+  elapsedMillis milliseconds_since_last_freq_;
 
 };
 
