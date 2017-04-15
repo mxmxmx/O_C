@@ -169,7 +169,7 @@ public:
       freq_sum_ = freq_sum_ + FreqMeasure.read();
       freq_count_ = freq_count_ + 1;
 
-      if (ticks_since_last_freq_ > OC_CORE_ISR_FREQ) {
+      if (ticks_since_last_freq_ > (OC_CORE_ISR_FREQ >> 1)) {
         ticks_since_last_freq_ = 0;
         frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
         freq_sum_ = 0;

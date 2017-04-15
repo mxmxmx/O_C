@@ -104,7 +104,8 @@ static inline void capture_start(void)
 	delayMicroseconds(1);
 	#endif
 	FTM1_C0SC = 0b01000100;
-	*portConfigRegister(CAPTURE_USE_FTM1_CH0) = PORT_PCR_MUX(3);
+	// config pin for capture + enable internal pull up
+	*portConfigRegister(CAPTURE_USE_FTM1_CH0) = PORT_PCR_MUX(3) | PORT_PCR_PE | PORT_PCR_PS;
 	NVIC_ENABLE_IRQ(IRQ_FTM1);
 }
 static inline uint16_t capture_event(void)
