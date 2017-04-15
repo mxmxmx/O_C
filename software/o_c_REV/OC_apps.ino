@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "OC_apps.h"
+#include "OC_digital_inputs.h"
 
 #define DECLARE_APP(a, b, name, prefix, isr) \
 { TWOCC<a,b>::value, name, \
@@ -363,7 +364,8 @@ void Ui::AppSettings() {
 
   if (change_app) {
     apps::set_current_app(cursor.cursor_pos());
-    //FreqMeasure.end();
+    FreqMeasure.end();
+    OC::DigitalInputs::reInit();
     if (save) {
       save_global_settings();
       save_app_data();
