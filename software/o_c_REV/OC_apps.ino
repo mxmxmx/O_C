@@ -363,7 +363,7 @@ void Ui::AppSettings() {
 
   if (change_app) {
     apps::set_current_app(cursor.cursor_pos());
-    FreqMeasure.end();
+    //FreqMeasure.end();
     if (save) {
       save_global_settings();
       save_app_data();

@@ -835,7 +835,7 @@ public:
 
         *settings++ = CHORDS_SETTING_PROGRESSION_CV; 
         *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ? length ?
-        *settings++ = CHORDS_SETTING_DUMMY;
+        *settings++ = CHORDS_SETTING_MORE_DUMMY;
         if (get_playmode() < _SH1)
           *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         if (get_direction() == CHORDS_BROWNIAN)       
