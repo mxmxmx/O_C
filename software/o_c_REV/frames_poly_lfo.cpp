@@ -168,7 +168,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase) {
     }
 
     // Advance phasors.
-    if (!(freq_div_b_ || freq_div_c_ || freq_div_c_)) {
+    if (!(freq_div_b_ || freq_div_c_ || freq_div_c_ || sync_)) {
       // original Frames behaviour
       if (spread_ >= 0) {
         phase_[0] += FrequencyToPhaseIncrement(frequency, freq_range_);
