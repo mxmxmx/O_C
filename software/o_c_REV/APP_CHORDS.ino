@@ -581,12 +581,14 @@ public:
               progression_cnt_ = progression_cnt_ > progression_max ? 0x0 : progression_cnt_;
               // update progression 
               active_progression_ = num_progression + progression_cnt_;
+              // + reset 
+              reset = true;
               // wrap around:
               if (active_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
                   active_progression_ -= OC::Chords::NUM_CHORD_PROGRESSIONS;
             }
             progression_advance_last_ = _progression_advance_trig;
-            progression_max = 0x0;
+            progression_max = 0x0; 
           }
           break;
           case _SH1:

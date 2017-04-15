@@ -153,29 +153,33 @@ public:
     freq_octave_ = 0;
     freq_note_ = 0;
     freq_decicents_residual_ = 0;
-
+    ticks_since_last_freq_ = 0;
   }
 
   void ISR() {
+    
     for (auto &channel : channels_)
       channel.Update();
 
-      if (FreqMeasure.available()) {
-        // average several readings together
-        freq_sum_ = freq_sum_ + FreqMeasure.read();
-        freq_count_ = freq_count_ + 1;
-        if (milliseconds_since_last_freq_ > 1000) {
-          frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
-          freq_sum_ = 0;
-          freq_count_ = 0;
-          milliseconds_since_last_freq_ = 0;
-          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
-          freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
-          freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
-          freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
-        }
+    ticks_since_last_freq_++; 
+ 
+    if (FreqMeasure.available()) {
+
+      // average several readings together
+      freq_sum_ = freq_sum_ + FreqMeasure.read();
+      freq_count_ = freq_count_ + 1;
+
+      if (ticks_since_last_freq_ > OC_CORE_ISR_FREQ) {
+        ticks_since_last_freq_ = 0;
+        frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
+        freq_sum_ = 0;
+        freq_count_ = 0;
+        freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
+        freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
+        freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
+        freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
       }
-      
+    }
   }
 
   ReferenceChannel &selected_channel() {
@@ -217,7 +221,7 @@ private:
   double freq_sum_;
   uint32_t freq_count_;
   float frequency_ ;
-  elapsedMillis milliseconds_since_last_freq_;
+  uint32_t ticks_since_last_freq_;
   int32_t freq_decicents_deviation_;
   int8_t freq_octave_ ;
   int8_t freq_note_;
@@ -380,10 +384,19 @@ void REFS_screensaver() {
   graphics.setPrintPos(2, 44);
   graphics.printf("TR4 %7.3f Hz", references_app.get_frequency()) ;
   graphics.setPrintPos(2, 56);
+  
   if (references_app.get_frequency() >= kC0Frequency) {
     graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
-  } else {
-    graphics.printf("%7.3f bpm", references_app.get_bpm());
+  } 
+  else {
+    float _bpm = references_app.get_bpm();
+    // adjust margin:
+    if (_bpm < 1.0f)
+      graphics.printf("%5.3f bpm", _bpm);
+    else if (_bpm < 10.0f)
+      graphics.printf("%6.3f bpm", _bpm);
+    else
+      graphics.printf("%7.3f bpm", _bpm);
   }
 }
 
