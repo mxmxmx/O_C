@@ -28,6 +28,8 @@
 #include "util/util_settings.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
+static constexpr float kC0Frequency = 16.3515; // Frequency for C0 (4 octaves below middle C, which is C4).
+
 enum ReferenceSetting {
   REF_SETTING_OCTAVE,
   REF_SETTING_SEMI,
@@ -135,7 +137,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
 class ReferencesApp {
 public:
   ReferencesApp() { }
-  
+
   void Init() {
     int dac_channel = 0;
     for (auto &channel : channels_)
@@ -167,7 +169,7 @@ public:
           freq_sum_ = 0;
           freq_count_ = 0;
           milliseconds_since_last_freq_ = 0;
-          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / 16.3515)) + 500;
+          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
           freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
           freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
           freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
@@ -187,25 +189,29 @@ public:
 
   ReferenceChannel channels_[4];
 
-float get_frequency( ) {
-  return(frequency_) ;
-}
+  float get_frequency( ) {
+    return(frequency_) ;
+  }
 
-float get_cents_deviation( ) {
-  return(static_cast<float>(freq_decicents_deviation_) / 10.0) ;
-}
+  float get_bpm( ) {
+    return(60*frequency_) ;
+  }
 
-float get_cents_residual( ) {
-  return(static_cast<float>(freq_decicents_residual_) / 10.0) ;
-}
-
-int8_t get_octave( ) {
-  return(freq_octave_) ;
-}
-
-int8_t get_note( ) {
-  return(freq_note_) ;
-}
+  float get_cents_deviation( ) {
+    return(static_cast<float>(freq_decicents_deviation_) / 10.0) ;
+  }
+  
+  float get_cents_residual( ) {
+    return(static_cast<float>(freq_decicents_residual_) / 10.0) ;
+  }
+  
+  int8_t get_octave( ) {
+    return(freq_octave_) ;
+  }
+  
+  int8_t get_note( ) {
+    return(freq_note_) ;
+  }
 
 private:
   double freq_sum_;
@@ -372,12 +378,12 @@ void REFS_screensaver() {
   references_app.channels_[2].RenderScreensaver(64, 2);
   references_app.channels_[3].RenderScreensaver(96, 3);
   graphics.setPrintPos(2, 44);
-  graphics.printf("TR4 %7.3fHz", references_app.get_frequency()) ;
+  graphics.printf("TR4 %7.3f Hz", references_app.get_frequency()) ;
   graphics.setPrintPos(2, 56);
-  if (references_app.get_frequency() >= 16.3515) {
+  if (references_app.get_frequency() >= kC0Frequency) {
     graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
   } else {
-    graphics.print("                    ");
+    graphics.printf("%7.3f bpm", references_app.get_bpm());
   }
 }
 
