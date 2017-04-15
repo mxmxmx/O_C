@@ -391,9 +391,9 @@ void REFS_screensaver() {
   else {
     float _bpm = references_app.get_bpm();
     // adjust margin:
-    if (_bpm < 1.0f)
+    if (_bpm < 10.0f)
       graphics.printf("%5.3f bpm", _bpm);
-    else if (_bpm < 10.0f)
+    else if (_bpm < 100.0f)
       graphics.printf("%6.3f bpm", _bpm);
     else
       graphics.printf("%7.3f bpm", _bpm);
