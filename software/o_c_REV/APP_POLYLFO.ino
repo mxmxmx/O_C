@@ -24,6 +24,7 @@
 // Quadrrature LFO app, based on the Mutable Instruments Frames Easter egg 
 // quadrature wavetable LFO by Olivier Gillet (see frames_poly_lfo.h/cpp)
 
+
 #include "OC_apps.h"
 #include "OC_digital_inputs.h"
 #include "OC_menus.h"
@@ -48,6 +49,7 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_B_XOR_A,
   POLYLFO_SETTING_C_XOR_A,
   POLYLFO_SETTING_D_XOR_A,
+  POLYLFO_SETTING_TAP_TEMPO,
   POLYLFO_SETTING_LAST
 };
 
@@ -114,6 +116,10 @@ public:
     return values_[POLYLFO_SETTING_D_XOR_A];
   }
 
+  bool get_tap_tempo() const {
+    return values_[static_cast<bool>(POLYLFO_SETTING_TAP_TEMPO)];
+  }
+
   void Init();
 
   void freeze() {
@@ -174,6 +180,7 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
   { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 1, "Tap tempo", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 }, 
  };
 
 PolyLfo poly_lfo;
@@ -188,7 +195,7 @@ void FASTRUN POLYLFO_isr() {
 
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
   bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
-
+ 
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
   poly_lfo.cv_spread.push(OC::ADC::value<ADC_CHANNEL_3>());
@@ -201,6 +208,8 @@ void FASTRUN POLYLFO_isr() {
   freq = USAT16(freq);
 
   poly_lfo.lfo.set_freq_range(poly_lfo.get_freq_range());
+
+  poly_lfo.lfo.set_sync(poly_lfo.get_tap_tempo());
 
   int32_t shape = SCALE8_16(poly_lfo.get_shape()) + (poly_lfo.cv_shape.value() * 16);
   poly_lfo.lfo.set_shape(USAT16(shape));
@@ -350,4 +359,6 @@ void POLYLFO_debug() {
   graphics.print(value); graphics.print(" ");
   value = USAT16(value);
   graphics.print(value);
+  graphics.setPrintPos(2, 52);
+  graphics.print(poly_lfo.lfo.get_sync_phase_increment());
 }

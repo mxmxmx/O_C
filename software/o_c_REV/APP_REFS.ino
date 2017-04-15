@@ -27,7 +27,6 @@
 #include "OC_strings.h"
 #include "util/util_settings.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
-#include <math.h>
 
 enum ReferenceSetting {
   REF_SETTING_OCTAVE,

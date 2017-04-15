@@ -34,7 +34,9 @@
 #include "util/util_macros.h"
 //#include "stmlib/stmlib.h"
 //#include "frames/keyframer.h"
+#include "peaks_pattern_predictor.h"
 
+const uint32_t kSyncCounterMaxTime = 8 * 16667;
 
 namespace frames {
 
@@ -181,16 +183,24 @@ class PolyLfo {
     }
   }
 
+  inline void set_sync(bool sync) {
+    sync_ = sync;
+  }
+
+  inline long get_sync_phase_increment() {
+    return sync_phase_increment_;
+  }
+
   inline uint8_t level(uint8_t index) const {
     return level_[index];
   }
-
 
   inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
   }
 
   static uint32_t FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng);
+
 
  private:
   // static const uint8_t rainbow_[17][3];
@@ -215,6 +225,13 @@ class PolyLfo {
   uint32_t phase_increment_ch1_;
   uint8_t level_[kNumChannels];
   uint16_t dac_code_[kNumChannels];
+
+  bool sync_ ;
+  uint32_t sync_counter_;
+  stmlib::PatternPredictor<32, 8> pattern_predictor_;
+  uint32_t period_;
+  uint32_t sync_phase_increment_;
+
 
   DISALLOW_COPY_AND_ASSIGN(PolyLfo);
 };
