@@ -169,18 +169,26 @@ inline void DrawChord(weegfx::coord_t x, weegfx::coord_t y, int width, int value
    OC::Chord *active_chord = &OC::user_chords[value + mem_offset * OC::Chords::NUM_CHORDS];
    int8_t _quality = active_chord->quality;
    int8_t _voicing = active_chord->voicing;
-   
-   // draw root:
+   int y_pos;
+
+   // draw #A / base note:
+   y -= active_chord->base_note * 2;
    graphics.drawRect(x, y, width, width);
-   y -= OC::qualities[_quality][1] + (width << 1);
-   // draw b:
-   graphics.drawFrame(x, y + (OC::voicing[_voicing][1] << 3), width, width);
-   y -= OC::qualities[_quality][2] + (width << 1);
-   //draw c: 
-   graphics.drawFrame(x, y + (OC::voicing[_voicing][2] << 3), width, width);
-   y -= OC::qualities[_quality][3] + (width << 1);
-   //draw d:
-   graphics.drawFrame(x, y + (OC::voicing[_voicing][3] << 3), width, width);
+   // draw #B:
+   y -= OC::qualities[_quality][1] * 3;
+   y_pos = y + OC::voicing[_voicing][1] * 16;
+   CONSTRAIN(y_pos, 8, 64);
+   graphics.drawFrame(x, y_pos, width, width);
+   // draw #C:
+   y -= OC::qualities[_quality][2] * 3;
+   y_pos = y + OC::voicing[_voicing][2] * 16;
+   CONSTRAIN(y_pos, 8, 64);
+   graphics.drawFrame(x, y_pos, width, width);
+   // draw #D:
+   y -= OC::qualities[_quality][3] * 3;
+   y_pos = y + OC::voicing[_voicing][3] * 16;
+   CONSTRAIN(y_pos, 8, 64);
+   graphics.drawFrame(x, y_pos, width, width);
 }
 
 inline void DrawMiniChord(weegfx::coord_t x, weegfx::coord_t y, uint8_t count, uint8_t indicator) {

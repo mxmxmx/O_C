@@ -70,6 +70,7 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_PROGRESSION_CV,
   CHORDS_SETTING_DIRECTION_CV,
   CHORDS_SETTING_BROWNIAN_CV,
+  CHORDS_SETTING_PROG_LENGTH_CV,
   CHORDS_SETTING_DUMMY,
   CHORDS_SETTING_MORE_DUMMY,
   CHORDS_SETTING_LAST
@@ -836,8 +837,8 @@ public:
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
 
         *settings++ = CHORDS_SETTING_PROGRESSION_CV; 
-        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ? length ?
-        *settings++ = CHORDS_SETTING_MORE_DUMMY;
+        *settings++ = CHORDS_SETTING_CHORD_EDIT; 
+        *settings++ = CHORDS_SETTING_PROG_LENGTH_CV;
         if (get_playmode() < _SH1)
           *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         if (get_direction() == CHORDS_BROWNIAN)       
@@ -960,9 +961,10 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "progress. CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "pr.slot   CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "pr.length CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
   {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
@@ -1293,13 +1295,13 @@ inline int32_t chords_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coo
 
 void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
 
-
   int _active_chord = active_chord();
   int _num_progression = get_active_progression();
   int _num_chords = get_num_chords(_num_progression);
   int x = start_x + 4;
-  int y = 48; 
+  int y = 42; 
 
+  // todo: CV
   for (int j = 0; j <= _num_chords; j++) {
 
     if (j == _active_chord)
@@ -1308,6 +1310,7 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
       menu::DrawChord(x + (j << 4) + 2, y, 4, j, _num_progression);
   }
 
+  /*
   // sequence: 
   x = start_x + 4;
   y = 58;
@@ -1323,34 +1326,10 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
        if(j == active_chord())
          graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
     }
+  */
 }
 
-/*
-void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
-  
-  int _num_chords = get_num_chords();
 
-  for (int i = 0; i < 4; ++i) {
-    
-    chords.history(i).Read(chords_history);
-  }
-  // sequence: 
-  int x = start_x + 4;
-  int y = 58;
-  
-  for (int j = 0; j < OC::Chords::NUM_CHORDS; j++) {
-
-       if (j <= _num_chords)
-          graphics.drawFrame(x + (j << 4), y, 8, 4);
-       else 
-          graphics.drawFrame(x + (j << 4), y + 2, 8, 2);  
-            
-      // position indicator:
-       if(j == active_chord())
-         graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
-    }
-}
-*/
 void CHORDS_screensaver() {
 #ifdef CHORDS_DEBUG_SCREENSAVER
   debug::CycleMeasurement render_cycles;
