@@ -1424,6 +1424,7 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_SCALE;
           *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
           *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
+          
           if (scaling_) {
               *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
           }
@@ -1445,9 +1446,9 @@ public:
             default:
             break;             
           }
-         
+
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;
          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
-         
          
          if (get_playmode() < PM_SH1) {
           
@@ -1460,6 +1461,8 @@ public:
          }
          else 
             *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
+
+         // aux output:   
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
          switch (get_aux_mode()) {
@@ -1467,7 +1470,7 @@ public:
             case 0: 
               *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
             break;
-            case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
+            case 1: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
               if (scaling_) {
                   *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
@@ -1493,8 +1496,28 @@ public:
          if (scaling_) {
               *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
          }
-         *settings++ = SEQ_CHANNEL_SETTING_LENGTH_CV;   
-         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE; // = playmode
+
+         switch (get_sequence()) {
+          
+            case 0:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK1;
+            break;
+            case 1:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK2;
+            break;
+            case 2:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK3;
+            break;
+            case 3:
+              *settings++ = SEQ_CHANNEL_SETTING_MASK4;
+            break;
+            default:
+            break;             
+          }
+         
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE; 
+         *settings++ = SEQ_CHANNEL_SETTING_LENGTH_CV; // = playmode
+         
          if (get_playmode() < PM_SH1) {
             
             if (get_playmode() == PM_ARP) {
