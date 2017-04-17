@@ -1025,19 +1025,19 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 4
   { 0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
-  {0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "transpose CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "octave CV    >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "prg.slot# CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "num.chrds CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
-  {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
+  { 0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "transpose CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "octave CV    >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "prg.slot# CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "num.chrds CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
+  { 0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
 
 class ChordQuantizer {
