@@ -952,7 +952,7 @@ public:
 
                 case COPY:
                 {
-                  int8_t _octave_aux = get_octave_aux();
+                  int8_t _octave_aux = _octave + get_octave_aux();
                   if (get_octave_aux_cv_source())
                     _octave_aux += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_octave_aux_cv_source() - 1)) + 255) >> 9;  
                     
