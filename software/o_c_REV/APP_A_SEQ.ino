@@ -2170,6 +2170,7 @@ void SEQ_Channel::RenderScreensaver() const {
       uint8_t seq_id = channel_id_;
       uint8_t clock_x_pos = seq_channel[seq_id].get_clock_cnt();
       int32_t _dac_value = seq_channel[seq_id].get_step_pitch();
+      int32_t _dac_overflow = 0, _dac_overflow2 = 0;
 
       // reposition ARP:
       if (seq_channel[seq_id].get_playmode() == PM_ARP)
@@ -2192,9 +2193,14 @@ void SEQ_Channel::RenderScreensaver() const {
       if (_dac_value < 0) {
         // display negative values as frame (though they're not negative...)
         _dac_value = (_dac_value - (_dac_value << 1 )) >> 6;
+        _dac_overflow = _dac_value - 40;
+        _dac_overflow2 = _dac_overflow - 40;
+        
         CONSTRAIN(_dac_value, 1, 40);
+        
         int8_t x = 2 + clock_x_pos - (_dac_value >> 1);
         int8_t x_size = 0;
+        
         // limit size of frame to window size
         if (seq_id && x < 64) {
           x_size = 64 - x;
@@ -2204,10 +2210,45 @@ void SEQ_Channel::RenderScreensaver() const {
           x_size =  (x + _dac_value) - 64;
         // draw  
         graphics.drawFrame(x, 30 - (_dac_value >> 1), _dac_value - x_size, _dac_value);
+        
+        if (_dac_overflow > 0) {
+          
+            CONSTRAIN(_dac_overflow, 1, 40);
+  
+            x = 2 + clock_x_pos - (_dac_overflow >> 1);
+            
+            if (seq_id && x < 64) {
+              x_size = 64 - x;
+              x = 64;
+            }
+            else if (!seq_id && (x + _dac_overflow > 63)) 
+              x_size =  (x + _dac_overflow) - 64;
+  
+            graphics.drawRect(x, 30 - (_dac_overflow >> 1), _dac_overflow - x_size, _dac_overflow);
+         }
+         
+         if (_dac_overflow2 > 0) {
+          
+            CONSTRAIN(_dac_overflow2, 1, 40);
+  
+            x = 2 + clock_x_pos - (_dac_overflow2 >> 1);
+            
+            if (seq_id && x < 64) {
+              x_size = 64 - x;
+              x = 64;
+            }
+            else if (!seq_id && (x + _dac_overflow2 > 63)) 
+              x_size =  (x + _dac_overflow2) - 64;
+  
+            graphics.clearRect(x, 30 - (_dac_overflow2 >> 1), _dac_overflow2 - x_size, _dac_overflow2);
+         }
       }
       else {
       // positive output as rectangle
         _dac_value = (_dac_value  >> 6);
+        _dac_overflow = _dac_value - 40;
+        _dac_overflow2 = _dac_overflow - 40;
+        
         CONSTRAIN(_dac_value, 1, 40);
         
         int8_t x = 2 + clock_x_pos - (_dac_value >> 1);
@@ -2221,7 +2262,39 @@ void SEQ_Channel::RenderScreensaver() const {
           x_size = (x + _dac_value) - 64;
         // draw  
         graphics.drawRect(x, 30 - (_dac_value >> 1), _dac_value - x_size, _dac_value);
-      }
+
+        if (_dac_overflow > 0) {
+
+          CONSTRAIN(_dac_overflow, 1, 40);
+
+          x = 2 + clock_x_pos - (_dac_overflow >> 1);
+          
+          if (seq_id && x < 64) {
+            x_size = 64 - x;
+            x = 64;
+          }
+          else if (!seq_id && (x + _dac_overflow > 63)) 
+             x_size = (x + _dac_overflow) - 64;
+          
+          graphics.clearRect(x, 30 - (_dac_overflow >> 1), _dac_overflow - x_size, _dac_overflow);
+        }
+        
+        if (_dac_overflow2 > 0) {
+
+          CONSTRAIN(_dac_overflow2, 1, 40);
+
+          x = 2 + clock_x_pos - (_dac_overflow2 >> 1);
+          
+          if (seq_id && x < 64) {
+            x_size = 64 - x;
+            x = 64;
+          }
+          else if (!seq_id && (x + _dac_overflow2 > 63)) 
+             x_size = (x + _dac_overflow2) - 64;
+          
+          graphics.drawRect(x, 30 - (_dac_overflow2 >> 1), _dac_overflow2 - x_size, _dac_overflow2);
+        }
+    }
 }
 
 void SEQ_screensaver() {
