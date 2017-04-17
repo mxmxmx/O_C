@@ -162,6 +162,11 @@ public:
   void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
   }
 
+  bool octave_toggle() {
+    _octave_toggle = (~_octave_toggle) & 1u;
+    return _octave_toggle;
+  }
+
   int get_progression() const {
     return values_[CHORDS_SETTING_PROGRESSION];
   }
@@ -360,6 +365,7 @@ public:
     apply_value(CHORDS_SETTING_CV_SOURCE, 0x0);
     set_scale(OC::Scales::SCALE_SEMI);
     force_update_ = true;
+    _octave_toggle = false;
     last_scale_= -1;
     last_mask_ = 0;
     last_sample_ = 0;
@@ -925,6 +931,7 @@ public:
 
 private:
   bool force_update_;
+  bool _octave_toggle;
   int last_scale_;
   uint16_t last_mask_;
   int32_t schedule_mask_rotate_;
@@ -1267,8 +1274,13 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
 
 void CHORDS_topButton() {
   
-  if (chords.get_menu_page() == MENU_PARAMETERS) 
-    chords.change_value(CHORDS_SETTING_OCTAVE, 1); 
+  if (chords.get_menu_page() == MENU_PARAMETERS) {
+
+    if (chords.octave_toggle())
+      chords.change_value(CHORDS_SETTING_OCTAVE, 1);
+    else 
+      chords.change_value(CHORDS_SETTING_OCTAVE, -1);
+  } 
   else  {
     chords.set_menu_page(MENU_PARAMETERS);
     chords.update_enabled_settings();
@@ -1277,11 +1289,23 @@ void CHORDS_topButton() {
 }
 
 void CHORDS_lowerButton() {
+  // go the CV mapping
+
+  if (!chords_state.chord_editor.active() && !chords_state.scale_editor.active()) {  
+
+    uint8_t _menu_page = chords.get_menu_page();
   
-  if (chords.get_menu_page() == MENU_PARAMETERS) 
-    chords.change_value(CHORDS_SETTING_OCTAVE, -1); 
-  else {
-    chords.set_menu_page(MENU_PARAMETERS);
+    switch (_menu_page) {
+  
+      case MENU_PARAMETERS:
+        _menu_page = MENU_CV_MAPPING;
+      break;
+      default:
+        _menu_page = MENU_PARAMETERS;
+      break;
+    }
+    
+    chords.set_menu_page(_menu_page);
     chords.update_enabled_settings();
     chords_state.cursor.set_editing(false);
   }
@@ -1325,29 +1349,12 @@ void CHORDS_leftButtonLong() {
 }
 
 void CHORDS_downButtonLong() {
-
-  switch (chords.get_menu_page()) { 
-     
-    case MENU_PARAMETERS:  
-    {
-      if (!chords_state.chord_editor.active() && !chords_state.scale_editor.active()) {  
-        chords.set_menu_page(MENU_CV_MAPPING);
-        chords.update_enabled_settings();
-        chords_state.cursor.set_editing(false);
-      } 
-    }
-    break;
-    case MENU_CV_MAPPING:
-      chords.clear_CV_mapping();
-      chords_state.cursor.set_editing(false);
-    break;
-    default:
-    break;
-  }
+  chords.clear_CV_mapping();
+  chords_state.cursor.set_editing(false);
 }
 
 void CHORDS_upButtonLong() {
-  // todo
+  // screensaver short cut
 }
 
 uint16_t chords_history[Chords::kHistoryDepth];
