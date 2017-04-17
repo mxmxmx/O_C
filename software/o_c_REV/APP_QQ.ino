@@ -362,6 +362,12 @@ public:
     apply_value(CHANNEL_SETTING_SOURCE, source);
     apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
 
+    #ifdef BUCHLA_SUPPORT
+      scaling_ = true;
+    #else
+      scaling_ = false;
+    #endif
+
     channel_index_ = source;
     force_update_ = true;
     instant_update_ = false;
@@ -988,7 +994,7 @@ public:
     }
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
-    if (BUCHLA_SUPPORT) 
+    if (scaling_) 
         *settings++ = CHANNEL_SETTING_VOLTAGE_SCALING;
 
     num_enabled_settings_ = settings - enabled_settings_;
@@ -1045,6 +1051,7 @@ public:
 private:
   bool force_update_;
   bool instant_update_;
+  bool scaling_;
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_sample_;

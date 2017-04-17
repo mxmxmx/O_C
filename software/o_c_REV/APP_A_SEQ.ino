@@ -582,6 +582,11 @@ public:
   void Init(SEQ_ChannelTriggerSource trigger_source, uint8_t id) {
     
     InitDefaults();
+    #ifdef BUCHLA_SUPPORT
+      scaling_ = true;
+    #else
+      scaling_ = false;
+    #endif
     channel_id_ = id;
     menu_page_ = PARAMETERS;
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
@@ -1277,7 +1282,7 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_SCALE;
           *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
           *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
-          if (BUCHLA_SUPPORT) {
+          if (scaling_) {
               *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
           }
           
@@ -1320,7 +1325,7 @@ public:
             break;
             case 1: // todo, limit --> SEQ_CHANNEL_SETTING_OCTAVE
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
-              if (BUCHLA_SUPPORT) {
+              if (scaling_) {
                   *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
               }
             break;
@@ -1415,6 +1420,7 @@ public:
 private:
 
   bool channel_id_;
+  bool scaling_;
   uint8_t menu_page_;
   uint16_t _sync_cnt;
   bool force_update_;

@@ -35,7 +35,9 @@ enum ReferenceSetting {
   REF_SETTING_SEMI,
   REF_SETTING_RANGE,
   REF_SETTING_RATE,
-  REF_SETTING_VOLTAGE_SCALING,
+  #ifdef BUCHLA_SUPPORT
+    REF_SETTING_VOLTAGE_SCALING,
+  #endif 
   REF_SETTING_LAST
 };
 
@@ -109,8 +111,9 @@ public:
     *settings++ = REF_SETTING_SEMI;
     *settings++ = REF_SETTING_RANGE;
     *settings++ = REF_SETTING_RATE;
-    if (BUCHLA_SUPPORT)
-        *settings++ = REF_SETTING_VOLTAGE_SCALING;
+    #ifdef BUCHLA_SUPPORT
+      *settings++ = REF_SETTING_VOLTAGE_SCALING;
+    #endif
      num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -131,7 +134,9 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 },
+  #ifdef BUCHLA_SUPPORT
+  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 }
+  #endif
 };
 
 class ReferencesApp {

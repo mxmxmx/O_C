@@ -345,12 +345,13 @@ public:
     *settings++ =   H1200_SETTING_CV_SAMPLING;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;
-    if (BUCHLA_SUPPORT) {
+    
+    #ifdef BUCHLA_SUPPORT
         *settings++ = H1200_SETTING_VOLTAGE_SCALING_A;
         *settings++ = H1200_SETTING_VOLTAGE_SCALING_B;
         *settings++ = H1200_SETTING_VOLTAGE_SCALING_C;
         *settings++ = H1200_SETTING_VOLTAGE_SCALING_D;
-    }
+    #endif
  
     switch (get_trigger_type()) {
       case H1200_TRIGGER_TYPE_EUCLIDEAN:

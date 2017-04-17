@@ -343,6 +343,12 @@ public:
 
     force_update_ = true;
     instant_update_ = false;
+
+    #ifdef BUCHLA_SUPPORT
+      scaling_ = true;
+    #else
+      scaling_ = false;
+    #endif
     
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
@@ -928,19 +934,19 @@ public:
       break;
       case DQ_COPY:
         *settings++ = DQ_CHANNEL_SETTING_AUX_OCTAVE;
-        if (BUCHLA_SUPPORT)
+        if (scaling_)
             *settings++ = DQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX;
       break;
       case DQ_ASR:
         *settings++ = DQ_CHANNEL_SETTING_AUX_OCTAVE; // to do
-        if (BUCHLA_SUPPORT)
+        if (scaling_)
             *settings++ = DQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX;
       break;
       default:
       break;
     }
 
-    if (BUCHLA_SUPPORT)
+    if (scaling_)
         *settings++ = DQ_CHANNEL_SETTING_VOLTAGE_SCALING;
 
     num_enabled_settings_ = settings - enabled_settings_;
@@ -953,6 +959,7 @@ public:
 private:
   bool force_update_;
   bool instant_update_;
+  bool scaling_;
   int last_scale_[NUM_SCALE_SLOTS];
   uint16_t last_mask_[NUM_SCALE_SLOTS];
   int scale_sequence_cnt_;

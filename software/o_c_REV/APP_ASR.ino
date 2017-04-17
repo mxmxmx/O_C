@@ -276,6 +276,11 @@ public:
   void init() {
     
     force_update_ = false;
+    #ifdef BUCHLA_SUPPORT
+      scaling_ = true;
+    #else
+      scaling_ = false;
+    #endif
     last_scale_ = -1;
     set_scale(OC::Scales::SCALE_SEMI);
     last_root_ = 0;
@@ -361,7 +366,8 @@ public:
     else 
       *settings++ = ASR_SETTING_DUMMY;
     *settings++ = ASR_SETTING_DELAY;
-    if (BUCHLA_SUPPORT) {
+    
+    if (scaling_) {
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
@@ -689,6 +695,7 @@ public:
 
 private:
   bool force_update_;
+  bool scaling_;
   int last_scale_;
   int last_root_;
   uint16_t last_mask_;
