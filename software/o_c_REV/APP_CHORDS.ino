@@ -726,8 +726,16 @@ public:
       CONSTRAIN(octave, -6, 6);
 
       if (_base_note) {
-        // we don't use the incoming CV pitch value
-        // to do: re-purpose CV1 (?), though can be mapped to misc parameters anyways 
+        /* 
+        *  we don't use the incoming CV pitch value — limit to valid base notes 
+        *  + update the chord (the scale may have changed...). to do ? maybe just limit to 7 note scales
+        *  not so nice side effect of this is that there's no going back ... 
+        */
+        int8_t _limit = OC::Scales::GetScale(get_scale(DUMMY)).num_notes;
+        if (_base_note > _limit) {
+          _base_note = _limit;
+          active_chord->base_note = _limit; 
+        }
         pitch = 0x0;
         transpose += (_base_note - 0x1);
       }     
@@ -991,7 +999,7 @@ const char* const chord_directions[] = {
 };
   
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
-  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { OC::Scales::SCALE_SEMI, OC::Scales::SCALE_SEMI, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 1, "progression", chords_slots, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
@@ -1221,7 +1229,7 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {
     
     int value = chords_state.left_encoder_value + event.value;
-    CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
+    CONSTRAIN(value, OC::Scales::SCALE_SEMI, OC::Scales::NUM_SCALES - 1);
     chords_state.left_encoder_value = value;
      
   } else if (OC::CONTROL_ENCODER_R == event.control) {
@@ -1305,7 +1313,7 @@ void CHORDS_rightButton() {
 
 void CHORDS_leftButton() {
 
-  if (chords_state.left_encoder_value != asr.get_scale(DUMMY) || chords_state.left_encoder_value == OC::Scales::SCALE_SEMI) { 
+  if (chords_state.left_encoder_value != chords.get_scale(DUMMY) || chords_state.left_encoder_value == OC::Scales::SCALE_SEMI) { 
     chords.set_scale(chords_state.left_encoder_value);
     // hide/show root
     chords.update_enabled_settings();

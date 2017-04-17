@@ -170,6 +170,11 @@ void ChordEditor<Owner>::Draw() {
           break;
           case 3: // base note
           {
+          // limit display to valid notes [but don't update chord]
+          const OC::Scale &scale_def = OC::Scales::GetScale(owner_->get_scale(DUMMY));
+          if (chord_base_note_ > (uint8_t)scale_def.num_notes)
+            chord_base_note_ = (uint8_t)scale_def.num_notes;
+          
           if (chord_base_note_ > 9)
             graphics.setPrintPos(x + 1, y + 7);
           else
