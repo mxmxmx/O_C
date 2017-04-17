@@ -968,11 +968,14 @@ void ASR_menu() {
   int scale = asr_state.left_encoder_value;
   graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(OC::scale_names[scale]);
+  
   if (asr.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
-  menu::TitleBar<0, 4, 0>::SetColumn(3);
-  graphics.pretty_print(asr.get_octave());
+  int octave = asr.get_octave();
+  graphics.setPrintPos(106, 2);
+  if (octave >= 0x0) graphics.print("+");
+  graphics.print(octave);
 
   uint8_t clock_state = (asr.clockState() + 3) >> 2;
   if (clock_state)

@@ -242,6 +242,10 @@ public:
     return values_[CHORDS_SETTING_DIRECTION];
   }
 
+  uint8_t get_direction_cv() const {
+    return values_[CHORDS_SETTING_DIRECTION_CV];
+  }
+
   uint8_t get_brownian_probability() const {
     return values_[CHORDS_SETTING_BROWNIAN_PROBABILITY];
   }
@@ -341,9 +345,10 @@ public:
     apply_value(CHORDS_SETTING_INVERSION_CV, 0);
     apply_value(CHORDS_SETTING_BROWNIAN_CV, 0);  
     apply_value(CHORDS_SETTING_DIRECTION_CV, 0);
-    apply_value(CHORDS_SETTING_PROGRESSION_CV, 0);    
+    apply_value(CHORDS_SETTING_PROGRESSION_CV, 0);   
+    apply_value(CHORDS_SETTING_NUM_CHORDS_CV, 0); 
   }
-
+  
   void Init() {
     
     InitDefaults();
@@ -385,11 +390,18 @@ public:
 
   int8_t _clock(uint8_t sequence_length, uint8_t sequence_count, uint8_t sequence_max, bool _reset) {
 
-        int8_t EoP = 0x0;
+        int8_t EoP = 0x0, _clk_cnt, _direction;
         bool reset = !digitalReadFast(TR4) | _reset;
-        int8_t _clk_cnt = active_chord_;
         
-        switch (get_direction()) {
+        _clk_cnt = active_chord_;
+        _direction = get_direction();
+
+        if (get_direction_cv()) {
+           _direction += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_direction_cv() - 1)) + 255) >> 9;
+           CONSTRAIN(_direction, 0, CHORDS_DIRECTIONS_LAST - 0x1);
+        }
+        
+        switch (_direction) {
 
           case CHORDS_FORWARD:
           {

@@ -72,8 +72,13 @@ public:
   }
 
   uint8_t get_voltage_scaling() const {
-    return values_[REF_SETTING_VOLTAGE_SCALING];
+    #ifdef BUCHLA_SUPPORT
+      return values_[REF_SETTING_VOLTAGE_SCALING];
+    #else
+      return 0x0;
+    #endif
   }
+ 
 
   void Update() {
 
@@ -93,8 +98,7 @@ public:
 
     int32_t semitone = get_semitone();
     OC::DAC::set(dac_channel_, OC::DAC::semitone_to_scaled_voltage_dac(dac_channel_, semitone, octave, get_voltage_scaling()));
-    last_pitch_ = (semitone + octave * 12) << 7;
-          
+    last_pitch_ = (semitone + octave * 12) << 7;       
   }
 
   int num_enabled_settings() const {
