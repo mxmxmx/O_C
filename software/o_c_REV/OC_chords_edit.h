@@ -132,6 +132,19 @@ void ChordEditor<Owner>::Draw() {
     graphics.drawFrame(x, y + 8, 2, 2);
     if (cursor_pos_ == max_chords)
         graphics.drawFrame(x - 2, y - 2, 6, 14);
+
+    // draw extra cv num chords?
+    int extra_slots = owner_->get_display_num_chords() - (max_chords - 0x1);
+    if (active && extra_slots > 0x0) {
+      x += 5;
+      indicator -= max_chords;
+      for (size_t i = 0; i < extra_slots; ++i, x += 10) {
+        if (i == indicator)
+          graphics.drawRect(x, y + 2, 6, 6);
+        else
+          graphics.drawFrame(x, y + 2, 6, 6);
+      }
+    }
     
     // chord properties:
     x = 6;

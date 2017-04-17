@@ -249,6 +249,10 @@ public:
   uint8_t get_brownian_probability() const {
     return values_[CHORDS_SETTING_BROWNIAN_PROBABILITY];
   }
+
+  int8_t get_brownian_probability_cv() const {
+    return values_[CHORDS_SETTING_BROWNIAN_CV];
+  }
   
   int get_root() const {
     return values_[CHORDS_SETTING_ROOT];
@@ -431,7 +435,14 @@ public:
           case CHORDS_BROWNIAN:
           if (CHORDS_BROWNIAN == get_direction()) {
             // Compare Brownian probability and reverse direction if needed
-            if (random(0,256) < get_brownian_probability()) chords_direction_ = !chords_direction_; 
+            int16_t brown_prb = get_brownian_probability();
+
+            if (get_brownian_probability_cv()) {
+              brown_prb += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_brownian_probability_cv() - 1)) + 8) >> 3;
+              CONSTRAIN(brown_prb, 0, 256);
+            }
+            if (random(0,256) < brown_prb) 
+              chords_direction_ = !chords_direction_; 
           }
           {
             if (chords_direction_) {
@@ -1006,10 +1017,10 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "pr.slot   CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "prg.slot# CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "# chords  CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  {0, 0, 4, "num.chrds CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
   {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
   {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
