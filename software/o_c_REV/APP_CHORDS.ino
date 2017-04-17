@@ -1112,6 +1112,11 @@ void CHORDS_menu() {
   if (chords.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
+  // active progression #
+  graphics.setPrintPos(106, 2);
+  graphics.print("#");
+  graphics.print(chords.get_active_progression() + 0x1);
+
   uint8_t clock_state = (chords.clockState() + 3) >> 2;
   if (clock_state && !chords_state.chord_editor.active())
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
