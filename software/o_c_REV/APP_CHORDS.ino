@@ -802,10 +802,12 @@ public:
       sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + OC::inversion[_inversion][0]);
 
       // now derive chords ...
-      
-      int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][1]);
-      int32_t sample_c  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][2]);
-      int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][3]);
+      transpose += OC::qualities[_quality][1];
+      int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose);
+      transpose += OC::qualities[_quality][2];
+      int32_t sample_c  = quantizer_.Process(pitch, root << 7, transpose);
+      transpose += OC::qualities[_quality][3];
+      int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose);
 
       //todo voicing for root note
       sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + OC::voicing[_voicing][1] + OC::inversion[_inversion][1]);

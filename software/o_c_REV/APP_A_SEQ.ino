@@ -242,6 +242,11 @@ public:
 
   void toggle_EoS() {
     wait_for_EoS_ = (~wait_for_EoS_) & 1u;
+    apply_value(SEQ_CHANNEL_SETTING_DUMMY, wait_for_EoS_);
+  }
+
+  void set_EoS_update() {
+    wait_for_EoS_ = values_[SEQ_CHANNEL_SETTING_DUMMY];
   }
 
   void set_menu_page(uint8_t _menu_page) {
@@ -969,7 +974,7 @@ public:
             }
          } 
          // clear for reset:
-         reset_pending_ = false;  
+         reset_pending_ = false;
      }
   
      /*
@@ -1724,7 +1729,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "direction   ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "-->brwn.prb ->", cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "seq.length  ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY
+  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
   { 0, 0, 7, "main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
   { 0, 0, 7, "--> aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 };
@@ -1791,6 +1796,7 @@ size_t SEQ_restore(const void *storage) {
     seq_channel[i].pattern_changed(seq_channel[i].get_mask(seq_channel[i].get_sequence()), true);
     seq_channel[i].set_display_num_sequence(seq_channel[i].get_sequence()); 
     seq_channel[i].update_enabled_settings(i);
+    seq_channel[i].set_EoS_update();
   }
   seq_state.cursor.AdjustEnd(seq_channel[0].num_enabled_settings() - 1);
   return used;
@@ -2081,9 +2087,10 @@ void SEQ_downButtonLong() {
     selected.clear_CV_mapping();
     seq_state.cursor.set_editing(false);
   }
-  else // toggle update behaviour:
-    selected.toggle_EoS();
-}
+  else { // toggle update behaviour:
+    seq_channel[0x0].toggle_EoS();
+    seq_channel[0x1].toggle_EoS();
+} }
 
 void SEQ_menu() {
 
