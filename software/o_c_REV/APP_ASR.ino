@@ -448,20 +448,7 @@ public:
         out -= _delay;
         asr_outputs[2] = _ASR->data[out--];
         out -= _delay;
-        asr_outputs[3] = _ASR->data[out--];
-
-        // octave up/down
-        int _offset = 0;
-        if (!digitalReadFast(TR3)) 
-          _offset++;
-        else if (!digitalReadFast(TR4)) 
-          _offset--;
-
-        if (_offset) {
-          _offset = _offset * 12 << 7;
-          for (int i = 0; i < 4; i++)
-            asr_outputs[i] += _offset;
-        }      
+        asr_outputs[3] = _ASR->data[out--];  
     }  
 
   inline void update() {
