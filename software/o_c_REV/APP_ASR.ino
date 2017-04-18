@@ -288,7 +288,6 @@ public:
     #endif
     last_scale_ = -1;
     set_scale(OC::Scales::SCALE_SEMI);
-    last_root_ = 0;
     last_mask_ = 0;
     quantizer_.Init();
     update_scale(true, 0);
@@ -323,10 +322,6 @@ public:
       mask = OC::ScaleEditor<ASR>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
 
     if (force || (last_scale_ != scale || last_mask_ != mask)) {
-
-      // Change of scale resets clock, but changing mask doesn't have to
-      if (force || last_scale_ != scale)
-        clocks_cnt_ = 0;
 
       last_scale_ = scale;
       last_mask_ = mask;
@@ -415,17 +410,11 @@ public:
   void updateASR_indexed(struct ASRbuf* _ASR, int32_t _s, int16_t _index) {
 
         uint8_t out;
-        uint16_t _clocks = clocks_cnt_;
         int16_t _delay = _index;
-        int16_t _max_delay = _clocks >> 2; 
         
         popASR(_ASR);            // remove sample (oldest) 
         pushASR(_ASR, _s);       // push new sample into buffer (last) 
-        
-        // don't mix up scales 
-        if (_delay < 0) _delay = 0;
-        else if (_delay > _max_delay) _delay = _max_delay;       
-          
+            
         out  = (_ASR->last)-1;
         out -= _delay;
         asr_outputs[0] = _ASR->data[out--];
@@ -440,14 +429,8 @@ public:
   void _hold(struct ASRbuf* _ASR, int16_t _index) {
 
         uint8_t out;
-        uint16_t _clocks = clocks_cnt_;
         int16_t _delay = _index;
-        int16_t _max_delay = _clocks >> 2;
-        int32_t _s; // new old sample
-
-        // don't mix up scales 
-        if (_delay < 0) _delay = 0;
-        else if (_delay > _max_delay) _delay = _max_delay;       
+        int32_t _s; // new old sample   
           
         // get index:
         out = (_ASR->last) - (_delay + 1) * get_buffer_length();
@@ -498,193 +481,198 @@ public:
      update = trigger_delay_.triggered();
 
       if (update) {        
+
+         bool _freeze_buffer = !digitalReadFast(TR2);
    
-        int8_t _root  = get_root();
-        int8_t _index = get_index();
-        
-        clocks_cnt_++;
+         int8_t _root  = get_root();
+         int8_t _index = get_index() + SCALED_ADC(ADC_CHANNEL_2, 5);
+         int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
+         int8_t _mult    =  get_mult();
+         int32_t _pitch  = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
-        if (_root != last_root_) 
-          clocks_cnt_ = 0;
+          
+         if (!_freeze_buffer) {
+         
+         switch (get_cv_source()) {
+          
+            case ASR_CHANNEL_SOURCE_TURING:
+              {
+                int16_t _length = get_turing_length();
+                int16_t _probability = get_turing_probability();
+                int16_t _range = get_turing_range();
 
-        last_root_ = _root;
+                // _pitch can do other things now -- 
+                switch (get_turing_CV()) {
 
-        _index +=  SCALED_ADC(ADC_CHANNEL_2, 5);
+                    case 1:  // LEN, 1-32
+                     _length += ((_pitch + 255) >> 8);
+                     CONSTRAIN(_length, 1, 32);
+                    break;
+                     case 2:  // P
+                     _probability += ((_pitch + 15) >> 4);
+                     CONSTRAIN(_probability, 0, 255);
+                    break;
+                    default: // mult
+                     _range += ((_pitch + 63) >> 6);
+                     CONSTRAIN(_range, 1, 120);
+                    break;
+                }
+                
+                turing_machine_.set_length(_length);
+                turing_machine_.set_probability(_probability); 
+                turing_display_length_ = _length;
+                
+                uint32_t _shift_register = turing_machine_.Clock();   
+                // uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
+                // _pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);  
 
-        if (!digitalReadFast(TR2)) 
-          _hold(_ASR, _index);   
-        else {
+                // Since our range is limited anyway, just grab the last byte for lengths > 8,
+                // otherwise scale to use bits. And apply the modulus
+                uint32_t shift = turing_machine_.length();
+                uint32_t _scaled = (_shift_register & 0xff) * _range;
+                _scaled = _scaled >> (shift > 7 ? 8 : shift);
+       
+                // The quantizer uses a lookup codebook with 128 entries centered
+                // about 0, so we use the range/scaled output to lookup a note
+                // directly instead of changing to pitch first.
+                _pitch =
+                    quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
+          
+              }
+              break;      
 
-             int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
-             int8_t _mult    =  get_mult();
-             int32_t _pitch  = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
+            case ASR_CHANNEL_SOURCE_BYTEBEAT:
+             {
+             int32_t _bytebeat_eqn = get_bytebeat_equation() << 12;
+             int32_t _bytebeat_p0 = get_bytebeat_p0() << 8;
+             int32_t _bytebeat_p1 = get_bytebeat_p1() << 8;
+             int32_t _bytebeat_p2 = get_bytebeat_p2() << 8;
 
-             switch (get_cv_source()) {
-                case ASR_CHANNEL_SOURCE_TURING:
-                  {
-                    int16_t _length = get_turing_length();
-                    int16_t _probability = get_turing_probability();
-                    int16_t _range = get_turing_range();
-    
-                    // _pitch can do other things now -- 
-                    switch (get_turing_CV()) {
-    
-                        case 1:  // LEN, 1-32
-                         _length += ((_pitch + 255) >> 8);
-                         CONSTRAIN(_length, 1, 32);
-                        break;
-                         case 2:  // P
-                         _probability += ((_pitch + 15) >> 4);
-                         CONSTRAIN(_probability, 0, 255);
-                        break;
-                        default: // mult
-                         _range += ((_pitch + 63) >> 6);
-                         CONSTRAIN(_range, 1, 120);
-                        break;
-                    }
-                    
-                    turing_machine_.set_length(_length);
-                    turing_machine_.set_probability(_probability); 
-                    turing_display_length_ = _length;
-                    
-                    uint32_t _shift_register = turing_machine_.Clock();   
-                    // uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
-                    // _pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);  
-  
-                    // Since our range is limited anyway, just grab the last byte for lengths > 8,
-                    // otherwise scale to use bits. And apply the modulus
-                    uint32_t shift = turing_machine_.length();
-                    uint32_t _scaled = (_shift_register & 0xff) * _range;
-                    _scaled = _scaled >> (shift > 7 ? 8 : shift);
-           
-                    // The quantizer uses a lookup codebook with 128 entries centered
-                    // about 0, so we use the range/scaled output to lookup a note
-                    // directly instead of changing to pitch first.
-                    _pitch =
-                        quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
-              
-                  }
-                  break;      
- 
-                case ASR_CHANNEL_SOURCE_BYTEBEAT:
-                 {
-                 int32_t _bytebeat_eqn = get_bytebeat_equation() << 12;
-                 int32_t _bytebeat_p0 = get_bytebeat_p0() << 8;
-                 int32_t _bytebeat_p1 = get_bytebeat_p1() << 8;
-                 int32_t _bytebeat_p2 = get_bytebeat_p2() << 8;
+               // _pitch can do other things now -- 
+              switch (get_bytebeat_CV()) {
 
-                   // _pitch can do other things now -- 
-                  switch (get_bytebeat_CV()) {
-  
-                      case 1:  //  0-15
-                       _bytebeat_eqn += (_pitch << 4);
-                       _bytebeat_eqn = USAT16(_bytebeat_eqn);
-                      break;
-                      case 2:  // P0
-                       _bytebeat_p0 += (_pitch << 4);
-                       _bytebeat_p0 = USAT16(_bytebeat_p0);
-                      break;
-                      case 3:  // P1
-                       _bytebeat_p1 += (_pitch << 4);
-                       _bytebeat_p1 = USAT16(_bytebeat_p1);
-                      break;
-                      case 5:  // P4
-                       _bytebeat_p2 += (_pitch << 4);
-                       _bytebeat_p2 = USAT16(_bytebeat_p2);
-                      break;
-                      default: // mult
-                       _mult += ((_pitch + 255) >> 8);
-                      break;
-                  }
-
-                  bytebeat_.set_equation(_bytebeat_eqn);
-                  bytebeat_.set_p0(_bytebeat_p0);
-                  bytebeat_.set_p0(_bytebeat_p1);
-                  bytebeat_.set_p0(_bytebeat_p2);
-
-                  int32_t _bb = (static_cast<int16_t>(bytebeat_.Clock()) & 0xFFF);
-                   
-                  _pitch = _bb;  
-                 }
-                  break;      
-                case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
-                 {
-                 int16_t _int_seq_index = get_int_seq_index() ;
-                 int16_t _int_seq_modulus = get_int_seq_modulus() ;
-                 int16_t _int_seq_start = get_int_seq_start() ;
-                 int16_t _int_seq_length = get_int_seq_length();
-                 int16_t _fractal_seq_stride = get_fractal_seq_stride();
-                 bool _int_seq_dir = get_int_seq_dir();
-
-                  // _pitch can do other things now -- 
-                  switch (get_int_seq_CV()) {
-  
-                      case 1:  // integer sequence, 0-8
-                       _int_seq_index += ((_pitch + 127) >> 9);
-                       CONSTRAIN(_int_seq_index, 0, 8);
-                      break;
-                       case 2:  // sequence start point, 0-254
-                       _int_seq_start += ((_pitch + 15) >> 8);
-                       CONSTRAIN(_int_seq_start, 0, 254);
-                      break;
-                       case 3:  // sequence loop length, 1-255
-                       _int_seq_length += ((_pitch + 15) >> 8);
-                       CONSTRAIN(_int_seq_length, 1, 255);
-                      break;
-                       case 4:  // fractal sequence stride length, 1-255
-                       _fractal_seq_stride += ((_pitch + 15) >> 8);
-                       CONSTRAIN(_fractal_seq_stride, 1, 255);
-                      break;
-                       case 5:  // fractal sequence modulus
-                       _int_seq_modulus += ((_pitch + 15) >> 9);
-                       CONSTRAIN(_int_seq_modulus, 2, 121);
-                      break;
-                      default: // mult
-                       _mult += ((_pitch + 255) >> 8);
-                      break;
-                  }
-                 
-                  int_seq_.set_loop_start(_int_seq_start);
-                  int_seq_.set_loop_length(_int_seq_length);
-                  int_seq_.set_int_seq(_int_seq_index);
-                  int_seq_.set_int_seq_modulus(_int_seq_modulus);
-                  int_seq_.set_loop_direction(_int_seq_dir);
-                  int_seq_.set_fractal_stride(_fractal_seq_stride);
-
-                  int32_t _is = (static_cast<int16_t>(int_seq_.Clock()) & 0xFFF);
-                  _pitch = _is;  
-                 }
-                  break;      
-
-                  default:
+                  case 1:  //  0-15
+                   _bytebeat_eqn += (_pitch << 4);
+                   _bytebeat_eqn = USAT16(_bytebeat_eqn);
                   break;
-            } 
+                  case 2:  // P0
+                   _bytebeat_p0 += (_pitch << 4);
+                   _bytebeat_p0 = USAT16(_bytebeat_p0);
+                  break;
+                  case 3:  // P1
+                   _bytebeat_p1 += (_pitch << 4);
+                   _bytebeat_p1 = USAT16(_bytebeat_p1);
+                  break;
+                  case 5:  // P4
+                   _bytebeat_p2 += (_pitch << 4);
+                   _bytebeat_p2 = USAT16(_bytebeat_p2);
+                  break;
+                  default: // mult
+                   _mult += ((_pitch + 255) >> 8);
+                  break;
+              }
 
-            CONSTRAIN(_mult, 0, 19);
-             
-            // scale incoming CV
-             if (_mult != 9) {
-               _pitch = signed_multiply_32x16b(multipliers[_mult], _pitch);
-               _pitch = signed_saturate_rshift(_pitch, 16, 0);
+              bytebeat_.set_equation(_bytebeat_eqn);
+              bytebeat_.set_p0(_bytebeat_p0);
+              bytebeat_.set_p0(_bytebeat_p1);
+              bytebeat_.set_p0(_bytebeat_p2);
+
+              int32_t _bb = (static_cast<int16_t>(bytebeat_.Clock()) & 0xFFF);
+               
+              _pitch = _bb;  
              }
+              break;      
+            case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
+             {
+             int16_t _int_seq_index = get_int_seq_index() ;
+             int16_t _int_seq_modulus = get_int_seq_modulus() ;
+             int16_t _int_seq_start = get_int_seq_start() ;
+             int16_t _int_seq_length = get_int_seq_length();
+             int16_t _fractal_seq_stride = get_fractal_seq_stride();
+             bool _int_seq_dir = get_int_seq_dir();
+
+              // _pitch can do other things now -- 
+              switch (get_int_seq_CV()) {
+
+                  case 1:  // integer sequence, 0-8
+                   _int_seq_index += ((_pitch + 127) >> 9);
+                   CONSTRAIN(_int_seq_index, 0, 8);
+                  break;
+                   case 2:  // sequence start point, 0-254
+                   _int_seq_start += ((_pitch + 15) >> 8);
+                   CONSTRAIN(_int_seq_start, 0, 254);
+                  break;
+                   case 3:  // sequence loop length, 1-255
+                   _int_seq_length += ((_pitch + 15) >> 8);
+                   CONSTRAIN(_int_seq_length, 1, 255);
+                  break;
+                   case 4:  // fractal sequence stride length, 1-255
+                   _fractal_seq_stride += ((_pitch + 15) >> 8);
+                   CONSTRAIN(_fractal_seq_stride, 1, 255);
+                  break;
+                   case 5:  // fractal sequence modulus
+                   _int_seq_modulus += ((_pitch + 15) >> 9);
+                   CONSTRAIN(_int_seq_modulus, 2, 121);
+                  break;
+                  default: // mult
+                   _mult += ((_pitch + 255) >> 8);
+                  break;
+              }
              
-             int32_t _quantized = quantizer_.Process(_pitch, _root << 7, TRANSPOSE_FIXED);
+              int_seq_.set_loop_start(_int_seq_start);
+              int_seq_.set_loop_length(_int_seq_length);
+              int_seq_.set_int_seq(_int_seq_index);
+              int_seq_.set_int_seq_modulus(_int_seq_modulus);
+              int_seq_.set_loop_direction(_int_seq_dir);
+              int_seq_.set_fractal_stride(_fractal_seq_stride);
 
-             if (!digitalReadFast(TR3)) 
-                _octave++;
-             else if (!digitalReadFast(TR4)) 
-                _octave--;
+              int32_t _is = (static_cast<int16_t>(int_seq_.Clock()) & 0xFFF);
+              _pitch = _is;  
+             }
+              break;      
 
-             _quantized += (_octave * 12 << 7);
-
-             updateASR_indexed(_ASR, _quantized, _index); 
-         }
-
-        for (int i = 0; i < 4; ++i) {
-          int32_t sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), asr_outputs[i], 0, get_voltage_scaling(i));
-          scrolling_history_[i].Push(sample);
-          OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
+              default:
+              break;
+          } 
         }
+
+         // push sample into ring-buffer or hold: 
+         if (!_freeze_buffer)
+            updateASR_indexed(_ASR, _pitch, _index); 
+         else
+            _hold(_ASR, _index); 
+
+         // get octave offset :
+         if (!digitalReadFast(TR3)) 
+            _octave++;
+         else if (!digitalReadFast(TR4)) 
+            _octave--;
+
+         // limit gain factor.
+         CONSTRAIN(_mult, 0, 19);
+         
+         // quantize:
+         
+         for (int i = 0; i < 4; ++i) {
+
+             int32_t _sample = asr_outputs[i];
+          
+            // scale sample
+             if (_mult != 9) {
+               _sample = signed_multiply_32x16b(multipliers[_mult], _sample);
+               _sample = signed_saturate_rshift(_sample, 16, 0);
+             }
+
+             _sample = quantizer_.Process(_sample, _root << 7, TRANSPOSE_FIXED);
+             _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, get_voltage_scaling(i));
+             scrolling_history_[i].Push(_sample);
+             asr_outputs[i] = _sample;
+         }
+       
+        // write to DAC
+        for (int i = 0; i < 4; ++i) 
+          OC::DAC::set(static_cast<DAC_CHANNEL>(i), asr_outputs[i]);
+        
         MENU_REDRAW = 1;
       }
       for (auto &sh : scrolling_history_)
@@ -703,9 +691,7 @@ private:
   bool force_update_;
   bool scaling_;
   int last_scale_;
-  int last_root_;
   uint16_t last_mask_;
-  uint32_t clocks_cnt_;
   braids::Quantizer quantizer_;
   int32_t asr_outputs[4];  
   ASRbuf *_ASR;
