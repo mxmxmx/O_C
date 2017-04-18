@@ -13,10 +13,9 @@
 
 namespace menu = OC::menu; // Ugh. This works for all .ino files
 
-#define SCALED_ADC(channel, shift) \
-(((OC::ADC::value<channel>() + (0x1 << (shift - 1)) - 1) >> shift))
-
 #define TRANSPOSE_FIXED 0x0
+#define NUM_ASR_CHANNELS 0x4
+#define ASR_MAX_ITEMS 256   // ASR ring buffer size
 
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
@@ -38,7 +37,6 @@ enum ASRSettings {
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
-  ASR_SETTING_TURING_RANGE,
   ASR_SETTING_TURING_CV_SOURCE,
   ASR_SETTING_BYTEBEAT_EQUATION,
   ASR_SETTING_BYTEBEAT_P0,
@@ -52,7 +50,6 @@ enum ASRSettings {
   ASR_SETTING_INT_SEQ_DIR,
   ASR_SETTING_FRACTAL_SEQ_STRIDE,
   ASR_SETTING_INT_SEQ_CV_SOURCE,
-  ASR_SETTING_DUMMY,
   ASR_SETTING_LAST
 };
 
@@ -64,13 +61,9 @@ enum ASRChannelSource {
   ASR_CHANNEL_SOURCE_LAST
 };
 
-#define ASR_MAX_ITEMS 256   // ASR ring buffer size
-
 typedef struct ASRbuf
 {
-    uint8_t     first;
     uint8_t     last;
-    uint8_t     items;
     int32_t data[ASR_MAX_ITEMS];
 
 } ASRbuf;
@@ -141,11 +134,7 @@ public:
   uint8_t get_turing_probability() const {
     return values_[ASR_SETTING_TURING_PROB];
   }
-
-  uint8_t get_turing_range() const {
-    return values_[ASR_SETTING_TURING_RANGE];
-  }
-
+  
   uint8_t get_turing_CV() const {
     return values_[ASR_SETTING_TURING_CV_SOURCE];
   }
@@ -257,17 +246,10 @@ public:
     return values_[ASR_SETTING_VOLTAGE_SCALING_D];
   }
 
-  void pushASR(struct ASRbuf* _ASR, int32_t _sample) {
+  void pushASR(struct ASRbuf* _ASR, int32_t _sample, uint8_t _incr) {
  
-        _ASR->items++;
         _ASR->data[_ASR->last] = _sample;
-        _ASR->last = (_ASR->last+1); 
-  }
-
-  void popASR(struct ASRbuf* _ASR) {
- 
-        _ASR->first = (_ASR->first+1); 
-        _ASR->items--;
+        _ASR->last = (_ASR->last + _incr); 
   }
 
   ASRSettings enabled_setting_at(int index) const {
@@ -293,13 +275,10 @@ public:
     update_scale(true, 0);
 
     _ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
-
-    _ASR->first = 0;
     _ASR->last  = 0;  
-    _ASR->items = 0;
 
     for (int i = 0; i < ASR_MAX_ITEMS; i++) {
-        pushASR(_ASR, 0);    
+        pushASR(_ASR, 0, 0x1);    
     }
 
     clock_display_.Init();
@@ -360,26 +339,24 @@ public:
 
     *settings++ = ASR_SETTING_ROOT;
     *settings++ = ASR_SETTING_MASK;
-    *settings++ = ASR_SETTING_INDEX; 
-    if (get_cv_source() != ASR_CHANNEL_SOURCE_TURING)
-      *settings++ = ASR_SETTING_MULT;
-    else 
-      *settings++ = ASR_SETTING_DUMMY;
+    *settings++ = ASR_SETTING_INDEX;
+    *settings++ = ASR_SETTING_HOLD_SIZE;
     *settings++ = ASR_SETTING_DELAY;
-    
+    *settings++ = ASR_SETTING_MULT;
+ 
     if (scaling_) {
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
     }
+    
     *settings++ = ASR_SETTING_CV_SOURCE;
    
     switch (get_cv_source()) {
       case ASR_CHANNEL_SOURCE_TURING:
         *settings++ = ASR_SETTING_TURING_LENGTH;
         *settings++ = ASR_SETTING_TURING_PROB;
-        *settings++ = ASR_SETTING_TURING_RANGE;
         *settings++ = ASR_SETTING_TURING_CV_SOURCE;
        break;
       case ASR_CHANNEL_SOURCE_BYTEBEAT:
@@ -400,62 +377,42 @@ public:
        break;
      default:
       break;
-    }
-    
-    *settings++ = ASR_SETTING_HOLD_SIZE;
-    
+    } 
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
-  void updateASR_indexed(struct ASRbuf* _ASR, int32_t _s, int16_t _index) {
+  void updateASR_indexed(struct ASRbuf* _ASR, int32_t _sample, int16_t _index, bool _freeze) {
 
-        uint8_t out;
-        int16_t _delay = _index;
+      uint8_t out;
+      int16_t _delay = _index;
+      int32_t _s = _sample; // new old sample 
+      uint8_t _incr = 0x1;
+
+      if (_freeze) {
         
-        popASR(_ASR);            // remove sample (oldest) 
-        pushASR(_ASR, _s);       // push new sample into buffer (last) 
-            
-        out  = (_ASR->last)-1;
-        out -= _delay;
-        asr_outputs[0] = _ASR->data[out--];
-        out -= _delay;
-        asr_outputs[1] = _ASR->data[out--];
-        out -= _delay;
-        asr_outputs[2] = _ASR->data[out--];
-        out -= _delay;
-        asr_outputs[3] = _ASR->data[out--];
+        // increment for ring-buffer:
+        _incr = _delay + 0x1;
+        // get index:
+        out = (_ASR->last) - _incr * get_buffer_length();
+        // ... and corresponding sample:
+        _s = _ASR->data[out];
+      }
+      
+      // push new sample into buffer:
+      pushASR(_ASR, _s, _incr);   
+          
+      out  = (_ASR->last)-1;
+      out -= _delay;
+      asr_outputs[0] = _ASR->data[out--];
+      out -= _delay;
+      asr_outputs[1] = _ASR->data[out--];
+      out -= _delay;
+      asr_outputs[2] = _ASR->data[out--];
+      out -= _delay;
+      asr_outputs[3] = _ASR->data[out--];
   }
 
-  void _hold(struct ASRbuf* _ASR, int16_t _index) {
-
-        uint8_t out;
-        int16_t _delay = _index;
-        int32_t _s; // new old sample   
-          
-        // get index:
-        out = (_ASR->last) - (_delay + 1) * get_buffer_length();
-        // and corresponding sample
-        _s = _ASR->data[out];
-      
-        popASR(_ASR);            // remove sample (oldest) 
-        pushASR(_ASR, _s);       // push new sample into buffer (last) 
-        
-        out  = (_ASR->last)-1;
-        out -= _delay;
-        asr_outputs[0] = _ASR->data[out--];
-        out -= _delay;
-        asr_outputs[1] = _ASR->data[out--];
-        out -= _delay;
-        asr_outputs[2] = _ASR->data[out--];
-        out -= _delay;
-        asr_outputs[3] = _ASR->data[out--];  
-    }  
-
   inline void update() {
-
-     bool forced_update = force_update_;
-     force_update_ = false;
-     update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
 
      bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
      clock_display_.Update(1, update);
@@ -470,27 +427,29 @@ public:
       if (update) {        
 
          bool _freeze_buffer = !digitalReadFast(TR2);
-   
          int8_t _root  = get_root();
-         int8_t _index = get_index() + SCALED_ADC(ADC_CHANNEL_2, 5);
-         int8_t  _octave =  SCALED_ADC(ADC_CHANNEL_4, 9) + get_octave();
-         int8_t _mult    =  get_mult();
-         int32_t _pitch  = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
+         int8_t _index = get_index() + ((OC::ADC::value<ADC_CHANNEL_2>() + 31) >> 6);
+         int8_t _octave = get_octave() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+         int8_t _mult = get_mult();
+         int32_t _pitch = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
-          
+         bool forced_update = force_update_;
+         force_update_ = false;
+         update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
+
+         // use built in CV sources? 
          if (!_freeze_buffer) {
-         
-         switch (get_cv_source()) {
           
+           switch (get_cv_source()) {
+  
             case ASR_CHANNEL_SOURCE_TURING:
               {
                 int16_t _length = get_turing_length();
                 int16_t _probability = get_turing_probability();
-                int16_t _range = get_turing_range();
-
+  
                 // _pitch can do other things now -- 
                 switch (get_turing_CV()) {
-
+  
                     case 1:  // LEN, 1-32
                      _length += ((_pitch + 255) >> 8);
                      CONSTRAIN(_length, 1, 32);
@@ -500,8 +459,7 @@ public:
                      CONSTRAIN(_probability, 0, 255);
                     break;
                     default: // mult
-                     _range += ((_pitch + 63) >> 6);
-                     CONSTRAIN(_range, 1, 120);
+                     _mult += ((_pitch + 255) >> 8);
                     break;
                 }
                 
@@ -509,78 +467,66 @@ public:
                 turing_machine_.set_probability(_probability); 
                 turing_display_length_ = _length;
                 
-                uint32_t _shift_register = turing_machine_.Clock();   
-                // uint32_t _scaled = ((_shift_register & 0xff) * _range) >> 8;
-                // _pitch = quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);  
-
-                // Since our range is limited anyway, just grab the last byte for lengths > 8,
-                // otherwise scale to use bits. And apply the modulus
-                uint32_t shift = turing_machine_.length();
-                uint32_t _scaled = (_shift_register & 0xff) * _range;
-                _scaled = _scaled >> (shift > 7 ? 8 : shift);
-       
-                // The quantizer uses a lookup codebook with 128 entries centered
-                // about 0, so we use the range/scaled output to lookup a note
-                // directly instead of changing to pitch first.
-                _pitch =
-                    quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
-          
+                _pitch = turing_machine_.Clock();
+                // scale LFSR output
+                if (_length < 12) {
+                  _pitch = _pitch << (12 -_length);
+                  _pitch &= 0xFFF;
+                }
               }
-              break;      
-
-            case ASR_CHANNEL_SOURCE_BYTEBEAT:
+              break; 
+              case ASR_CHANNEL_SOURCE_BYTEBEAT:
              {
-             int32_t _bytebeat_eqn = get_bytebeat_equation() << 12;
-             int32_t _bytebeat_p0 = get_bytebeat_p0() << 8;
-             int32_t _bytebeat_p1 = get_bytebeat_p1() << 8;
-             int32_t _bytebeat_p2 = get_bytebeat_p2() << 8;
-
+               int32_t _bytebeat_eqn = get_bytebeat_equation() << 12;
+               int32_t _bytebeat_p0 = get_bytebeat_p0() << 8;
+               int32_t _bytebeat_p1 = get_bytebeat_p1() << 8;
+               int32_t _bytebeat_p2 = get_bytebeat_p2() << 8;
+    
+                 // _pitch can do other things now -- 
+                switch (get_bytebeat_CV()) {
+    
+                    case 1:  //  0-15
+                     _bytebeat_eqn += (_pitch << 4);
+                     _bytebeat_eqn = USAT16(_bytebeat_eqn);
+                    break;
+                    case 2:  // P0
+                     _bytebeat_p0 += (_pitch << 4);
+                     _bytebeat_p0 = USAT16(_bytebeat_p0);
+                    break;
+                    case 3:  // P1
+                     _bytebeat_p1 += (_pitch << 4);
+                     _bytebeat_p1 = USAT16(_bytebeat_p1);
+                    break;
+                    case 5:  // P4
+                     _bytebeat_p2 += (_pitch << 4);
+                     _bytebeat_p2 = USAT16(_bytebeat_p2);
+                    break;
+                    default: // mult
+                     _mult += ((_pitch + 255) >> 8);
+                    break;
+                }
+    
+                bytebeat_.set_equation(_bytebeat_eqn);
+                bytebeat_.set_p0(_bytebeat_p0);
+                bytebeat_.set_p0(_bytebeat_p1);
+                bytebeat_.set_p0(_bytebeat_p2);
+    
+                int32_t _bb = (static_cast<int16_t>(bytebeat_.Clock()) & 0xFFF);
+                _pitch = _bb;  
+              }
+              break;
+              case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
+             {
+               int16_t _int_seq_index = get_int_seq_index() ;
+               int16_t _int_seq_modulus = get_int_seq_modulus() ;
+               int16_t _int_seq_start = get_int_seq_start() ;
+               int16_t _int_seq_length = get_int_seq_length();
+               int16_t _fractal_seq_stride = get_fractal_seq_stride();
+               bool _int_seq_dir = get_int_seq_dir();
+  
                // _pitch can do other things now -- 
-              switch (get_bytebeat_CV()) {
-
-                  case 1:  //  0-15
-                   _bytebeat_eqn += (_pitch << 4);
-                   _bytebeat_eqn = USAT16(_bytebeat_eqn);
-                  break;
-                  case 2:  // P0
-                   _bytebeat_p0 += (_pitch << 4);
-                   _bytebeat_p0 = USAT16(_bytebeat_p0);
-                  break;
-                  case 3:  // P1
-                   _bytebeat_p1 += (_pitch << 4);
-                   _bytebeat_p1 = USAT16(_bytebeat_p1);
-                  break;
-                  case 5:  // P4
-                   _bytebeat_p2 += (_pitch << 4);
-                   _bytebeat_p2 = USAT16(_bytebeat_p2);
-                  break;
-                  default: // mult
-                   _mult += ((_pitch + 255) >> 8);
-                  break;
-              }
-
-              bytebeat_.set_equation(_bytebeat_eqn);
-              bytebeat_.set_p0(_bytebeat_p0);
-              bytebeat_.set_p0(_bytebeat_p1);
-              bytebeat_.set_p0(_bytebeat_p2);
-
-              int32_t _bb = (static_cast<int16_t>(bytebeat_.Clock()) & 0xFFF);
-               
-              _pitch = _bb;  
-             }
-              break;      
-            case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
-             {
-             int16_t _int_seq_index = get_int_seq_index() ;
-             int16_t _int_seq_modulus = get_int_seq_modulus() ;
-             int16_t _int_seq_start = get_int_seq_start() ;
-             int16_t _int_seq_length = get_int_seq_length();
-             int16_t _fractal_seq_stride = get_fractal_seq_stride();
-             bool _int_seq_dir = get_int_seq_dir();
-
-              // _pitch can do other things now -- 
-              switch (get_int_seq_CV()) {
-
+               switch (get_int_seq_CV()) {
+  
                   case 1:  // integer sequence, 0-8
                    _int_seq_index += ((_pitch + 127) >> 9);
                    CONSTRAIN(_int_seq_index, 0, 8);
@@ -604,43 +550,58 @@ public:
                   default: // mult
                    _mult += ((_pitch + 255) >> 8);
                   break;
-              }
+                }
              
-              int_seq_.set_loop_start(_int_seq_start);
-              int_seq_.set_loop_length(_int_seq_length);
-              int_seq_.set_int_seq(_int_seq_index);
-              int_seq_.set_int_seq_modulus(_int_seq_modulus);
-              int_seq_.set_loop_direction(_int_seq_dir);
-              int_seq_.set_fractal_stride(_fractal_seq_stride);
-
-              int32_t _is = (static_cast<int16_t>(int_seq_.Clock()) & 0xFFF);
-              _pitch = _is;  
-             }
+                int_seq_.set_loop_start(_int_seq_start);
+                int_seq_.set_loop_length(_int_seq_length);
+                int_seq_.set_int_seq(_int_seq_index);
+                int_seq_.set_int_seq_modulus(_int_seq_modulus);
+                int_seq_.set_loop_direction(_int_seq_dir);
+                int_seq_.set_fractal_stride(_fractal_seq_stride);
+    
+                int32_t _is = (static_cast<int16_t>(int_seq_.Clock()) & 0xFFF);
+                _pitch = _is;  
+              }
               break;      
-
+              default:
+              break;     
+           }
+         }
+         else {
+          // we hold, so we only need the multiplication CV:
+            switch (get_cv_source()) {
+    
+              case ASR_CHANNEL_SOURCE_TURING:
+                if (get_turing_CV() == 0x0)
+                  _mult += ((_pitch + 255) >> 8);
+              break;
+              case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
+                if (get_int_seq_CV() == 0x0)
+                  _mult += ((_pitch + 255) >> 8);
+              break;
+              case ASR_CHANNEL_SOURCE_BYTEBEAT:
+                if (get_bytebeat_CV() == 0x0)
+                  _mult += ((_pitch + 255) >> 8);
+              break;
               default:
               break;
-          } 
-        }
-
+           }
+         }
+         // limit gain factor.
+         CONSTRAIN(_mult, 0, 19);
+         // .. and index
+         CONSTRAIN(_index, 0, 63);
          // push sample into ring-buffer or hold: 
-         if (!_freeze_buffer)
-            updateASR_indexed(_ASR, _pitch, _index); 
-         else
-            _hold(_ASR, _index); 
+         updateASR_indexed(_ASR, _pitch, _index, _freeze_buffer); 
 
          // get octave offset :
          if (!digitalReadFast(TR3)) 
             _octave++;
          else if (!digitalReadFast(TR4)) 
             _octave--;
-
-         // limit gain factor.
-         CONSTRAIN(_mult, 0, 19);
          
-         // quantize:
-         
-         for (int i = 0; i < 4; ++i) {
+         // quantize buffer outputs:
+         for (int i = 0; i < NUM_ASR_CHANNELS; ++i) {
 
              int32_t _sample = asr_outputs[i];
           
@@ -656,8 +617,8 @@ public:
              asr_outputs[i] = _sample;
          }
        
-        // write to DAC
-        for (int i = 0; i < 4; ++i) 
+        // ... and write to DAC
+        for (int i = 0; i < NUM_ASR_CHANNELS; ++i) 
           OC::DAC::set(static_cast<DAC_CHANNEL>(i), asr_outputs[i]);
         
         MENU_REDRAW = 1;
@@ -732,7 +693,6 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 15, 1, 120, "> LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
@@ -745,8 +705,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 0, "--", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY  
+  { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }
 };
 
 /* -------------------------------------------------------------------*/
@@ -914,8 +873,6 @@ void ASR_rightButton() {
           asr_state.scale_editor.Edit(&asr, scale);
         }
       break;
-      case ASR_SETTING_DUMMY:
-      break;
       default:
         asr_state.cursor.toggle_editing();
       break;
@@ -988,9 +945,6 @@ void ASR_menu() {
        } else
        list_item.DrawDefault(value, attr);
       break;
-      case ASR_SETTING_DUMMY:
-      list_item.DrawNoValue<false>(value, attr);
-      break;
       default:
       list_item.DrawDefault(value, attr);
       break;
@@ -1011,7 +965,7 @@ void ASR_screensaver() {
 // Normalize history to within one octave? That would make steps more visisble for small ranges
 // "Zoomed view" to fit range of history...
 
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < NUM_ASR_CHANNELS; ++i) {
     asr.history(i).Read(channel_history);
     uint32_t scroll_pos = asr.history(i).get_scroll_pos() >> 5;
     
