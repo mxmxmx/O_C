@@ -418,7 +418,6 @@ public:
       uint8_t _incr = 0x1;
 
       if (_freeze) {
-        
         // increment for ring-buffer:
         _incr = _delay + 0x1;
         // get index:
@@ -480,15 +479,15 @@ public:
                 switch (get_turing_CV()) {
   
                     case 1:  // LEN, 1-32
-                     _length += ((_pitch + 255) >> 8);
+                     _length += ((_pitch + 255) >> 9);
                      CONSTRAIN(_length, 1, 32);
                     break;
                      case 2:  // P
-                     _probability += ((_pitch + 15) >> 4);
+                     _probability += ((_pitch + 7) >> 4);
                      CONSTRAIN(_probability, 0, 255);
                     break;
                     default: // mult
-                     _mult += ((_pitch + 255) >> 8);
+                     _mult += ((_pitch + 255) >> 9);
                     break;
                 }
                 
@@ -531,7 +530,7 @@ public:
                      _bytebeat_p2 = USAT16(_bytebeat_p2);
                     break;
                     default: // mult
-                     _mult += ((_pitch + 255) >> 8);
+                     _mult += ((_pitch + 255) >> 9);
                     break;
                 }
     
@@ -557,23 +556,23 @@ public:
                switch (get_int_seq_CV()) {
   
                   case 1:  // integer sequence, 0-8
-                   _int_seq_index += ((_pitch + 127) >> 9);
+                   _int_seq_index += ((_pitch + 255) >> 9);
                    CONSTRAIN(_int_seq_index, 0, 8);
                   break;
                    case 2:  // sequence start point, 0-254
-                   _int_seq_start += ((_pitch + 15) >> 8);
+                   _int_seq_start += ((_pitch + 7) >> 4);
                    CONSTRAIN(_int_seq_start, 0, 254);
                   break;
                    case 3:  // sequence loop length, 1-255
-                   _int_seq_length += ((_pitch + 15) >> 8);
+                   _int_seq_length += ((_pitch + 7) >> 4);
                    CONSTRAIN(_int_seq_length, 1, 255);
                   break;
                    case 4:  // fractal sequence stride length, 1-255
-                   _fractal_seq_stride += ((_pitch + 15) >> 8);
+                   _fractal_seq_stride += ((_pitch + 7) >> 4);
                    CONSTRAIN(_fractal_seq_stride, 1, 255);
                   break;
                    case 5:  // fractal sequence modulus
-                   _int_seq_modulus += ((_pitch + 15) >> 9);
+                   _int_seq_modulus += ((_pitch + 15) >> 5);
                    CONSTRAIN(_int_seq_modulus, 2, 121);
                   break;
                   default: // mult
@@ -602,15 +601,15 @@ public:
     
               case ASR_CHANNEL_SOURCE_TURING:
                 if (get_turing_CV() == 0x0)
-                  _mult += ((_pitch + 255) >> 8);
+                  _mult += ((_pitch + 255) >> 9);
               break;
               case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
                 if (get_int_seq_CV() == 0x0)
-                  _mult += ((_pitch + 255) >> 8);
+                  _mult += ((_pitch + 255) >> 9);
               break;
               case ASR_CHANNEL_SOURCE_BYTEBEAT:
                 if (get_bytebeat_CV() == 0x0)
-                  _mult += ((_pitch + 255) >> 8);
+                  _mult += ((_pitch + 255) >> 9);
               break;
               default:
               break;
