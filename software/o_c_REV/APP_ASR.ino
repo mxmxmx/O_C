@@ -30,6 +30,7 @@ enum ASRSettings {
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
+  ASR_SETTING_HOLD_SIZE,
   ASR_SETTING_VOLTAGE_SCALING_A,
   ASR_SETTING_VOLTAGE_SCALING_B,
   ASR_SETTING_VOLTAGE_SCALING_C,
@@ -86,6 +87,10 @@ public:
     return 0;
   }
 
+  uint8_t get_buffer_length() const {
+    return values_[ASR_SETTING_HOLD_SIZE];
+  }
+  
   void set_scale(int scale) {
     if (scale != get_scale(DUMMY)) {
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
@@ -261,7 +266,7 @@ public:
 
   void popASR(struct ASRbuf* _ASR) {
  
-        _ASR->first=(_ASR->first+1); 
+        _ASR->first = (_ASR->first+1); 
         _ASR->items--;
   }
 
@@ -375,7 +380,6 @@ public:
     }
     *settings++ = ASR_SETTING_CV_SOURCE;
    
- 
     switch (get_cv_source()) {
       case ASR_CHANNEL_SOURCE_TURING:
         *settings++ = ASR_SETTING_TURING_LENGTH;
@@ -403,6 +407,8 @@ public:
       break;
     }
     
+    *settings++ = ASR_SETTING_HOLD_SIZE;
+    
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -411,7 +417,7 @@ public:
         uint8_t out;
         uint16_t _clocks = clocks_cnt_;
         int16_t _delay = _index;
-        int16_t _max_delay = _clocks>>2; 
+        int16_t _max_delay = _clocks >> 2; 
         
         popASR(_ASR);            // remove sample (oldest) 
         pushASR(_ASR, _s);       // push new sample into buffer (last) 
@@ -432,31 +438,34 @@ public:
   }
 
   void _hold(struct ASRbuf* _ASR, int16_t _index) {
-  
-        uint8_t out, _hold[4];
-        int16_t _clocks = clocks_cnt_;
+
+        uint8_t out;
+        uint16_t _clocks = clocks_cnt_;
         int16_t _delay = _index;
-        int16_t _max_delay = _clocks>>2; 
+        int16_t _max_delay = _clocks >> 2;
+        int32_t _s; // new old sample
 
         // don't mix up scales 
         if (_delay < 0) _delay = 0;
         else if (_delay > _max_delay) _delay = _max_delay;       
+          
+        // get index:
+        out = (_ASR->last) - (_delay + 1) * get_buffer_length();
+        // and corresponding sample
+        _s = _ASR->data[out];
       
+        popASR(_ASR);            // remove sample (oldest) 
+        pushASR(_ASR, _s);       // push new sample into buffer (last) 
+        
         out  = (_ASR->last)-1;
-        _hold[0] = out -= _delay;
+        out -= _delay;
         asr_outputs[0] = _ASR->data[out--];
-        _hold[1] = out -= _delay;
+        out -= _delay;
         asr_outputs[1] = _ASR->data[out--];
-        _hold[2] = out -= _delay;
+        out -= _delay;
         asr_outputs[2] = _ASR->data[out--];
-        _hold[3] = out -= _delay;
+        out -= _delay;
         asr_outputs[3] = _ASR->data[out--];
-
-        // hold :
-        _ASR->data[_hold[0]] = asr_outputs[3];  
-        _ASR->data[_hold[1]] = asr_outputs[0];
-        _ASR->data[_hold[2]] = asr_outputs[1];
-        _ASR->data[_hold[3]] = asr_outputs[2];
 
         // octave up/down
         int _offset = 0;
@@ -469,7 +478,7 @@ public:
           _offset = _offset * 12 << 7;
           for (int i = 0; i < 4; i++)
             asr_outputs[i] += _offset;
-        }       
+        }      
     }  
 
   inline void update() {
@@ -643,7 +652,6 @@ public:
                   int_seq_.set_fractal_stride(_fractal_seq_stride);
 
                   int32_t _is = (static_cast<int16_t>(int_seq_.Clock()) & 0xFFF);
-                   
                   _pitch = _is;  
                  }
                   break;      
@@ -677,10 +685,8 @@ public:
           scrolling_history_[i].Push(sample);
           OC::DAC::set(static_cast<DAC_CHANNEL>(i), sample);
         }
-        
         MENU_REDRAW = 1;
       }
-
       for (auto &sh : scrolling_history_)
         sh.Update();
   }
@@ -743,8 +749,9 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
-  { 9, 0, 19, "s.gain", mult, settings::STORAGE_TYPE_U8 },
+  { 9, 0, 19, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 4, 4, 63, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
