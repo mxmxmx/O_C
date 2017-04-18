@@ -138,7 +138,7 @@ void ChordEditor<Owner>::Draw() {
     if (active && extra_slots > 0x0) {
       x += 5;
       indicator -= max_chords;
-      for (size_t i = 0; i < extra_slots; ++i, x += 10) {
+      for (size_t i = 0; i < (uint8_t)extra_slots; ++i, x += 10) {
         if (i == indicator)
           graphics.drawRect(x, y + 2, 6, 6);
         else

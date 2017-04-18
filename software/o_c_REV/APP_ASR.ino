@@ -68,6 +68,30 @@ typedef struct ASRbuf
 
 } ASRbuf;
 
+// ring buffer:
+ASRbuf _asr[] = 
+
+  {0, 
+    { 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
+    }
+};
+//
+
 class ASR : public settings::SettingsBase<ASR, ASR_SETTING_LAST> {
 public:
   static constexpr size_t kHistoryDepth = 5;
@@ -274,13 +298,18 @@ public:
     quantizer_.Init();
     update_scale(true, 0);
 
+    // asr (RAM) -- 
+    _ASR = _asr;
+    
+    // gcc 5.4 doesn't like malloc, so ... 
+    /*
     _ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
-    _ASR->last  = 0;  
-
+    _ASR->last = 0;  
     for (int i = 0; i < ASR_MAX_ITEMS; i++) {
         pushASR(_ASR, 0, 0x1);    
     }
-
+    */
+    
     clock_display_.Init();
     for (auto &sh : scrolling_history_)
       sh.Init();
