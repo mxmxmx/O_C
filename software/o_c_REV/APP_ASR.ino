@@ -37,6 +37,7 @@ enum ASRSettings {
   ASR_SETTING_VOLTAGE_SCALING_C,
   ASR_SETTING_VOLTAGE_SCALING_D,
   ASR_SETTING_CV_SOURCE,
+  ASR_SETTING_CV4_DESTINATION,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
   ASR_SETTING_TURING_CV_SOURCE,
@@ -61,6 +62,14 @@ enum ASRChannelSource {
   ASR_CHANNEL_SOURCE_BYTEBEAT,
   ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES,
   ASR_CHANNEL_SOURCE_LAST
+};
+
+enum ASR_CV4_DEST {
+  ASR_DEST_OCTAVE,
+  ASR_DEST_ROOT,
+  ASR_DEST_TRANSPOSE,
+  ASR_DEST_BUFLEN,
+  ASR_DEST_LAST
 };
 
 typedef int16_t ASR_pitch;
@@ -123,6 +132,10 @@ public:
 
   int get_cv_source() const {
     return values_[ASR_SETTING_CV_SOURCE];
+  }
+
+  uint8_t get_cv4_destination() const {
+    return values_[ASR_SETTING_CV4_DESTINATION];
   }
 
   uint8_t get_turing_length() const {
@@ -357,7 +370,8 @@ public:
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
     }
-    
+
+    *settings++ = ASR_SETTING_CV4_DESTINATION;
     *settings++ = ASR_SETTING_CV_SOURCE;
    
     switch (get_cv_source()) {
@@ -392,8 +406,15 @@ public:
     
       int16_t _delay = _index, _offset;
 
-      if (_freeze)
-        _ASR.Freeze(get_buffer_length());
+      if (_freeze) {
+
+        int8_t _buflen = get_buffer_length();
+        if (get_cv4_destination() == ASR_DEST_BUFLEN) {
+          _buflen += ((OC::ADC::value<ADC_CHANNEL_4>() + 31) >> 6);
+          CONSTRAIN(_buflen, 0, ASR_HOLD_BUF_SIZE - 1);
+        }
+        _ASR.Freeze(_buflen);
+      }
       else
         _ASR.Write(_sample);
       
@@ -428,13 +449,33 @@ public:
          bool _freeze_buffer, _freeze = digitalReadFast(TR2);
          int8_t _root  = get_root();
          int8_t _index = get_index() + ((OC::ADC::value<ADC_CHANNEL_2>() + 31) >> 6);
-         int8_t _octave = get_octave() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
+         int8_t _octave = get_octave();
+         int8_t _transpose = TRANSPOSE_FIXED;
          int8_t _mult = get_mult();
          int32_t _pitch = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
          bool forced_update = force_update_;
          force_update_ = false;
          update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
+
+         // cv4 destination, defaults to octave:
+         switch(get_cv4_destination()) {
+
+            case ASR_DEST_OCTAVE:
+              _octave += (OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9;
+            break;
+            case ASR_DEST_ROOT:
+              _root += (OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8;
+              CONSTRAIN(_root, 0, 11);
+            break;
+            case ASR_DEST_TRANSPOSE:
+              _transpose += (OC::ADC::value<ADC_CHANNEL_4>() + 63) >> 7;
+              CONSTRAIN(_transpose, -12, 12); 
+            break;
+            // CV for buffer length happens in updateASR_indexed
+            default:
+            break;
+         }
          
          // freeze ? 
          if (_freeze < TR2_state_)
@@ -620,7 +661,7 @@ public:
                _sample = signed_saturate_rshift(_sample, 16, 0);
              }
 
-             _sample = quantizer_.Process(_sample, _root << 7, TRANSPOSE_FIXED);
+             _sample = quantizer_.Process(_sample, _root << 7, _transpose);
              _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, get_voltage_scaling(i));
              scrolling_history_[i].Push(_sample);
              asr_outputs[i] = _sample;
@@ -675,6 +716,11 @@ const char* const asr_input_sources[] = {
   "CV1", "TM", "ByteB", "IntSq"
 };
 
+const char* const asr_cv4_destinations[] = {
+  "oct", "root", "trns", "buf.l"
+};
+
+
 const char* const tm_CV_destinations[] = {
   "rng", "len", "p"
 };
@@ -694,15 +740,16 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
-  { 0, 0, 63, "buf.index", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, 0, ASR_HOLD_BUF_SIZE - 1, "buf.index", NULL, settings::STORAGE_TYPE_U8 },
   { 9, 0, 19, "input gain", mult, settings::STORAGE_TYPE_U8 },
-  { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, ASR_CHANNEL_SOURCE_LAST -1 , "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, ASR_CHANNEL_SOURCE_LAST -1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
@@ -792,7 +839,6 @@ void ASR_loop() {
 void ASR_isr() {
   asr.update();
 }
-
 
 void ASR_handleButtonEvent(const UI::Event &event) {
   if (asr_state.scale_editor.active()) {
