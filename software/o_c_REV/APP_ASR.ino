@@ -411,7 +411,7 @@ public:
         int8_t _buflen = get_buffer_length();
         if (get_cv4_destination() == ASR_DEST_BUFLEN) {
           _buflen += ((OC::ADC::value<ADC_CHANNEL_4>() + 31) >> 6);
-          CONSTRAIN(_buflen, 0, ASR_HOLD_BUF_SIZE - 1);
+          CONSTRAIN(_buflen, 0x4, ASR_HOLD_BUF_SIZE - 1);
         }
         _ASR.Freeze(_buflen);
       }
