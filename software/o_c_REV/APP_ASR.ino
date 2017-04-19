@@ -1,6 +1,7 @@
 #include "util/util_settings.h"
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
+#include "util/util_ringbuffer.h"
 #include "peaks_bytebeat.h"
 #include "util/util_integer_sequences.h"
 #include "OC_DAC.h"
@@ -15,7 +16,8 @@ namespace menu = OC::menu; // Ugh. This works for all .ino files
 
 #define TRANSPOSE_FIXED 0x0
 #define NUM_ASR_CHANNELS 0x4
-#define ASR_MAX_ITEMS 256   // ASR ring buffer size
+#define ASR_MAX_ITEMS 256     // ASR ring buffer size
+#define ASR_HOLD_BUF_SIZE ASR_MAX_ITEMS / NUM_ASR_CHANNELS // max. delay size 
 
 // CV input gain multipliers 
 const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
@@ -61,36 +63,7 @@ enum ASRChannelSource {
   ASR_CHANNEL_SOURCE_LAST
 };
 
-typedef struct ASRbuf
-{
-    uint8_t     last;
-    int32_t data[ASR_MAX_ITEMS];
-
-} ASRbuf;
-
-// ring buffer:
-ASRbuf _asr[] = 
-
-  {0, 
-    { 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
-      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0
-    }
-};
-//
+typedef int16_t ASR_pitch;
 
 class ASR : public settings::SettingsBase<ASR, ASR_SETTING_LAST> {
 public:
@@ -137,6 +110,11 @@ public:
 
   int get_octave() const {
     return values_[ASR_SETTING_OCTAVE];
+  }
+
+  bool octave_toggle() {
+    octave_toggle_ = (~octave_toggle_) & 1u;
+    return octave_toggle_;
   }
 
   int get_mult() const {
@@ -270,10 +248,16 @@ public:
     return values_[ASR_SETTING_VOLTAGE_SCALING_D];
   }
 
-  void pushASR(struct ASRbuf* _ASR, int32_t _sample, uint8_t _incr) {
- 
-        _ASR->data[_ASR->last] = _sample;
-        _ASR->last = (_ASR->last + _incr); 
+  void toggle_delay_mechanics() {
+    delay_type_ = (~delay_type_) & 1u;
+  }
+
+  void manual_freeze() {
+    freeze_buffer_ = (~freeze_buffer_) & 1u;
+  }
+
+  bool freeze_state() {
+    return freeze_buffer_;
   }
 
   ASRSettings enabled_setting_at(int index) const {
@@ -292,24 +276,17 @@ public:
     #else
       scaling_ = false;
     #endif
-    last_scale_ = -1;
+    last_scale_ = -0x1;
+    delay_type_ = false;
+    octave_toggle_ = false;
+    freeze_buffer_ = false;
+    TR2_state_ = 0x1;
     set_scale(OC::Scales::SCALE_SEMI);
-    last_mask_ = 0;
+    last_mask_ = 0x0;
     quantizer_.Init();
-    update_scale(true, 0);
+    update_scale(true, 0x0);
 
-    // asr (RAM) -- 
-    _ASR = _asr;
-    
-    // gcc 5.4 doesn't like malloc, so ... 
-    /*
-    _ASR = (ASRbuf*)malloc(sizeof(ASRbuf));
-    _ASR->last = 0;  
-    for (int i = 0; i < ASR_MAX_ITEMS; i++) {
-        pushASR(_ASR, 0, 0x1);    
-    }
-    */
-    
+    _ASR.Init();
     clock_display_.Init();
     for (auto &sh : scrolling_history_)
       sh.Init();
@@ -368,6 +345,7 @@ public:
 
     *settings++ = ASR_SETTING_ROOT;
     *settings++ = ASR_SETTING_MASK;
+    *settings++ = ASR_SETTING_OCTAVE;
     *settings++ = ASR_SETTING_INDEX;
     *settings++ = ASR_SETTING_HOLD_SIZE;
     *settings++ = ASR_SETTING_DELAY;
@@ -410,34 +388,28 @@ public:
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
-  void updateASR_indexed(struct ASRbuf* _ASR, int32_t _sample, int16_t _index, bool _freeze) {
+  //void updateASR_indexed(struct ASRbuf* _ASR, int32_t _sample, int16_t _index, bool _freeze) {
+  void updateASR_indexed(int32_t _sample, int16_t _index, bool _freeze) {
+    
+      int16_t _delay = _index, _offset;
 
-      uint8_t out;
-      int16_t _delay = _index;
-      int32_t _s = _sample; // new old sample 
-      uint8_t _incr = 0x1;
-
-      if (_freeze) {
-        // increment for ring-buffer:
-        _incr = _delay + 0x1;
-        // get index:
-        out = (_ASR->last) - _incr * get_buffer_length();
-        // ... and corresponding sample:
-        _s = _ASR->data[out];
-      }
+      if (_freeze)
+        _ASR.Freeze(get_buffer_length());
+      else
+        _ASR.Write(_sample);
       
-      // push new sample into buffer:
-      pushASR(_ASR, _s, _incr);   
-          
-      out  = (_ASR->last)-1;
-      out -= _delay;
-      asr_outputs[0] = _ASR->data[out--];
-      out -= _delay;
-      asr_outputs[1] = _ASR->data[out--];
-      out -= _delay;
-      asr_outputs[2] = _ASR->data[out--];
-      out -= _delay;
-      asr_outputs[3] = _ASR->data[out--];
+      // update outputs:
+      _offset = _delay;
+      asr_outputs[0] = _ASR.Poke(_offset++);
+      // delay mechanics ... 
+      _delay = delay_type_ ? 0x0 : _delay;
+      // continue updating
+      _offset +=_delay;
+      asr_outputs[1] = _ASR.Poke(_offset++);
+      _offset +=_delay;
+      asr_outputs[2] = _ASR.Poke(_offset++);
+      _offset +=_delay;
+      asr_outputs[3] = _ASR.Poke(_offset++);
   }
 
   inline void update() {
@@ -454,7 +426,7 @@ public:
 
       if (update) {        
 
-         bool _freeze_buffer = !digitalReadFast(TR2);
+         bool _freeze_buffer, _freeze = digitalReadFast(TR2);
          int8_t _root  = get_root();
          int8_t _index = get_index() + ((OC::ADC::value<ADC_CHANNEL_2>() + 31) >> 6);
          int8_t _octave = get_octave() + ((OC::ADC::value<ADC_CHANNEL_4>() + 255) >> 9);
@@ -464,6 +436,16 @@ public:
          bool forced_update = force_update_;
          force_update_ = false;
          update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
+         
+         // freeze ? 
+         if (_freeze < TR2_state_)
+            freeze_buffer_ = true;
+         else if (_freeze > TR2_state_) {
+            freeze_buffer_ = false;
+         }
+         TR2_state_ = _freeze;
+         // 
+         _freeze_buffer = freeze_buffer_;
 
          // use built in CV sources? 
          if (!_freeze_buffer) {
@@ -620,7 +602,8 @@ public:
          // .. and index
          CONSTRAIN(_index, 0, 63);
          // push sample into ring-buffer or hold: 
-         updateASR_indexed(_ASR, _pitch, _index, _freeze_buffer); 
+         //updateASR_indexed(_ASR, _pitch, _index, _freeze_buffer); 
+         updateASR_indexed(_pitch, _index, _freeze_buffer); 
 
          // get octave offset :
          if (!digitalReadFast(TR3)) 
@@ -666,19 +649,22 @@ public:
 private:
   bool force_update_;
   bool scaling_;
+  bool delay_type_;
+  bool octave_toggle_;
+  bool freeze_buffer_;
+  int8_t TR2_state_;
   int last_scale_;
   uint16_t last_mask_;
   braids::Quantizer quantizer_;
-  int32_t asr_outputs[4];  
-  ASRbuf *_ASR;
   OC::DigitalInputDisplay clock_display_;
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
+  int32_t asr_outputs[NUM_ASR_CHANNELS];  
+  util::RingBuffer<ASR_pitch, ASR_MAX_ITEMS> _ASR;
   int8_t turing_display_length_;
   peaks::ByteBeat bytebeat_ ;
   util::IntegerSequence int_seq_ ;
-  OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
-
+  OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[NUM_ASR_CHANNELS];
   int num_enabled_settings_;
   ASRSettings enabled_settings_[ASR_SETTING_LAST];
 };
@@ -710,10 +696,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
-  { 0, 0, 63, "index", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, 0, 63, "buf.index", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 19, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
-  { 4, 4, 63, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
+  { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
@@ -834,6 +820,8 @@ void ASR_handleButtonEvent(const UI::Event &event) {
   } else {
     if (OC::CONTROL_BUTTON_L == event.control)
       ASR_leftButtonLong();
+    else if (OC::CONTROL_BUTTON_DOWN == event.control)
+      ASR_downButtonLong();  
   }
 }
 
@@ -882,13 +870,14 @@ void ASR_handleEncoderEvent(const UI::Event &event) {
 
 
 void ASR_topButton() {
-
-  asr.change_value(ASR_SETTING_OCTAVE, 1);
+  if (asr.octave_toggle())
+    asr.change_value(ASR_SETTING_OCTAVE, 1);
+  else 
+    asr.change_value(ASR_SETTING_OCTAVE, -1);
 }
 
 void ASR_lowerButton() {
-
-   asr.change_value(ASR_SETTING_OCTAVE, -1); 
+   asr.manual_freeze();
 }
 
 void ASR_rightButton() {
@@ -922,6 +911,10 @@ void ASR_leftButtonLong() {
       asr_state.scale_editor.Edit(&asr, scale);
 }
 
+void ASR_downButtonLong() {
+   asr.toggle_delay_mechanics();
+}
+
 size_t ASR_save(void *storage) {
   return asr.Save(storage);
 }
@@ -933,9 +926,11 @@ void ASR_menu() {
   int scale = asr_state.left_encoder_value;
   graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
   graphics.print(OC::scale_names[scale]);
-  
-  if (asr.get_scale(DUMMY) == scale)
-    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
+
+  if (asr.freeze_state())
+    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_hold_indicator_4x8); 
+  else if (asr.get_scale(DUMMY) == scale)
+    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);  
 
   int octave = asr.get_octave();
   graphics.setPrintPos(106, 2);

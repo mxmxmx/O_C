@@ -40,7 +40,7 @@ public:
   RingBuffer() { }
 
   void Init() {
-    write_ptr_ = read_ptr_ = 0;
+    write_ptr_ = read_ptr_ = poke_ptr_ = 0;
   }
 
   inline size_t readable() const {
@@ -61,18 +61,31 @@ public:
   inline void Write(T value) {
     size_t write_ptr = write_ptr_;
     buffer_[write_ptr & (size - 1)] = value;
-    write_ptr_ = write_ptr + 1;
+    poke_ptr_ = write_ptr_ = write_ptr + 1;
   }
 
   inline void Flush() {
     write_ptr_ = read_ptr_ = 0;
   }
 
+  inline T Poke(size_t index_offset) {
+    size_t read_ptr = (poke_ptr_ - 1) - index_offset;
+    T value = buffer_[read_ptr & (size - 1)];
+    return value;
+  } 
+
+  inline void Freeze(size_t buf_size) {
+    size_t start_ptr = (write_ptr_ - buf_size);
+    poke_ptr_ = (poke_ptr_ >= write_ptr_) ? start_ptr : poke_ptr_;
+    poke_ptr_++;
+  } 
+
 private:
 
   T buffer_[size];
   volatile size_t write_ptr_;
   volatile size_t read_ptr_;
+  volatile size_t poke_ptr_;
 
   DISALLOW_COPY_AND_ASSIGN(RingBuffer);
 };
