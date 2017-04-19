@@ -388,7 +388,6 @@ public:
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
-  //void updateASR_indexed(struct ASRbuf* _ASR, int32_t _sample, int16_t _index, bool _freeze) {
   void updateASR_indexed(int32_t _sample, int16_t _index, bool _freeze) {
     
       int16_t _delay = _index, _offset;
@@ -602,7 +601,6 @@ public:
          // .. and index
          CONSTRAIN(_index, 0, 63);
          // push sample into ring-buffer or hold: 
-         //updateASR_indexed(_ASR, _pitch, _index, _freeze_buffer); 
          updateASR_indexed(_pitch, _index, _freeze_buffer); 
 
          // get octave offset :
@@ -959,7 +957,7 @@ void ASR_menu() {
       case ASR_SETTING_CV_SOURCE:
       if (asr.get_cv_source() == ASR_CHANNEL_SOURCE_TURING) {
        
-          int turing_length = asr.get_turing_display_length(); // asr.get_turing_length();
+          int turing_length = asr.get_turing_display_length();
           int w = turing_length >= 16 ? 16 * 3 : turing_length * 3;
 
           menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, asr.get_shift_register(), turing_length);
