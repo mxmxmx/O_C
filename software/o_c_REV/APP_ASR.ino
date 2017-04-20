@@ -1,8 +1,27 @@
+// Copyright (c) 2014-2017 Max Stadler, Patrick Dowling
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 #include "util/util_settings.h"
 #include "util/util_trigger_delay.h"
 #include "util/util_turing.h"
 #include "util/util_ringbuffer.h"
-#include "peaks_bytebeat.h"
 #include "util/util_integer_sequences.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
@@ -10,17 +29,19 @@
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
 #include "OC_visualfx.h"
+#include "peaks_bytebeat.h"
 #include "extern/dspinst.h"
 
 namespace menu = OC::menu; // Ugh. This works for all .ino files
 
-#define TRANSPOSE_FIXED 0x0
 #define NUM_ASR_CHANNELS 0x4
-#define ASR_MAX_ITEMS 256     // ASR ring buffer size
+#define ASR_MAX_ITEMS 256 // = ASR ring buffer size. 
 #define ASR_HOLD_BUF_SIZE ASR_MAX_ITEMS / NUM_ASR_CHANNELS // max. delay size 
+#define NUM_INPUT_SCALING 20 // # steps for input sample scaling (sb)
 
 // CV input gain multipliers 
-const int32_t multipliers[20] = {6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
+const int32_t multipliers[NUM_INPUT_SCALING] = {
+  6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
 };
 
 enum ASRSettings {
@@ -411,7 +432,7 @@ public:
         int8_t _buflen = get_buffer_length();
         if (get_cv4_destination() == ASR_DEST_BUFLEN) {
           _buflen += ((OC::ADC::value<ADC_CHANNEL_4>() + 31) >> 6);
-          CONSTRAIN(_buflen, 0x4, ASR_HOLD_BUF_SIZE - 1);
+          CONSTRAIN(_buflen, NUM_ASR_CHANNELS, ASR_HOLD_BUF_SIZE - 0x1);
         }
         _ASR.Freeze(_buflen);
       }
@@ -450,7 +471,7 @@ public:
          int8_t _root  = get_root();
          int8_t _index = get_index() + ((OC::ADC::value<ADC_CHANNEL_2>() + 31) >> 6);
          int8_t _octave = get_octave();
-         int8_t _transpose = TRANSPOSE_FIXED;
+         int8_t _transpose = 0;
          int8_t _mult = get_mult();
          int32_t _pitch = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
 
@@ -638,9 +659,9 @@ public:
            }
          }
          // limit gain factor.
-         CONSTRAIN(_mult, 0, 19);
+         CONSTRAIN(_mult, 0, NUM_INPUT_SCALING - 0x1);
          // .. and index
-         CONSTRAIN(_index, 0, 63);
+         CONSTRAIN(_index, 0, ASR_HOLD_BUF_SIZE - 0x1);
          // push sample into ring-buffer or hold: 
          updateASR_indexed(_pitch, _index, _freeze_buffer); 
 
@@ -741,7 +762,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, ASR_HOLD_BUF_SIZE - 1, "buf.index", NULL, settings::STORAGE_TYPE_U8 },
-  { 9, 0, 19, "input gain", mult, settings::STORAGE_TYPE_U8 },
+  { 9, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
