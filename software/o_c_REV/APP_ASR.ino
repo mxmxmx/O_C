@@ -53,10 +53,12 @@ enum ASRSettings {
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
   ASR_SETTING_HOLD_SIZE,
+  #ifdef BUCHLA_SUPPORT
   ASR_SETTING_VOLTAGE_SCALING_A,
   ASR_SETTING_VOLTAGE_SCALING_B,
   ASR_SETTING_VOLTAGE_SCALING_C,
   ASR_SETTING_VOLTAGE_SCALING_D,
+  #endif
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_CV4_DESTINATION,
   ASR_SETTING_TURING_LENGTH,
@@ -251,6 +253,7 @@ public:
     return int_seq_.get_n();
   }
 
+  #ifdef BUCHLA_SUPPORT
   uint8_t get_voltage_scaling(int channel_i) const {
     uint8_t value = 0;
     switch(channel_i) {
@@ -269,18 +272,11 @@ public:
     }
     return value;
   }
-
-  uint8_t get_voltage_scaling_b() const {
-    return values_[ASR_SETTING_VOLTAGE_SCALING_B];
+  #else
+  uint8_t get_voltage_scaling(int channel_i) const {
+    return 0;
   }
-
-  uint8_t get_voltage_scaling_c() const {
-    return values_[ASR_SETTING_VOLTAGE_SCALING_C];
-  }
-
-  uint8_t get_voltage_scaling_d() const {
-    return values_[ASR_SETTING_VOLTAGE_SCALING_D];
-  }
+  #endif
 
   void toggle_delay_mechanics() {
     delay_type_ = (~delay_type_) & 1u;
@@ -305,11 +301,6 @@ public:
   void init() {
     
     force_update_ = false;
-    #ifdef BUCHLA_SUPPORT
-      scaling_ = true;
-    #else
-      scaling_ = false;
-    #endif
     last_scale_ = -0x1;
     delay_type_ = false;
     octave_toggle_ = false;
@@ -373,6 +364,10 @@ public:
     return last_mask_;
   }
 
+  void set_display_mask(uint16_t mask) {
+    last_mask_ = mask;
+  }
+
   void update_enabled_settings() {
     
     ASRSettings *settings = enabled_settings_;
@@ -385,12 +380,12 @@ public:
     *settings++ = ASR_SETTING_DELAY;
     *settings++ = ASR_SETTING_MULT;
  
-    if (scaling_) {
+    #ifdef BUCHLA_SUPPORT
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
       *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
-    }
+    #endif
 
     *settings++ = ASR_SETTING_CV4_DESTINATION;
     *settings++ = ASR_SETTING_CV_SOURCE;
@@ -677,7 +672,7 @@ public:
              int32_t _sample = asr_outputs[i];
           
             // scale sample
-             if (_mult != 9) {
+             if (_mult != 9) {  
                _sample = signed_multiply_32x16b(multipliers[_mult], _sample);
                _sample = signed_saturate_rshift(_sample, 16, 0);
              }
@@ -708,7 +703,6 @@ public:
 
 private:
   bool force_update_;
-  bool scaling_;
   bool delay_type_;
   bool octave_toggle_;
   bool freeze_buffer_;
@@ -741,7 +735,6 @@ const char* const asr_cv4_destinations[] = {
   "oct", "root", "trns", "buf.l"
 };
 
-
 const char* const tm_CV_destinations[] = {
   "rng", "len", "p"
 };
@@ -749,7 +742,6 @@ const char* const tm_CV_destinations[] = {
 const char* const bb_CV_destinations[] = {
   "M/A", "EQN", "P0", "P1", "P2"
 };
-
 
 const char* const int_seq_CV_destinations[] = {
   "M/A", "seq", "strt", "len", "strd", "mod"
@@ -765,10 +757,12 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 9, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
+  #ifdef BUCHLA_SUPPORT
   { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
   { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 7, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  #endif
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
@@ -834,6 +828,7 @@ size_t ASR_restore(const void *storage) {
   size_t storage_size = asr.Restore(storage);
   asr_state.left_encoder_value = asr.get_scale(DUMMY); 
   asr.set_scale(asr_state.left_encoder_value);
+  asr.set_display_mask(asr.get_mask());
   asr.update_enabled_settings();
   asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
   return storage_size;
@@ -957,8 +952,7 @@ void ASR_rightButton() {
       break;
       default:
         asr_state.cursor.toggle_editing();
-      break;
-      
+      break;  
   }
 }
 
