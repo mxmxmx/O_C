@@ -283,11 +283,11 @@ public:
   }
 
   void manual_freeze() {
-    freeze_buffer_ = (~freeze_buffer_) & 1u;
+    freeze_switch_ = (~freeze_switch_) & 1u;
   }
 
   bool freeze_state() {
-    return freeze_buffer_;
+    return freeze_switch_;
   }
 
   ASRSettings enabled_setting_at(int index) const {
@@ -304,7 +304,7 @@ public:
     last_scale_ = -0x1;
     delay_type_ = false;
     octave_toggle_ = false;
-    freeze_buffer_ = false;
+    freeze_switch_ = false;
     TR2_state_ = 0x1;
     set_scale(OC::Scales::SCALE_SEMI);
     last_mask_ = 0x0;
@@ -380,13 +380,6 @@ public:
     *settings++ = ASR_SETTING_DELAY;
     *settings++ = ASR_SETTING_MULT;
  
-    #ifdef BUCHLA_SUPPORT
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
-    #endif
-
     *settings++ = ASR_SETTING_CV4_DESTINATION;
     *settings++ = ASR_SETTING_CV_SOURCE;
    
@@ -415,10 +408,18 @@ public:
      default:
       break;
     } 
+
+    #ifdef BUCHLA_SUPPORT
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
+      *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
+    #endif
+    
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
-  void updateASR_indexed(int32_t _sample, int16_t _index, bool _freeze) {
+  void updateASR_indexed(int32_t *_asr_buf, int32_t _sample, int16_t _index, bool _freeze) {
     
       int16_t _delay = _index, _offset;
 
@@ -436,16 +437,16 @@ public:
       
       // update outputs:
       _offset = _delay;
-      asr_outputs[0] = _ASR.Poke(_offset++);
+      *(_asr_buf + DAC_CHANNEL_A) = _ASR.Poke(_offset++);
       // delay mechanics ... 
       _delay = delay_type_ ? 0x0 : _delay;
       // continue updating
       _offset +=_delay;
-      asr_outputs[1] = _ASR.Poke(_offset++);
+      *(_asr_buf + DAC_CHANNEL_B) = _ASR.Poke(_offset++);
       _offset +=_delay;
-      asr_outputs[2] = _ASR.Poke(_offset++);
+      *(_asr_buf + DAC_CHANNEL_C) = _ASR.Poke(_offset++);
       _offset +=_delay;
-      asr_outputs[3] = _ASR.Poke(_offset++);
+      *(_asr_buf + DAC_CHANNEL_D) = _ASR.Poke(_offset++);
   }
 
   inline void update() {
@@ -462,13 +463,14 @@ public:
 
       if (update) {        
 
-         bool _freeze_buffer, _freeze = digitalReadFast(TR2);
+         bool _freeze_switch, _freeze = digitalReadFast(TR2);
          int8_t _root  = get_root();
          int8_t _index = get_index() + ((OC::ADC::value<ADC_CHANNEL_2>() + 31) >> 6);
          int8_t _octave = get_octave();
          int8_t _transpose = 0;
          int8_t _mult = get_mult();
          int32_t _pitch = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
+         int32_t _asr_buffer[NUM_ASR_CHANNELS];  
 
          bool forced_update = force_update_;
          force_update_ = false;
@@ -495,16 +497,16 @@ public:
          
          // freeze ? 
          if (_freeze < TR2_state_)
-            freeze_buffer_ = true;
+            freeze_switch_ = true;
          else if (_freeze > TR2_state_) {
-            freeze_buffer_ = false;
+            freeze_switch_ = false;
          }
          TR2_state_ = _freeze;
          // 
-         _freeze_buffer = freeze_buffer_;
+         _freeze_switch = freeze_switch_;
 
          // use built in CV sources? 
-         if (!_freeze_buffer) {
+         if (!_freeze_switch) {
           
            switch (get_cv_source()) {
   
@@ -657,8 +659,8 @@ public:
          CONSTRAIN(_mult, 0, NUM_INPUT_SCALING - 0x1);
          // .. and index
          CONSTRAIN(_index, 0, ASR_HOLD_BUF_SIZE - 0x1);
-         // push sample into ring-buffer or hold: 
-         updateASR_indexed(_pitch, _index, _freeze_buffer); 
+         // push sample into ring-buffer and/or freeze buffer: 
+         updateASR_indexed(_asr_buffer, _pitch, _index, _freeze_switch); 
 
          // get octave offset :
          if (!digitalReadFast(TR3)) 
@@ -669,7 +671,7 @@ public:
          // quantize buffer outputs:
          for (int i = 0; i < NUM_ASR_CHANNELS; ++i) {
 
-             int32_t _sample = asr_outputs[i];
+             int32_t _sample = _asr_buffer[i];
           
             // scale sample
              if (_mult != 9) {  
@@ -680,14 +682,14 @@ public:
              _sample = quantizer_.Process(_sample, _root << 7, _transpose);
              _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, get_voltage_scaling(i));
              scrolling_history_[i].Push(_sample);
-             asr_outputs[i] = _sample;
+             _asr_buffer[i] = _sample;
          }
        
         // ... and write to DAC
         for (int i = 0; i < NUM_ASR_CHANNELS; ++i) 
-          OC::DAC::set(static_cast<DAC_CHANNEL>(i), asr_outputs[i]);
+          OC::DAC::set(static_cast<DAC_CHANNEL>(i), _asr_buffer[i]);
         
-        MENU_REDRAW = 1;
+        MENU_REDRAW = 0x1;
       }
       for (auto &sh : scrolling_history_)
         sh.Update();
@@ -705,7 +707,7 @@ private:
   bool force_update_;
   bool delay_type_;
   bool octave_toggle_;
-  bool freeze_buffer_;
+  bool freeze_switch_;
   int8_t TR2_state_;
   int last_scale_;
   uint16_t last_mask_;
@@ -713,7 +715,6 @@ private:
   OC::DigitalInputDisplay clock_display_;
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::TuringShiftRegister turing_machine_;
-  int32_t asr_outputs[NUM_ASR_CHANNELS];  
   util::RingBuffer<ASR_pitch, ASR_MAX_ITEMS> _ASR;
   int8_t turing_display_length_;
   peaks::ByteBeat bytebeat_ ;
