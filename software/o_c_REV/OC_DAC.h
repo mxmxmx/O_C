@@ -23,7 +23,6 @@ class DAC {
 public:
   static constexpr size_t kHistoryDepth = 8;
   static constexpr uint16_t MAX_VALUE = 65535; // DAC fullscale 
-
   static constexpr int kOctaveZero = 3;
 
   struct CalibrationData {
@@ -31,6 +30,8 @@ public:
   };
 
   static void Init(CalibrationData *calibration_data);
+  
+  static void set_auto_channel_calibration_data(uint8_t channel_id);
 
   static void set_all(uint32_t value) {
     for (int i = DAC_CHANNEL_A; i < DAC_CHANNEL_LAST; ++i)
