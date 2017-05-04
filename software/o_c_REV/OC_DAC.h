@@ -32,6 +32,10 @@ public:
   static void Init(CalibrationData *calibration_data);
   
   static void set_auto_channel_calibration_data(uint8_t channel_id);
+  static void set_default_channel_calibration_data(uint8_t channel_id);
+  static void reset_auto_channel_calibration_data(uint8_t channel_id);
+  static void reset_all_auto_channel_calibration_data();
+  static void choose_calibration_data();
 
   static void set_all(uint32_t value) {
     for (int i = DAC_CHANNEL_A; i < DAC_CHANNEL_LAST; ++i)

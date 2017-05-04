@@ -18,7 +18,7 @@ namespace OC {
 
   const Chord chords[] = {
     // default
-    { 0, 0, 0, 0, 0}
+    { 0, 0, 0, 0, 0 }
   };
 
 // these intervals are for notes-in-scale/key, last element is the chord type (monad=1, dyad=2, traid=3, tetrad=4)

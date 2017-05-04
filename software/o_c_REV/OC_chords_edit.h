@@ -22,7 +22,6 @@ public:
 
   void Init() {
     owner_ = nullptr;
-    chord_ = &dummy_chord;
     cursor_pos_ = 0;
     cursor_quality_pos_ = 0;
     edit_this_chord_ = 0;

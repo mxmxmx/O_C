@@ -51,6 +51,8 @@ namespace OC {
 
   const char * const cv_input_names[4] = { "CV1", "CV2", "CV3", "CV4" };
 
+  const char * const channel_id[4] = { "#A", "#B", "#C", "#D" };
+
   const char * const no_yes[] = { "No", "Yes" };
 
   const char * const encoder_config_strings[] = { "normal", "R reversed", "L reversed", "LR reversed" };

@@ -100,8 +100,6 @@ public:
 
 
 extern Chord user_chords[OC::Chords::CHORDS_USER_LAST];
-extern Chord dummy_chord;
-
 };
 
 #endif // OC_CHORDS_H_

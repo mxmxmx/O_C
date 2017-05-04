@@ -40,7 +40,6 @@ const OC::CalibrationData kCalibrationDefaults = {
   SCREENSAVER_TIMEOUT_S, { 0, 0, 0 },
   0 // reserved
 };
-//const uint16_t THEORY[OCTAVES+1] = {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535}; // in theory  
 
 void calibration_reset() {
   memcpy(&OC::calibration_data, &kCalibrationDefaults, sizeof(OC::calibration_data));
@@ -109,7 +108,6 @@ enum CALIBRATION_STEP {
 enum CALIBRATION_TYPE {
   CALIBRATE_NONE,
   CALIBRATE_OCTAVE,
-  CALIBRATE_ADC_TRIMMER,
   CALIBRATE_ADC_OFFSET,
   CALIBRATE_ADC_1V,
   CALIBRATE_ADC_3V,
@@ -208,7 +206,6 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { DAC_D_VOLT_5, "DAC D 5 volts", "->  5.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 5, nullptr, 0, DAC::MAX_VALUE },
   { DAC_D_VOLT_6, "DAC D 6 volts", "->  6.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 6, nullptr, 0, DAC::MAX_VALUE },
 
-  { CV_OFFSET, "CV offset (optional)", "", "Use CV trimmer/skip", default_footer, CALIBRATE_ADC_TRIMMER, 0, nullptr, 0, 4095 },
   { CV_OFFSET_0, "ADC CV1", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
   { CV_OFFSET_1, "ADC CV2", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_2, nullptr, 0, 4095 },
   { CV_OFFSET_2, "ADC CV3", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
@@ -329,9 +326,6 @@ void OC::Ui::Calibrate() {
         calibration_state.encoder_value =
             OC::calibration_data.dac.calibrated_octaves[step_to_channel(next_step->step)][next_step->index + DAC::kOctaveZero];
         break;
-      case CALIBRATE_ADC_TRIMMER:
-        calibration_state.adc_sum.set(adc_average());
-        break;
       case CALIBRATE_ADC_OFFSET:
         calibration_state.encoder_value = OC::calibration_data.adc.offset[next_step->index];
         break;
@@ -398,13 +392,7 @@ void calibration_draw(const CalibrationState &state) {
       graphics.print((int)state.encoder_value, 5);
       menu::DrawEditIcon(kValueX, y, state.encoder_value, step->min, step->max);
       break;
-
-    case CALIBRATE_ADC_TRIMMER:
-      graphics.print(_ADC_OFFSET, 4);
-      graphics.print(" == ");
-      graphics.print(state.adc_sum.value() >> 2, 4);
-      break;
-
+      
     case CALIBRATE_ADC_OFFSET:
       graphics.print(step->message);
       graphics.setPrintPos(kValueX, y + 2);
@@ -491,10 +479,6 @@ void calibration_update(CalibrationState &state) {
       OC::calibration_data.dac.calibrated_octaves[step_to_channel(step->step)][step->index + DAC::kOctaveZero] =
         state.encoder_value;
       DAC::set_all_octave(step->index);
-      break;
-    case CALIBRATE_ADC_TRIMMER:
-      state.adc_sum.push(adc_average());
-      DAC::set_all_octave(0);
       break;
     case CALIBRATE_ADC_OFFSET:
       OC::calibration_data.adc.offset[step->index] = state.encoder_value;
