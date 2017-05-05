@@ -692,23 +692,38 @@ public:
     update_enabled_settings(0);  
   }
 
-  bool update_scale(bool force, int32_t mask_rotate) {
-    
-    const int scale = get_scale(DUMMY);
+  bool rotate_scale(int32_t mask_rotate) {
+
     uint16_t  scale_mask = get_scale_mask(DUMMY);
-   
+    const int scale = get_scale(DUMMY);
+    
     if (mask_rotate)
       scale_mask = OC::ScaleEditor<SEQ_Channel>::RotateMask(scale_mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
 
-    if (force || (last_scale_ != scale || last_scale_mask_ != scale_mask)) {
-      
+    if (last_scale_mask_ != scale_mask) {
+
       force_scale_update_ = false;  
       last_scale_ = scale;
       last_scale_mask_ = scale_mask;
-      
       quantizer_.Configure(OC::Scales::GetScale(scale), scale_mask);
       return true;
-      
+    } else {
+      return false;
+    }
+  }
+
+  bool update_scale(bool force) {
+
+    const int scale = get_scale(DUMMY);
+   
+    if (force || last_scale_ != scale) {
+     
+      uint16_t  scale_mask = get_scale_mask(DUMMY);
+      force_scale_update_ = false;  
+      last_scale_ = scale;
+      last_scale_mask_ = scale_mask;
+      quantizer_.Configure(OC::Scales::GetScale(scale), scale_mask);
+      return true;
     } else {
       return false;
     }
@@ -745,7 +760,7 @@ public:
      _continuous = _playmode >= PM_SH1 ? true : false;
 
      // 3. update scale? 
-     update_scale(force_scale_update_, false); 
+     update_scale(force_scale_update_); 
      
      // clocked ?
      _none = SEQ_CHANNEL_TRIGGER_NONE == _clock_source;
@@ -907,7 +922,7 @@ public:
          // mask CV ?
          if (get_scale_mask_cv_source()) {
             int16_t _rotate = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_scale_mask_cv_source() - 1)) + 127) >> 8;
-            update_scale(false, _rotate); 
+            rotate_scale(_rotate);
          }  
                               
          // finally, process trigger + output:
@@ -2025,7 +2040,7 @@ void SEQ_rightButton() {
 
     case SEQ_CHANNEL_SETTING_SCALE:
       seq_state.cursor.toggle_editing();
-      selected.update_scale(true, 0);
+      selected.update_scale(true);
     break;
     case SEQ_CHANNEL_SETTING_SCALE_MASK:
     {
@@ -2075,7 +2090,8 @@ void SEQ_leftButtonLong() {
       
       the_other_channel = (~this_channel) & 1u;
       seq_channel[the_other_channel].set_scale(scale);
-      seq_channel[the_other_channel].update_scale(true, mask);
+      seq_channel[the_other_channel].update_scale_mask(mask, DUMMY);
+      seq_channel[the_other_channel].update_scale(true);
   }
 }
 
