@@ -46,7 +46,6 @@ namespace OC {
 void DAC::Init(CalibrationData *calibration_data) {
 
   calibration_data_ = calibration_data;
-
   // set up DAC pins 
   pinMode(DAC_CS, OUTPUT);
   pinMode(DAC_RST,OUTPUT);
@@ -59,12 +58,19 @@ void DAC::Init(CalibrationData *calibration_data) {
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
-
-  if (F_BUS == 60000000 || F_BUS == 48000000) 
-    SPIFIFO.begin(DAC_CS, SPICLOCK_30MHz, SPI_MODE0);  
-
+  SPIFIFO.begin(DAC_CS, SPICLOCK_30MHz, SPI_MODE0);
   set_all(0xffff);
   Update();
+}
+
+/*static*/
+void DAC::set_auto_channel_calibration_data(uint8_t channel_id) {
+  /*
+  if (channel_id < DAC_CHANNEL_LAST) {
+    for (int i = 0; i < OCTAVES + 1; i++)
+      calibration_data_->calibrated_octaves[channel_id][i] = OC::AUTO::auto_calibrated_octaves[channel_id][i];
+  }
+  */
 }
 
 /*static*/
@@ -75,7 +81,6 @@ uint32_t DAC::values_[DAC_CHANNEL_LAST];
 uint16_t DAC::history_[DAC_CHANNEL_LAST][DAC::kHistoryDepth];
 /*static*/ 
 volatile size_t DAC::history_tail_;
-
 }; // namespace OC
 
 void set8565_CHA(uint32_t data) {
@@ -124,12 +129,8 @@ void SPI_init() {
   CORE_PIN11_CONFIG = PORT_PCR_DSE | PORT_PCR_MUX(2);
   CORE_PIN13_CONFIG = PORT_PCR_DSE | PORT_PCR_MUX(2);
   
-  ctar0 = SPI_CTAR_DBR; // default
-  #if   F_BUS == 60000000
-      ctar0 = (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR); //(60 / 2) * ((1+1)/2) = 30 MHz
-  #elif F_BUS == 48000000
-      ctar0 = (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR); //(48 / 2) * ((1+1)/2) = 24 MHz          
-  #endif
+  ctar0 = SPI_CTAR_DBR;
+  ctar0 = (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR); //(60 / 2) * ((1+1)/2) = 30 MHz
   ctar1 = ctar0;
   ctar0 |= SPI_CTAR_FMSZ(7);
   ctar1 |= SPI_CTAR_FMSZ(15);
