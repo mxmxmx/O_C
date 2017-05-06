@@ -3,6 +3,11 @@
 
 #include "OC_autotune.h"
 
+
+const char* const AT_steps[] = {
+  " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V","+6V" 
+};
+
 namespace OC {
 
 enum AUTO_MENU_ITEMS {
@@ -15,6 +20,9 @@ enum AUTO_MENU_ITEMS {
 enum AT_STATUS {
    AT_OFF,
    AT_READY,
+   AT_RUN,
+   AT_ERROR,
+   AT_DONE,
    AT_LAST,
 };
 
@@ -78,6 +86,16 @@ private:
     graphics.print(OC::Strings::channel_id[channel_]);
 
     x = 16; y = 15;
+
+    if (owner_->autotuner_error()) {
+      auto_tune_running_status_ = AT_ERROR;
+      owner_->reset_autotuner();
+    }
+
+    if (owner_->autotuner_completed()) {
+      auto_tune_running_status_ = AT_DONE;
+      owner_->autotuner_reset_completed();
+    }
     
     for (size_t i = 0; i < (AUTO_MENU_ITEMS_LAST - 0x1); ++i, y += 20) {
         //
@@ -99,15 +117,44 @@ private:
         }
       }
       else if (i == AUTOTUNE) {
-        graphics.print("run --> ");
+        
         switch (auto_tune_running_status_) {
         //to display progress, if running
         case AT_OFF:
+        graphics.print("run --> ");
         graphics.print(" ... ");
         break;
-        case AT_READY:
-        graphics.print("arm:");
+        case AT_READY: {
+        graphics.print("arm > ");
+        float freq = owner_->get_auto_frequency();
+        if (freq == 0)
+          graphics.print("...wait");
+        else
+          graphics.printf("%7.3f", freq);
+        }
+        break;
+        case AT_RUN:
+        if (owner_->auto_tune_step() == 0x1) {
+          graphics.print(" ");
+          graphics.print(OC::Strings::channel_id[channel_]);
+          graphics.print(" --> start");
+        }
+        else {
+          graphics.print(AT_steps[owner_->auto_tune_step()]);
+          if (!owner_->_ready())
+            graphics.print(" > ...");
+          else 
+            graphics.printf(" > %7.3f", owner_->get_auto_frequency());
+        }
+        break;
+        case AT_ERROR:
+        graphics.print("run --> ");
+        graphics.print("error!");
+        break;
+        case AT_DONE:
+        graphics.print("ok! --> ");
         graphics.print(OC::Strings::channel_id[channel_]);
+        break;
         default:
         break;
         }
@@ -178,12 +225,15 @@ private:
   
   template <typename Owner>
   void Autotuner<Owner>::move_cursor(int offset) {
-    int cursor_pos = cursor_pos_ + offset;
-    CONSTRAIN(cursor_pos, 0, AUTO_MENU_ITEMS_LAST - 0x2);  
-    cursor_pos_ = cursor_pos;
-    //
-    if (cursor_pos_ == DATA_SELECT)
-        auto_tune_running_status_ = AT_OFF;
+
+    if (auto_tune_running_status_ < AT_RUN) {
+      int cursor_pos = cursor_pos_ + offset;
+      CONSTRAIN(cursor_pos, 0, AUTO_MENU_ITEMS_LAST - 0x2);  
+      cursor_pos_ = cursor_pos;
+      //
+      if (cursor_pos_ == DATA_SELECT)
+          auto_tune_running_status_ = AT_OFF;
+    }
   }
 
   template <typename Owner>
@@ -195,9 +245,16 @@ private:
       break;
       case AUTOTUNE: 
       {
-        int _status = auto_tune_running_status_ + offset;
-        CONSTRAIN(_status, 0, AT_READY);
-        auto_tune_running_status_ = _status;
+        if (auto_tune_running_status_ < AT_RUN) {
+          int _status = auto_tune_running_status_ + offset;
+          CONSTRAIN(_status, 0, AT_READY);
+          auto_tune_running_status_ = _status;
+          owner_->autotuner_arm(_status);
+        }
+        else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE) {
+          auto_tune_running_status_ = 0x0;
+          owner_->autotuner_arm(auto_tune_running_status_);
+        }
       }
       break;
       default:
@@ -212,8 +269,10 @@ private:
   template <typename Owner>
   void Autotuner<Owner>::handleButtonDown(const UI::Event &event) {
     
-    if (cursor_pos_ == AUTOTUNE && auto_tune_running_status_ == AT_READY)
-      owner_->run_autotuner();
+    if (cursor_pos_ == AUTOTUNE && auto_tune_running_status_ == AT_READY) {
+      owner_->autotuner_run();
+      auto_tune_running_status_ = AT_RUN;
+    }
   }
   
   template <typename Owner>

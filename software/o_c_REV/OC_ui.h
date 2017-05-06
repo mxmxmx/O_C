@@ -56,6 +56,7 @@ public:
   UiMode DispatchEvents(OC::App *app);
 
   void Poll();
+  void _Poke();
 
   inline bool read_immediate(UiControl control) {
     return button_state_ & control;

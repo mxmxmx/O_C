@@ -55,6 +55,10 @@ void Ui::set_screensaver_timeout(uint32_t seconds) {
   event_queue_.Poke();
 }
 
+void FASTRUN Ui::_Poke() {
+  event_queue_.Poke();
+}
+
 void FASTRUN Ui::Poll() {
 
   uint32_t now = ++ticks_;
