@@ -195,7 +195,7 @@ void FASTRUN POLYLFO_isr() {
 
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
   bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
-  bool tempo_sync = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_3>();
+  bool tempo_sync = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>();
  
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
