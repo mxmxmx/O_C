@@ -104,8 +104,13 @@ void ChordEditor<Owner>::Draw() {
     
     x = 6;
     y = 6;
-
-    for (size_t i = 0; i < max_chords; ++i, x += 14) {
+    // which progression ? ...  
+    graphics.setPrintPos(x, y + 2);
+    graphics.print(edit_this_progression_ + 0x1);
+    // now draw steps:
+    x += 11;
+    
+    for (size_t i = 0; i < max_chords; ++i, x += 13) {
       
       if (active && i == indicator) {
         graphics.drawFrame(x, y, 10, 10);
@@ -120,15 +125,31 @@ void ChordEditor<Owner>::Draw() {
       if (i == cursor_pos_) 
         graphics.drawFrame(x - 2, y - 2, 14, 14);
     }
-    
-    graphics.drawBitmap8(x, y + 2, 4, bitmap_end_marker4x8);
+
+    // end marker:
+    graphics.drawFrame(x, y, 2, 2);
+    graphics.drawFrame(x, y + 4, 2, 2);
+    graphics.drawFrame(x, y + 8, 2, 2);
     if (cursor_pos_ == max_chords)
-      graphics.drawFrame(x - 2, y - 2, 8, 14);
+        graphics.drawFrame(x - 2, y - 2, 6, 14);
+
+    // draw extra cv num chords?
+    int extra_slots = owner_->get_display_num_chords() - (max_chords - 0x1);
+    if (active && extra_slots > 0x0) {
+      x += 5;
+      indicator -= max_chords;
+      for (size_t i = 0; i < (uint8_t)extra_slots; ++i, x += 10) {
+        if (i == indicator)
+          graphics.drawRect(x, y + 2, 6, 6);
+        else
+          graphics.drawFrame(x, y + 2, 6, 6);
+      }
+    }
     
     // chord properties:
     x = 6;
     y = 23;
-    
+
     for (size_t i = 0; i < sizeof(Chord); ++i, x += 24) {
       
       // draw value
@@ -149,6 +170,11 @@ void ChordEditor<Owner>::Draw() {
           break;
           case 3: // base note
           {
+          // limit display to valid notes [but don't update chord]
+          const OC::Scale &scale_def = OC::Scales::GetScale(owner_->get_scale(DUMMY));
+          if (chord_base_note_ > (uint8_t)scale_def.num_notes)
+            chord_base_note_ = (uint8_t)scale_def.num_notes;
+          
           if (chord_base_note_ > 9)
             graphics.setPrintPos(x + 1, y + 7);
           else
@@ -171,7 +197,7 @@ void ChordEditor<Owner>::Draw() {
       // draw property name
       graphics.setPrintPos(x + 7, y + 26);
       graphics.print(OC::Strings::chord_property_names[i]);
-      
+    
       // cursor:  
       if (i == cursor_quality_pos_) {
         graphics.invertRect(x, y, 21, 21); 
@@ -314,7 +340,9 @@ void ChordEditor<Owner>::move_cursor(int offset, int page) {
     CONSTRAIN(cursor_pos, 0, max_chords_ + 1);  
     cursor_pos_ = cursor_pos;
     edit_this_chord_ = cursor_pos; 
-    update_chord(cursor_pos);
+    // update .. 
+    if (cursor_pos <= max_chords_)
+      update_chord(cursor_pos);
   }
   else {
     int cursor_quality_pos = cursor_quality_pos_ + offset;

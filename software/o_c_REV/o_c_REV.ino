@@ -45,10 +45,9 @@ uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
 const bool DUMMY = false;
 
-// Change value of BUCHLA_SUPPORT to 0 if Buchla/microtonal scaling not wanted
-#define BUCHLA_SUPPORT 1
-
-/*  --------------------- UI timer ISR -------------------------   */
+/* ------------ uncomment for Buchla/non-octaval/quartertone support: ------------  */
+// #define BUCHLA_SUPPORT
+/*  ------------------------ UI timer ISR ---------------------------   */
 
 IntervalTimer UI_timer;
 

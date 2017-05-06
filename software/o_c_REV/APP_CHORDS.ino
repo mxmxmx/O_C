@@ -70,6 +70,7 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_PROGRESSION_CV,
   CHORDS_SETTING_DIRECTION_CV,
   CHORDS_SETTING_BROWNIAN_CV,
+  CHORDS_SETTING_NUM_CHORDS_CV,
   CHORDS_SETTING_DUMMY,
   CHORDS_SETTING_MORE_DUMMY,
   CHORDS_SETTING_LAST
@@ -161,10 +162,19 @@ public:
   void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
   }
 
+  bool octave_toggle() {
+    _octave_toggle = (~_octave_toggle) & 1u;
+    return _octave_toggle;
+  }
+
   int get_progression() const {
     return values_[CHORDS_SETTING_PROGRESSION];
   }
 
+  int get_progression_cv() const {
+    return values_[CHORDS_SETTING_PROGRESSION_CV];
+  }
+  
   int get_active_progression() const {
     return active_progression_;
   }
@@ -221,6 +231,10 @@ public:
     }
   }
 
+  int get_num_chords_cv() const {
+    return values_[CHORDS_SETTING_NUM_CHORDS_CV];
+  }
+
   int active_chord() const {
     return active_chord_;
   }
@@ -233,8 +247,16 @@ public:
     return values_[CHORDS_SETTING_DIRECTION];
   }
 
+  uint8_t get_direction_cv() const {
+    return values_[CHORDS_SETTING_DIRECTION_CV];
+  }
+
   uint8_t get_brownian_probability() const {
     return values_[CHORDS_SETTING_BROWNIAN_PROBABILITY];
+  }
+
+  int8_t get_brownian_probability_cv() const {
+    return values_[CHORDS_SETTING_BROWNIAN_CV];
   }
   
   int get_root() const {
@@ -245,8 +267,8 @@ public:
     return values_[CHORDS_SETTING_ROOT_CV];
   }
   
-  int get_display_root() const {
-    return display_root_;
+  int get_display_num_chords() const {
+    return display_num_chords_;
   }
 
   uint16_t get_mask() const {
@@ -332,9 +354,10 @@ public:
     apply_value(CHORDS_SETTING_INVERSION_CV, 0);
     apply_value(CHORDS_SETTING_BROWNIAN_CV, 0);  
     apply_value(CHORDS_SETTING_DIRECTION_CV, 0);
-    apply_value(CHORDS_SETTING_PROGRESSION_CV, 0);    
+    apply_value(CHORDS_SETTING_PROGRESSION_CV, 0);   
+    apply_value(CHORDS_SETTING_NUM_CHORDS_CV, 0); 
   }
-
+  
   void Init() {
     
     InitDefaults();
@@ -342,6 +365,7 @@ public:
     apply_value(CHORDS_SETTING_CV_SOURCE, 0x0);
     set_scale(OC::Scales::SCALE_SEMI);
     force_update_ = true;
+    _octave_toggle = false;
     last_scale_= -1;
     last_mask_ = 0;
     last_sample_ = 0;
@@ -357,6 +381,7 @@ public:
     progression_EoP_ = 0;
     num_chords_last_ = 0;
     chords_direction_ = true;
+    display_num_chords_ = 0x1;
    
     trigger_delay_.Init();
     input_map_.Init();
@@ -375,11 +400,18 @@ public:
 
   int8_t _clock(uint8_t sequence_length, uint8_t sequence_count, uint8_t sequence_max, bool _reset) {
 
-        int8_t EoP = 0x0;
+        int8_t EoP = 0x0, _clk_cnt, _direction;
         bool reset = !digitalReadFast(TR4) | _reset;
-        int8_t _clk_cnt = active_chord_;
         
-        switch (get_direction()) {
+        _clk_cnt = active_chord_;
+        _direction = get_direction();
+
+        if (get_direction_cv()) {
+           _direction += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_direction_cv() - 1)) + 255) >> 9;
+           CONSTRAIN(_direction, 0, CHORDS_DIRECTIONS_LAST - 0x1);
+        }
+        
+        switch (_direction) {
 
           case CHORDS_FORWARD:
           {
@@ -409,7 +441,14 @@ public:
           case CHORDS_BROWNIAN:
           if (CHORDS_BROWNIAN == get_direction()) {
             // Compare Brownian probability and reverse direction if needed
-            if (random(0,256) < get_brownian_probability()) chords_direction_ = !chords_direction_; 
+            int16_t brown_prb = get_brownian_probability();
+
+            if (get_brownian_probability_cv()) {
+              brown_prb += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_brownian_probability_cv() - 1)) + 8) >> 3;
+              CONSTRAIN(brown_prb, 0, 256);
+            }
+            if (random(0,256) < brown_prb) 
+              chords_direction_ = !chords_direction_; 
           }
           {
             if (chords_direction_) {
@@ -516,7 +555,7 @@ public:
     if (triggered) {
         
       int32_t pitch, cv_source, transpose, octave, root;
-      int8_t num_progression, progression_max, progression_cnt, playmode, reset;
+      int8_t num_progression, num_progression_cv, num_chords, num_chords_cv, progression_max, progression_cnt, playmode, reset;
       
       cv_source = get_cv_source();
       transpose = get_transpose();
@@ -525,9 +564,11 @@ public:
       num_progression = get_progression();
       progression_max = 0;
       progression_cnt = 0;
+      num_progression_cv = 0;
+      num_chords = 0;
+      num_chords_cv = 0;
       reset = 0;
       playmode = get_playmode();
- 
 
       if (num_progression != progression_last_ || playmode != playmode_last_) {
         // reset progression:
@@ -536,6 +577,14 @@ public:
       }
       playmode_last_ = playmode;
       progression_last_ = num_progression;
+
+      if (get_progression_cv()) {
+        num_progression_cv = num_progression += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_progression_cv() - 1)) + 255) >> 9;
+        CONSTRAIN(num_progression, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 0x1);
+      }
+
+      if (get_num_chords_cv()) 
+        num_chords_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_num_chords_cv() - 1)) + 255) >> 9;
 
       switch (playmode) {
         
@@ -563,6 +612,10 @@ public:
                 _clock(get_num_chords(active_progression_), 0x0, progression_max, true); 
                 reset = true;    
               }
+              else if (num_progression_cv)  {
+                active_progression_ += num_progression_cv;
+                CONSTRAIN(active_progression_, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 0x1);
+              }
               progression_cnt = progression_cnt_;
           }
           break;
@@ -581,12 +634,18 @@ public:
               progression_cnt_ = progression_cnt_ > progression_max ? 0x0 : progression_cnt_;
               // update progression 
               active_progression_ = num_progression + progression_cnt_;
+              // + reset 
+              reset = true;
               // wrap around:
               if (active_progression_ >= OC::Chords::NUM_CHORD_PROGRESSIONS)
                   active_progression_ -= OC::Chords::NUM_CHORD_PROGRESSIONS;
             }
+            else if (num_progression_cv)  {
+                active_progression_ += num_progression_cv;
+                CONSTRAIN(active_progression_, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 0x1);
+            }
             progression_advance_last_ = _progression_advance_trig;
-            progression_max = 0x0;
+            progression_max = 0x0; 
           }
           break;
           case _SH1:
@@ -598,12 +657,14 @@ public:
              uint8_t _progression_advance_trig = digitalReadFast(TR3);
              if (_progression_advance_trig  < progression_advance_last_) {
               
-               int _num_chords = get_num_chords(num_progression);          
-               // length or range changed ? 
-               if (num_chords_last_ != _num_chords) 
-                  update_inputmap(_num_chords + 0x1, 0x0); 
+               num_chords = get_num_chords(num_progression) + num_chords_cv;
+               if (num_chords_cv)
+                  CONSTRAIN(num_chords, 0, OC::Chords::NUM_CHORDS - 0x1);         
+               // length changed? 
+               if (num_chords_last_ != num_chords) 
+                  update_inputmap(num_chords + 0x1, 0x0); 
                // store values:  
-               num_chords_last_ = _num_chords;    
+               num_chords_last_ = num_chords;    
                active_progression_ = num_progression;
                // process input: 
                active_chord_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(playmode - _SH1)));
@@ -616,12 +677,14 @@ public:
           case _CV3:
           case _CV4:
           {
-             int _num_chords = get_num_chords(num_progression);          
-             // length or range changed ? 
-             if (num_chords_last_ != _num_chords) 
-                update_inputmap(_num_chords + 0x1, 0x0); 
+             num_chords = get_num_chords(num_progression) + num_chords_cv;
+             if (num_chords_cv) 
+                CONSTRAIN(num_chords, 0, OC::Chords::NUM_CHORDS - 0x1);       
+             // length changed ? 
+             if (num_chords_last_ != num_chords) 
+                update_inputmap(num_chords + 0x1, 0x0); 
              // store values:  
-             num_chords_last_ = _num_chords;    
+             num_chords_last_ = num_chords;    
              active_progression_ = num_progression;
              // process input: 
              active_chord_ = input_map_.Process(OC::ADC::value(static_cast<ADC_CHANNEL>(playmode - _CV1)));
@@ -644,14 +707,18 @@ public:
           chord_advance_last_ = 0x1;
         }
   
-        int num_chords = get_num_chords(num_progression);
+        num_chords = get_num_chords(num_progression) + num_chords_cv;
+        if (num_chords_cv) 
+            CONSTRAIN(num_chords, 0, OC::Chords::NUM_CHORDS - 0x1);
+             
         CONSTRAIN(active_chord_, 0x0, num_chords);
         
         if (num_chords && (_advance_trig < chord_advance_last_)) 
           progression_EoP_ = _clock(num_chords, progression_cnt, progression_max, reset); 
         chord_advance_last_ = _advance_trig;
       } 
-      
+
+      display_num_chords_ = num_chords;
       // active chord:
       OC::Chord *active_chord = &OC::user_chords[active_chord_ + num_progression * OC::Chords::NUM_CHORDS];
       
@@ -665,8 +732,16 @@ public:
       CONSTRAIN(octave, -6, 6);
 
       if (_base_note) {
-        // we don't use the incoming CV pitch value
-        // to do: re-purpose CV1 (?), though can be mapped to misc parameters anyways 
+        /* 
+        *  we don't use the incoming CV pitch value — limit to valid base notes 
+        *  + update the chord (the scale may have changed...). to do ? maybe just limit to 7 note scales
+        *  not so nice side effect of this is that there's no going back ... 
+        */
+        int8_t _limit = OC::Scales::GetScale(get_scale(DUMMY)).num_notes;
+        if (_base_note > _limit) {
+          _base_note = _limit;
+          active_chord->base_note = _limit; 
+        }
         pitch = 0x0;
         transpose += (_base_note - 0x1);
       }     
@@ -718,10 +793,8 @@ public:
 
       if (get_mask_cv()) {
         // to do
-      }
+      }  
       
-
-      display_root_ = root;
       update_scale(true, schedule_mask_rotate_);
       
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
@@ -729,10 +802,12 @@ public:
       sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + OC::inversion[_inversion][0]);
 
       // now derive chords ...
-      
-      int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][1]);
-      int32_t sample_c  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][2]);
-      int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose + OC::qualities[_quality][3]);
+      transpose += OC::qualities[_quality][1];
+      int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose);
+      transpose += OC::qualities[_quality][2];
+      int32_t sample_c  = quantizer_.Process(pitch, root << 7, transpose);
+      transpose += OC::qualities[_quality][3];
+      int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose);
 
       //todo voicing for root note
       sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + OC::voicing[_voicing][1] + OC::inversion[_inversion][1]);
@@ -834,8 +909,8 @@ public:
            *settings++ = CHORDS_SETTING_MORE_DUMMY;
 
         *settings++ = CHORDS_SETTING_PROGRESSION_CV; 
-        *settings++ = CHORDS_SETTING_CHORD_EDIT; // todo: CV ? length ?
-        *settings++ = CHORDS_SETTING_DUMMY;
+        *settings++ = CHORDS_SETTING_CHORD_EDIT; 
+        *settings++ = CHORDS_SETTING_NUM_CHORDS_CV;
         if (get_playmode() < _SH1)
           *settings++ = CHORDS_SETTING_DIRECTION_CV; 
         if (get_direction() == CHORDS_BROWNIAN)       
@@ -858,11 +933,12 @@ public:
 
 private:
   bool force_update_;
+  bool _octave_toggle;
   int last_scale_;
   uint16_t last_mask_;
   int32_t schedule_mask_rotate_;
   int32_t last_sample_;
-  uint8_t display_root_;
+  uint8_t display_num_chords_;
   bool chord_advance_last_;
   bool progression_advance_last_;
   int8_t active_chord_;
@@ -932,7 +1008,7 @@ const char* const chord_directions[] = {
 };
   
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
-  { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
+  { OC::Scales::SCALE_SEMI, OC::Scales::SCALE_SEMI, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 1, "progression", chords_slots, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
@@ -951,18 +1027,19 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 4
   { 0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
-  {0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "transpose CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "octave CV    >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "progress. CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  {0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
-  {0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
+  { 0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "transpose CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "octave CV    >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "prg.slot# CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "num.chrds CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
+  { 0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };
 
 class ChordQuantizer {
@@ -1052,6 +1129,11 @@ void CHORDS_menu() {
   if (chords.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
+  // active progression #
+  graphics.setPrintPos(106, 2);
+  graphics.print("#");
+  graphics.print(chords.get_active_progression() + 0x1);
+
   uint8_t clock_state = (chords.clockState() + 3) >> 2;
   if (clock_state && !chords_state.chord_editor.active())
     graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
@@ -1074,7 +1156,7 @@ void CHORDS_menu() {
       case CHORDS_SETTING_DUMMY:
       case CHORDS_SETTING_CHORD_EDIT: 
         // to do: draw something that makes sense, presumably some pre-made icons would work best.
-        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_num_chords(chords.get_active_progression()), chords.active_chord());
+        menu::DrawMiniChord(menu::kDisplayWidth, list_item.y, chords.get_display_num_chords(), chords.active_chord());
         list_item.DrawNoValue<false>(value, attr);
         break;
       case CHORDS_SETTING_MORE_DUMMY:
@@ -1156,7 +1238,7 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {
     
     int value = chords_state.left_encoder_value + event.value;
-    CONSTRAIN(value, 0, OC::Scales::NUM_SCALES - 1);
+    CONSTRAIN(value, OC::Scales::SCALE_SEMI, OC::Scales::NUM_SCALES - 1);
     chords_state.left_encoder_value = value;
      
   } else if (OC::CONTROL_ENCODER_R == event.control) {
@@ -1194,8 +1276,13 @@ void CHORDS_handleEncoderEvent(const UI::Event &event) {
 
 void CHORDS_topButton() {
   
-  if (chords.get_menu_page() == MENU_PARAMETERS) 
-    chords.change_value(CHORDS_SETTING_OCTAVE, 1); 
+  if (chords.get_menu_page() == MENU_PARAMETERS) {
+
+    if (chords.octave_toggle())
+      chords.change_value(CHORDS_SETTING_OCTAVE, 1);
+    else 
+      chords.change_value(CHORDS_SETTING_OCTAVE, -1);
+  } 
   else  {
     chords.set_menu_page(MENU_PARAMETERS);
     chords.update_enabled_settings();
@@ -1204,11 +1291,23 @@ void CHORDS_topButton() {
 }
 
 void CHORDS_lowerButton() {
+  // go the CV mapping
+
+  if (!chords_state.chord_editor.active() && !chords_state.scale_editor.active()) {  
+
+    uint8_t _menu_page = chords.get_menu_page();
   
-  if (chords.get_menu_page() == MENU_PARAMETERS) 
-    chords.change_value(CHORDS_SETTING_OCTAVE, -1); 
-  else {
-    chords.set_menu_page(MENU_PARAMETERS);
+    switch (_menu_page) {
+  
+      case MENU_PARAMETERS:
+        _menu_page = MENU_CV_MAPPING;
+      break;
+      default:
+        _menu_page = MENU_PARAMETERS;
+      break;
+    }
+    
+    chords.set_menu_page(_menu_page);
     chords.update_enabled_settings();
     chords_state.cursor.set_editing(false);
   }
@@ -1240,7 +1339,7 @@ void CHORDS_rightButton() {
 
 void CHORDS_leftButton() {
 
-  if (chords_state.left_encoder_value != asr.get_scale(DUMMY) || chords_state.left_encoder_value == OC::Scales::SCALE_SEMI) { 
+  if (chords_state.left_encoder_value != chords.get_scale(DUMMY) || chords_state.left_encoder_value == OC::Scales::SCALE_SEMI) { 
     chords.set_scale(chords_state.left_encoder_value);
     // hide/show root
     chords.update_enabled_settings();
@@ -1252,29 +1351,12 @@ void CHORDS_leftButtonLong() {
 }
 
 void CHORDS_downButtonLong() {
-
-  switch (chords.get_menu_page()) { 
-     
-    case MENU_PARAMETERS:  
-    {
-      if (!chords_state.chord_editor.active() && !chords_state.scale_editor.active()) {  
-        chords.set_menu_page(MENU_CV_MAPPING);
-        chords.update_enabled_settings();
-        chords_state.cursor.set_editing(false);
-      } 
-    }
-    break;
-    case MENU_CV_MAPPING:
-      chords.clear_CV_mapping();
-      chords_state.cursor.set_editing(false);
-    break;
-    default:
-    break;
-  }
+  chords.clear_CV_mapping();
+  chords_state.cursor.set_editing(false);
 }
 
 void CHORDS_upButtonLong() {
-  // todo
+  // screensaver short cut
 }
 
 uint16_t chords_history[Chords::kHistoryDepth];
@@ -1291,13 +1373,13 @@ inline int32_t chords_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coo
 
 void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
 
-
   int _active_chord = active_chord();
   int _num_progression = get_active_progression();
-  int _num_chords = get_num_chords(_num_progression);
+  int _num_chords = get_display_num_chords(); 
   int x = start_x + 4;
-  int y = 48; 
+  int y = 42; 
 
+  // todo: CV
   for (int j = 0; j <= _num_chords; j++) {
 
     if (j == _active_chord)
@@ -1306,6 +1388,7 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
       menu::DrawChord(x + (j << 4) + 2, y, 4, j, _num_progression);
   }
 
+  /*
   // sequence: 
   x = start_x + 4;
   y = 58;
@@ -1321,34 +1404,10 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
        if(j == active_chord())
          graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
     }
+  */
 }
 
-/*
-void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
-  
-  int _num_chords = get_num_chords();
 
-  for (int i = 0; i < 4; ++i) {
-    
-    chords.history(i).Read(chords_history);
-  }
-  // sequence: 
-  int x = start_x + 4;
-  int y = 58;
-  
-  for (int j = 0; j < OC::Chords::NUM_CHORDS; j++) {
-
-       if (j <= _num_chords)
-          graphics.drawFrame(x + (j << 4), y, 8, 4);
-       else 
-          graphics.drawFrame(x + (j << 4), y + 2, 8, 2);  
-            
-      // position indicator:
-       if(j == active_chord())
-         graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
-    }
-}
-*/
 void CHORDS_screensaver() {
 #ifdef CHORDS_DEBUG_SCREENSAVER
   debug::CycleMeasurement render_cycles;

@@ -64,6 +64,12 @@ void OC::DigitalInputs::Init() {
   // Defaults is 0, or set OC_GPIO_ISR_PRIO for all ports
 }
 
+void OC::DigitalInputs::reInit() {
+  // re init TR4, to avoid conflict with the FTM
+  pinMode(TR4, OC_GPIO_TRx_PINMODE);
+  attachInterrupt(TR4, tr4_ISR, FALLING);
+}
+
 /*static*/
 void OC::DigitalInputs::Scan() {
   clocked_mask_ =

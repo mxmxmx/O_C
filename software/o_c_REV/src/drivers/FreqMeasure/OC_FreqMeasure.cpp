@@ -33,7 +33,6 @@ static volatile uint8_t buffer_tail;
 static uint16_t capture_msw;
 static uint32_t capture_previous;
 
-
 void FreqMeasureClass::begin(void)
 {
 	capture_init();
@@ -50,7 +49,10 @@ uint8_t FreqMeasureClass::available(void)
 
 	head = buffer_head;
 	tail = buffer_tail;
-	if (head >= tail) return head - tail;
+
+	if (head >= tail) 
+		return (head - tail);
+
 	return FREQMEASURE_BUFFER_LEN + head - tail;
 }
 
@@ -85,45 +87,6 @@ void FreqMeasureClass::end(void)
 	capture_shutdown();
 }
 
-#if defined(__AVR__)
-
-ISR(TIMER_OVERFLOW_VECTOR)
-{
-	capture_msw++;
-}
-
-ISR(TIMER_CAPTURE_VECTOR)
-{
-	uint16_t capture_lsw;
-	uint32_t capture, period;
-	uint8_t i;
-
-	// get the timer capture
-	capture_lsw = capture_read();
-	// Handle the case where but capture and overflow interrupts were pending
-	// (eg, interrupts were disabled for a while), or where the overflow occurred
-	// while this ISR was starting up.  However, if we read a 16 bit number that
-	// is very close to overflow, then ignore any overflow since it probably
-	// just happened.
-	if (capture_overflow() && capture_lsw < 0xFF00) {
-		capture_overflow_reset();
-		capture_msw++;
-	}
-	// compute the waveform period
-	capture = ((uint32_t)capture_msw << 16) | capture_lsw;
-	period = capture - capture_previous;
-	capture_previous = capture;
-	// store it into the buffer
-	i = buffer_head + 1;
-	if (i >= FREQMEASURE_BUFFER_LEN) i = 0;
-	if (i != buffer_tail) {
-		buffer_value[i] = period;
-		buffer_head = i;
-	}
-}
-
-#elif defined(__arm__) && defined(TEENSYDUINO)
-
 void FTM_ISR_NAME (void)
 {
 	uint32_t capture, period, i;
@@ -134,7 +97,9 @@ void FTM_ISR_NAME (void)
 		capture_msw++;
 		inc = true;
 	}
+
 	if (capture_event()) {
+
 		capture = capture_read();
 		if (capture <= 0xE000 || !inc) {
 			capture |= (capture_msw << 16);
@@ -153,9 +118,6 @@ void FTM_ISR_NAME (void)
 		}
 	}
 }
-
-
-#endif
 
 FreqMeasureClass FreqMeasure;
 

@@ -147,7 +147,7 @@ const char* const scale_names_short[] = {
     "5S2",
     "4S2",
     
-// #if BUCHLA_SUPPORT
+#if BUCHLA_SUPPORT
     "B-Pe",
     "B-Pj",
     "B-Pl",
@@ -161,8 +161,7 @@ const char* const scale_names_short[] = {
     "12S3", 
     "10S3", 
     "8S3", 
-    
-// #endif    
+#endif    
     };
 
 const char* const scale_names[] = {
@@ -289,7 +288,7 @@ const char* const scale_names[] = {
     "5-SD2",
     "4-SD2",
 
-// #if BUCHLA_SUPPORT
+#ifdef BUCHLA_SUPPORT
     "Bohlen-Pierce =",
     "Bohlen-Pierce j",
     "Bohlen-Pierce l",
@@ -303,8 +302,7 @@ const char* const scale_names[] = {
     "18-6-SD3[12]", 
     "15-5-SD3[10]", 
     "12-4-SD3[8]", 
-     
-// #endif
+#endif
     };
 
 const char* const voltage_scalings[] = {
