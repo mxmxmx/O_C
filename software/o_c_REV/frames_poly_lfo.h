@@ -95,7 +95,7 @@ class PolyLfo {
   ~PolyLfo() { }
   
   void Init();
-  void Render(int32_t frequency, bool reset_phase);
+  void Render(int32_t frequency, bool reset_phase, bool tempo_sync);
   void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
   inline void set_freq_range(uint16_t freq_range) {
@@ -189,6 +189,10 @@ class PolyLfo {
 
   inline long get_sync_phase_increment() {
     return sync_phase_increment_;
+  }
+
+  inline long get_sync_counter() {
+    return sync_counter_;
   }
 
   inline uint8_t level(uint8_t index) const {

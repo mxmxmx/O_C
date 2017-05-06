@@ -125,15 +125,15 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng)
   return (a + ((b - a) * (index & 0x1f) >> 5)) << shifts;
 }
 
-void PolyLfo::Render(int32_t frequency, bool reset_phase) {
+void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
 
   ++sync_counter_;
-    if (reset_phase && sync_) {
+    if (tempo_sync && sync_) {
         if (sync_counter_ < kSyncCounterMaxTime) {
           uint32_t period = 0;
           if (sync_counter_ < 1920) {
             period = (3 * period_ + sync_counter_) >> 2;
-            reset_phase = false;
+            tempo_sync = false;
           } else {
             period = pattern_predictor_.Predict(sync_counter_);
           }

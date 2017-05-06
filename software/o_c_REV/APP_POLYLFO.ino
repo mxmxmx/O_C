@@ -195,6 +195,7 @@ void FASTRUN POLYLFO_isr() {
 
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
   bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
+  bool tempo_sync = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_3>();
  
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
@@ -234,7 +235,7 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
 
   if (!freeze && !poly_lfo.frozen())
-    poly_lfo.lfo.Render(freq, reset_phase);
+    poly_lfo.lfo.Render(freq, reset_phase, tempo_sync);
 
   OC::DAC::set<DAC_CHANNEL_A>(poly_lfo.lfo.dac_code(0));
   OC::DAC::set<DAC_CHANNEL_B>(poly_lfo.lfo.dac_code(1));
@@ -360,5 +361,5 @@ void POLYLFO_debug() {
   value = USAT16(value);
   graphics.print(value);
   graphics.setPrintPos(2, 52);
-  graphics.print(poly_lfo.lfo.get_sync_phase_increment());
+  graphics.print(poly_lfo.lfo.get_sync_counter());
 }
