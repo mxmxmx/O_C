@@ -5,7 +5,18 @@
 
 namespace OC {
 
-#define AUTO_MENU_ITEMS 0x2
+enum AUTO_MENU_ITEMS {
+  DATA_SELECT,
+  AUTOTUNE,
+  AUTORUN,
+  AUTO_MENU_ITEMS_LAST
+};
+
+enum AT_STATUS {
+   AT_OFF,
+   AT_READY,
+   AT_LAST,
+};
 
 template <typename Owner>
 class Autotuner {
@@ -16,10 +27,9 @@ public:
     owner_ = nullptr;
     cursor_pos_ = 0;
     channel_ = 0;
-    item_active_ = 0;
     calibration_data_ = 0;
-    status_ = 0;
     auto_calibration_available_ = 0;
+    auto_tune_running_status_ = 0;
   }
 
   bool active() const {
@@ -42,13 +52,13 @@ private:
   Owner *owner_;
   size_t cursor_pos_;
   int8_t channel_;
-  int8_t item_active_;
   uint8_t calibration_data_;
-  uint8_t status_;
+  uint8_t auto_tune_running_status_;
   bool auto_calibration_available_;
 
   void Begin();
   void move_cursor(int offset);
+  void change_value(int offset);
   void handleButtonLeft(const UI::Event &event);
   void handleButtonUp(const UI::Event &event);
   void handleButtonDown(const UI::Event &event);
@@ -68,11 +78,12 @@ private:
     graphics.print(OC::Strings::channel_id[channel_]);
 
     x = 16; y = 15;
-    for (size_t i = 0; i < AUTO_MENU_ITEMS; ++i, y += 20) {
+    
+    for (size_t i = 0; i < (AUTO_MENU_ITEMS_LAST - 0x1); ++i, y += 20) {
         //
       graphics.setPrintPos(x + 2, y + 4);
       
-      if (i == 0x0) {
+      if (i == DATA_SELECT) {
         graphics.print("use --> ");
         
         switch(calibration_data_) {
@@ -87,13 +98,16 @@ private:
           break;
         }
       }
-      else if (i == 0x1) {
+      else if (i == AUTOTUNE) {
         graphics.print("run --> ");
-        switch (status_) {
+        switch (auto_tune_running_status_) {
         //to display progress, if running
-        case 0x0:
+        case AT_OFF:
         graphics.print(" ... ");
         break;
+        case AT_READY:
+        graphics.print("arm:");
+        graphics.print(OC::Strings::channel_id[channel_]);
         default:
         break;
         }
@@ -101,13 +115,11 @@ private:
     }
  
     x = 16; y = 15;
-    for (size_t i = 0; i < AUTO_MENU_ITEMS; ++i, y += 20) {
+    for (size_t i = 0; i < (AUTO_MENU_ITEMS_LAST - 0x1); ++i, y += 20) {
       
       graphics.drawFrame(x, y, 95, 16);
       // cursor:
-      if (!item_active_ && i == cursor_pos_) 
-        graphics.drawFrame(x - 2, y - 2, 99, 20);
-      else if (i == cursor_pos_)
+      if (i == cursor_pos_) 
         graphics.invertRect(x - 2, y - 2, 99, 20);
     }
   }
@@ -156,20 +168,41 @@ private:
   template <typename Owner>
   void Autotuner<Owner>::HandleEncoderEvent(const UI::Event &event) {
    
-    if (OC::CONTROL_ENCODER_L == event.control) {
+    if (OC::CONTROL_ENCODER_R == event.control) {
       move_cursor(event.value);
-    } 
+    }
+    else if (OC::CONTROL_ENCODER_L == event.control) {
+      change_value(event.value); 
+    }
   }
   
   template <typename Owner>
   void Autotuner<Owner>::move_cursor(int offset) {
+    int cursor_pos = cursor_pos_ + offset;
+    CONSTRAIN(cursor_pos, 0, AUTO_MENU_ITEMS_LAST - 0x2);  
+    cursor_pos_ = cursor_pos;
+    //
+    if (cursor_pos_ == DATA_SELECT)
+        auto_tune_running_status_ = AT_OFF;
+  }
 
-    if (!item_active_) {
-      int cursor_pos = cursor_pos_ + offset;
-      CONSTRAIN(cursor_pos, 0, AUTO_MENU_ITEMS - 0x1);  
-      cursor_pos_ = cursor_pos;
+  template <typename Owner>
+  void Autotuner<Owner>::change_value(int offset) {
+
+    switch (cursor_pos_) {
+      case DATA_SELECT:
+      // todo
+      break;
+      case AUTOTUNE: 
+      {
+        int _status = auto_tune_running_status_ + offset;
+        CONSTRAIN(_status, 0, AT_READY);
+        auto_tune_running_status_ = _status;
+      }
+      break;
+      default:
+      break;
     }
-    // to do: select calibration data set
   }
   
   template <typename Owner>
@@ -178,12 +211,13 @@ private:
   
   template <typename Owner>
   void Autotuner<Owner>::handleButtonDown(const UI::Event &event) {
-    // todo: run autotuner, if cursor_pos_ = 0x1 && item_active_;
+    
+    if (cursor_pos_ == AUTOTUNE && auto_tune_running_status_ == AT_READY)
+      owner_->run_autotuner();
   }
   
   template <typename Owner>
   void Autotuner<Owner>::handleButtonLeft(const UI::Event &) {
-    item_active_ = ~item_active_ & 1u;
   }
   
   template <typename Owner>
@@ -194,8 +228,7 @@ private:
     if (calibration_data_ > 0x0)
       auto_calibration_available_ = true;
     cursor_pos_ = 0x0;
-    item_active_ = 0x0;
-    status_ = 0x0;
+    auto_tune_running_status_ = 0x0;
   }
   
   template <typename Owner>
