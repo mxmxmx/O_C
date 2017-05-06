@@ -31,6 +31,7 @@
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
 static constexpr float kC0Frequency = 16.3515; // Frequency for C0 (4 octaves below middle C, which is C4).
+const uint8_t NUM_REF_CHANNELS = DAC_CHANNEL_LAST;
 
 enum ReferenceSetting {
   REF_SETTING_OCTAVE,
@@ -40,6 +41,8 @@ enum ReferenceSetting {
   REF_SETTING_NOTES_OR_BPM,
   REF_SETTING_PPQN,
   REF_SETTING_AUTOTUNE,
+  REF_SETTING_AUTOTUNE_ERROR,
+  REF_SETTING_DUMMY,
   #ifdef BUCHLA_SUPPORT
     REF_SETTING_VOLTAGE_SCALING,
   #endif 
@@ -58,6 +61,17 @@ enum ChannelPpqn {
   CHANNEL_PPQN_64,
   CHANNEL_PPQN_96,
   CHANNEL_PPQN_LAST
+};
+
+enum AUTO_ERROR {
+  ERROR_0_050,
+  ERROR_0_125,
+  ERROR_0_250,
+  ERROR_0_500,
+  ERROR_1_000,
+  ERROR_2_000,
+  ERROR_4_000,
+  ERROR_LAST
 };
 
 class ReferenceChannel : public settings::SettingsBase<ReferenceChannel, REF_SETTING_LAST> {
@@ -100,6 +114,10 @@ public:
   ChannelPpqn get_channel_ppqn() const {
     return static_cast<ChannelPpqn>(values_[REF_SETTING_PPQN]);
   } 
+
+  void run_autotuner() {
+    // todo....
+  }
 
   uint8_t get_voltage_scaling() const {
     #ifdef BUCHLA_SUPPORT
@@ -144,11 +162,18 @@ public:
     *settings++ = REF_SETTING_SEMI;
     *settings++ = REF_SETTING_RANGE;
     *settings++ = REF_SETTING_RATE;
-    if (DAC_CHANNEL_D == dac_channel_) {
-        *settings++ = REF_SETTING_NOTES_OR_BPM;
-        *settings++ = REF_SETTING_PPQN;
-    }
     *settings++ = REF_SETTING_AUTOTUNE;
+    *settings++ = REF_SETTING_AUTOTUNE_ERROR;
+
+    if (DAC_CHANNEL_D == dac_channel_) {
+      *settings++ = REF_SETTING_NOTES_OR_BPM;
+      *settings++ = REF_SETTING_PPQN;
+    }
+    else {
+      *settings++ = REF_SETTING_DUMMY;
+      *settings++ = REF_SETTING_DUMMY;
+    }
+    
     #ifdef BUCHLA_SUPPORT
       *settings++ = REF_SETTING_VOLTAGE_SCALING;
     #endif
@@ -175,14 +200,20 @@ const char* const ppqn_labels[10] = {
  " 1",  " 2", " 4", " 8", "16", "24", "32", "48", "64", "96",  
 };
 
+const char* const error[] = {
+  "0.050", "0.125", "0.250", "0.500", "1.000", "2.000", "4.000"
+};
+
 SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, -3, 6, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 1, "Notes or bpm", notes_or_bpm, settings::STORAGE_TYPE_U8 },
-  { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "  ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "Notes/BPM :", notes_or_bpm, settings::STORAGE_TYPE_U8 },
+  { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "> ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
+  { 3, 0, ERROR_LAST - 1, "> error (Hz)", error, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // dummy
   #ifdef BUCHLA_SUPPORT
   { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 }
   #endif
@@ -195,12 +226,12 @@ public:
   OC::Autotuner<ReferenceChannel> autotuner;
 
   void Init() {
-    int dac_channel = 0;
+    int dac_channel = DAC_CHANNEL_A;
     for (auto &channel : channels_)
       channel.Init(static_cast<DAC_CHANNEL>(dac_channel++));
 
-    ui.selected_channel = 3;
-    ui.cursor.Init(0, channels_[3].num_enabled_settings() - 1);
+    ui.selected_channel = DAC_CHANNEL_D;
+    ui.cursor.Init(0, channels_[DAC_CHANNEL_D].num_enabled_settings() - 1);
 
     freq_sum_ = 0;
     freq_count_ = 0;
@@ -332,12 +363,12 @@ void REFS_init() {
 }
 
 size_t REFS_storageSize() {
-  return 4 * ReferenceChannel::storageSize();
+  return NUM_REF_CHANNELS * ReferenceChannel::storageSize();
 }
 
 size_t REFS_save(void *storage) {
   size_t used = 0;
-  for (size_t i = 0; i < 4; ++i) {
+  for (size_t i = 0; i < NUM_REF_CHANNELS; ++i) {
     used += references_app.channels_[i].Save(static_cast<char*>(storage) + used);
   }
   return used;
@@ -345,7 +376,7 @@ size_t REFS_save(void *storage) {
 
 size_t REFS_restore(const void *storage) {
   size_t used = 0;
-  for (size_t i = 0; i < 4; ++i) {
+  for (size_t i = 0; i < NUM_REF_CHANNELS; ++i) {
     used += references_app.channels_[i].Restore(static_cast<const char*>(storage) + used);
     references_app.channels_[i].update_enabled_settings();
   }
@@ -376,7 +407,7 @@ void REFS_loop() {
 
 void REFS_menu() {
   menu::QuadTitleBar::Draw();
-  for (uint_fast8_t i = 0; i < 4; ++i) {
+  for (uint_fast8_t i = 0; i < NUM_REF_CHANNELS; ++i) {
     menu::QuadTitleBar::SetColumn(i);
     graphics.print((char)('A' + i));
   }
@@ -394,6 +425,7 @@ void REFS_menu() {
 
     switch (setting) {
       case REF_SETTING_AUTOTUNE:
+      case REF_SETTING_DUMMY:
          list_item.DrawNoValue<false>(value, attr);
       break;
       default:
@@ -517,6 +549,8 @@ void REFS_handleButtonEvent(const UI::Event &event) {
       case REF_SETTING_AUTOTUNE:
       references_app.autotuner.Open(&selected_channel);
       break;
+      case REF_SETTING_DUMMY:
+      break;
       default:
       references_app.ui.cursor.toggle_editing();
       break;
@@ -533,16 +567,15 @@ void REFS_handleEncoderEvent(const UI::Event &event) {
   
   if (OC::CONTROL_ENCODER_L == event.control) {
     int selected = references_app.ui.selected_channel + event.value;
-    CONSTRAIN(selected, 0, 3);
+    CONSTRAIN(selected, 0, NUM_REF_CHANNELS - 0x1);
     references_app.ui.selected_channel = selected;
     references_app.ui.cursor.AdjustEnd(references_app.selected_channel().num_enabled_settings() - 1);
-    if (references_app.ui.cursor.cursor_pos() > references_app.selected_channel().num_enabled_settings() - 1) {
-      references_app.ui.cursor.Scroll(-5);
-    }
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (references_app.ui.cursor.editing()) {
         auto &selected_channel = references_app.selected_channel();
         ReferenceSetting setting = selected_channel.enabled_setting_at(references_app.ui.cursor.cursor_pos());
+        if (setting == REF_SETTING_DUMMY) 
+          references_app.ui.cursor.set_editing(false);
         selected_channel.change_value(setting, event.value);
         selected_channel.update_enabled_settings();
     } else {
