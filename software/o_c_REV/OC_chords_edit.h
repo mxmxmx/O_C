@@ -1,3 +1,27 @@
+// Copyright (c)  2015, 2016, 2017 Patrick Dowling, Max Stadler, Tim Churches
+//
+// Author of original O+C firmware: Max Stadler (mxmlnstdlr@gmail.com)
+// Author of app scaffolding: Patrick Dowling (pld@gurkenkiste.com)
+// Modified for bouncing balls: Tim Churches (tim.churches@gmail.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 #ifndef OC_CHORDS_EDIT_H_
 #define OC_CHORDS_EDIT_H_
 
@@ -6,9 +30,6 @@
 #include "OC_chords_presets.h"
 
 namespace OC {
-
-// Chords editor
-// based on scale editor written by Patrick Dowling, adapted for TU, re-adapted for OC
 
 template <typename Owner>
 class ChordEditor {
@@ -22,7 +43,6 @@ public:
 
   void Init() {
     owner_ = nullptr;
-    chord_ = &dummy_chord;
     cursor_pos_ = 0;
     cursor_quality_pos_ = 0;
     edit_this_chord_ = 0;
@@ -130,19 +150,22 @@ void ChordEditor<Owner>::Draw() {
     graphics.drawFrame(x, y, 2, 2);
     graphics.drawFrame(x, y + 4, 2, 2);
     graphics.drawFrame(x, y + 8, 2, 2);
+  
     if (cursor_pos_ == max_chords)
         graphics.drawFrame(x - 2, y - 2, 6, 14);
 
     // draw extra cv num chords?
-    int extra_slots = owner_->get_display_num_chords() - (max_chords - 0x1);
-    if (active && extra_slots > 0x0) {
-      x += 5;
-      indicator -= max_chords;
-      for (size_t i = 0; i < (uint8_t)extra_slots; ++i, x += 10) {
-        if (i == indicator)
-          graphics.drawRect(x, y + 2, 6, 6);
-        else
-          graphics.drawFrame(x, y + 2, 6, 6);
+    if (owner_->get_num_chords_cv()) {
+      int extra_slots = owner_->get_display_num_chords() - (max_chords - 0x1);
+      if (active && extra_slots > 0x0) {
+        x += 5;
+        indicator -= max_chords;
+        for (size_t i = 0; i < (uint8_t)extra_slots; ++i, x += 10) {
+          if (i == indicator)
+            graphics.drawRect(x, y + 2, 6, 6);
+          else
+            graphics.drawFrame(x, y + 2, 6, 6);
+        }
       }
     }
     
@@ -152,7 +175,7 @@ void ChordEditor<Owner>::Draw() {
 
     for (size_t i = 0; i < sizeof(Chord); ++i, x += 24) {
       
-      // draw value
+      // draw values
     
       switch(i) {
         
@@ -170,16 +193,16 @@ void ChordEditor<Owner>::Draw() {
           break;
           case 3: // base note
           {
-          // limit display to valid notes [but don't update chord]
-          const OC::Scale &scale_def = OC::Scales::GetScale(owner_->get_scale(DUMMY));
-          if (chord_base_note_ > (uint8_t)scale_def.num_notes)
-            chord_base_note_ = (uint8_t)scale_def.num_notes;
-          
-          if (chord_base_note_ > 9)
-            graphics.setPrintPos(x + 1, y + 7);
-          else
-            graphics.setPrintPos(x + 4, y + 7);
-          graphics.print(base_note_names[chord_base_note_]);
+            if (chord_base_note_ > 9)
+              graphics.setPrintPos(x + 1, y + 7);
+            else
+              graphics.setPrintPos(x + 4, y + 7);
+            graphics.print(base_note_names[chord_base_note_]);
+            // indicate if note is out-of-range:
+            if (chord_base_note_ > (uint8_t)OC::Scales::GetScale(owner_->get_scale(DUMMY)).num_notes) {
+              graphics.drawBitmap8(x + 3, y + 25, 4, OC::bitmap_indicator_4x8);
+              graphics.drawBitmap8(x + 14, y + 25, 4, OC::bitmap_indicator_4x8);
+            }
           }
           break;
           case 4: // octave 
@@ -379,6 +402,12 @@ void ChordEditor<Owner>::handleButtonLeft(const UI::Event &) {
     	// edit chord:
       edit_this_chord_ = cursor_pos_;
       update_chord(cursor_pos_);
+    }
+    // select previous chord if clicking on end-marker:
+    else if (cursor_pos_ == (uint8_t)(max_chords_ + 1)) {
+      edit_page_ = CHORD_EDIT;
+      cursor_pos_--;
+      edit_this_chord_ = cursor_pos_;
     }
   }
   else {

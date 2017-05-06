@@ -1,4 +1,4 @@
-// Copyright (c) 2015, 2016 Patrick Dowling, Tim Churches, Max Stadler
+// Copyright (c) 2015, 2016, 2017 Patrick Dowling, Tim Churches, Max Stadler
 //
 // Initial app implementation: Patrick Dowling (pld@gurkenkiste.com)
 // Modifications by: Tim Churches (tim.churches@gmail.com)
@@ -733,15 +733,10 @@ public:
 
       if (_base_note) {
         /* 
-        *  we don't use the incoming CV pitch value — limit to valid base notes 
-        *  + update the chord (the scale may have changed...). to do ? maybe just limit to 7 note scales
-        *  not so nice side effect of this is that there's no going back ... 
+        *  we don't use the incoming CV pitch value — limit to valid base notes. 
         */
         int8_t _limit = OC::Scales::GetScale(get_scale(DUMMY)).num_notes;
-        if (_base_note > _limit) {
-          _base_note = _limit;
-          active_chord->base_note = _limit; 
-        }
+        _base_note = _base_note > _limit ? _limit : _base_note;
         pitch = 0x0;
         transpose += (_base_note - 0x1);
       }     

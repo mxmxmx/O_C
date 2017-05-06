@@ -27,6 +27,7 @@
 #include "OC_menus.h"
 #include "OC_strings.h"
 #include "util/util_settings.h"
+#include "OC_autotuner.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
 static constexpr float kC0Frequency = 16.3515; // Frequency for C0 (4 octaves below middle C, which is C4).
@@ -38,6 +39,7 @@ enum ReferenceSetting {
   REF_SETTING_RATE,
   REF_SETTING_NOTES_OR_BPM,
   REF_SETTING_PPQN,
+  REF_SETTING_AUTOTUNE,
   #ifdef BUCHLA_SUPPORT
     REF_SETTING_VOLTAGE_SCALING,
   #endif 
@@ -69,11 +71,14 @@ public:
     dac_channel_ = dac_channel;
   
     update_enabled_settings();
-
   }
 
   int get_octave() const {
     return values_[REF_SETTING_OCTAVE];
+  }
+
+  int get_channel() const {
+    return dac_channel_;
   }
 
   int32_t get_semitone() const {
@@ -143,6 +148,7 @@ public:
         *settings++ = REF_SETTING_NOTES_OR_BPM;
         *settings++ = REF_SETTING_PPQN;
     }
+    *settings++ = REF_SETTING_AUTOTUNE;
     #ifdef BUCHLA_SUPPORT
       *settings++ = REF_SETTING_VOLTAGE_SCALING;
     #endif
@@ -176,6 +182,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 1, "Notes or bpm", notes_or_bpm, settings::STORAGE_TYPE_U8 },
   { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "  ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
   #ifdef BUCHLA_SUPPORT
   { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 }
   #endif
@@ -184,6 +191,8 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
 class ReferencesApp {
 public:
   ReferencesApp() { }
+  
+  OC::Autotuner<ReferenceChannel> autotuner;
 
   void Init() {
     int dac_channel = 0;
@@ -200,7 +209,8 @@ public:
     freq_octave_ = 0;
     freq_note_ = 0;
     freq_decicents_residual_ = 0;
-
+    ticks_since_last_freq_ = 0;
+    autotuner.Init();
   }
 
   void ISR() {
@@ -234,7 +244,7 @@ public:
     menu::ScreenCursor<menu::kScreenLines> cursor;
   } ui;
 
-  ReferenceChannel channels_[4];
+  ReferenceChannel channels_[DAC_CHANNEL_LAST];
 
   float get_frequency( ) {
     return(frequency_) ;
@@ -353,6 +363,7 @@ void REFS_handleAppEvent(OC::AppEvent event) {
     case OC::APP_EVENT_RESUME:
       references_app.ui.cursor.set_editing(false);
       FreqMeasure.begin();
+      references_app.autotuner.Close();
       break;
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
@@ -383,11 +394,17 @@ void REFS_menu() {
     const settings::value_attr &attr = ReferenceChannel::value_attr(setting);
 
     switch (setting) {
+      case REF_SETTING_AUTOTUNE:
+         list_item.DrawNoValue<false>(value, attr);
+      break;
       default:
         list_item.DrawDefault(value, attr);
       break;
     }
   }
+  // autotuner ...
+  if (references_app.autotuner.active())
+    references_app.autotuner.Draw(); 
 }
 
 void print_voltage(int octave, int fraction) {
@@ -488,11 +505,33 @@ void REFS_screensaver() {
 }
 
 void REFS_handleButtonEvent(const UI::Event &event) {
-  if (OC::CONTROL_BUTTON_R == event.control)
-    references_app.ui.cursor.toggle_editing();
+
+  if (references_app.autotuner.active()) {
+    references_app.autotuner.HandleButtonEvent(event);
+    return;
+  }
+  
+  if (OC::CONTROL_BUTTON_R == event.control) {
+
+    auto &selected_channel = references_app.selected_channel();
+    switch (selected_channel.enabled_setting_at(references_app.ui.cursor.cursor_pos())) {
+      case REF_SETTING_AUTOTUNE:
+      references_app.autotuner.Open(&selected_channel);
+      break;
+      default:
+      references_app.ui.cursor.toggle_editing();
+      break;
+    }
+  }
 }
 
 void REFS_handleEncoderEvent(const UI::Event &event) {
+
+  if (references_app.autotuner.active()) {
+    references_app.autotuner.HandleEncoderEvent(event);
+    return;
+  }
+  
   if (OC::CONTROL_ENCODER_L == event.control) {
     int selected = references_app.ui.selected_channel + event.value;
     CONSTRAIN(selected, 0, 3);

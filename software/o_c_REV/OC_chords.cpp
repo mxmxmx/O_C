@@ -4,7 +4,6 @@
 namespace OC {
 
     Chord user_chords[Chords::CHORDS_USER_LAST];
-    Chord dummy_chord;
 
     /*static*/
     const int Chords::NUM_CHORD_PROGRESSIONS = 0x4;
