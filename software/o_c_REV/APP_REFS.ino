@@ -30,7 +30,8 @@
 #include "OC_autotuner.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
-static constexpr float kC0Frequency = 16.3515; // Frequency for C0 (4 octaves below middle C, which is C4).
+static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492 ;
+
 const uint8_t NUM_REF_CHANNELS = DAC_CHANNEL_LAST;
 
 enum ReferenceSetting {
@@ -39,6 +40,8 @@ enum ReferenceSetting {
   REF_SETTING_RANGE,
   REF_SETTING_RATE,
   REF_SETTING_NOTES_OR_BPM,
+  REF_SETTING_A_ABOVE_MID_C_INTEGER,
+  REF_SETTING_A_ABOVE_MID_C_MANTISSA,
   REF_SETTING_PPQN,
   REF_SETTING_AUTOTUNE,
   REF_SETTING_AUTOTUNE_ERROR,
@@ -111,6 +114,15 @@ public:
     return values_[REF_SETTING_NOTES_OR_BPM];
   }
 
+  double get_a_above_mid_c() const {
+    double mantissa_divisor = 100.0;
+    return static_cast<double>(values_[REF_SETTING_A_ABOVE_MID_C_INTEGER]) + (static_cast<double>(values_[REF_SETTING_A_ABOVE_MID_C_MANTISSA])/mantissa_divisor) ;
+  }
+
+  uint8_t get_a_above_mid_c_mantissa() const {
+    return values_[REF_SETTING_A_ABOVE_MID_C_MANTISSA];
+  }
+
   ChannelPpqn get_channel_ppqn() const {
     return static_cast<ChannelPpqn>(values_[REF_SETTING_PPQN]);
   } 
@@ -167,6 +179,8 @@ public:
 
     if (DAC_CHANNEL_D == dac_channel_) {
       *settings++ = REF_SETTING_NOTES_OR_BPM;
+      *settings++ = REF_SETTING_A_ABOVE_MID_C_INTEGER;
+      *settings++ = REF_SETTING_A_ABOVE_MID_C_MANTISSA;
       *settings++ = REF_SETTING_PPQN;
     }
     else {
@@ -210,6 +224,8 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 1, "Notes/BPM :", notes_or_bpm, settings::STORAGE_TYPE_U8 },
+  { 440, 400, 480, "A above mid C", nullptr, settings::STORAGE_TYPE_U16 },
+  { 0, 0, 99, " > mantissa", nullptr, settings::STORAGE_TYPE_U8 },
   { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "> ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
   { 3, 0, ERROR_LAST - 1, "> error (Hz)", error, settings::STORAGE_TYPE_U8 },
@@ -256,13 +272,12 @@ public:
           freq_sum_ = 0;
           freq_count_ = 0;
           milliseconds_since_last_freq_ = 0;
-          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
+          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / get_C0_freq())) + 500;
           freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
           freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
           freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
         }
-      }
-      
+      }     
   }
 
   ReferenceChannel &selected_channel() {
@@ -326,6 +341,10 @@ public:
 
   bool get_notes_or_bpm( ) {
     return(static_cast<bool>(channels_[DAC_CHANNEL_D].get_notes_or_bpm())) ;
+  }
+
+  float get_C0_freq() {
+          return(static_cast<float>(channels_[DAC_CHANNEL_D].get_a_above_mid_c() * kAaboveMidCtoC0));
   }
 
   float get_cents_deviation( ) {
@@ -530,7 +549,7 @@ void REFS_screensaver() {
   graphics.setPrintPos(2, 56);
   if (references_app.get_notes_or_bpm()) {
     graphics.printf("%7.2f bpm %2.0fppqn", references_app.get_bpm(), references_app.get_ppqn());
-  } else if(references_app.get_frequency() >= kC0Frequency) {
+  } else if(references_app.get_frequency() >= references_app.get_C0_freq()) {
     graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
   }
 }
