@@ -746,7 +746,7 @@ public:
      subticks_++; 
      
      int8_t _clock_source, _reset_source = 0x0, _aux_mode, _playmode;
-     int8_t _multiplier = 0x0, _rotate = 0x0;;
+     int8_t _multiplier = 0x0;
      bool _none, _triggered, _tock, _sync, _continuous;
      uint32_t _subticks = 0x0, prev_channel_frequency_in_ticks_ = 0x0;
 
@@ -2082,8 +2082,11 @@ void SEQ_leftButtonLong() {
   if (!seq_state.pattern_editor.active() && !seq_state.scale_editor.active()) {
     
       uint8_t this_channel, the_other_channel, scale;
+      uint16_t mask;
+      
       this_channel = seq_state.selected_channel;
       scale = seq_channel[this_channel].get_scale(DUMMY);
+      mask = seq_channel[this_channel].get_rotated_scale_mask();
       
       the_other_channel = (~this_channel) & 1u;
       seq_channel[the_other_channel].set_scale(scale);

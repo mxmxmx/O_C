@@ -209,7 +209,6 @@ public:
     freq_octave_ = 0;
     freq_note_ = 0;
     freq_decicents_residual_ = 0;
-    ticks_since_last_freq_ = 0;
     autotuner.Init();
   }
 
