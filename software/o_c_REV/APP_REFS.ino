@@ -1,4 +1,7 @@
-// Copyright (c) 2016, 2017 Patrick Dowling, Tim Churches, Max Stadler
+// Copyright (c) 2016 Patrick Dowling, 2017 Max Stadler & Tim Churches
+//
+// Author: Patrick Dowling (pld@gurkenkiste.com)
+// Enhancements: Max Stadler and Tim Churches
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,11 +37,27 @@ enum ReferenceSetting {
   REF_SETTING_SEMI,
   REF_SETTING_RANGE,
   REF_SETTING_RATE,
+  REF_SETTING_NOTES_OR_BPM,
+  REF_SETTING_PPQN,
   REF_SETTING_AUTOTUNE,
   #ifdef BUCHLA_SUPPORT
     REF_SETTING_VOLTAGE_SCALING,
   #endif 
   REF_SETTING_LAST
+};
+
+enum ChannelPpqn {
+  CHANNEL_PPQN_1,
+  CHANNEL_PPQN_2,
+  CHANNEL_PPQN_4,
+  CHANNEL_PPQN_8,
+  CHANNEL_PPQN_16,
+  CHANNEL_PPQN_24,
+  CHANNEL_PPQN_32,
+  CHANNEL_PPQN_48,
+  CHANNEL_PPQN_64,
+  CHANNEL_PPQN_96,
+  CHANNEL_PPQN_LAST
 };
 
 class ReferenceChannel : public settings::SettingsBase<ReferenceChannel, REF_SETTING_LAST> {
@@ -74,6 +93,14 @@ public:
     return values_[REF_SETTING_RATE];
   }
 
+  uint8_t get_notes_or_bpm() const {
+    return values_[REF_SETTING_NOTES_OR_BPM];
+  }
+
+  ChannelPpqn get_channel_ppqn() const {
+    return static_cast<ChannelPpqn>(values_[REF_SETTING_PPQN]);
+  } 
+
   uint8_t get_voltage_scaling() const {
     #ifdef BUCHLA_SUPPORT
       return values_[REF_SETTING_VOLTAGE_SCALING];
@@ -82,7 +109,6 @@ public:
     #endif
   }
  
-
   void Update() {
 
     int octave = get_octave();
@@ -118,6 +144,10 @@ public:
     *settings++ = REF_SETTING_SEMI;
     *settings++ = REF_SETTING_RANGE;
     *settings++ = REF_SETTING_RATE;
+    if (DAC_CHANNEL_D == dac_channel_) {
+        *settings++ = REF_SETTING_NOTES_OR_BPM;
+        *settings++ = REF_SETTING_PPQN;
+    }
     *settings++ = REF_SETTING_AUTOTUNE;
     #ifdef BUCHLA_SUPPORT
       *settings++ = REF_SETTING_VOLTAGE_SCALING;
@@ -137,11 +167,21 @@ private:
   ReferenceSetting enabled_settings_[REF_SETTING_LAST];
 };
 
+const char* const notes_or_bpm[2] = {
+ "notes",  "bpm", 
+};
+
+const char* const ppqn_labels[10] = {
+ " 1",  " 2", " 4", " 8", "16", "24", "32", "48", "64", "96",  
+};
+
 SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, -3, 6, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 1, "Notes or bpm", notes_or_bpm, settings::STORAGE_TYPE_U8 },
+  { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "  ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
   #ifdef BUCHLA_SUPPORT
   { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 }
@@ -159,8 +199,8 @@ public:
     for (auto &channel : channels_)
       channel.Init(static_cast<DAC_CHANNEL>(dac_channel++));
 
-    ui.selected_channel = 0;
-    ui.cursor.Init(0, channels_[0].num_enabled_settings() - 1);
+    ui.selected_channel = 3;
+    ui.cursor.Init(0, channels_[3].num_enabled_settings() - 1);
 
     freq_sum_ = 0;
     freq_count_ = 0;
@@ -174,29 +214,25 @@ public:
   }
 
   void ISR() {
-    
     for (auto &channel : channels_)
       channel.Update();
 
-    ticks_since_last_freq_++; 
- 
-    if (FreqMeasure.available()) {
-
-      // average several readings together
-      freq_sum_ = freq_sum_ + FreqMeasure.read();
-      freq_count_ = freq_count_ + 1;
-
-      if (ticks_since_last_freq_ > (OC_CORE_ISR_FREQ >> 1)) {
-        ticks_since_last_freq_ = 0;
-        frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
-        freq_sum_ = 0;
-        freq_count_ = 0;
-        freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
-        freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
-        freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
-        freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
+      if (FreqMeasure.available()) {
+        // average several readings together
+        freq_sum_ = freq_sum_ + FreqMeasure.read();
+        freq_count_ = freq_count_ + 1;
+        if (milliseconds_since_last_freq_ > 1000) {
+          frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
+          freq_sum_ = 0;
+          freq_count_ = 0;
+          milliseconds_since_last_freq_ = 0;
+          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
+          freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
+          freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
+          freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
+        }
       }
-    }
+      
   }
 
   ReferenceChannel &selected_channel() {
@@ -214,8 +250,52 @@ public:
     return(frequency_) ;
   }
 
+  float get_ppqn() {
+    float ppqn_ = 4.0 ;
+    switch(channels_[DAC_CHANNEL_D].get_channel_ppqn()){
+      case CHANNEL_PPQN_1:
+        ppqn_ = 1.0;
+        break;
+      case CHANNEL_PPQN_2:
+        ppqn_ = 2.0;
+        break;
+      case CHANNEL_PPQN_4:
+        ppqn_ = 4.0;
+        break;
+      case CHANNEL_PPQN_8:
+        ppqn_ = 8.0;
+        break;
+      case CHANNEL_PPQN_16:
+        ppqn_ = 16.0;
+        break;
+      case CHANNEL_PPQN_24:
+        ppqn_ = 24.0;
+        break;
+      case CHANNEL_PPQN_32:
+        ppqn_ = 32.0;
+        break;
+      case CHANNEL_PPQN_48:
+        ppqn_ = 48.0;
+        break;
+      case CHANNEL_PPQN_64:
+        ppqn_ = 64.0;
+        break;
+      case CHANNEL_PPQN_96:
+        ppqn_ = 96.0;
+        break;
+      default:
+        ppqn_ = 8.0 ;
+        break;
+    }
+    return(ppqn_);
+  }
+
   float get_bpm( ) {
-    return(60*frequency_) ;
+    return((60.0 * frequency_)/get_ppqn()) ;
+  }
+
+  bool get_notes_or_bpm( ) {
+    return(static_cast<bool>(channels_[DAC_CHANNEL_D].get_notes_or_bpm())) ;
   }
 
   float get_cents_deviation( ) {
@@ -238,13 +318,12 @@ private:
   double freq_sum_;
   uint32_t freq_count_;
   float frequency_ ;
-  uint32_t ticks_since_last_freq_;
+  elapsedMillis milliseconds_since_last_freq_;
   int32_t freq_decicents_deviation_;
   int8_t freq_octave_ ;
   int8_t freq_note_;
   int32_t freq_decicents_residual_;
 };
-
 
 ReferencesApp references_app;
 
@@ -254,15 +333,25 @@ void REFS_init() {
 }
 
 size_t REFS_storageSize() {
-  return 0;
+  return 4 * ReferenceChannel::storageSize();
 }
 
-size_t REFS_save(void *) {
-  return 0;
+size_t REFS_save(void *storage) {
+  size_t used = 0;
+  for (size_t i = 0; i < 4; ++i) {
+    used += references_app.channels_[i].Save(static_cast<char*>(storage) + used);
+  }
+  return used;
 }
 
-size_t REFS_restore(const void *) {
-  return 0;
+size_t REFS_restore(const void *storage) {
+  size_t used = 0;
+  for (size_t i = 0; i < 4; ++i) {
+    used += references_app.channels_[i].Restore(static_cast<const char*>(storage) + used);
+    references_app.channels_[i].update_enabled_settings();
+  }
+  references_app.ui.cursor.AdjustEnd(references_app.channels_[0].num_enabled_settings() - 1);
+  return used;
 }
 
 void REFS_isr() {
@@ -408,19 +497,10 @@ void REFS_screensaver() {
   graphics.setPrintPos(2, 44);
   graphics.printf("TR4 %7.3f Hz", references_app.get_frequency()) ;
   graphics.setPrintPos(2, 56);
-  
-  if (references_app.get_frequency() >= kC0Frequency) {
+  if (references_app.get_notes_or_bpm()) {
+    graphics.printf("%7.2f bpm %2.0fppqn", references_app.get_bpm(), references_app.get_ppqn());
+  } else if(references_app.get_frequency() >= kC0Frequency) {
     graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
-  } 
-  else {
-    float _bpm = references_app.get_bpm();
-    // adjust margin:
-    if (_bpm < 10.0f)
-      graphics.printf("%5.3f bpm", _bpm);
-    else if (_bpm < 100.0f)
-      graphics.printf("%6.3f bpm", _bpm);
-    else
-      graphics.printf("%7.3f bpm", _bpm);
   }
 }
 
@@ -457,6 +537,9 @@ void REFS_handleEncoderEvent(const UI::Event &event) {
     CONSTRAIN(selected, 0, 3);
     references_app.ui.selected_channel = selected;
     references_app.ui.cursor.AdjustEnd(references_app.selected_channel().num_enabled_settings() - 1);
+    if (references_app.ui.cursor.cursor_pos() > references_app.selected_channel().num_enabled_settings() - 1) {
+      references_app.ui.cursor.Scroll(-5);
+    }
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (references_app.ui.cursor.editing()) {
         auto &selected_channel = references_app.selected_channel();

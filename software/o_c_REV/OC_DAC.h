@@ -23,6 +23,7 @@ class DAC {
 public:
   static constexpr size_t kHistoryDepth = 8;
   static constexpr uint16_t MAX_VALUE = 65535; // DAC fullscale 
+
   static constexpr int kOctaveZero = 3;
 
   struct CalibrationData {
