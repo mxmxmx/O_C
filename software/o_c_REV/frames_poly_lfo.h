@@ -187,6 +187,10 @@ class PolyLfo {
     sync_ = sync;
   }
 
+  inline int get_sync() {
+    return static_cast<int>(sync_);
+  }
+
   inline long get_sync_phase_increment() {
     return sync_phase_increment_;
   }

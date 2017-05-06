@@ -117,7 +117,7 @@ public:
   }
 
   bool get_tap_tempo() const {
-    return values_[static_cast<bool>(POLYLFO_SETTING_TAP_TEMPO)];
+    return static_cast<bool>(values_[POLYLFO_SETTING_TAP_TEMPO]);
   }
 
   void Init();
@@ -157,7 +157,9 @@ const char* const freq_range_names[12] = {
 };
 
 const char* const freq_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
-  "unity", "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
+   // "16/1", "15/1", "14/1", "13/1", "12/1", "11/1", "10/1", "9/1", "8/1", "7/1", "6/1", "5/1", "4/1", "3/1", "5/2", "2/1", "5/3", "3/2", "5/4",
+   "unity", 
+   "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
 };
 
 const char* const xor_levels[9] = {
@@ -177,10 +179,10 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 1, "Tap tempo", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 }, 
+  { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 1, "Tap tempo", OC::Strings::off_on, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -359,7 +361,4 @@ void POLYLFO_debug() {
   graphics.setPrintPos(2, 22);
   graphics.print(value); graphics.print(" ");
   value = USAT16(value);
-  graphics.print(value);
-  graphics.setPrintPos(2, 52);
-  graphics.print(poly_lfo.lfo.get_sync_counter());
 }

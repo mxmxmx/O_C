@@ -126,8 +126,7 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng)
 }
 
 void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
-
-  ++sync_counter_;
+    ++sync_counter_;
     if (tempo_sync && sync_) {
         if (sync_counter_ < kSyncCounterMaxTime) {
           uint32_t period = 0;
