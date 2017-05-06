@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Patrick Dowling, T2017 Max Stadler & Tim Churches
+// Copyright (c) 2016 Patrick Dowling, 2017 Max Stadler & Tim Churches
 //
 // Author: Patrick Dowling (pld@gurkenkiste.com)
 // Enhancements: Max Stadler and Tim Churches
