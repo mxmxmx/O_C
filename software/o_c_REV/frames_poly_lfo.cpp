@@ -50,8 +50,11 @@ void PolyLfo::Init() {
   coupling_ = 0;
   attenuation_ = 58880;
   offset_ = 0 ;
-  freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_DIV_NONE ;
+  freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_MULT_NONE ;
   phase_reset_flag_ = false;
+  sync_counter_ = 0 ;
+  sync_ = false;
+  period_ = 0 ;
   std::fill(&value_[0], &value_[kNumChannels], 0);
   std::fill(&wt_value_[0], &wt_value_[kNumChannels], 0);
   std::fill(&phase_[0], &phase_[kNumChannels], 0);
@@ -122,27 +125,50 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng)
   return (a + ((b - a) * (index & 0x1f) >> 5)) << shifts;
 }
 
-void PolyLfo::Render(int32_t frequency, bool reset_phase) {
+void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
+    ++sync_counter_;
+    if (tempo_sync && sync_) {
+        if (sync_counter_ < kSyncCounterMaxTime) {
+          uint32_t period = 0;
+          if (sync_counter_ < 1920) {
+            period = (3 * period_ + sync_counter_) >> 2;
+            tempo_sync = false;
+          } else {
+            period = pattern_predictor_.Predict(sync_counter_);
+          }
+          if (period != period_) {
+            period_ = period;
+            sync_phase_increment_ = 0xffffffff / period_;
+            //sync_phase_increment_ = multiply_u32xu32_rshift24((0xffffffff / period_), 16183969) ;
+          }
+        }
+        sync_counter_ = 0;
+    }
 
+  
   // reset phase
   if (reset_phase || phase_reset_flag_) {
     std::fill(&phase_[0], &phase_[kNumChannels], 0);
     phase_reset_flag_ = false ;
   } else {
     // increment freqs for each LFO
-    phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
+    if (sync_) {
+      phase_increment_ch1_ = sync_phase_increment_;
+    } else {
+      phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
+    }
     phase_[0] += phase_increment_ch1_ ;
-    PolyLfoFreqDivisions FreqDivs[] = {POLYLFO_FREQ_DIV_NONE, freq_div_b_, freq_div_c_ , freq_div_d_ } ;
+    PolyLfoFreqMultipliers FreqDivs[] = {POLYLFO_FREQ_MULT_NONE, freq_div_b_, freq_div_c_ , freq_div_d_ } ;
     for (uint8_t i = 1; i < kNumChannels; ++i) {
-        if (FreqDivs[i] == POLYLFO_FREQ_DIV_NONE) {
+        if (FreqDivs[i] == POLYLFO_FREQ_MULT_NONE) {
             phase_[i] += phase_increment_ch1_;
         } else {
-            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqDivNumerators[FreqDivs[i]]) ;
+            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
         }  
     }
 
     // Advance phasors.
-    if (!(freq_div_b_ || freq_div_c_ || freq_div_c_)) {
+    if (!(freq_div_b_ || freq_div_c_ || freq_div_c_ || sync_)) {
       // original Frames behaviour
       if (spread_ >= 0) {
         phase_[0] += FrequencyToPhaseIncrement(frequency, freq_range_);

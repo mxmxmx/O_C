@@ -55,6 +55,8 @@ namespace OC {
 
   const char * const no_yes[] = { "No", "Yes" };
 
+  const char * const off_on[] = { "off", "on" };
+
   const char * const encoder_config_strings[] = { "normal", "R reversed", "L reversed", "LR reversed" };
 
   const char * const trigger_delay_times[kNumDelayTimes] = {
