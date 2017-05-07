@@ -30,7 +30,10 @@
 #include "OC_autotuner.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
-static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492 ;
+static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
+#define FREQ_MEASURE_TIMEOUT 1000
+#define ERROR_TIMEOUT (FREQ_MEASURE_TIMEOUT << 0x4)
+#define NUM_PASSES 1500
 
 const uint8_t NUM_REF_CHANNELS = DAC_CHANNEL_LAST;
 
@@ -107,13 +110,15 @@ public:
     auto_DAC_offset_error_ = 0;
     auto_frequency_ = 0;
     auto_last_frequency_ = 0;
+    auto_target_frequency_ = 0;
     auto_freq_sum_ = 0;
     auto_freq_count_ = 0;
+    auto_ready_ = 0;
     ticks_since_last_freq_ = 0;
     auto_next_step_ = false;
     auto_pass_one_ = 0;
     autotune_completed_ = false;
-    
+    reset_calibration_data();
     update_enabled_settings();
   }
 
@@ -187,10 +192,13 @@ public:
     ticks_since_last_freq_ = 0x0;
     auto_frequency_ = 0x0;
     auto_last_frequency_ = 0x0;
+    auto_target_frequency_ = 0x0;
     auto_error_ = 0x0;
+    auto_ready_ = 0x0;
     autotuner_ = 0x0;
     autotuner_step_ = 0x0;
     auto_pass_one_ = 0x0;
+    cnt = 0x0;
   }
 
   float get_auto_frequency() {
@@ -198,14 +206,20 @@ public:
   }
 
   uint8_t _ready() {
-     return auto_pass_one_;
+     return auto_ready_;
+  }
+
+  void reset_calibration_data() {
+    
+    for (int i = 0; i <= OCTAVES; i++)
+      auto_calibration_data_[i] = 0;
   }
   
   bool auto_frequency() {
 
     bool next = false;
 
-    if (ticks_since_last_freq_ > 100000) {
+    if (ticks_since_last_freq_ > ERROR_TIMEOUT) {
       auto_error_ = true;
     }
     
@@ -214,15 +228,16 @@ public:
       auto_freq_sum_ = auto_freq_sum_ + FreqMeasure.read();
       auto_freq_count_ = auto_freq_count_ + 1;
 
-      uint16_t _wait = 25000;
+      uint16_t _wait = FREQ_MEASURE_TIMEOUT;
       // quick measurement to let things settle in (and to display), which we'll discard
       if (auto_pass_one_ == 0x0) {
-        _wait = 5000;
+        _wait = FREQ_MEASURE_TIMEOUT >> 2;
       }
    
       if (ticks_since_last_freq_ > _wait) {
         auto_frequency_ = FreqMeasure.countToFrequency(auto_freq_sum_ / auto_freq_count_);
         auto_freq_sum_ = 0;
+        auto_ready_ = true;
         auto_freq_count_ = 0;
         auto_pass_one_++;
         next = true;
@@ -235,7 +250,7 @@ public:
 
   void auto_init_frequency() {
 
-    if (ticks_since_last_freq_ > 100000) {
+    if (ticks_since_last_freq_ > ERROR_TIMEOUT) {
       auto_error_ = true;
     }
     
@@ -244,17 +259,18 @@ public:
       auto_freq_sum_ = auto_freq_sum_ + FreqMeasure.read();
       auto_freq_count_ = auto_freq_count_ + 1;
    
-      if (ticks_since_last_freq_ > 10000) {
+      if (ticks_since_last_freq_ > (FREQ_MEASURE_TIMEOUT >> 1) ) {
         auto_frequency_ = FreqMeasure.countToFrequency(auto_freq_sum_ / auto_freq_count_);
         auto_freq_sum_ = 0;
         auto_freq_count_ = 0;
+        auto_ready_ = true;
         ticks_since_last_freq_ = 0x0;
         OC::ui._Poke();
       }
     }
   }
 
-  void calc_error() {
+  void measure_frequency_and_calc_error() {
 
     // todo: preempt screensaver 
     
@@ -264,18 +280,22 @@ public:
       // do nothing
       break;
       case DAC_VOLT_0_BASELINE:
+      case DAC_VOLT_3m:
       {
         auto_next_step_ = auto_frequency();
         // done?
         if (auto_next_step_ && auto_pass_one_ == 0x2) { 
-          auto_frequency_ = auto_frequency_;
+          auto_last_frequency_ = auto_frequency_;
+          auto_target_frequency_ = auto_frequency_ * 2.0f;
           auto_next_step_ = false;
           autotuner_step_++;
           auto_pass_one_ = 0x0;
+          auto_ready_ = false;
+          correct_pos_ = correct_neg_ = 0;
+          reset_calibration_data();
         }
       }
       break;
-      case DAC_VOLT_3m:
       case DAC_VOLT_2m:
       case DAC_VOLT_1m: 
       case DAC_VOLT_0:
@@ -288,21 +308,65 @@ public:
       {
         auto_next_step_ = auto_frequency();
         // done?
-        if (auto_next_step_ && auto_pass_one_ == 0x2) { 
+        if (auto_num_passes_ > NUM_PASSES) {  // if (auto_next_step_ && auto_pass_one_ == 0x2) {
           // throw error, if things don't seem to double ...
-          if (auto_last_frequency_ * 1.5f > auto_frequency_)
+          if (auto_last_frequency_ * 1.25f > auto_frequency_)
             auto_error_ = true;
           auto_last_frequency_ = auto_frequency_;
+          auto_target_frequency_ = auto_frequency_ * 2.0f;
+          auto_calibration_data_[autotuner_step_ - DAC_VOLT_3m] = auto_DAC_offset_error_;
           auto_next_step_ = false;
-          autotuner_step_++;
           auto_pass_one_ = 0x0;
+          auto_num_passes_ = 0x0;
+          auto_DAC_offset_error_ = 0x0;
+          correct_pos_ = correct_neg_ = 0x0;
+          auto_ready_ = false;
+          autotuner_step_++; 
+        }
+        else if (auto_next_step_ && (autotuner_step_ > DAC_VOLT_3m)) {
+
+          if (auto_target_frequency_ > auto_frequency_) {
+            auto_DAC_offset_error_++;
+            correct_pos_++;
+            auto_pass_one_ = 0x0;
+          }
+          else if (auto_target_frequency_ < auto_frequency_) {
+            auto_DAC_offset_error_--;
+            correct_neg_++;
+            auto_pass_one_ = 0x0;
+          }
+          auto_num_passes_++;
+          if (correct_pos_ > 10 && correct_neg_ > 10)
+            auto_num_passes_ = NUM_PASSES << 1;
+          Serial.print("# ");
+          Serial.print(autotuner_step_ - 2);
+          Serial.print(": target: ");
+          Serial.print(auto_target_frequency_);
+          Serial.print(": current : ");
+          Serial.print(auto_frequency_);
+          Serial.print(": # : ");
+          Serial.print(auto_num_passes_);
+          Serial.print(" | ");
+          Serial.println(auto_DAC_offset_error_);
         }
       }
       break;
       case AUTO_CALIBRATION_STEP_LAST:
       // todo...
-      autotune_completed_ = true;
-      reset_autotuner();
+      if (ticks_since_last_freq_  > 7000) {
+      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][cnt] + auto_calibration_data_[cnt]);
+        ticks_since_last_freq_  = 0; cnt++;
+      }
+      if (cnt == 10) { 
+        autotune_completed_ = true;
+        for (int i = 0; i <= OCTAVES; i++) {
+          Serial.print(auto_calibration_data_[i]);
+          Serial.print(" <-- ");
+          Serial.println(OC::calibration_data.dac.calibrated_octaves[dac_channel_][i]);
+          OC::DAC::update_auto_channel_calibration_data(dac_channel_, i, OC::calibration_data.dac.calibrated_octaves[dac_channel_][i] + auto_calibration_data_[i]);
+        }
+        reset_autotuner();
+      }
       break;
       default: 
       // todo...
@@ -329,7 +393,7 @@ public:
       default: 
       // set DAC to calibration point + error
       {
-        int32_t _default_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][autotuner_step_ - 0x2]; // substract first two steps
+        int32_t _default_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][autotuner_step_ - DAC_VOLT_3m]; // substract first two steps
         OC::DAC::set(dac_channel_, _default_calibration_point + auto_DAC_offset_error_);
       }
       break;
@@ -386,7 +450,7 @@ public:
     *settings++ = REF_SETTING_RANGE;
     *settings++ = REF_SETTING_RATE;
     *settings++ = REF_SETTING_AUTOTUNE;
-    *settings++ = REF_SETTING_AUTOTUNE_ERROR;
+    //*settings++ = REF_SETTING_AUTOTUNE_ERROR;
 
     if (DAC_CHANNEL_D == dac_channel_) {
       *settings++ = REF_SETTING_NOTES_OR_BPM;
@@ -415,14 +479,21 @@ private:
   uint8_t autotuner_step_;
   int32_t auto_DAC_offset_error_;
   float auto_frequency_;
+  int16_t auto_calibration_data_[OCTAVES + 1];
   float auto_last_frequency_;
+  float auto_target_frequency_;
   bool auto_next_step_;
   uint8_t auto_pass_one_;
   bool auto_error_;
+  bool auto_ready_;
   bool autotune_completed_;
   uint32_t auto_freq_sum_;
   uint32_t auto_freq_count_;
   uint32_t ticks_since_last_freq_;
+  uint32_t auto_num_passes_;
+  int16_t cnt;
+  int16_t correct_pos_;
+  int16_t correct_neg_;
   DAC_CHANNEL dac_channel_;
 
   int num_enabled_settings_;
@@ -492,7 +563,7 @@ public:
        _autotuner_active_channel += channel.autotuner_active();
 
     if (_autotuner_active_channel) {
-      channels_[_autotuner_active_channel - 0x1].calc_error();
+      channels_[_autotuner_active_channel - 0x1].measure_frequency_and_calc_error();
       return;
     }
     else if (FreqMeasure.available()) {

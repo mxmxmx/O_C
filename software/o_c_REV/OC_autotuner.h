@@ -91,8 +91,7 @@ private:
       auto_tune_running_status_ = AT_ERROR;
       owner_->reset_autotuner();
     }
-
-    if (owner_->autotuner_completed()) {
+    else if (owner_->autotuner_completed()) {
       auto_tune_running_status_ = AT_DONE;
       owner_->autotuner_reset_completed();
     }

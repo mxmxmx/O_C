@@ -88,6 +88,14 @@ void DAC::set_default_channel_calibration_data(uint8_t channel_id) {
   }
 }
 /*static*/
+void DAC::update_auto_channel_calibration_data(uint8_t channel_id, int8_t octave, uint32_t pitch_data) {
+  
+  if (channel_id < DAC_CHANNEL_LAST) {
+      OC::Autotune_data *autotune_data = &OC::auto_calibration_data[channel_id];
+      autotune_data->auto_calibrated_octaves[octave] = pitch_data;
+  }
+}
+/*static*/
 void DAC::reset_auto_channel_calibration_data(uint8_t channel_id) {
   
   if (channel_id < DAC_CHANNEL_LAST) {

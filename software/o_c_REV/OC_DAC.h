@@ -34,6 +34,7 @@ public:
   
   static void set_auto_channel_calibration_data(uint8_t channel_id);
   static void set_default_channel_calibration_data(uint8_t channel_id);
+  static void update_auto_channel_calibration_data(uint8_t channel_id, int8_t octave, uint32_t pitch_data);
   static void reset_auto_channel_calibration_data(uint8_t channel_id);
   static void reset_all_auto_channel_calibration_data();
   static void choose_calibration_data();
