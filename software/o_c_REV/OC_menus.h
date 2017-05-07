@@ -30,6 +30,7 @@
 #include "util/util_macros.h"
 #include "util/util_misc.h"
 #include "util/util_settings.h"
+#include "OC_chords.h"
 
 namespace OC {
 
@@ -163,6 +164,44 @@ inline void DrawEditIcon(weegfx::coord_t x, weegfx::coord_t y, int value, const 
   graphics.drawBitmap8(x - 5, y + 1, OC::kBitmapEditIndicatorW, src);
 }
 
+inline void DrawChord(weegfx::coord_t x, weegfx::coord_t y, int width, int value, int mem_offset) {
+  
+   OC::Chord *active_chord = &OC::user_chords[value + mem_offset * OC::Chords::NUM_CHORDS];
+   int8_t _quality = active_chord->quality;
+   int8_t _voicing = active_chord->voicing;
+   int y_pos;
+
+   // draw #A / base note:
+   y -= active_chord->base_note * 2;
+   graphics.drawRect(x, y, width, width);
+   // draw #B:
+   y -= OC::qualities[_quality][1] * 3;
+   y_pos = y + OC::voicing[_voicing][1] * 16;
+   CONSTRAIN(y_pos, 8, 64);
+   graphics.drawFrame(x, y_pos, width, width);
+   // draw #C:
+   y -= OC::qualities[_quality][2] * 3;
+   y_pos = y + OC::voicing[_voicing][2] * 16;
+   CONSTRAIN(y_pos, 8, 64);
+   graphics.drawFrame(x, y_pos, width, width);
+   // draw #D:
+   y -= OC::qualities[_quality][3] * 3;
+   y_pos = y + OC::voicing[_voicing][3] * 16;
+   CONSTRAIN(y_pos, 8, 64);
+   graphics.drawFrame(x, y_pos, width, width);
+}
+
+inline void DrawMiniChord(weegfx::coord_t x, weegfx::coord_t y, uint8_t count, uint8_t indicator) {
+  int8_t _x = x - count * 3 - 4;
+  int8_t _y = y + 4;
+  int8_t _w = 2;
+  for (int i = 0; i < count + 1; i++, _x += 3) {
+    graphics.drawRect(_x, _y, _w, _w);
+    if (i == indicator)
+      graphics.drawRect(_x, _y + 3, _w, _w);
+  }
+}
+
 template <bool rtl, size_t max_bits, weegfx::coord_t height, weegfx::coord_t padding>
 void DrawMask(weegfx::coord_t x, weegfx::coord_t y, uint32_t mask, size_t count) {
   weegfx::coord_t dx;
@@ -277,6 +316,21 @@ struct SettingsListItem {
 
     if (editing)
       menu::DrawEditIcon(valuex, y, value, attr);
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
+
+  inline void DrawValueMax(int value, const settings::value_attr &attr, int16_t _max) const {
+    DrawName(attr);
+
+    graphics.setPrintPos(endx, y + kTextDy);
+    if(attr.value_names)
+      graphics.print_right(attr.value_names[value]);
+    else
+      graphics.pretty_print_right(value);
+
+    if (editing)
+      menu::DrawEditIcon(valuex, y, value, attr.min_, _max);
     if (selected)
       graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
   }

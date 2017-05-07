@@ -9,7 +9,7 @@ namespace OC {
 typedef OC::Pattern Pattern;
 
 static constexpr int kMaxPatternLength = 16;
-static constexpr int kMinPatternLength = 4;
+static constexpr int kMinPatternLength = 2;
 
 class Patterns {
 public:

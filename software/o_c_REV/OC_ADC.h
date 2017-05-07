@@ -2,7 +2,7 @@
 #define OC_ADC_H_
 
 #include <Arduino.h>
-#include <ADC.h>
+#include "src/drivers/ADC/OC_util_ADC.h"
 #include "OC_config.h"
 
 #include <stdint.h>

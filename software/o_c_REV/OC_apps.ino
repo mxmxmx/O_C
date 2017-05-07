@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 #include "OC_apps.h"
+#include "OC_digital_inputs.h"
+#include "OC_autotune.h"
 
 #define DECLARE_APP(a, b, name, prefix, isr) \
 { TWOCC<a,b>::value, name, \
@@ -44,6 +46,7 @@ OC::App available_apps[] = {
   DECLARE_APP('S','Q', "Sequins", SEQ, SEQ_isr),
   DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('C','Q', "Acid Curds", CHORDS, CHORDS_isr),
   DECLARE_APP('R','F', "References", REFS, REFS_isr)
 };
 
@@ -63,6 +66,8 @@ struct GlobalSettings {
   uint16_t current_app_id;
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
   OC::Pattern user_patterns[OC::Patterns::PATTERN_USER_ALL];
+  OC::Chord user_chords[OC::Chords::CHORDS_USER_LAST];
+  OC::Autotune_data auto_calibration_data[DAC_CHANNEL_LAST];
 };
 
 // App settings are packed into a single blob of binary data; each app's chunk
@@ -100,7 +105,9 @@ void save_global_settings() {
 
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
   memcpy(global_settings.user_patterns, OC::user_patterns, sizeof(OC::user_patterns));
-
+  memcpy(global_settings.user_chords, OC::user_chords, sizeof(OC::user_chords));
+  memcpy(global_settings.auto_calibration_data, OC::auto_calibration_data, sizeof(OC::auto_calibration_data));
+  
   global_settings_storage.Save(global_settings);
   SERIAL_PRINTLN("Saved global settings in page_index %d", global_settings_storage.page_index());
 }
@@ -211,6 +218,7 @@ int index_of(uint16_t id) {
 void Init(bool reset_settings) {
 
   Scales::Init();
+  AUTOTUNE::Init();
   for (auto &app : available_apps)
     app.Init();
 
@@ -249,6 +257,9 @@ void Init(bool reset_settings) {
                     global_settings_storage.page_index(),global_settings.current_app_id);
       memcpy(user_scales, global_settings.user_scales, sizeof(user_scales));
       memcpy(user_patterns, global_settings.user_patterns, sizeof(user_patterns));
+      memcpy(user_chords, global_settings.user_chords, sizeof(user_chords));
+      memcpy(auto_calibration_data, global_settings.auto_calibration_data, sizeof(auto_calibration_data));
+      DAC::choose_calibration_data(); // either use default data, or auto_calibration_data
     }
 
     SERIAL_PRINTLN("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
@@ -359,6 +370,8 @@ void Ui::AppSettings() {
 
   if (change_app) {
     apps::set_current_app(cursor.cursor_pos());
+    FreqMeasure.end();
+    OC::DigitalInputs::reInit();
     if (save) {
       save_global_settings();
       save_app_data();

@@ -27,6 +27,8 @@ public:
 
   static void Init();
 
+  static void reInit();
+
   static void Scan();
 
   // @return mask of all pins cloked since last call, reset state
