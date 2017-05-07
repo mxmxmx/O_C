@@ -121,7 +121,8 @@ public:
       default:
         break;
     }
-    segments[mapping - BB_CV_MAPPING_GRAVITY] += (cvs[cv_setting - BB_SETTING_CV1] * 65536) >> bb_cv_rshift ;
+    if (mapping)
+      segments[mapping - BB_CV_MAPPING_GRAVITY] += (cvs[cv_setting - BB_SETTING_CV1] * 65536) >> bb_cv_rshift ;
   }
 
   template <DAC_CHANNEL dac_channel>
