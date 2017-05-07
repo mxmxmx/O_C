@@ -31,7 +31,7 @@
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
 static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
-#define FREQ_MEASURE_TIMEOUT 1000
+#define FREQ_MEASURE_TIMEOUT 2000
 #define ERROR_TIMEOUT (FREQ_MEASURE_TIMEOUT << 0x4)
 #define NUM_PASSES 1500
 
