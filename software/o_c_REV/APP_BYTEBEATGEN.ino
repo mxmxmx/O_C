@@ -266,7 +266,11 @@ public:
         break;
     }
     if (mapping)
+<<<<<<< HEAD
      segments[mapping - BYTEBEAT_CV_MAPPING_FIRST] += (cvs[cv_setting - BYTEBEAT_SETTING_CV1] * 65536) >> bytebeat_cv_rshift;
+=======
+      segments[mapping - BYTEBEAT_CV_MAPPING_FIRST] += (cvs[cv_setting - BYTEBEAT_SETTING_CV1] * 65536) >> bytebeat_cv_rshift;
+>>>>>>> master
   }
 
   template <DAC_CHANNEL dac_channel>
