@@ -505,7 +505,7 @@ public:
         freq_sum_ = 0;
         freq_count_ = 0;
         milliseconds_since_last_freq_ = 0;
-        freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
+        freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / get_C0_freq())) + 500;
         freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
         freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
         freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
