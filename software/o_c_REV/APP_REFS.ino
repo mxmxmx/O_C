@@ -77,6 +77,22 @@ enum AUTO_ERROR {
   ERROR_LAST
 };
 
+enum AUTO_CALIBRATION_STEP {
+  DAC_VOLT_0_ARM,
+  DAC_VOLT_0_BASELINE,
+  DAC_VOLT_3m, 
+  DAC_VOLT_2m, 
+  DAC_VOLT_1m, 
+  DAC_VOLT_0, 
+  DAC_VOLT_1, 
+  DAC_VOLT_2, 
+  DAC_VOLT_3, 
+  DAC_VOLT_4, 
+  DAC_VOLT_5, 
+  DAC_VOLT_6,
+  AUTO_CALIBRATION_STEP_LAST
+};
+
 class ReferenceChannel : public settings::SettingsBase<ReferenceChannel, REF_SETTING_LAST> {
 public:
   void Init(DAC_CHANNEL dac_channel) {
@@ -85,8 +101,19 @@ public:
     rate_phase_ = 0;
     mod_offset_ = 0;
     last_pitch_ = 0;
+    autotuner_ = false;
+    autotuner_step_ = DAC_VOLT_0_ARM;
     dac_channel_ = dac_channel;
-  
+    auto_DAC_offset_error_ = 0;
+    auto_frequency_ = 0;
+    auto_last_frequency_ = 0;
+    auto_freq_sum_ = 0;
+    auto_freq_count_ = 0;
+    ticks_since_last_freq_ = 0;
+    auto_next_step_ = false;
+    auto_pass_one_ = 0;
+    autotune_completed_ = false;
+    
     update_enabled_settings();
   }
 
@@ -125,10 +152,188 @@ public:
 
   ChannelPpqn get_channel_ppqn() const {
     return static_cast<ChannelPpqn>(values_[REF_SETTING_PPQN]);
-  } 
+  }
 
-  void run_autotuner() {
-    // todo....
+  uint8_t autotuner_active() {
+    return (autotuner_ && autotuner_step_) ? (dac_channel_ + 0x1) : 0x0;
+  }
+
+  bool autotuner_completed() {
+    return autotune_completed_;
+  }
+
+  void autotuner_reset_completed() {
+    autotune_completed_ = false;
+  }
+
+  bool autotuner_error() {
+    return auto_error_;
+  }
+
+  uint8_t auto_tune_step() {
+    return autotuner_step_;
+  }
+
+  void autotuner_arm(uint8_t _status) {
+    autotuner_ = _status ? true : false;
+  }
+  
+  void autotuner_run() {
+    autotuner_step_ = autotuner_ ? DAC_VOLT_0_BASELINE : DAC_VOLT_0_ARM; 
+    ticks_since_last_freq_ = auto_error_ = autotune_completed_ = 0x0;
+  }
+
+  void reset_autotuner() {
+    ticks_since_last_freq_ = 0x0;
+    auto_frequency_ = 0x0;
+    auto_last_frequency_ = 0x0;
+    auto_error_ = 0x0;
+    autotuner_ = 0x0;
+    autotuner_step_ = 0x0;
+    auto_pass_one_ = 0x0;
+  }
+
+  float get_auto_frequency() {
+    return auto_frequency_;
+  }
+
+  uint8_t _ready() {
+     return auto_pass_one_;
+  }
+  
+  bool auto_frequency() {
+
+    bool next = false;
+
+    if (ticks_since_last_freq_ > 100000) {
+      auto_error_ = true;
+    }
+    
+    if (FreqMeasure.available()) {
+      
+      auto_freq_sum_ = auto_freq_sum_ + FreqMeasure.read();
+      auto_freq_count_ = auto_freq_count_ + 1;
+
+      uint16_t _wait = 25000;
+      // quick measurement to let things settle in (and to display), which we'll discard
+      if (auto_pass_one_ == 0x0) {
+        _wait = 5000;
+      }
+   
+      if (ticks_since_last_freq_ > _wait) {
+        auto_frequency_ = FreqMeasure.countToFrequency(auto_freq_sum_ / auto_freq_count_);
+        auto_freq_sum_ = 0;
+        auto_freq_count_ = 0;
+        auto_pass_one_++;
+        next = true;
+        ticks_since_last_freq_ = 0x0;
+        OC::ui._Poke();
+      }
+    }
+    return next;
+  }
+
+  void auto_init_frequency() {
+
+    if (ticks_since_last_freq_ > 100000) {
+      auto_error_ = true;
+    }
+    
+    if (FreqMeasure.available()) {
+      
+      auto_freq_sum_ = auto_freq_sum_ + FreqMeasure.read();
+      auto_freq_count_ = auto_freq_count_ + 1;
+   
+      if (ticks_since_last_freq_ > 10000) {
+        auto_frequency_ = FreqMeasure.countToFrequency(auto_freq_sum_ / auto_freq_count_);
+        auto_freq_sum_ = 0;
+        auto_freq_count_ = 0;
+        ticks_since_last_freq_ = 0x0;
+        OC::ui._Poke();
+      }
+    }
+  }
+
+  void calc_error() {
+
+    // todo: preempt screensaver 
+    
+    switch(autotuner_step_) {
+
+      case DAC_VOLT_0_ARM:
+      // do nothing
+      break;
+      case DAC_VOLT_0_BASELINE:
+      {
+        auto_next_step_ = auto_frequency();
+        // done?
+        if (auto_next_step_ && auto_pass_one_ == 0x2) { 
+          auto_frequency_ = auto_frequency_;
+          auto_next_step_ = false;
+          autotuner_step_++;
+          auto_pass_one_ = 0x0;
+        }
+      }
+      break;
+      case DAC_VOLT_3m:
+      case DAC_VOLT_2m:
+      case DAC_VOLT_1m: 
+      case DAC_VOLT_0:
+      case DAC_VOLT_1:
+      case DAC_VOLT_2:
+      case DAC_VOLT_3:
+      case DAC_VOLT_4:
+      case DAC_VOLT_5:
+      case DAC_VOLT_6:
+      {
+        auto_next_step_ = auto_frequency();
+        // done?
+        if (auto_next_step_ && auto_pass_one_ == 0x2) { 
+          // throw error, if things don't seem to double ...
+          if (auto_last_frequency_ * 1.5f > auto_frequency_)
+            auto_error_ = true;
+          auto_last_frequency_ = auto_frequency_;
+          auto_next_step_ = false;
+          autotuner_step_++;
+          auto_pass_one_ = 0x0;
+        }
+      }
+      break;
+      case AUTO_CALIBRATION_STEP_LAST:
+      // todo...
+      autotune_completed_ = true;
+      reset_autotuner();
+      break;
+      default: 
+      // todo...
+      reset_autotuner();
+      break;
+    }
+  }
+  
+  void autotune_updateDAC() {
+
+    switch(autotuner_step_) {
+
+      case DAC_VOLT_0_ARM:
+      auto_init_frequency();
+      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
+      break;
+      case DAC_VOLT_0_BASELINE:
+      // set DAC to 0.000V, default calibration:
+      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
+      break;
+      case AUTO_CALIBRATION_STEP_LAST:
+      // todo: stop process + save to auto_calibration_data_
+      break;
+      default: 
+      // set DAC to calibration point + error
+      {
+        int32_t _default_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][autotuner_step_ - 0x2]; // substract first two steps
+        OC::DAC::set(dac_channel_, _default_calibration_point + auto_DAC_offset_error_);
+      }
+      break;
+    }
   }
 
   uint8_t get_voltage_scaling() const {
@@ -140,6 +345,12 @@ public:
   }
  
   void Update() {
+
+    if (autotuner_) {
+      autotune_updateDAC();
+      ticks_since_last_freq_++;
+      return;
+    }
 
     int octave = get_octave();
     int range = get_range();
@@ -200,6 +411,18 @@ private:
   uint32_t rate_phase_;
   int mod_offset_;
   int32_t last_pitch_;
+  bool autotuner_;
+  uint8_t autotuner_step_;
+  int32_t auto_DAC_offset_error_;
+  float auto_frequency_;
+  float auto_last_frequency_;
+  bool auto_next_step_;
+  uint8_t auto_pass_one_;
+  bool auto_error_;
+  bool autotune_completed_;
+  uint32_t auto_freq_sum_;
+  uint32_t auto_freq_count_;
+  uint32_t ticks_since_last_freq_;
   DAC_CHANNEL dac_channel_;
 
   int num_enabled_settings_;
@@ -260,24 +483,34 @@ public:
   }
 
   void ISR() {
+      
     for (auto &channel : channels_)
       channel.Update();
 
-      if (FreqMeasure.available()) {
-        // average several readings together
-        freq_sum_ = freq_sum_ + FreqMeasure.read();
-        freq_count_ = freq_count_ + 1;
-        if (milliseconds_since_last_freq_ > 1000) {
-          frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
-          freq_sum_ = 0;
-          freq_count_ = 0;
-          milliseconds_since_last_freq_ = 0;
-          freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / get_C0_freq())) + 500;
-          freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
-          freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
-          freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
+    uint8_t _autotuner_active_channel = 0x0;
+    for (auto &channel : channels_)
+       _autotuner_active_channel += channel.autotuner_active();
+
+    if (_autotuner_active_channel) {
+      channels_[_autotuner_active_channel - 0x1].calc_error();
+      return;
+    }
+    else if (FreqMeasure.available()) {
+      // average several readings together
+      freq_sum_ = freq_sum_ + FreqMeasure.read();
+      freq_count_ = freq_count_ + 1;
+      
+      if (milliseconds_since_last_freq_ > 1000) {
+        frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
+        freq_sum_ = 0;
+        freq_count_ = 0;
+        milliseconds_since_last_freq_ = 0;
+        freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / kC0Frequency)) + 500;
+        freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
+        freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
+        freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
         }
-      }     
+     }
   }
 
   ReferenceChannel &selected_channel() {
