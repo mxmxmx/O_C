@@ -31,7 +31,7 @@
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
 static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
-#define FREQ_MEASURE_TIMEOUT 2000
+#define FREQ_MEASURE_TIMEOUT 5000
 #define ERROR_TIMEOUT (FREQ_MEASURE_TIMEOUT << 0x4)
 #define NUM_PASSES 1500
 
@@ -98,6 +98,10 @@ enum AUTO_CALIBRATION_STEP {
 
 class ReferenceChannel : public settings::SettingsBase<ReferenceChannel, REF_SETTING_LAST> {
 public:
+
+  
+  static constexpr size_t kHistoryDepth = 10;
+  
   void Init(DAC_CHANNEL dac_channel) {
     InitDefaults();
 
@@ -120,6 +124,7 @@ public:
     autotune_completed_ = false;
     reset_calibration_data();
     update_enabled_settings();
+    history_[0].Init(0x0);
   }
 
   int get_octave() const {
@@ -236,6 +241,7 @@ public:
    
       if (ticks_since_last_freq_ > _wait) {
         auto_frequency_ = FreqMeasure.countToFrequency(auto_freq_sum_ / auto_freq_count_);
+        history_[0].Push(auto_frequency_);
         auto_freq_sum_ = 0;
         auto_ready_ = true;
         auto_freq_count_ = 0;
@@ -243,6 +249,8 @@ public:
         next = true;
         ticks_since_last_freq_ = 0x0;
         OC::ui._Poke();
+        for (auto &sh : history_)
+          sh.Update();
       }
     }
     return next;
@@ -284,9 +292,15 @@ public:
       {
         auto_next_step_ = auto_frequency();
         // done?
-        if (auto_next_step_ && auto_pass_one_ == 0x2) { 
+        if (auto_next_step_ && auto_pass_one_ == kHistoryDepth) { 
           auto_last_frequency_ = auto_frequency_;
-          auto_target_frequency_ = auto_frequency_ * 2.0f;
+          
+          float history[kHistoryDepth]; float average = 0.0f;
+          history_->Read(history);
+          for (uint8_t i = 0; i < kHistoryDepth; i++) {
+            average += history[i];
+          }
+          auto_target_frequency_ = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)) * 2.0f;
           auto_next_step_ = false;
           autotuner_step_++;
           auto_pass_one_ = 0x0;
@@ -312,7 +326,13 @@ public:
           // throw error, if things don't seem to double ...
           if (auto_last_frequency_ * 1.25f > auto_frequency_)
             auto_error_ = true;
+            
           auto_last_frequency_ = auto_frequency_;
+          float history[kHistoryDepth]; float average = 0.0f;
+          history_->Read(history);
+          for (uint8_t i = 0; i < kHistoryDepth; i++) {
+            average += history[i];
+          }
           auto_target_frequency_ = auto_frequency_ * 2.0f;
           auto_calibration_data_[autotuner_step_ - DAC_VOLT_3m] = auto_DAC_offset_error_;
           auto_next_step_ = false;
@@ -495,6 +515,8 @@ private:
   int16_t correct_pos_;
   int16_t correct_neg_;
   DAC_CHANNEL dac_channel_;
+
+  OC::vfx::ScrollingHistory<float, kHistoryDepth> history_[0x1];
 
   int num_enabled_settings_;
   ReferenceSetting enabled_settings_[REF_SETTING_LAST];
