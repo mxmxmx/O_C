@@ -36,6 +36,7 @@
 enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_COARSE,
   POLYLFO_SETTING_FINE,
+  POLYLFO_SETTING_TAP_TEMPO,
   POLYLFO_SETTING_SHAPE,
   POLYLFO_SETTING_SHAPE_SPREAD,
   POLYLFO_SETTING_SPREAD,
@@ -49,7 +50,6 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_B_XOR_A,
   POLYLFO_SETTING_C_XOR_A,
   POLYLFO_SETTING_D_XOR_A,
-  POLYLFO_SETTING_TAP_TEMPO,
   POLYLFO_SETTING_LAST
 };
 
@@ -62,6 +62,10 @@ public:
 
   int16_t get_fine() const {
     return values_[POLYLFO_SETTING_FINE];
+  }
+
+  bool get_tap_tempo() const {
+    return static_cast<bool>(values_[POLYLFO_SETTING_TAP_TEMPO]);
   }
 
   uint16_t get_freq_range() const {
@@ -92,16 +96,16 @@ public:
     return values_[POLYLFO_SETTING_OFFSET];
   }
 
-  frames::PolyLfoFreqDivisions get_freq_div_b() const {
-    return static_cast<frames::PolyLfoFreqDivisions>(values_[POLYLFO_SETTING_FREQ_DIV_B]);
+  frames::PolyLfoFreqMultipliers get_freq_div_b() const {
+    return static_cast<frames::PolyLfoFreqMultipliers>(values_[POLYLFO_SETTING_FREQ_DIV_B]);
   }
 
-  frames::PolyLfoFreqDivisions get_freq_div_c() const {
-    return static_cast<frames::PolyLfoFreqDivisions>(values_[POLYLFO_SETTING_FREQ_DIV_C]);
+  frames::PolyLfoFreqMultipliers get_freq_div_c() const {
+    return static_cast<frames::PolyLfoFreqMultipliers>(values_[POLYLFO_SETTING_FREQ_DIV_C]);
   }
 
-  frames::PolyLfoFreqDivisions get_freq_div_d() const {
-    return static_cast<frames::PolyLfoFreqDivisions>(values_[POLYLFO_SETTING_FREQ_DIV_D]);
+  frames::PolyLfoFreqMultipliers get_freq_div_d() const {
+    return static_cast<frames::PolyLfoFreqMultipliers>(values_[POLYLFO_SETTING_FREQ_DIV_D]);
   }
 
   uint8_t get_b_xor_a() const {
@@ -114,10 +118,6 @@ public:
 
   uint8_t get_d_xor_a() const {
     return values_[POLYLFO_SETTING_D_XOR_A];
-  }
-
-  bool get_tap_tempo() const {
-    return static_cast<bool>(values_[POLYLFO_SETTING_TAP_TEMPO]);
   }
 
   void Init();
@@ -156,8 +156,8 @@ const char* const freq_range_names[12] = {
   "cosm", "geol", "glacl", "snail", "sloth", "vlazy", "lazy", "vslow", "slow", "med", "fast", "vfast",
 };
 
-const char* const freq_div_names[frames::POLYLFO_FREQ_DIV_LAST] = {
-   // "16/1", "15/1", "14/1", "13/1", "12/1", "11/1", "10/1", "9/1", "8/1", "7/1", "6/1", "5/1", "4/1", "3/1", "5/2", "2/1", "5/3", "3/2", "5/4",
+const char* const freq_div_names[frames::POLYLFO_FREQ_MULT_LAST] = {
+   "16/1", "15/1", "14/1", "13/1", "12/1", "11/1", "10/1", "9/1", "8/1", "7/1", "6/1", "5/1", "4/1", "3/1", "5/2", "2/1", "5/3", "3/2", "5/4",
    "unity", 
    "4/5", "2/3", "3/5", "1/2", "2/5", "1/3", "1/4", "1/5", "1/6", "1/7", "1/8", "1/9", "1/10", "1/11", "1/12", "1/13", "1/14", "1/15", "1/16"
 };
@@ -169,6 +169,7 @@ const char* const xor_levels[9] = {
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 64, 0, 255, "Coarse freq", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Fine freq", NULL, settings::STORAGE_TYPE_I16 },
+  { 0, 0, 1, "Tap tempo", OC::Strings::off_on, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Shape", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
   { -1, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
@@ -176,13 +177,12 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 230, 0, 230, "Output range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Offset", NULL, settings::STORAGE_TYPE_I8 },
   { 9, 0, 11, "Freq range", freq_range_names, settings::STORAGE_TYPE_U8 },
-  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
-  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
-  { frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_NONE, frames::POLYLFO_FREQ_DIV_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
+  { frames::POLYLFO_FREQ_MULT_NONE, frames::POLYLFO_FREQ_MULT_BY16, frames::POLYLFO_FREQ_MULT_LAST - 1, "B freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
+  { frames::POLYLFO_FREQ_MULT_NONE, frames::POLYLFO_FREQ_MULT_BY16, frames::POLYLFO_FREQ_MULT_LAST - 1, "C freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
+  { frames::POLYLFO_FREQ_MULT_NONE, frames::POLYLFO_FREQ_MULT_BY16, frames::POLYLFO_FREQ_MULT_LAST - 1, "D freq ratio", freq_div_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U8 }, 
-  { 0, 0, 1, "Tap tempo", OC::Strings::off_on, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -248,7 +248,7 @@ void FASTRUN POLYLFO_isr() {
 void POLYLFO_init() {
 
   poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
-  poly_lfo_state.cursor.Init(POLYLFO_SETTING_SHAPE, POLYLFO_SETTING_LAST - 1);
+  poly_lfo_state.cursor.Init(POLYLFO_SETTING_TAP_TEMPO, POLYLFO_SETTING_LAST - 1);
   poly_lfo.Init();
 }
 
@@ -273,10 +273,11 @@ uint16_t preview_buffer[kSmallPreviewBufferSize];
 void POLYLFO_menu() {
 
   menu::DefaultTitleBar::Draw();
-  graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
-  graphics.setPrintPos(menu::kDefaultMenuEndX, menu::DefaultTitleBar::kTextY);
-  graphics.pretty_print_right(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
-
+  if (!poly_lfo.get_tap_tempo()) {
+    graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
+    graphics.setPrintPos(menu::kDefaultMenuEndX, menu::DefaultTitleBar::kTextY);
+    graphics.pretty_print_right(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
+  } 
 
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 1> settings_list(poly_lfo_state.cursor);
   menu::SettingsListItem list_item;
@@ -319,16 +320,18 @@ void POLYLFO_handleButtonEvent(const UI::Event &event) {
   if (UI::EVENT_BUTTON_PRESS == event.type) {
     switch (event.control) {
       case OC::CONTROL_BUTTON_UP:
-        poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
+        if (!poly_lfo.get_tap_tempo()) poly_lfo.change_value(POLYLFO_SETTING_COARSE, 32);
         break;
       case OC::CONTROL_BUTTON_DOWN:
-        poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
+        if (!poly_lfo.get_tap_tempo()) poly_lfo.change_value(POLYLFO_SETTING_COARSE, -32);
         break;
       case OC::CONTROL_BUTTON_L:
-      if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode)
-        poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
-      else
-        poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+      if (!poly_lfo.get_tap_tempo()) {
+        if (POLYLFO_SETTING_COARSE == poly_lfo_state.left_edit_mode)
+          poly_lfo_state.left_edit_mode = POLYLFO_SETTING_FINE;
+        else
+          poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
+      }
       break;
       case OC::CONTROL_BUTTON_R:
         poly_lfo_state.cursor.toggle_editing();
@@ -339,7 +342,7 @@ void POLYLFO_handleButtonEvent(const UI::Event &event) {
 
 void POLYLFO_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {
-    poly_lfo.change_value(poly_lfo_state.left_edit_mode, event.value);
+    if (!poly_lfo.get_tap_tempo()) poly_lfo.change_value(poly_lfo_state.left_edit_mode, event.value);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (poly_lfo_state.cursor.editing()) {
       poly_lfo.change_value(poly_lfo_state.cursor.cursor_pos(), event.value);

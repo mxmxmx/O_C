@@ -50,7 +50,7 @@ void PolyLfo::Init() {
   coupling_ = 0;
   attenuation_ = 58880;
   offset_ = 0 ;
-  freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_DIV_NONE ;
+  freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_MULT_NONE ;
   phase_reset_flag_ = false;
   sync_counter_ = 0 ;
   sync_ = false;
@@ -139,6 +139,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
           if (period != period_) {
             period_ = period;
             sync_phase_increment_ = 0xffffffff / period_;
+            //sync_phase_increment_ = multiply_u32xu32_rshift24((0xffffffff / period_), 16183969) ;
           }
         }
         sync_counter_ = 0;
@@ -157,12 +158,12 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
       phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
     }
     phase_[0] += phase_increment_ch1_ ;
-    PolyLfoFreqDivisions FreqDivs[] = {POLYLFO_FREQ_DIV_NONE, freq_div_b_, freq_div_c_ , freq_div_d_ } ;
+    PolyLfoFreqMultipliers FreqDivs[] = {POLYLFO_FREQ_MULT_NONE, freq_div_b_, freq_div_c_ , freq_div_d_ } ;
     for (uint8_t i = 1; i < kNumChannels; ++i) {
-        if (FreqDivs[i] == POLYLFO_FREQ_DIV_NONE) {
+        if (FreqDivs[i] == POLYLFO_FREQ_MULT_NONE) {
             phase_[i] += phase_increment_ch1_;
         } else {
-            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqDivNumerators[FreqDivs[i]]) ;
+            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
         }  
     }
 
