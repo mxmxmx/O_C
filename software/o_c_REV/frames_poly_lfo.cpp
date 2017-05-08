@@ -130,7 +130,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     if (tempo_sync && sync_) {
         if (sync_counter_ < kSyncCounterMaxTime) {
           uint32_t period = 0;
-          if (sync_counter_ < 1920) {
+          if (sync_counter_ < 167) {
             period = (3 * period_ + sync_counter_) >> 2;
             tempo_sync = false;
           } else {
