@@ -285,6 +285,7 @@ private:
   template <typename Owner>
   void Autotuner<Owner>::handleButtonUp(const UI::Event &event) {
     owner_->reset_autotuner();
+    auto_tune_running_status_ = AT_OFF;
   }
   
   template <typename Owner>
