@@ -194,7 +194,10 @@ public:
   }
   
   void autotuner_run() {     
-    autotuner_step_ = autotuner_ ? DAC_VOLT_3m_BASELINE : DAC_VOLT_0_ARM; 
+    autotuner_step_ = autotuner_ ? DAC_VOLT_3m_BASELINE : DAC_VOLT_0_ARM;
+    if (autotuner_step_ == DAC_VOLT_3m_BASELINE)
+    // we start, so reset data to defaults:
+      OC::DAC::set_default_channel_calibration_data(dac_channel_);
   }
 
   void auto_reset_step() {
@@ -255,7 +258,7 @@ public:
       auto_freq_count_ = auto_freq_count_ + 1;
 
       // take more time as we're converging toward the target frequency
-      uint32_t _wait = (F_correction_factor_ == 0x1) ? (FREQ_MEASURE_TIMEOUT << 3) :  (FREQ_MEASURE_TIMEOUT >> 2);
+      uint32_t _wait = (F_correction_factor_ == 0x1) ? (FREQ_MEASURE_TIMEOUT << 2) :  (FREQ_MEASURE_TIMEOUT >> 2);
   
       if (ticks_since_last_freq_ > _wait) {
         
@@ -398,7 +401,7 @@ public:
       }
       break;
       case AUTO_CALIBRATION_STEP_LAST:
-
+      // to do: clean up
       if (ticks_since_last_freq_ > 2500) {
         
       OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_]);
@@ -409,12 +412,12 @@ public:
       if (octaves_cnt_ == OCTAVES) { 
         
         autotune_completed_ = true;
-        for (int i = 0; i <= OCTAVES; i++) {
-          Serial.print(auto_calibration_data_[i]);
-          Serial.print(" <-- ");
-          Serial.println(OC::calibration_data.dac.calibrated_octaves[dac_channel_][i]);
-          OC::DAC::update_auto_channel_calibration_data(dac_channel_, i, OC::calibration_data.dac.calibrated_octaves[dac_channel_][i] + auto_calibration_data_[i]);
+        // update calibration data 
+        for (int octave = 0; octave <= OCTAVES; octave++) {
+          OC::DAC::update_auto_channel_calibration_data(dac_channel_, octave, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octave] + auto_calibration_data_[octave]);
         }
+        // and use it... -- to do: this should be done/selectable via the menu
+        OC::DAC::set_auto_channel_calibration_data(dac_channel_);
         autotuner_step_++;
       }
       break;

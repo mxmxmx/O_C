@@ -136,7 +136,7 @@ private:
         if (owner_->auto_tune_step() == 0x1) {
           graphics.print(" ");
           graphics.print(OC::Strings::channel_id[channel_]);
-          graphics.print(" --> start");
+          //graphics.print(" --> start");
         }
         else {
           graphics.print(AT_steps[owner_->auto_tune_step()]);
