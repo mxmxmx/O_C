@@ -243,7 +243,18 @@ public:
       auto_calibration_data_[i] = 0;
   }
 
-  // 
+  uint8_t data_available() {
+    return OC::DAC::calibration_data_used(dac_channel_);
+  }
+
+  void use_default() {
+    OC::DAC::set_default_channel_calibration_data(dac_channel_);
+  }
+
+  void use_auto_calibration() {
+    OC::DAC::set_auto_channel_calibration_data(dac_channel_);
+  }
+  
   bool auto_frequency() {
 
     bool _f_result = false;

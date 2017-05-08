@@ -34,9 +34,9 @@ public:
   void Init() {
     owner_ = nullptr;
     cursor_pos_ = 0;
+    data_select_ = 0;
     channel_ = 0;
     calibration_data_ = 0;
-    auto_calibration_available_ = 0;
     auto_tune_running_status_ = 0;
   }
 
@@ -59,10 +59,10 @@ private:
 
   Owner *owner_;
   size_t cursor_pos_;
+  size_t data_select_;
   int8_t channel_;
   uint8_t calibration_data_;
   uint8_t auto_tune_running_status_;
-  bool auto_calibration_available_;
 
   void Begin();
   void move_cursor(int offset);
@@ -107,8 +107,8 @@ private:
           case 0x0:
           graphics.print("(dflt.)");
           break;
-          case 0xFF:
-          graphics.print("auto");
+          case 0x01:
+          graphics.print("auto.");
           break;
           default:
           graphics.print("dflt.");
@@ -150,9 +150,10 @@ private:
         graphics.print("run --> ");
         graphics.print("error!");
         break;
-        case AT_DONE:
+        case AT_DONE: 
         graphics.print(OC::Strings::channel_id[channel_]);
         graphics.print("  --> ok!");
+        calibration_data_ = owner_->data_available();
         break;
         default:
         break;
@@ -197,8 +198,8 @@ private:
           // screensaver 
         break;
         case OC::CONTROL_BUTTON_DOWN:
-          // to do: this also should reset the use_auto_calibration_ field
           OC::DAC::reset_all_auto_channel_calibration_data();
+          calibration_data_ = 0x0;
         break;
         case OC::CONTROL_BUTTON_L: 
         break;
@@ -233,6 +234,9 @@ private:
       if (cursor_pos_ == DATA_SELECT)
           auto_tune_running_status_ = AT_OFF;
     }
+    else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE) {
+      auto_tune_running_status_ = AT_OFF;
+    }
   }
 
   template <typename Owner>
@@ -240,7 +244,26 @@ private:
 
     switch (cursor_pos_) {
       case DATA_SELECT:
-      // todo
+      {
+        uint8_t data = owner_->data_available();
+        if (!data) { // no data -- 
+          calibration_data_ = 0x0;
+          data_select_ = 0x0;
+        }
+        else {
+          int _data_sel = data_select_ + offset;
+          CONSTRAIN(_data_sel, 0, 0x1);  
+          data_select_ = _data_sel;
+          if (_data_sel == 0x0) {
+            calibration_data_ = 0xFF;
+            owner_->use_default();
+          }
+          else {
+            calibration_data_ = 0x01;
+            owner_->use_auto_calibration();
+          }
+        }
+      }
       break;
       case AUTOTUNE: 
       {
@@ -283,8 +306,11 @@ private:
     
     const OC::Autotune_data &autotune_data = OC::AUTOTUNE::GetAutotune_data(channel_);
     calibration_data_ = autotune_data.use_auto_calibration_;
-    if (calibration_data_ > 0x0)
-      auto_calibration_available_ = true;
+    
+    if (calibration_data_ == 0x01) // auto cal. data is in use
+      data_select_ = 0x1;
+    else
+      data_select_ = 0x00;
     cursor_pos_ = 0x0;
     auto_tune_running_status_ = 0x0;
   }
