@@ -186,6 +186,7 @@ private:
           handleButtonLeft(event);
           break;    
         case OC::CONTROL_BUTTON_R:
+          owner_->reset_autotuner();
           Close();
           break;
         default:
@@ -234,9 +235,8 @@ private:
       if (cursor_pos_ == DATA_SELECT)
           auto_tune_running_status_ = AT_OFF;
     }
-    else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE) {
+    else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE)
       auto_tune_running_status_ = AT_OFF;
-    }
   }
 
   template <typename Owner>
@@ -273,10 +273,8 @@ private:
           auto_tune_running_status_ = _status;
           owner_->autotuner_arm(_status);
         }
-        else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE) {
+        else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE)
           auto_tune_running_status_ = 0x0;
-          owner_->autotuner_arm(auto_tune_running_status_);
-        }
       }
       break;
       default:
@@ -286,6 +284,7 @@ private:
   
   template <typename Owner>
   void Autotuner<Owner>::handleButtonUp(const UI::Event &event) {
+    owner_->reset_autotuner();
   }
   
   template <typename Owner>

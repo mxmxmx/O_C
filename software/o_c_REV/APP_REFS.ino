@@ -393,7 +393,7 @@ public:
           // approaching target? if so, go to next step.
           if (correction_cnt_positive_ > CONVERGE_PASSES && correction_cnt_negative_ > CONVERGE_PASSES)
             auto_num_passes_ = MAX_NUM_PASSES << 1;
-            
+          /*  
           Serial.print("# ");
           Serial.print(autotuner_step_ - 2);
           Serial.print(": target: ");
@@ -408,6 +408,7 @@ public:
           Serial.print(correction_direction_);
           Serial.print(" | ");
           Serial.println(auto_DAC_offset_error_);
+          */
         }
       }
       break;
@@ -640,7 +641,7 @@ public:
       freq_sum_ = freq_sum_ + FreqMeasure.read();
       freq_count_ = freq_count_ + 1;
       
-      if (milliseconds_since_last_freq_ > 1000) {
+      if (milliseconds_since_last_freq_ > 750) {
         frequency_ = FreqMeasure.countToFrequency(freq_sum_ / freq_count_);
         freq_sum_ = 0;
         freq_count_ = 0;
@@ -790,6 +791,8 @@ void REFS_handleAppEvent(OC::AppEvent event) {
     case OC::APP_EVENT_SUSPEND:
     case OC::APP_EVENT_SCREENSAVER_ON:
     case OC::APP_EVENT_SCREENSAVER_OFF:
+      for (size_t i = 0; i < NUM_REF_CHANNELS; ++i)
+        references_app.channels_[i].reset_autotuner();
       break;
   }
 }
@@ -827,7 +830,7 @@ void REFS_menu() {
   }
   // autotuner ...
   if (references_app.autotuner.active())
-    references_app.autotuner.Draw(); 
+    references_app.autotuner.Draw();
 }
 
 void print_voltage(int octave, int fraction) {
