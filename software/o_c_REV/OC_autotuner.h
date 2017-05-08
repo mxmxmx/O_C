@@ -295,6 +295,10 @@ private:
       owner_->autotuner_run();
       auto_tune_running_status_ = AT_RUN;
     }
+    else if (auto_tune_running_status_ == AT_ERROR) {
+      owner_->reset_autotuner();
+      auto_tune_running_status_ = AT_OFF;
+    }  
   }
   
   template <typename Owner>
