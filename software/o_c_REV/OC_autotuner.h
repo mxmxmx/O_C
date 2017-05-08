@@ -5,7 +5,7 @@
 
 
 const char* const AT_steps[] = {
-  " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V","+6V" 
+  " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", " " 
 };
 
 namespace OC {
@@ -34,9 +34,9 @@ public:
   void Init() {
     owner_ = nullptr;
     cursor_pos_ = 0;
+    data_select_ = 0;
     channel_ = 0;
     calibration_data_ = 0;
-    auto_calibration_available_ = 0;
     auto_tune_running_status_ = 0;
   }
 
@@ -59,10 +59,10 @@ private:
 
   Owner *owner_;
   size_t cursor_pos_;
+  size_t data_select_;
   int8_t channel_;
   uint8_t calibration_data_;
   uint8_t auto_tune_running_status_;
-  bool auto_calibration_available_;
 
   void Begin();
   void move_cursor(int offset);
@@ -91,8 +91,7 @@ private:
       auto_tune_running_status_ = AT_ERROR;
       owner_->reset_autotuner();
     }
-
-    if (owner_->autotuner_completed()) {
+    else if (owner_->autotuner_completed()) {
       auto_tune_running_status_ = AT_DONE;
       owner_->autotuner_reset_completed();
     }
@@ -108,8 +107,8 @@ private:
           case 0x0:
           graphics.print("(dflt.)");
           break;
-          case 0xFF:
-          graphics.print("auto");
+          case 0x01:
+          graphics.print("auto.");
           break;
           default:
           graphics.print("dflt.");
@@ -126,23 +125,20 @@ private:
         break;
         case AT_READY: {
         graphics.print("arm > ");
-        float freq = owner_->get_auto_frequency();
-        if (freq == 0)
-          graphics.print("...wait");
-        else
-          graphics.printf("%7.3f", freq);
+        float _freq = owner_->get_auto_frequency();
+        if (_freq == 0.0f)
+          graphics.printf("wait ...");
+        else 
+          graphics.printf("%7.3f", _freq);
         }
         break;
         case AT_RUN:
-        if (owner_->auto_tune_step() == 0x1) {
+        if (owner_->auto_tune_step() == 0x1) // this goes too quick, so ... 
           graphics.print(" ");
-          graphics.print(OC::Strings::channel_id[channel_]);
-          graphics.print(" --> start");
-        }
         else {
           graphics.print(AT_steps[owner_->auto_tune_step()]);
           if (!owner_->_ready())
-            graphics.print(" > ...");
+            graphics.print(" ");
           else 
             graphics.printf(" > %7.3f", owner_->get_auto_frequency());
         }
@@ -151,9 +147,10 @@ private:
         graphics.print("run --> ");
         graphics.print("error!");
         break;
-        case AT_DONE:
-        graphics.print("ok! --> ");
+        case AT_DONE: 
         graphics.print(OC::Strings::channel_id[channel_]);
+        graphics.print("  --> ok!");
+        calibration_data_ = owner_->data_available();
         break;
         default:
         break;
@@ -186,6 +183,7 @@ private:
           handleButtonLeft(event);
           break;    
         case OC::CONTROL_BUTTON_R:
+          owner_->reset_autotuner();
           Close();
           break;
         default:
@@ -198,8 +196,8 @@ private:
           // screensaver 
         break;
         case OC::CONTROL_BUTTON_DOWN:
-          // to do: this also should reset the use_auto_calibration_ field
           OC::DAC::reset_all_auto_channel_calibration_data();
+          calibration_data_ = 0x0;
         break;
         case OC::CONTROL_BUTTON_L: 
         break;
@@ -234,6 +232,8 @@ private:
       if (cursor_pos_ == DATA_SELECT)
           auto_tune_running_status_ = AT_OFF;
     }
+    else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE)
+      auto_tune_running_status_ = AT_OFF;
   }
 
   template <typename Owner>
@@ -241,7 +241,26 @@ private:
 
     switch (cursor_pos_) {
       case DATA_SELECT:
-      // todo
+      {
+        uint8_t data = owner_->data_available();
+        if (!data) { // no data -- 
+          calibration_data_ = 0x0;
+          data_select_ = 0x0;
+        }
+        else {
+          int _data_sel = data_select_ + offset;
+          CONSTRAIN(_data_sel, 0, 0x1);  
+          data_select_ = _data_sel;
+          if (_data_sel == 0x0) {
+            calibration_data_ = 0xFF;
+            owner_->use_default();
+          }
+          else {
+            calibration_data_ = 0x01;
+            owner_->use_auto_calibration();
+          }
+        }
+      }
       break;
       case AUTOTUNE: 
       {
@@ -251,10 +270,8 @@ private:
           auto_tune_running_status_ = _status;
           owner_->autotuner_arm(_status);
         }
-        else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE) {
+        else if (auto_tune_running_status_ == AT_ERROR || auto_tune_running_status_ == AT_DONE)
           auto_tune_running_status_ = 0x0;
-          owner_->autotuner_arm(auto_tune_running_status_);
-        }
       }
       break;
       default:
@@ -264,6 +281,8 @@ private:
   
   template <typename Owner>
   void Autotuner<Owner>::handleButtonUp(const UI::Event &event) {
+    owner_->reset_autotuner();
+    auto_tune_running_status_ = AT_OFF;
   }
   
   template <typename Owner>
@@ -273,6 +292,10 @@ private:
       owner_->autotuner_run();
       auto_tune_running_status_ = AT_RUN;
     }
+    else if (auto_tune_running_status_ == AT_ERROR) {
+      owner_->reset_autotuner();
+      auto_tune_running_status_ = AT_OFF;
+    }  
   }
   
   template <typename Owner>
@@ -284,8 +307,11 @@ private:
     
     const OC::Autotune_data &autotune_data = OC::AUTOTUNE::GetAutotune_data(channel_);
     calibration_data_ = autotune_data.use_auto_calibration_;
-    if (calibration_data_ > 0x0)
-      auto_calibration_available_ = true;
+    
+    if (calibration_data_ == 0x01) // auto cal. data is in use
+      data_select_ = 0x1;
+    else
+      data_select_ = 0x00;
     cursor_pos_ = 0x0;
     auto_tune_running_status_ = 0x0;
   }
