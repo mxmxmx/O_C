@@ -281,8 +281,16 @@ private:
   
   template <typename Owner>
   void Autotuner<Owner>::handleButtonUp(const UI::Event &event) {
-    owner_->reset_autotuner();
-    auto_tune_running_status_ = AT_OFF;
+
+    if (cursor_pos_ == AUTOTUNE && auto_tune_running_status_ == AT_OFF) {
+      // arm the tuner
+      auto_tune_running_status_ = AT_READY;
+      owner_->autotuner_arm(auto_tune_running_status_);
+    }
+    else {
+      owner_->reset_autotuner();
+      auto_tune_running_status_ = AT_OFF;
+    }
   }
   
   template <typename Owner>
