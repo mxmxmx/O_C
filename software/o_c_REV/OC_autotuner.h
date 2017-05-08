@@ -133,11 +133,8 @@ private:
         }
         break;
         case AT_RUN:
-        if (owner_->auto_tune_step() == 0x1) {
+        if (owner_->auto_tune_step() == 0x1) // this goes too quick, so ... 
           graphics.print(" ");
-          graphics.print(OC::Strings::channel_id[channel_]);
-          //graphics.print(" --> start");
-        }
         else {
           graphics.print(AT_steps[owner_->auto_tune_step()]);
           if (!owner_->_ready())

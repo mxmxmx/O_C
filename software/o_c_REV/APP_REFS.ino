@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-// Very simple "reference" voltage app
+// Very simple "reference" voltage app (not so simple any more...)
 
 #include "OC_apps.h"
 #include "OC_menus.h"
@@ -34,7 +34,7 @@ static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
 #define FREQ_MEASURE_TIMEOUT 512
 #define ERROR_TIMEOUT (FREQ_MEASURE_TIMEOUT << 0x4)
 #define MAX_NUM_PASSES 1500
-#define CONVERGE_PASSES 6
+#define CONVERGE_PASSES 5
 
 const uint8_t NUM_REF_CHANNELS = DAC_CHANNEL_LAST;
 
@@ -48,7 +48,6 @@ enum ReferenceSetting {
   REF_SETTING_A_ABOVE_MID_C_MANTISSA,
   REF_SETTING_PPQN,
   REF_SETTING_AUTOTUNE,
-  REF_SETTING_AUTOTUNE_ERROR,
   REF_SETTING_DUMMY,
   #ifdef BUCHLA_SUPPORT
     REF_SETTING_VOLTAGE_SCALING,
@@ -70,17 +69,6 @@ enum ChannelPpqn {
   CHANNEL_PPQN_LAST
 };
 
-enum AUTO_ERROR {
-  ERROR_0_050,
-  ERROR_0_125,
-  ERROR_0_250,
-  ERROR_0_500,
-  ERROR_1_000,
-  ERROR_2_000,
-  ERROR_4_000,
-  ERROR_LAST
-};
-
 enum AUTO_CALIBRATION_STEP {
   DAC_VOLT_0_ARM,
   DAC_VOLT_3m_BASELINE,
@@ -100,7 +88,6 @@ enum AUTO_CALIBRATION_STEP {
 class ReferenceChannel : public settings::SettingsBase<ReferenceChannel, REF_SETTING_LAST> {
 public:
 
-  
   static constexpr size_t kHistoryDepth = 10;
   
   void Init(DAC_CHANNEL dac_channel) {
@@ -182,6 +169,10 @@ public:
 
   bool autotuner_error() {
     return auto_error_;
+  }
+
+  uint8_t get_octave_cnt() {
+    return octaves_cnt_ + 0x1;
   }
 
   uint8_t auto_tune_step() {
@@ -290,8 +281,6 @@ public:
 
   void measure_frequency_and_calc_error() {
 
-    // todo: preempt screensaver 
-    
     switch(autotuner_step_) {
 
       case DAC_VOLT_0_ARM:
@@ -310,7 +299,6 @@ public:
         if (_update && auto_num_passes_ > kHistoryDepth) { 
           
           auto_last_frequency_ = auto_frequency_;
-          
           float history[kHistoryDepth]; 
           float average = 0.0f;
           // average
@@ -393,48 +381,31 @@ public:
           // approaching target? if so, go to next step.
           if (correction_cnt_positive_ > CONVERGE_PASSES && correction_cnt_negative_ > CONVERGE_PASSES)
             auto_num_passes_ = MAX_NUM_PASSES << 1;
-          /*  
-          Serial.print("# ");
-          Serial.print(autotuner_step_ - 2);
-          Serial.print(": target: ");
-          Serial.print(auto_target_frequency_);
-          Serial.print(": current : ");
-          Serial.print(auto_frequency_);
-          Serial.print(": # : ");
-          Serial.print(auto_num_passes_);
-          Serial.print(" | ");
-          Serial.print(F_correction_factor_);
-          Serial.print(" | ");
-          Serial.print(correction_direction_);
-          Serial.print(" | ");
-          Serial.println(auto_DAC_offset_error_);
-          */
         }
       }
       break;
       case AUTO_CALIBRATION_STEP_LAST:
-      // to do: clean up
-      if (ticks_since_last_freq_ > 2500) {
-        
-      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_]);
-        ticks_since_last_freq_  = 0x0; 
-        octaves_cnt_++;
+      // step through the octaves:
+      if (ticks_since_last_freq_ > 2500) {   
+        OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_]);
+          ticks_since_last_freq_ = 0x0; 
+          octaves_cnt_++;
       }
-      
+      // then stop ... 
       if (octaves_cnt_ == OCTAVES) { 
         
         autotune_completed_ = true;
         // update calibration data 
-        for (int octave = 0; octave <= OCTAVES; octave++) {
+        for (int octave = 0; octave <= OCTAVES; octave++)
           OC::DAC::update_auto_channel_calibration_data(dac_channel_, octave, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octave] + auto_calibration_data_[octave]);
-        }
-        // and use it... -- to do: this should be done/selectable via the menu
+        // and point to it...
         OC::DAC::set_auto_channel_calibration_data(dac_channel_);
         autotuner_step_++;
       }
       break;
-      default: 
-      // todo...
+      default:
+      autotuner_step_ = DAC_VOLT_0_ARM;
+      autotuner_ = 0x0;
       break;
     }
   }
@@ -592,7 +563,6 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 99, " > mantissa", nullptr, settings::STORAGE_TYPE_U8 },
   { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "> ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
-  { 3, 0, ERROR_LAST - 1, "> error (Hz)", error, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // dummy
   #ifdef BUCHLA_SUPPORT
   { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 }

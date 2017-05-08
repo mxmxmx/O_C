@@ -114,7 +114,7 @@ void DAC::set_default_channel_calibration_data(uint8_t channel_id) {
 /*static*/
 void DAC::update_auto_channel_calibration_data(uint8_t channel_id, int8_t octave, uint32_t pitch_data) {
   
-  SERIAL_PRINTLN("update auto calibration data, channel #%d: %d (%d)", (int)(channel_id + 1), (int)pitch_data, (int)octave);
+  SERIAL_PRINTLN("update: channel #%d: %d (%d)", (int)(channel_id + 1), (int)pitch_data, (int)octave);
   
   if (channel_id < DAC_CHANNEL_LAST) {
 
