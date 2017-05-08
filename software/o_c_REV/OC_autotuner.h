@@ -5,7 +5,7 @@
 
 
 const char* const AT_steps[] = {
-  " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", "-" 
+  " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", " " 
 };
 
 namespace OC {
@@ -125,11 +125,11 @@ private:
         break;
         case AT_READY: {
         graphics.print("arm > ");
-        float freq = owner_->get_auto_frequency();
-        if (freq == 0)
-          graphics.print("...wait");
-        else
-          graphics.printf("%7.3f", freq);
+        float _freq = owner_->get_auto_frequency();
+        if (_freq == 0.0f)
+          graphics.printf("wait ...");
+        else 
+          graphics.printf("%7.3f", _freq);
         }
         break;
         case AT_RUN:
@@ -141,7 +141,7 @@ private:
         else {
           graphics.print(AT_steps[owner_->auto_tune_step()]);
           if (!owner_->_ready())
-            graphics.print(" > ...");
+            graphics.print(" ");
           else 
             graphics.printf(" > %7.3f", owner_->get_auto_frequency());
         }
@@ -151,8 +151,8 @@ private:
         graphics.print("error!");
         break;
         case AT_DONE:
-        graphics.print("ok! --> ");
         graphics.print(OC::Strings::channel_id[channel_]);
+        graphics.print("  --> ok!");
         break;
         default:
         break;
