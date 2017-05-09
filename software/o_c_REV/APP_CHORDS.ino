@@ -164,7 +164,11 @@ public:
     _octave_toggle = (~_octave_toggle) & 1u;
     return _octave_toggle;
   }
-
+  
+  bool poke_octave_toggle() const {
+    return _octave_toggle;
+  }
+  
   int get_progression() const {
     return values_[CHORDS_SETTING_PROGRESSION];
   }
@@ -1108,7 +1112,10 @@ void CHORDS_menu() {
 
   // active progression #
   graphics.setPrintPos(106, 2);
-  graphics.print("#");
+  if (chords.poke_octave_toggle())
+    graphics.print("+"); 
+  else 
+    graphics.print("#");
   graphics.print(chords.get_active_progression() + 0x1);
 
   uint8_t clock_state = (chords.clockState() + 3) >> 2;

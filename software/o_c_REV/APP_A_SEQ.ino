@@ -236,6 +236,10 @@ public:
     return octave_toggle_;
   }
 
+  bool poke_octave_toggle() const {
+    return octave_toggle_;
+  }
+
   bool wait_for_EoS() {
     return wait_for_EoS_;
   }
@@ -2137,11 +2141,9 @@ void SEQ_menu() {
     graphics.print("/");
     graphics.print(1 + channel.get_display_num_sequence());
     // octave:
-    graphics.movePrintPos(19, 0);
-    int octave = channel.get_octave();
-    if (octave >= 0)
+    graphics.movePrintPos(22, 0);
+    if (channel.poke_octave_toggle())
       graphics.print("+");
-    graphics.print(octave);  
   }
   
   const SEQ_Channel &channel = seq_channel[seq_state.selected_channel];
