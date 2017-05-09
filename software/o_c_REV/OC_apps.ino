@@ -133,7 +133,6 @@ void save_app_data() {
       }
 
       AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
-      SERIAL_PRINTLN("* storing: ");
       chunk->id = app.id;
       chunk->length = storage_size;
       size_t used = app.Save(chunk + 1);

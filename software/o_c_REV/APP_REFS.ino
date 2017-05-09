@@ -393,19 +393,18 @@ public:
       break;
       case AUTO_CALIBRATION_STEP_LAST:
       // step through the octaves:
-      if (ticks_since_last_freq_ > 2000) {   
-        OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_]);
-          ticks_since_last_freq_ = 0x0; 
-          octaves_cnt_++;
+      if (ticks_since_last_freq_ > 2000) {
+        int32_t new_auto_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_];
+        // write to DAC and update data
+        OC::DAC::set(dac_channel_, new_auto_calibration_point);
+        OC::DAC::update_auto_channel_calibration_data(dac_channel_, octaves_cnt_, new_auto_calibration_point);
+        ticks_since_last_freq_ = 0x0;
+        octaves_cnt_++;
       }
       // then stop ... 
-      if (octaves_cnt_ == OCTAVES) { 
-        
+      if (octaves_cnt_ > OCTAVES) { 
         autotune_completed_ = true;
-        // update calibration data 
-        for (int octave = 0; octave <= OCTAVES; octave++)
-          OC::DAC::update_auto_channel_calibration_data(dac_channel_, octave, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octave] + auto_calibration_data_[octave]);
-        // and point to it...
+        // and point to auto data ...
         OC::DAC::set_auto_channel_calibration_data(dac_channel_);
         autotuner_step_++;
       }
