@@ -135,8 +135,6 @@ enum CHORDS_DIRECTIONS {
 
 class Chords : public settings::SettingsBase<Chords, CHORDS_SETTING_LAST> {
 public:
-
-  static constexpr size_t kHistoryDepth = 12;
   
   int get_scale(uint8_t selected_scale_slot_) const {
     return values_[CHORDS_SETTING_SCALE];
@@ -327,10 +325,6 @@ public:
     return clock_display_.getState();
   }
 
-  const OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> &history(int i) const {
-    return scrolling_history_[i];
-  }
-
   uint8_t get_menu_page() const {
     return menu_page_;  
   }
@@ -390,8 +384,6 @@ public:
     update_scale(true, false);
     clock_display_.Init();
     update_enabled_settings();
-    for (int i = 0; i < 4; i++)
-      scrolling_history_[i].Init(OC::DAC::kOctaveZero * 12 << 7);
   }
 
   void force_update() {
@@ -813,11 +805,6 @@ public:
       OC::DAC::set<DAC_CHANNEL_B>(sample_b);
       OC::DAC::set<DAC_CHANNEL_C>(sample_c);
       OC::DAC::set<DAC_CHANNEL_D>(sample_d);
-      // store for display
-      scrolling_history_[0].Push(sample_a);
-      scrolling_history_[1].Push(sample_b);
-      scrolling_history_[2].Push(sample_c);
-      scrolling_history_[3].Push(sample_d);
     }
 
     bool changed = (last_sample_ != sample_a);
@@ -832,9 +819,6 @@ public:
     } else {
       clock_display_.Update(1, false);
     }
-    
-    for (auto &sh : scrolling_history_)
-        sh.Update();
   }
 
   // Wrappers for ScaleEdit
@@ -955,9 +939,7 @@ private:
   
   int num_enabled_settings_;
   CHORDS_SETTINGS enabled_settings_[CHORDS_SETTING_LAST];
-
-  OC::vfx::ScrollingHistory<uint16_t, kHistoryDepth> scrolling_history_[4];
-
+  
   bool update_scale(bool force, int32_t mask_rotate) {
 
     force_update_ = false;  
@@ -1354,7 +1336,6 @@ void CHORDS_upButtonLong() {
   // screensaver short cut
 }
 
-uint16_t chords_history[Chords::kHistoryDepth];
 static const weegfx::coord_t chords_kBottom = 60;
 
 inline int32_t chords_render_pitch(int32_t pitch, weegfx::coord_t x, weegfx::coord_t width) {
@@ -1382,24 +1363,6 @@ void Chords::RenderScreensaver(weegfx::coord_t start_x) const {
     else  
       menu::DrawChord(x + (j << 4) + 2, y, 4, j, _num_progression);
   }
-
-  /*
-  // sequence: 
-  x = start_x + 4;
-  y = 58;
-  
-  for (int j = 0; j < OC::Chords::NUM_CHORDS; j++) {
-
-       if (j <= _num_chords)
-          graphics.drawFrame(x + (j << 4), y, 8, 4);
-       else 
-          graphics.drawFrame(x + (j << 4), y + 2, 8, 2);  
-            
-      // position indicator:
-       if(j == active_chord())
-         graphics.drawRect(x + (j << 4) + 10, y, 4, 4);
-    }
-  */
 }
 
 

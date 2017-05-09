@@ -136,12 +136,11 @@ private:
         {
           int _octave = owner_->get_octave_cnt();
           if (_octave > 1 && _octave < OCTAVES) {
-            graphics.print("   ");
-            for (int i = 0; i < _octave; i++)
-              graphics.print(">");
+            for (int i = 0; i <= _octave; i++, x += 6)
+              graphics.drawBitmap8(x + 18, y + 4, 4, OC::bitmap_indicator_4x8);
           }
-          else if (owner_->auto_tune_step() == 0x1 || owner_->auto_tune_step() == 0x2) // this goes too quick, so ... 
-            graphics.print(" -3V baseline");
+          else if (owner_->auto_tune_step() == 0x1) // this goes too quick, so ... 
+            graphics.print(" 0.0V baseline");
           else {
             graphics.print(AT_steps[owner_->auto_tune_step()]);
             if (!owner_->_ready())

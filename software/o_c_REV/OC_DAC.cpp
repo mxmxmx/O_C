@@ -133,7 +133,7 @@ void DAC::reset_auto_channel_calibration_data(uint8_t channel_id) {
   
   // reset data
   if (channel_id < DAC_CHANNEL_LAST) {
-    SERIAL_PRINTLN("resetting channel# %d calibration data", channel_id);
+    SERIAL_PRINTLN("resetting channel# %d calibration data", (int)(channel_id + 1));
     OC::Autotune_data *autotune_data = &OC::auto_calibration_data[channel_id];
     autotune_data->use_auto_calibration_ = 0x0;
     for (int i = 0; i < OCTAVES + 1; i++)

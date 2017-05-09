@@ -71,7 +71,7 @@ enum ChannelPpqn {
 
 enum AUTO_CALIBRATION_STEP {
   DAC_VOLT_0_ARM,
-  DAC_VOLT_3m_BASELINE,
+  DAC_VOLT_0_BASELINE,
   DAC_VOLT_3m, 
   DAC_VOLT_2m, 
   DAC_VOLT_1m, 
@@ -184,8 +184,8 @@ public:
   }
   
   void autotuner_run() {     
-    autotuner_step_ = autotuner_ ? DAC_VOLT_3m_BASELINE : DAC_VOLT_0_ARM;
-    if (autotuner_step_ == DAC_VOLT_3m_BASELINE)
+    autotuner_step_ = autotuner_ ? DAC_VOLT_0_BASELINE : DAC_VOLT_0_ARM;
+    if (autotuner_step_ == DAC_VOLT_0_BASELINE)
     // we start, so reset data to defaults:
       OC::DAC::set_default_channel_calibration_data(dac_channel_);
   }
@@ -286,14 +286,8 @@ public:
       case DAC_VOLT_0_ARM:
       // do nothing
       break;
-      case DAC_VOLT_3m_BASELINE:
-      if (auto_frequency()) { 
-        autotuner_step_++; 
-        auto_reset_step();
-      }
-      break;
-      case DAC_VOLT_3m:
-      // -3V calibration point: in this case, we don't correct.
+      case DAC_VOLT_0_BASELINE:
+      // 0V baseline / calibration point: in this case, we don't correct.
       {
         bool _update = auto_frequency();
         if (_update && auto_num_passes_ > kHistoryDepth) { 
@@ -306,10 +300,22 @@ public:
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
           // ... and derive target frequencies
-          auto_target_frequencies_[0] = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1));
-          for (int i = 1; i < OCTAVES + 1; i++) 
-            auto_target_frequencies_[i] = auto_target_frequencies_[i - 1]  * 2.0f; 
-          // reset step:
+          float target_frequency = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V
+          
+          /* can't use pow ( thus busts the available memory at this point), so we unroll ... */
+          auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
+          auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
+          auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
+          auto_target_frequencies_[3]  =  target_frequency * 1.0f;    // 0V
+          auto_target_frequencies_[4]  =  target_frequency * 2.0f;    // +1V 
+          auto_target_frequencies_[5]  =  target_frequency * 4.0f;    // +2V 
+          auto_target_frequencies_[6]  =  target_frequency * 8.0f;    // +3V 
+          auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
+          auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
+          auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
+          auto_target_frequencies_[10] = target_frequency * 128.0f;   // ...
+          
+          // reset step, and proceed:
           auto_reset_step();
           autotuner_step_++; 
         }
@@ -317,6 +323,7 @@ public:
           auto_num_passes_++;
       }
       break;
+      case DAC_VOLT_3m:
       case DAC_VOLT_2m:
       case DAC_VOLT_1m: 
       case DAC_VOLT_0:
@@ -333,8 +340,8 @@ public:
           /* target frequency reached */
           
           // throw error, if things don't seem to double ...
-          if (auto_last_frequency_ * 1.25f > auto_frequency_)
-            auto_error_ = true;
+          if ((autotuner_step_ > DAC_VOLT_2m) && (auto_last_frequency_ * 1.25f > auto_frequency_))
+              auto_error_ = true;
           // average:
           float history[kHistoryDepth]; 
           float average = 0.0f;
@@ -386,7 +393,7 @@ public:
       break;
       case AUTO_CALIBRATION_STEP_LAST:
       // step through the octaves:
-      if (ticks_since_last_freq_ > 2500) {   
+      if (ticks_since_last_freq_ > 2000) {   
         OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_]);
           ticks_since_last_freq_ = 0x0; 
           octaves_cnt_++;
@@ -421,12 +428,12 @@ public:
         OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
       }
       break;
-      case DAC_VOLT_3m_BASELINE:
-      // set DAC to -3.000V, default calibration:
-      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][0x0]);
+      case DAC_VOLT_0_BASELINE:
+      // set DAC to 0.000V, default calibration:
+      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
       break;
       case AUTO_CALIBRATION_STEP_LAST:
-      // todo: stop process + save to auto_calibration_data_
+      // do nothing
       break;
       default: 
       // set DAC to calibration point + error
