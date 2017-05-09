@@ -313,7 +313,7 @@ public:
           auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
           auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
           auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-          auto_target_frequencies_[10] = target_frequency * 128.0f;   // ...
+          auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
           
           // reset step, and proceed:
           auto_reset_step();
