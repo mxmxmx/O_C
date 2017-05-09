@@ -35,7 +35,8 @@ public:
 
     pattern_ = mutable_pattern_ = &OC::user_patterns[pattern];
     pattern_name_ = OC::pattern_names_short[pattern];
-    //Serial.print("Editing user pattern "); Serial.println(pattern_name_);
+    // Serial.print("Editing user pattern "); 
+    // Serial.println(pattern_name_);
     owner_ = owner;
 
     BeginEditing();

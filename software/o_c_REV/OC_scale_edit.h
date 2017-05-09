@@ -55,12 +55,14 @@ public:
     if (scale < OC::Scales::SCALE_USER_LAST) {
       scale_ = mutable_scale_ = &OC::user_scales[scale];
       scale_name_ = OC::scale_names_short[scale];
-      //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+      // Serial.print("Editing mutable scale "); 
+      // Serial.println(scale_name_);
     } else {
       scale_ = &OC::Scales::GetScale(scale);
       mutable_scale_ = nullptr;
       scale_name_ = OC::scale_names_short[scale];
-      //Serial.print("Editing const scale "); Serial.println(scale_name_);
+      // Serial.print("Editing const scale "); 
+      // Serial.println(scale_name_);
     }
     owner_ = owner;
     if (!seq_mode)
@@ -246,13 +248,15 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
         if (_scale < OC::Scales::SCALE_USER_LAST) {
           scale_ = mutable_scale_ = &OC::user_scales[_scale];
           scale_name_ = OC::scale_names_short[_scale];
-          //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+          // Serial.print("Editing mutable scale "); 
+          // Serial.println(scale_name_);
         } 
         else {
           scale_ = &OC::Scales::GetScale(_scale);
           mutable_scale_ = nullptr;
           scale_name_ = OC::scale_names_short[_scale];
-          //Serial.print("Editing const scale "); Serial.println(scale_name_);
+          // Serial.print("Editing const scale "); 
+          // Serial.println(scale_name_);
         }
         cursor_pos_ = 0;
         num_notes_ = scale_->num_notes;
@@ -294,17 +298,19 @@ void ScaleEditor<Owner>::handleButtonUp(const UI::Event &event) {
         edit_this_scale_ = 0;
         
       uint8_t scale = owner_->get_scale(edit_this_scale_);  
-      Serial.println(scale);
+      // Serial.println(scale);
       if (scale < OC::Scales::SCALE_USER_LAST) {
         scale_ = mutable_scale_ = &OC::user_scales[scale];
         scale_name_ = OC::scale_names_short[scale];
-        //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+        // Serial.print("Editing mutable scale "); 
+        // Serial.println(scale_name_);
        } 
        else {
         scale_ = &OC::Scales::GetScale(scale);
         mutable_scale_ = nullptr;
         scale_name_ = OC::scale_names_short[scale];
-        //Serial.print("Editing const scale "); Serial.println(scale_name_);
+        // Serial.print("Editing const scale "); 
+        // Serial.println(scale_name_);
       }
       cursor_pos_ = 0;
       num_notes_ = scale_->num_notes;
@@ -327,17 +333,19 @@ void ScaleEditor<Owner>::handleButtonDown(const UI::Event &event) {
         edit_this_scale_ = 3; 
         
       uint8_t scale = owner_->get_scale(edit_this_scale_);  
-      Serial.println(scale);
+      // Serial.println(scale);
       if (scale < OC::Scales::SCALE_USER_LAST) {
         scale_ = mutable_scale_ = &OC::user_scales[scale];
         scale_name_ = OC::scale_names_short[scale];
-        //Serial.print("Editing mutable scale "); Serial.println(scale_name_);
+        // Serial.print("Editing mutable scale "); 
+        // Serial.println(scale_name_);
        } 
        else {
         scale_ = &OC::Scales::GetScale(scale);
         mutable_scale_ = nullptr;
         scale_name_ = OC::scale_names_short[scale];
-        //Serial.print("Editing const scale "); Serial.println(scale_name_);
+        // Serial.print("Editing const scale "); 
+        // Serial.println(scale_name_);
       }
       cursor_pos_ = 0;
       num_notes_ = scale_->num_notes;
@@ -390,7 +398,7 @@ template <typename Owner>
 
 template <typename Owner>
 void ScaleEditor<Owner>::reset_scale() {
-  Serial.println("Resetting scale to SEMI");
+  // Serial.println("Resetting scale to SEMI");
 
   *mutable_scale_ = OC::Scales::GetScale(OC::Scales::SCALE_SEMI);
   num_notes_ = mutable_scale_->num_notes;
