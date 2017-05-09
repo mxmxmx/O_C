@@ -52,7 +52,7 @@ enum ASRSettings {
   ASR_SETTING_INDEX,
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
-  ASR_SETTING_HOLD_SIZE,
+  ASR_SETTING_BUFFER_LENGTH,
   #ifdef BUCHLA_SUPPORT
   ASR_SETTING_VOLTAGE_SCALING_A,
   ASR_SETTING_VOLTAGE_SCALING_B,
@@ -110,7 +110,7 @@ public:
   }
 
   uint8_t get_buffer_length() const {
-    return values_[ASR_SETTING_HOLD_SIZE];
+    return values_[ASR_SETTING_BUFFER_LENGTH];
   }
   
   void set_scale(int scale) {
@@ -286,6 +286,10 @@ public:
     delay_type_ = (~delay_type_) & 1u;
   }
 
+  bool get_delay_type() const {
+    return delay_type_;
+  }
+  
   void manual_freeze() {
     freeze_switch_ = (~freeze_switch_) & 1u;
   }
@@ -380,7 +384,7 @@ public:
     *settings++ = ASR_SETTING_MASK;
     *settings++ = ASR_SETTING_OCTAVE;
     *settings++ = ASR_SETTING_INDEX;
-    *settings++ = ASR_SETTING_HOLD_SIZE;
+    *settings++ = ASR_SETTING_BUFFER_LENGTH;
     *settings++ = ASR_SETTING_DELAY;
     *settings++ = ASR_SETTING_MULT;
  
@@ -994,11 +998,17 @@ void ASR_menu() {
   if (asr.freeze_state())
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_hold_indicator_4x8); 
   else if (asr.get_scale(DUMMY) == scale)
-    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);  
-
-  graphics.setPrintPos(114, 2);
-  if (asr.poke_octave_toggle())
+    graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
+    
+  if (asr.poke_octave_toggle()) {
+    graphics.setPrintPos(110, 2);
     graphics.print("+");
+  }
+
+  if (asr.get_delay_type())
+    graphics.drawBitmap8(118, menu::QuadTitleBar::kTextY, 4, OC::bitmap_hold_indicator_4x8);
+  else 
+    graphics.drawBitmap8(118, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);
 
   uint8_t clock_state = (asr.clockState() + 3) >> 2;
   if (clock_state)
@@ -1029,7 +1039,7 @@ void ASR_menu() {
           list_item.valuex = menu::kDisplayWidth - w - 1;
           list_item.DrawNoValue<true>(value, attr);
        } else
-       list_item.DrawDefault(value, attr);
+       list_item.DrawDefault(value, attr);  
       break;
       default:
       list_item.DrawDefault(value, attr);
