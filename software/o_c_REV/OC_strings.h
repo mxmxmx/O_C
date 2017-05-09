@@ -28,7 +28,7 @@ namespace OC {
     extern const char* const chord_property_names[];
     // Not strings but are constant integer sequences
     extern const uint8_t pi_digits[256];
-    extern const uint8_t phi_digits[256];
+    // extern const uint8_t phi_digits[256];
     // extern const uint8_t tau_digits[256];
     // extern const uint8_t eul_digits[256];
     // extern const uint8_t rt2_digits[256];

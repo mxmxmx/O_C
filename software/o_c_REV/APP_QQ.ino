@@ -1151,7 +1151,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P0  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P1  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 10, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 9, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 24, 2, 121, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
