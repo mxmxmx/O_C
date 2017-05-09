@@ -149,6 +149,10 @@ public:
     return octave_toggle_;
   }
 
+  bool poke_octave_toggle() const {
+    return octave_toggle_;
+  }
+
   int get_mult() const {
     return values_[ASR_SETTING_MULT];
   }
@@ -992,14 +996,13 @@ void ASR_menu() {
   else if (asr.get_scale(DUMMY) == scale)
     graphics.drawBitmap8(1, menu::QuadTitleBar::kTextY, 4, OC::bitmap_indicator_4x8);  
 
-  int octave = asr.get_octave();
-  graphics.setPrintPos(106, 2);
-  if (octave >= 0x0) graphics.print("+");
-  graphics.print(octave);
+  graphics.setPrintPos(114, 2);
+  if (asr.poke_octave_toggle())
+    graphics.print("+");
 
   uint8_t clock_state = (asr.clockState() + 3) >> 2;
   if (clock_state)
-    graphics.drawBitmap8(121, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
+    graphics.drawBitmap8(124, 2, 4, OC::bitmap_gate_indicators_8 + (clock_state << 2));
 
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(asr_state.cursor);
   menu::SettingsListItem list_item;
