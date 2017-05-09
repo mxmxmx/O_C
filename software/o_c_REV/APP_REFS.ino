@@ -102,7 +102,6 @@ public:
     auto_DAC_offset_error_ = 0;
     auto_frequency_ = 0;
     auto_last_frequency_ = 0;
-    auto_target_frequency_ = 0;
     auto_freq_sum_ = 0;
     auto_freq_count_ = 0;
     auto_ready_ = 0;
@@ -204,7 +203,6 @@ public:
     ticks_since_last_freq_ = 0x0;
     auto_frequency_ = 0x0;
     auto_last_frequency_ = 0x0;
-    auto_target_frequency_ = 0x0;
     auto_error_ = 0x0;
     auto_ready_ = 0x0;
     autotuner_ = 0x0;
@@ -230,8 +228,10 @@ public:
 
   void reset_calibration_data() {
     
-    for (int i = 0; i <= OCTAVES; i++)
+    for (int i = 0; i <= OCTAVES; i++) {
       auto_calibration_data_[i] = 0;
+      auto_target_frequencies_[i] = 0.0f;
+    }
   }
 
   uint8_t data_available() {
@@ -305,8 +305,10 @@ public:
           history_->Read(history);
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
-          // ... and derive target frequency
-          auto_target_frequency_ = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)) * 2.0f;
+          // ... and derive target frequencies
+          auto_target_frequencies_[0] = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1));
+          for (int i = 1; i < OCTAVES + 1; i++) 
+            auto_target_frequencies_[i] = auto_target_frequencies_[i - 1]  * 2.0f; 
           // reset step:
           auto_reset_step();
           autotuner_step_++; 
@@ -333,17 +335,15 @@ public:
           // throw error, if things don't seem to double ...
           if (auto_last_frequency_ * 1.25f > auto_frequency_)
             auto_error_ = true;
-          // store frequency
-          auto_last_frequency_ = auto_frequency_;
           // average:
           float history[kHistoryDepth]; 
           float average = 0.0f;
           history_->Read(history);
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
-          // and derive new target frequency:
-          auto_target_frequency_ = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)) * 2.0f;
-          // store DAC correction value:
+          // store last frequency:
+           auto_last_frequency_  = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1));
+          // and DAC correction value:
           auto_calibration_data_[autotuner_step_ - DAC_VOLT_3m] = auto_DAC_offset_error_;
           // and reset step:
           auto_reset_step();
@@ -355,7 +355,7 @@ public:
           // count passes
           auto_num_passes_++;
           // and correct frequency
-          if (auto_target_frequency_ > auto_frequency_) {
+          if (auto_target_frequencies_[autotuner_step_ - DAC_VOLT_3m] > auto_frequency_) {
             // update correction factor?
             if (!correction_direction_)
               F_correction_factor_ = (F_correction_factor_ >> 1) | 1u;
@@ -366,7 +366,7 @@ public:
             if (F_correction_factor_ == 0x1)
               correction_cnt_positive_++;
           }
-          else if (auto_target_frequency_ < auto_frequency_) {
+          else if (auto_target_frequencies_[autotuner_step_ - DAC_VOLT_3m] < auto_frequency_) {
             // update correction factor?
             if (correction_direction_)
               F_correction_factor_ = (F_correction_factor_ >> 1) | 1u;
@@ -517,9 +517,9 @@ private:
   uint8_t autotuner_step_;
   int32_t auto_DAC_offset_error_;
   float auto_frequency_;
+  float auto_target_frequencies_[OCTAVES + 1];
   int16_t auto_calibration_data_[OCTAVES + 1];
   float auto_last_frequency_;
-  float auto_target_frequency_;
   bool auto_next_step_;
   bool auto_error_;
   bool auto_ready_;

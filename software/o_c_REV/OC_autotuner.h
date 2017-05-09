@@ -133,14 +133,22 @@ private:
         }
         break;
         case AT_RUN:
-        if (owner_->auto_tune_step() == 0x1) // this goes too quick, so ... 
-          graphics.print(" ");
-        else {
-          graphics.print(AT_steps[owner_->auto_tune_step()]);
-          if (!owner_->_ready())
-            graphics.print(" ");
-          else 
-            graphics.printf(" > %7.3f", owner_->get_auto_frequency());
+        {
+          int _octave = owner_->get_octave_cnt();
+          if (_octave > 1 && _octave < OCTAVES) {
+            graphics.print("   ");
+            for (int i = 0; i < _octave; i++)
+              graphics.print(">");
+          }
+          else if (owner_->auto_tune_step() == 0x1 || owner_->auto_tune_step() == 0x2) // this goes too quick, so ... 
+            graphics.print(" -3V baseline");
+          else {
+            graphics.print(AT_steps[owner_->auto_tune_step()]);
+            if (!owner_->_ready())
+              graphics.print(" ");
+            else 
+              graphics.printf(" > %7.3f", owner_->get_auto_frequency());
+          }
         }
         break;
         case AT_ERROR:
@@ -149,7 +157,7 @@ private:
         break;
         case AT_DONE: 
         graphics.print(OC::Strings::channel_id[channel_]);
-        graphics.print("  --> ok!");
+        graphics.print("  --> a-ok!");
         calibration_data_ = owner_->data_available();
         break;
         default:
