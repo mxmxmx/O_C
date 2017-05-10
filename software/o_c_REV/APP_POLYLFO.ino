@@ -273,19 +273,15 @@ uint16_t preview_buffer[kSmallPreviewBufferSize];
 void POLYLFO_menu() {
 
   menu::DefaultTitleBar::Draw();
-  float menu_freq_ = poly_lfo.lfo.get_freq_ch1() ;
-  if (menu_freq_ >= 0.1f) {
-      if (poly_lfo.get_tap_tempo()) {
-        graphics.printf("(T) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, poly_lfo.lfo.get_freq_ch1());
-      } else {
-        graphics.printf("(%s) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, poly_lfo.lfo.get_freq_ch1());
-      }
+  if (poly_lfo.get_tap_tempo()) {
+    graphics.print("(T) Ch A: tap tempo") ;
   } else {
-      if (poly_lfo.get_tap_tempo()) {
-        graphics.printf("(T) Ch A: %6.3fs", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, 1.0f / poly_lfo.lfo.get_freq_ch1());
-      } else {
-        graphics.printf("(%s) Ch A: %6.3fs", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, 1.0f / poly_lfo.lfo.get_freq_ch1());
-      }
+    float menu_freq_ = poly_lfo.lfo.get_freq_ch1() ;
+    if (menu_freq_ >= 0.1f) {
+        graphics.printf("(%s) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, menu_freq_);
+    } else {
+        graphics.printf("(%s) Ch A: %6.3fs", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, 1.0f / menu_freq_);
+    }
   }
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 1> settings_list(poly_lfo_state.cursor);
   menu::SettingsListItem list_item;
