@@ -17,9 +17,14 @@ struct TWOCC
 
 void serial_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
+#ifdef DEBUG
+#undef SERIAL_PRINTLN
 #define SERIAL_PRINTLN(msg, ...) \
 	serial_printf(msg "\n", ##__VA_ARGS__)
-
+#else
+#undef SERIAL_PRINTLN
+#define SERIAL_PRINTLN(msg, ...) 
+#endif
 
 namespace util {
 inline uint8_t reverse_byte(uint8_t b) {
