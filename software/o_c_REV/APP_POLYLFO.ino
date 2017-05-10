@@ -167,8 +167,8 @@ const char* const xor_levels[9] = {
 };
 
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
-  { 64, 0, 255, "Coarse freq", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, -128, 127, "Fine freq", NULL, settings::STORAGE_TYPE_I16 },
+  { 64, 0, 255, "C", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, -128, 127, "F", NULL, settings::STORAGE_TYPE_I16 },
   { 0, 0, 1, "Tap tempo", OC::Strings::off_on, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Shape", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
@@ -273,12 +273,20 @@ uint16_t preview_buffer[kSmallPreviewBufferSize];
 void POLYLFO_menu() {
 
   menu::DefaultTitleBar::Draw();
-  if (!poly_lfo.get_tap_tempo()) {
-    graphics.print(PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name);
-    graphics.setPrintPos(menu::kDefaultMenuEndX, menu::DefaultTitleBar::kTextY);
-    graphics.pretty_print_right(poly_lfo.get_value(poly_lfo_state.left_edit_mode));
-  } 
-
+  float menu_freq_ = poly_lfo.lfo.get_freq_ch1() ;
+  if (menu_freq_ >= 0.1f) {
+      if (poly_lfo.get_tap_tempo()) {
+        graphics.printf("(T) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, poly_lfo.lfo.get_freq_ch1());
+      } else {
+        graphics.printf("(%s) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, poly_lfo.lfo.get_freq_ch1());
+      }
+  } else {
+      if (poly_lfo.get_tap_tempo()) {
+        graphics.printf("(T) Ch A: %6.3fs", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, 1.0f / poly_lfo.lfo.get_freq_ch1());
+      } else {
+        graphics.printf("(%s) Ch A: %6.3fs", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, 1.0f / poly_lfo.lfo.get_freq_ch1());
+      }
+  }
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX - 1> settings_list(poly_lfo_state.cursor);
   menu::SettingsListItem list_item;
   while (settings_list.available()) {

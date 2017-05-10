@@ -233,6 +233,10 @@ class PolyLfo {
     return sync_phase_increment_;
   }
 
+  inline float get_freq_ch1() {
+    return(static_cast<float>(16666.6666666666666666667f * static_cast<double>(phase_increment_ch1_) / static_cast<double>(0xffffffff)));
+  }
+
   inline long get_sync_counter() {
     return sync_counter_;
   }
