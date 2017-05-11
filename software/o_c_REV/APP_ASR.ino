@@ -105,10 +105,6 @@ public:
     return values_[ASR_SETTING_SCALE];
   }
 
-  int get_scale_select() const {
-    return 0;
-  }
-
   uint8_t get_buffer_length() const {
     return values_[ASR_SETTING_BUFFER_LENGTH];
   }
@@ -124,8 +120,19 @@ public:
     }
   }
 
-  void set_scale_at_slot(int scale, uint16_t mask, int root, uint8_t scale_slot) {
-    // dummy
+  // dummy
+  int get_scale_select() const {
+    return 0;
+  }
+
+  // dummy
+  void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
+    
+  }
+
+  // dummy
+  int get_transpose(uint8_t DUMMY) const {
+    return 0;
   }
    
   uint16_t get_mask() const {

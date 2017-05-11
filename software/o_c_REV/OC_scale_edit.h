@@ -30,7 +30,7 @@ public:
     cursor_pos_ = 0;
     num_notes_ = 0;
     edit_this_scale_ = 0;
-    seq_mode = false;
+    SEQ_MODE = false;
   }
 
   void Init_seq() {
@@ -41,7 +41,7 @@ public:
     cursor_pos_ = 0;
     num_notes_ = 0;
     edit_this_scale_ = 0;
-    seq_mode = true;
+    SEQ_MODE = true;
   }
 
   bool active() const {
@@ -65,7 +65,7 @@ public:
       // Serial.println(scale_name_);
     }
     owner_ = owner;
-    if (!seq_mode)
+    if (!SEQ_MODE)
       BeginEditing();
     else
       BeginEditing_Seq();  
@@ -88,7 +88,7 @@ private:
   size_t cursor_pos_;
   size_t num_notes_;
   int8_t edit_this_scale_;
-  bool seq_mode;
+  bool SEQ_MODE;
 
   void BeginEditing();
   void BeginEditing_Seq();  
@@ -137,7 +137,7 @@ void ScaleEditor<Owner>::Draw() {
   graphics.setPrintPos(x, y);
   graphics.print(scale_name_);
 
-  if (seq_mode) {
+  if (SEQ_MODE) {
     uint8_t id = edit_this_scale_;
     if (edit_this_scale_ == owner_->get_scale_select())
       id += 4;
@@ -236,13 +236,13 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     }
 
     if (!handled) {
-      if (!seq_mode)
+      if (!SEQ_MODE)
         mask = RotateMask(mask_, num_notes_, event.value);
       else {
         int _scale = owner_->get_scale(edit_this_scale_) + event.value;
         CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
         
-        owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), edit_this_scale_); 
+        owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
         scale_changed = true; 
         
         if (_scale < OC::Scales::SCALE_USER_LAST) {
@@ -290,7 +290,7 @@ void ScaleEditor<Owner>::handleButtonUp(const UI::Event &event) {
     else
       change_note(cursor_pos_, 128, true);
   } else {
-    if (!seq_mode)
+    if (!SEQ_MODE)
       invert_mask();
     else {
       edit_this_scale_++;  
@@ -325,7 +325,7 @@ void ScaleEditor<Owner>::handleButtonDown(const UI::Event &event) {
     OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
     change_note(cursor_pos_, -128, true);
   } else {
-    if (!seq_mode)
+    if (!SEQ_MODE)
       invert_mask();
     else {
       edit_this_scale_--;  
