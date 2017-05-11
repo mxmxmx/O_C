@@ -1106,6 +1106,7 @@ void ASR_screensaver() {
   }
 }
 
+#ifdef ASR_DEBUG
 void ASR_debug() {
   for (int i = 0; i < 1; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -1121,3 +1122,5 @@ void ASR_debug() {
     graphics.print(asr.get_int_seq_n());
  }
 }
+#endif // ASR_DEBUG
+

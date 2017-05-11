@@ -1008,6 +1008,7 @@ void ENVGEN_screensaver() {
 #endif
 }
 
+#ifdef ENVGEN_DEBUG  
 void ENVGEN_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -1019,6 +1020,7 @@ void ENVGEN_debug() {
     graphics.print(envgen.envelopes_[i].get_is_amplitude_sampled()) ;
   }
 }
+#endif // ENVGEN_DEBUG
 
 void FASTRUN ENVGEN_isr() {
   envgen.ISR();

@@ -1559,6 +1559,7 @@ void QQ_screensaver() {
 #endif
 }
 
+#ifdef QQ_DEBUG
 void QQ_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -1574,3 +1575,5 @@ void QQ_debug() {
     graphics.print(quantizer_channels[i].get_int_seq_x());
  }
 }
+#endif // QQ_DEBUG
+
