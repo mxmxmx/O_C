@@ -2178,6 +2178,9 @@ void SEQ_menu() {
         list_item.DrawNoValue<false>(value, attr);
       }
       break;
+      case SEQ_CHANNEL_SETTING_PULSEWIDTH:
+        list_item.Draw_PW_Value(value, attr);
+      break;
       case SEQ_CHANNEL_SETTING_DUMMY:
         list_item.DrawNoValue<false>(value, attr);
       break;

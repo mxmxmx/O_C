@@ -1236,9 +1236,13 @@ void DQ_menu() {
           list_item.DrawNoValue<true>(value, attr);
        } else
        list_item.DrawDefault(value, attr);
-      break;  
+      break;
+      case DQ_CHANNEL_SETTING_PULSEWIDTH:
+        list_item.Draw_PW_Value(value, attr);
+      break;
       default:
         list_item.DrawDefault(value, attr);
+      break;
     }
   }
 

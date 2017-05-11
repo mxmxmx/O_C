@@ -319,6 +319,28 @@ struct SettingsListItem {
     if (selected)
       graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
   }
+  
+  inline void Draw_PW_Value(int value, const settings::value_attr &attr) const {
+    DrawName(attr);
+
+    graphics.setPrintPos(endx, y + kTextDy);
+    
+    if(attr.value_names)
+      graphics.print_right(attr.value_names[value]);
+    else {
+      if (value == 0x0) // echo
+        graphics.print_right("echo");
+      else if (value == 0xFF) // 50%
+        graphics.print_right("50%");
+      else 
+        graphics.pretty_print_right(value);
+    }
+
+    if (editing)
+      menu::DrawEditIcon(valuex, y, value, attr);
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
 
   inline void DrawValueMax(int value, const settings::value_attr &attr, int16_t _max) const {
     DrawName(attr);
