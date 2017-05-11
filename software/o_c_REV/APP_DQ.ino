@@ -611,8 +611,8 @@ public:
           case DQ_DEST_SCALE_SLOT:
             display_scale_slot_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;
             // if scale changes, we have to update the root and transpose values, too; mask gets updated in update_scale
-            root = get_root(display_scale_slot_) + prev_root_cv_;
-            transpose = get_transpose(display_scale_slot_) + prev_transpose_cv_;
+            root = get_root(display_scale_slot_);
+            transpose = get_transpose(display_scale_slot_);
             schedule_scale_update_ = true;
           break;
           case DQ_DEST_ROOT:
@@ -638,9 +638,7 @@ public:
       CONSTRAIN(octave, -4, 4);
       CONSTRAIN(root, 0, 11);
       CONSTRAIN(transpose, -12, 12); 
-            
-      display_root_ = root;
-      
+               
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, get_voltage_scaling());
 
@@ -669,8 +667,8 @@ public:
                 CONSTRAIN(display_scale_slot_, 0, NUM_SCALE_SLOTS - 0x1);
                 prev_scale_cv_ = _aux_cv;
                 // update the root and transpose values
-                display_root_ = root = get_root(display_scale_slot_) + prev_root_cv_;
-                transpose = get_transpose(display_scale_slot_) + prev_transpose_cv_;
+                root = get_root(display_scale_slot_);
+                transpose = get_transpose(display_scale_slot_);
                 // and update quantizer below:
                 schedule_scale_update_ = true;
                 _re_quantize = true;
@@ -730,7 +728,8 @@ public:
             
       } 
       // end special treatment
-           
+      
+      display_root_ = root;     
       history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);  
       
       // deal with aux output:
