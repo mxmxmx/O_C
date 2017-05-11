@@ -17,7 +17,10 @@ struct TWOCC
 
 void serial_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
-#ifdef DEBUG
+/* uncomment line below to print misc info to serial */
+//#define PRINT_DEBUG
+
+#ifdef PRINT_DEBUG
 #undef SERIAL_PRINTLN
 #define SERIAL_PRINTLN(msg, ...) \
 	serial_printf(msg "\n", ##__VA_ARGS__)

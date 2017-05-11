@@ -135,9 +135,11 @@ void save_app_data() {
       AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
       chunk->id = app.id;
       chunk->length = storage_size;
-      size_t used = app.Save(chunk + 1);
-      SERIAL_PRINTLN("* %s (%02x) : Saved %u bytes... (%u)", app.name, app.id, used, storage_size);
-
+      #ifdef PRINT_DEBUG
+        SERIAL_PRINTLN("* %s (%02x) : Saved %u bytes... (%u)", app.name, app.id, app.Save(chunk + 1), storage_size);
+      #else
+        app.Save(chunk + 1);
+      #endif
       app_settings.used += chunk->length;
       data += chunk->length;
     }
@@ -177,11 +179,14 @@ void restore_app_data() {
       continue;
     }
 
-    size_t used = 0;
     if (app->Restore) {
-      const size_t len = chunk->length - sizeof(AppChunkHeader);
-      used = app->Restore(chunk + 1);
-      SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, used, len, chunk->length);
+      #ifdef PRINT_DEBUG
+        const size_t len = chunk->length - sizeof(AppChunkHeader);
+        size_t used = app->Restore(chunk + 1);
+        SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, used, len, chunk->length);
+      #else
+        app->Restore(chunk + 1);
+      #endif
     }
     restored_bytes += chunk->length;
     data += chunk->length;
