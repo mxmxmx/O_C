@@ -626,7 +626,9 @@ public:
         freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
         freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
         freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
-        }
+       }
+     } else if (milliseconds_since_last_freq_ > 100000) {
+      frequency_ = 0.0f;
      }
   }
 
@@ -897,12 +899,16 @@ void REFS_screensaver() {
   references_app.channels_[2].RenderScreensaver(64, 2);
   references_app.channels_[3].RenderScreensaver(96, 3);
   graphics.setPrintPos(2, 44);
-  graphics.printf("TR4 %7.3f Hz", references_app.get_frequency()) ;
-  graphics.setPrintPos(2, 56);
-  if (references_app.get_notes_or_bpm()) {
-    graphics.printf("%7.2f bpm %2.0fppqn", references_app.get_bpm(), references_app.get_ppqn());
-  } else if(references_app.get_frequency() >= references_app.get_C0_freq()) {
-    graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
+  if (references_app.get_frequency() > 0.0) {
+    graphics.printf("TR4 %7.3f Hz", references_app.get_frequency()) ;
+    graphics.setPrintPos(2, 56);
+    if (references_app.get_notes_or_bpm()) {
+      graphics.printf("%7.2f bpm %2.0fppqn", references_app.get_bpm(), references_app.get_ppqn());
+    } else if(references_app.get_frequency() >= references_app.get_C0_freq()) {
+      graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
+    }
+  } else {
+    graphics.print("TR4 no input") ;
   }
 }
 
