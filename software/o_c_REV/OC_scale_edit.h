@@ -242,7 +242,7 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
         int _scale = owner_->get_scale(edit_this_scale_) + event.value;
         CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
         
-        owner_->set_scale_at_slot(_scale, mask_, edit_this_scale_); 
+        owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), edit_this_scale_); 
         scale_changed = true; 
         
         if (_scale < OC::Scales::SCALE_USER_LAST) {

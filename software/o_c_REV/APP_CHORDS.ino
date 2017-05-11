@@ -157,7 +157,7 @@ public:
     return 0;
   }
   // dummy
-  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+  void set_scale_at_slot(int scale, uint16_t mask, int root, uint8_t scale_slot) {
   }
 
   bool octave_toggle() {
@@ -263,6 +263,10 @@ public:
   
   int get_root() const {
     return values_[CHORDS_SETTING_ROOT];
+  }
+
+  int get_root(uint8_t DUMMY) const {
+    return 0x0;
   }
 
   uint8_t get_root_cv() const {

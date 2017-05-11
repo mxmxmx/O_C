@@ -124,7 +124,7 @@ public:
     }
   }
 
-  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+  void set_scale_at_slot(int scale, uint16_t mask, int root, uint8_t scale_slot) {
     // dummy
   }
    
@@ -134,6 +134,10 @@ public:
 
   int get_root() const {
     return values_[ASR_SETTING_ROOT];
+  }
+
+  int get_root(uint8_t DUMMY) const {
+    return 0x0; // dummy
   }
 
   int get_index() const {

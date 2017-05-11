@@ -261,6 +261,10 @@ public:
     return values_[SEQ_CHANNEL_SETTING_MODE];
   }
 
+  uint8_t get_root(uint8_t DUMMY) const {
+    return 0x0; // dummy
+  }
+
   uint8_t get_clock_source() const {
     return values_[SEQ_CHANNEL_SETTING_CLOCK];
   }
@@ -613,7 +617,7 @@ public:
      apply_value(SEQ_CHANNEL_SETTING_SCALE, scale);
   }
 
-  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+  void set_scale_at_slot(int scale, uint16_t mask, int root, uint8_t scale_slot) {
     // dummy
   }
   
