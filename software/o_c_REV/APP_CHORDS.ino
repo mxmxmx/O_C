@@ -51,6 +51,10 @@ enum CHORDS_SETTINGS {
   CHORDS_SETTING_DIRECTION,
   CHORDS_SETTING_BROWNIAN_PROBABILITY,
   CHORDS_SETTING_TRIGGER_DELAY,
+  CHORDS_SETTING_VOLTAGE_SCALING_A,
+  CHORDS_SETTING_VOLTAGE_SCALING_B,
+  CHORDS_SETTING_VOLTAGE_SCALING_C,
+  CHORDS_SETTING_VOLTAGE_SCALING_D,
   CHORDS_SETTING_TRANSPOSE,
   CHORDS_SETTING_OCTAVE,
   CHORDS_SETTING_CHORD_SLOT,
@@ -295,6 +299,20 @@ public:
 
   uint16_t get_trigger_delay() const {
     return values_[CHORDS_SETTING_TRIGGER_DELAY];
+  }
+
+  uint8_t get_voltage_scaling_a() const {
+    return values_[CHORDS_SETTING_VOLTAGE_SCALING_A];
+  }
+
+  uint8_t get_voltage_scaling_b() const {
+    return values_[CHORDS_SETTING_VOLTAGE_SCALING_B];
+  }
+  uint8_t get_voltage_scaling_c() const {
+    return values_[CHORDS_SETTING_VOLTAGE_SCALING_C];
+  }
+  uint8_t get_voltage_scaling_d() const {
+    return values_[CHORDS_SETTING_VOLTAGE_SCALING_D];
   }
 
   int get_transpose() const {
@@ -790,8 +808,8 @@ public:
       
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       // main sample, S/H:
-      sample_a = temp_sample = OC::DAC::pitch_to_dac(DAC_CHANNEL_A, quantized, octave + OC::inversion[_inversion][0]);
-
+      sample_a = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(DAC_CHANNEL_A, quantized, octave + OC::inversion[_inversion][0], get_voltage_scaling_a());
+ 
       // now derive chords ...
       transpose += OC::qualities[_quality][1];
       int32_t sample_b  = quantizer_.Process(pitch, root << 7, transpose);
@@ -801,9 +819,9 @@ public:
       int32_t sample_d  = quantizer_.Process(pitch, root << 7, transpose);
 
       //todo voicing for root note
-      sample_b = OC::DAC::pitch_to_dac(DAC_CHANNEL_B, sample_b, octave + OC::voicing[_voicing][1] + OC::inversion[_inversion][1]);
-      sample_c = OC::DAC::pitch_to_dac(DAC_CHANNEL_C, sample_c, octave + OC::voicing[_voicing][2] + OC::inversion[_inversion][2]);
-      sample_d = OC::DAC::pitch_to_dac(DAC_CHANNEL_D, sample_d, octave + OC::voicing[_voicing][3] + OC::inversion[_inversion][3]);
+      sample_b = OC::DAC::pitch_to_scaled_voltage_dac(DAC_CHANNEL_B, sample_b, octave + OC::voicing[_voicing][1] + OC::inversion[_inversion][1], get_voltage_scaling_b());
+      sample_c = OC::DAC::pitch_to_scaled_voltage_dac(DAC_CHANNEL_C, sample_c, octave + OC::voicing[_voicing][2] + OC::inversion[_inversion][2], get_voltage_scaling_c());
+      sample_d = OC::DAC::pitch_to_scaled_voltage_dac(DAC_CHANNEL_D, sample_d, octave + OC::voicing[_voicing][3] + OC::inversion[_inversion][3], get_voltage_scaling_d());
       
       OC::DAC::set<DAC_CHANNEL_A>(sample_a);
       OC::DAC::set<DAC_CHANNEL_B>(sample_b);
@@ -879,6 +897,12 @@ public:
         *settings++ = CHORDS_SETTING_CV_SOURCE;
         *settings++ = CHORDS_SETTING_CHORDS_ADVANCE_TRIGGER_SOURCE;
         *settings++ = CHORDS_SETTING_TRIGGER_DELAY;
+#ifdef BUCHLA_SUPPORT        
+        *settings++ =   CHORDS_SETTING_VOLTAGE_SCALING_A;
+        *settings++ =   CHORDS_SETTING_VOLTAGE_SCALING_B;
+        *settings++ =   CHORDS_SETTING_VOLTAGE_SCALING_C;
+        *settings++ =   CHORDS_SETTING_VOLTAGE_SCALING_D;
+#endif // BUCHLA_SUPPORT
       }
       break;
       case MENU_CV_MAPPING: {
@@ -999,6 +1023,10 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", chord_directions, settings::STORAGE_TYPE_U8 },
   { 64, 0, 255, "-->brown prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "TR1 delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 7, "chan A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "chan B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "chan C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "chan D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "chord:", chords_slots, settings::STORAGE_TYPE_U8 },
