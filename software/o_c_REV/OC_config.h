@@ -55,8 +55,23 @@ static constexpr unsigned long SETTINGS_SAVE_TIMEOUT_MS = 1000;
 
 #define OC_CALIBRATION_DEFAULT_FLAGS (0)
 
-#define QQ_DEBUG
-//#define QQ_DEBUG_SCREENSAVER
+/* ------------ uncomment line below to print boot-up and settings saving/restore info to serial ----- */
+//#define PRINT_DEBUG
+/* ------------ uncomment line below to enable ASR debug page ---------------------------------------- */
+//#define ASR_DEBUG
+/* ------------ uncomment line below to enable POLYLFO debug page ------------------------------------ */
+//#define POLYLFO_DEBUG
+/* ------------ uncomment line below to enable BBGEN debug page -------------------------------------- */
+//#define BBGEN_DEBUG
+/* ------------ uncomment line below to enable ENVGEN debug page ------------------------------------- */
+//#define ENVGEN_DEBUG
 //#define ENVGEN_DEBUG_SCREENSAVER
+/* ------------ uncomment line below to enable BYTEBEATGEN debug page -------------------------------- */
+//#define BYTEBEATGEN_DEBUG
+/* ------------ uncomment line below to enable H1200 debug page -------------------------------------- */
+//#define H1200_DEBUG
+/* ------------ uncomment line below to enable QQ debug page ----------------------------------------- */
+//#define QQ_DEBUG
+//#define QQ_DEBUG_SCREENSAVER
 
 #endif // OC_CONFIG_H_

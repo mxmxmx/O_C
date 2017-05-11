@@ -359,6 +359,7 @@ void BBGEN_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
+#ifdef BBGEN_DEBUG
 void BBGEN_debug() {
   graphics.setPrintPos(2, 12);
   graphics.print(bbgen.cv1.value());
@@ -369,6 +370,7 @@ void BBGEN_debug() {
   graphics.setPrintPos(2, 42);
   graphics.print(bbgen.cv4.value());
 }
+#endif // BBGEN_DEBUG
 
 void BBGEN_screensaver() {
   OC::scope_render();

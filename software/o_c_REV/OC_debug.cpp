@@ -8,13 +8,33 @@
 #include "util/util_misc.h"
 #include "extern/dspinst.h"
 
+#ifdef POLYLFO_DEBUG  
 extern void POLYLFO_debug();
+#endif // POLYLFO_DEBUG
+
+#ifdef BBGEN_DEBUG  
 extern void BBGEN_debug();
+#endif // BBGEN_DEBUG
+
+#ifdef ENVGEN_DEBUG  
 extern void ENVGEN_debug();
+#endif // ENVGEN_DEBUG
+
+#ifdef BYTEBEATGEN_DEBUG  
 extern void BYTEBEATGEN_debug();
+#endif // BYTEBEATGEN_DEBUG
+
+#ifdef H1200_DEBUG  
 extern void H1200_debug();
+#endif // H1200_DEBUG
+
+#ifdef QQ_DEBUG  
 extern void QQ_debug();
+#endif // QQ_DEBUG
+
+#ifdef ASR_DEBUG
 extern void ASR_debug();
+#endif // ASR_DEBUG
 
 namespace OC {
 
@@ -99,13 +119,27 @@ static const DebugMenu debug_menus[] = {
   { " CORE", debug_menu_core },
   { " GFX", debug_menu_gfx },
   { " ADC", debug_menu_adc },
+#ifdef POLYLFO_DEBUG  
   { " POLYLFO", POLYLFO_debug },
+#endif // POLYLFO_DEBUG
+#ifdef ENVGEN_DEBUG  
   { " ENVGEN", ENVGEN_debug },
+#endif // ENVGEN_DEBUG
+#ifdef BBGEN_DEBUG  
   { " BBGEN", BBGEN_debug },
+#endif // BBGEN_DEBUG
+#ifdef BYTEBEATGEN_DEBUG  
   { " BYTEBEATGEN", BYTEBEATGEN_debug },
+#endif // BYTEBEATGEN_DEBUG
+#ifdef H1200_DEBUG  
   { " H1200", H1200_debug },
+#endif // H1200_DEBUG
+#ifdef QQ_DEBUG  
   { " QQ", QQ_debug },
+#endif // QQ_DEBUG
+#ifdef ASR_DEBUG  
   { " ASR", ASR_debug },
+#endif // ASR_DEBUG
  { nullptr, nullptr }
 };
 

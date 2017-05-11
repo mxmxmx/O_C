@@ -356,6 +356,7 @@ void POLYLFO_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
+#ifdef POLYLFO_DEBUG  
 void POLYLFO_debug() {
   graphics.setPrintPos(2, 12);
   graphics.print(poly_lfo.cv_shape.value());
@@ -369,3 +370,4 @@ void POLYLFO_debug() {
   graphics.print(value); graphics.print(" ");
   value = USAT16(value);
 }
+#endif // POLYLFO_DEBUG

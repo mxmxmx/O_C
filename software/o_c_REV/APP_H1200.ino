@@ -1191,6 +1191,7 @@ void H1200_screensaver() {
   OC::visualize_pitch_classes(normalized, note_circle_x, note_circle_y);
 }
 
+#ifdef H1200_DEBUG  
 void H1200_debug() {
   int cv = OC::ADC::value<ADC_CHANNEL_4>();
   int scaled = ((OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8);
@@ -1198,3 +1199,5 @@ void H1200_debug() {
   graphics.setPrintPos(2, 12);
   graphics.printf("I: %4d %4d", cv, scaled);
 }
+#endif // H1200_DEBUG
+

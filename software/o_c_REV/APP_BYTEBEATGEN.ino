@@ -555,6 +555,7 @@ void BYTEBEATGEN_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
+#ifdef BYTEBEAT_DEBUG
 void BYTEBEATGEN_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -566,6 +567,7 @@ void BYTEBEATGEN_debug() {
     graphics.print(bytebeatgen.bytebeats_[i].get_eqn_num(), 12);
   }
 }
+#endif // BYTEBEATGEN_DEBUG
 
 uint8_t bb_history[ByteBeat::kHistoryDepth];
 
