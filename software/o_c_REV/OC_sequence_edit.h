@@ -91,7 +91,7 @@ template <typename Owner>
 void PatternEditor<Owner>::Draw() {
   size_t num_slots = num_slots_;
 
-  static constexpr weegfx::coord_t kMinWidth = 16 * 7;
+  static constexpr weegfx::coord_t kMinWidth = 10 * 7;
 
   weegfx::coord_t w =
     mutable_pattern_ ? (num_slots + 1) * 7 : num_slots * 7;
@@ -113,46 +113,46 @@ void PatternEditor<Owner>::Draw() {
   uint8_t id = edit_this_sequence_;
   
   if (edit_this_sequence_ == owner_->get_sequence())
-    id += OC::Patterns::PATTERN_USER_LAST;
-  graphics.print(OC::Strings::seq_id[id]);
-  graphics.print("/");
+    graphics.printf("#%d", id + 1);
+  else {
+    graphics.drawBitmap8(x, y, 4, OC::bitmap_indicator_4x8);
+    graphics.setPrintPos(x + 4, y); 
+    graphics.print(id + 1);
+  }
 
-  // print length
-  if (num_slots > 9)
-      graphics.print((int)num_slots, 2);
-    else 
-      graphics.print((int)num_slots, 1); 
-
-  if (cursor_pos_ != num_slots) {
-
-    graphics.setPrintPos(x, y + 24);
-    graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-
-    static constexpr weegfx::coord_t kDivWidth = 4;
-    static constexpr weegfx::coord_t kOctaveLineWidth = 12 * kDivWidth;
-
+  if (cursor_pos_ == num_slots) {
+    // print length
+    graphics.print(":");
+    if (num_slots > 9)
+        graphics.print((int)num_slots, 2);
+      else 
+        graphics.print((int)num_slots, 1);  
+  }
+  else {
+    
+    // print DAC code
     int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
+    
     int32_t octave = pitch / (12 << 7);
     int32_t frac = pitch - octave * (12 << 7);
     if (pitch < 0) {
       frac = frac + (12 << 7) - 1;
       octave -= 1;
     }
-    graphics.pretty_print(octave, 2);
 
-    weegfx::coord_t lx = x + weegfx::Graphics::kFixedFontW * 3 + 2;
-    graphics.drawHLine(lx, y + 23, kOctaveLineWidth);
+    static constexpr weegfx::coord_t kDivWidth = 4;
+    static constexpr weegfx::coord_t kOctaveLineWidth = 12 * kDivWidth;
+
+    weegfx::coord_t lx = x + 4 + (w - kOctaveLineWidth) / 2;
+    graphics.drawHLine(lx, y + 1, kOctaveLineWidth);
     for (weegfx::coord_t i = 0; i <= 12; ++i)
-      graphics.drawVLine(lx + i * kDivWidth, y + 23, 2);
+      graphics.drawVLine(lx + i * kDivWidth, y + 1, 2);
 
-    graphics.drawRect(lx + 2 * frac / (1 << 6), y + 26, 2, 5);
+    graphics.drawRect(lx + 2 * frac / (1 << 6), y + 4, 2, 3);
+    
+    graphics.setPrintPos(x, y + 24);
 
-    if (!OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-      graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
-    else
-      graphics.drawBitmap8(lx + kOctaveLineWidth + 4, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
-    graphics.movePrintPos(kOctaveLineWidth + 4 + 8, 0);
-    graphics.printf("%d", pitch);
+    graphics.printf("%d: %d", octave, pitch);
   }
 
   x += 2; y += 10;

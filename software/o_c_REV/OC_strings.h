@@ -11,7 +11,6 @@ namespace OC {
     extern const char * const seq_playmodes[];
     extern const char * const channel_trigger_sources[];
     extern const char * const seq_directions[];
-    extern const char * const seq_id[];
     extern const char * const scale_id[];
     extern const char * const channel_id[];
     extern const char * const note_names[];

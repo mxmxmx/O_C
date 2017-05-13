@@ -10,10 +10,6 @@ namespace OC {
 
   const char * const seq_directions[] = {"fwd", "rev", "pnd1", "pnd2", "rnd", "brwn"};
 
-  // todo: collapse seq_id / scale_id
-
-  const char * const seq_id[] = { "--> #1", "--> #2", "--> #3", "--> #4", "#1", "#2", "#3", "#4"};
-
   const char * const scale_id[] = { ">#1", ">#2", ">#3", ">#4", " #1", " #2", " #3", " #4"};
   
   const char * const note_names[12] = { "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#", "A ", "A#", "B " };
