@@ -44,10 +44,7 @@ enum DQ_ChannelSetting {
   DQ_CHANNEL_SETTING_SCALE2,
   DQ_CHANNEL_SETTING_SCALE3,
   DQ_CHANNEL_SETTING_SCALE4,
-  DQ_CHANNEL_SETTING_ROOT1,
-  DQ_CHANNEL_SETTING_ROOT2,
-  DQ_CHANNEL_SETTING_ROOT3,
-  DQ_CHANNEL_SETTING_ROOT4,
+  DQ_CHANNEL_SETTING_ROOT,
   DQ_CHANNEL_SETTING_SCALE_SEQ,
   DQ_CHANNEL_SETTING_MASK1,
   DQ_CHANNEL_SETTING_MASK2,
@@ -57,10 +54,7 @@ enum DQ_ChannelSetting {
   DQ_CHANNEL_SETTING_SOURCE,
   DQ_CHANNEL_SETTING_TRIGGER,
   DQ_CHANNEL_SETTING_DELAY,
-  DQ_CHANNEL_SETTING_TRANSPOSE1,
-  DQ_CHANNEL_SETTING_TRANSPOSE2,
-  DQ_CHANNEL_SETTING_TRANSPOSE3,
-  DQ_CHANNEL_SETTING_TRANSPOSE4,
+  DQ_CHANNEL_SETTING_TRANSPOSE,
   DQ_CHANNEL_SETTING_OCTAVE,
   DQ_CHANNEL_SETTING_AUX_OUTPUT,
   DQ_CHANNEL_SETTING_PULSEWIDTH,
@@ -122,14 +116,6 @@ enum DQ_CV_DEST {
   DQ_DEST_LAST
 };
 
-enum DQ_SLOTS {
-  SLOT1,
-  SLOT2,
-  SLOT3,
-  SLOT4,
-  LAST_SLOT
-};
-
 class DQ_QuantizerChannel : public settings::SettingsBase<DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST> {
 public:
 
@@ -137,20 +123,20 @@ public:
 
     switch(selected_scale_slot_) {
       
-       case SLOT1:
+       case 0:
         return values_[DQ_CHANNEL_SETTING_SCALE1];
        break;
-       case SLOT2:
+       case 1:
         return values_[DQ_CHANNEL_SETTING_SCALE2];
        break;
-       case SLOT3:
+       case 2:
         return values_[DQ_CHANNEL_SETTING_SCALE3];
        break;
-       case SLOT4:
+       case 3:
         return values_[DQ_CHANNEL_SETTING_SCALE4];
        break;
        default:
-        return values_[DQ_CHANNEL_SETTING_SCALE1];
+        return 0;
        break;        
     }
   } 
@@ -171,7 +157,7 @@ public:
     return display_root_;
   }
 
-  void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
+  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
 
     if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot)) {
  
@@ -180,74 +166,77 @@ public:
       if (0 == (mask & ~(0xffff << scale_def.num_notes)))
         mask |= 0x1;
       switch (scale_slot) {  
-        case SLOT2:
+        case 1:
         apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE2, scale);
-        apply_value(DQ_CHANNEL_SETTING_ROOT2, root);
-        apply_value(DQ_CHANNEL_SETTING_TRANSPOSE2, transpose);
         break;
-        case SLOT3:
+        case 2:
         apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE3, scale);
-        apply_value(DQ_CHANNEL_SETTING_ROOT3, root);
-        apply_value(DQ_CHANNEL_SETTING_TRANSPOSE3, transpose);
         break;
-        case SLOT4:
+        case 3:
         apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE4, scale);
-        apply_value(DQ_CHANNEL_SETTING_ROOT4, root);
-        apply_value(DQ_CHANNEL_SETTING_TRANSPOSE4, transpose);
         break;
         default:
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
-        apply_value(DQ_CHANNEL_SETTING_ROOT1, root);
-        apply_value(DQ_CHANNEL_SETTING_TRANSPOSE1, transpose);
+        break;
+      }
+    } 
+  }
+
+  void set_scale(int scale, uint16_t mask, uint8_t scale_slot) {
+
+    if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot)) {
+ 
+      const OC::Scale &scale_def = OC::Scales::GetScale(scale);
+   
+      if (0 == (mask & ~(0xffff << scale_def.num_notes)))
+        mask |= 0x1;
+      switch (scale_slot) {  
+        case 1:
+        apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE2, scale);
+        break;
+        case 2:
+        apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE3, scale);
+        break;
+        case 3:
+        apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE4, scale);
+        break;
+        default:
+        apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
+        apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
         break;
       }
     }
   }
 
-  int get_root(uint8_t selected_scale_slot_) const {
-
-    switch(selected_scale_slot_) {
-      
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_ROOT1];
-       break;
-       case SLOT2:
-        return values_[DQ_CHANNEL_SETTING_ROOT2];
-       break;
-       case SLOT3:
-        return values_[DQ_CHANNEL_SETTING_ROOT3];
-       break;
-       case SLOT4:
-        return values_[DQ_CHANNEL_SETTING_ROOT4];
-       break;
-       default:
-        return values_[DQ_CHANNEL_SETTING_ROOT1];
-       break;        
-    }
+  int get_root() const {
+    return values_[DQ_CHANNEL_SETTING_ROOT];
   }
 
   uint16_t get_mask(uint8_t selected_scale_slot_) const { 
 
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
+      case 0:  
         return values_[DQ_CHANNEL_SETTING_MASK1];
       break;
-      case SLOT2:
+      case 1:  
         return values_[DQ_CHANNEL_SETTING_MASK2];
       break;
-      case SLOT3:  
+      case 2:  
         return values_[DQ_CHANNEL_SETTING_MASK3];
       break;
-      case SLOT4:  
+      case 3:  
         return values_[DQ_CHANNEL_SETTING_MASK4];
       break;
       default:
-        return values_[DQ_CHANNEL_SETTING_MASK1];
+        return 0;
       break;
     }
   }
@@ -276,26 +265,8 @@ public:
     return values_[DQ_CHANNEL_SETTING_DELAY];
   }
 
-  int get_transpose(uint8_t selected_scale_slot_) const {
-    
-    switch(selected_scale_slot_) {
-      
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
-      break;
-      case SLOT2:
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE2];
-      break;
-      case SLOT3:  
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE3];
-      break;
-      case SLOT4:   
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE4];
-      break;
-      default:
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
-      break;
-    }
+  int get_transpose() const {
+    return values_[DQ_CHANNEL_SETTING_TRANSPOSE];
   }
 
   int get_octave() const {
@@ -355,11 +326,11 @@ public:
     schedule_mask_rotate_ = 0x0;
     continuous_offset_ = 0x0;
     prev_transpose_cv_ = 0x0;
-    prev_octave_cv_ = 0x0;
+    prev_transpose_cv_ = 0x0;
     prev_root_cv_ = 0x0;   
     prev_scale_cv_ = 0x0;       
   }
-    
+
   void reset_scale() {
     scale_reset_ = true;
   }
@@ -505,14 +476,11 @@ public:
       if (_aux_cv_destination != prev_destination_)
         clear_dest();
       prev_destination_ = _aux_cv_destination;
-      // active scale slot:
-      display_scale_slot_ = prev_scale_slot_ = active_scale_slot_ + prev_scale_cv_;
-      // get root value
-      root = get_root(display_scale_slot_) + prev_root_cv_;
-      // get transpose value
-      transpose = get_transpose(display_scale_slot_) + prev_transpose_cv_;
-      // get octave value
+      
+      transpose = get_transpose() + prev_transpose_cv_;
       octave = get_octave() + prev_octave_cv_;
+      root = get_root() + prev_root_cv_;
+      display_scale_slot_ = prev_scale_slot_ = active_scale_slot_ + prev_scale_cv_;
 
       // internal CV source?
       if (source > DQ_CHANNEL_SOURCE_CV4) 
@@ -567,9 +535,11 @@ public:
           uint32_t _scaled = (_shift_register & 0xff) * _range;
           _scaled = _scaled >> (shift > 7 ? 8 : shift);
  
-          // shouldn't this (for DQ) just be some raw value at this point? see below, things get re-quantized, anyways
+          // The quantizer uses a lookup codebook with 128 entries centered
+          // about 0, so we use the range/scaled output to lookup a note
+          // directly instead of changing to pitch first.
           pitch =
-              quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root(display_scale_slot_) << 7); 
+              quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
         
           // gate?
           switch(get_turing_trig_out()) {
@@ -609,10 +579,7 @@ public:
           case DQ_DEST_NONE:
           break;
           case DQ_DEST_SCALE_SLOT:
-            display_scale_slot_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;
-            // if scale changes, we have to update the root and transpose values, too; mask gets updated in update_scale
-            root = get_root(display_scale_slot_);
-            transpose = get_transpose(display_scale_slot_);
+            display_scale_slot_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;   
             schedule_scale_update_ = true;
           break;
           case DQ_DEST_ROOT:
@@ -638,7 +605,9 @@ public:
       CONSTRAIN(octave, -4, 4);
       CONSTRAIN(root, 0, 11);
       CONSTRAIN(transpose, -12, 12); 
-               
+            
+      display_root_ = root;
+      
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, get_voltage_scaling());
 
@@ -664,12 +633,8 @@ public:
             _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;
             if (_aux_cv !=  prev_scale_cv_) {  
                 display_scale_slot_ += _aux_cv;
-                CONSTRAIN(display_scale_slot_, 0, NUM_SCALE_SLOTS - 0x1);
+                CONSTRAIN(display_scale_slot_, 0, NUM_SCALE_SLOTS-1);
                 prev_scale_cv_ = _aux_cv;
-                // update the root and transpose values
-                root = get_root(display_scale_slot_);
-                transpose = get_transpose(display_scale_slot_);
-                // and update quantizer below:
                 schedule_scale_update_ = true;
                 _re_quantize = true;
             }
@@ -677,7 +642,7 @@ public:
             case DQ_DEST_TRANSPOSE:
               _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 63) >> 7;
               if (_aux_cv != prev_transpose_cv_) {
-                  transpose = get_transpose(display_scale_slot_) + _aux_cv;
+                  transpose = get_transpose() + _aux_cv;
                   CONSTRAIN(transpose, -12, 12); 
                   prev_transpose_cv_ = _aux_cv;
                   _re_quantize = true;
@@ -686,7 +651,7 @@ public:
             case DQ_DEST_ROOT:
               _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
               if (_aux_cv != prev_root_cv_) {
-                  display_root_ = root = get_root(display_scale_slot_) + _aux_cv; 
+                  root = get_root() + _aux_cv;
                   CONSTRAIN(root, 0, 11);
                   prev_root_cv_ = _aux_cv;
                   _re_quantize = true;
@@ -728,8 +693,7 @@ public:
             
       } 
       // end special treatment
-      
-      display_root_ = root;     
+           
       history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);  
       
       // deal with aux output:
@@ -900,72 +864,44 @@ public:
 
     switch(get_scale_select()) {
 
-      case SLOT1:
+      case 0:
       *settings++ = DQ_CHANNEL_SETTING_SCALE1;
       break;
-      case SLOT2:
+      case 1:
       *settings++ = DQ_CHANNEL_SETTING_SCALE2;
       break;
-      case SLOT3:
+      case 2:
       *settings++ = DQ_CHANNEL_SETTING_SCALE3;
       break;
-      case SLOT4:
+      case 3:
       *settings++ = DQ_CHANNEL_SETTING_SCALE4;
       break;
       default:
       break;
     }
-
-    // to do -- might as well disable no scale
     if (OC::Scales::SCALE_NONE != get_scale(get_scale_select())) {
       
       *settings++ = DQ_CHANNEL_SETTING_SCALE_SEQ;
 
       switch(get_scale_select()) {
-        
-        case SLOT1:  
+        case 0:  
          *settings++ = DQ_CHANNEL_SETTING_MASK1; 
         break;
-        case SLOT2:  
+         case 1:  
          *settings++ = DQ_CHANNEL_SETTING_MASK2; 
         break;
-        case SLOT3:
+         case 2:  
          *settings++ = DQ_CHANNEL_SETTING_MASK3; 
         break;
-        case SLOT4:  
+         case 3:  
          *settings++ = DQ_CHANNEL_SETTING_MASK4; 
         break;
         default:
         break;
       }
-      
       *settings++ = DQ_CHANNEL_SETTING_SEQ_MODE;
-
-      switch(get_scale_select()) {
-        
-        case SLOT1:
-        *settings++ = DQ_CHANNEL_SETTING_ROOT1;
-        *settings++ = DQ_CHANNEL_SETTING_TRANSPOSE1;
-        break;
-        case SLOT2:
-        *settings++ = DQ_CHANNEL_SETTING_ROOT2;
-        *settings++ = DQ_CHANNEL_SETTING_TRANSPOSE2;
-        break;
-        case SLOT3:
-        *settings++ = DQ_CHANNEL_SETTING_ROOT3;
-        *settings++ = DQ_CHANNEL_SETTING_TRANSPOSE3;
-        break;
-        case SLOT4:
-        *settings++ = DQ_CHANNEL_SETTING_ROOT4;
-        *settings++ = DQ_CHANNEL_SETTING_TRANSPOSE4;
-        break;
-        default:
-        break;
-      }      
+      *settings++ = DQ_CHANNEL_SETTING_ROOT;
     }
-
-    // todo -- item order?
-    *settings++ = DQ_CHANNEL_SETTING_OCTAVE;
     *settings++ = DQ_CHANNEL_SETTING_SOURCE;
     
     // CV sources:
@@ -981,13 +917,14 @@ public:
        default:
        break;
     }
-    
     *settings++ = DQ_CHANNEL_SETTING_AUX_CV_DEST;
     *settings++ = DQ_CHANNEL_SETTING_TRIGGER;
     
     if (get_trigger_source() < DQ_CHANNEL_TRIGGER_CONTINUOUS_UP) 
       *settings++ = DQ_CHANNEL_SETTING_DELAY;
-      
+
+    //*settings++ = DQ_CHANNEL_SETTING_OCTAVE;
+    *settings++ = DQ_CHANNEL_SETTING_TRANSPOSE;
     *settings++ = DQ_CHANNEL_SETTING_AUX_OUTPUT;
     
     switch(get_aux_mode()) {
@@ -1085,6 +1022,14 @@ private:
   }
 };
 
+const char* const dq_channel_trigger_sources[DQ_CHANNEL_TRIGGER_LAST] = {
+  "TR1", "TR2", "TR3", "TR4", "cnt+", "cnt-"
+};
+
+const char* const dq_channel_input_sources[DQ_CHANNEL_SOURCE_LAST] = {
+  "CV1", "CV2", "CV3", "CV4"
+};
+
 const char* const dq_seq_scales[] = {
   "s#1", "s#2", "s#3", "s#4"
 };
@@ -1114,23 +1059,18 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 11, "root #1", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 11, "root #2", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 11, "root #3", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 11, "root #4", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
-  { 0, 0, NUM_SCALE_SLOTS - 1, "scale #", dq_seq_scales, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
+  { 0, 0, NUM_SCALE_SLOTS - 1, "scale #", dq_seq_scales, settings::STORAGE_TYPE_U4  },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 3, "seq_mode", dq_seq_modes, settings::STORAGE_TYPE_U4 },
-  { DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, 4, "CV source", OC::Strings::cv_input_names, settings::STORAGE_TYPE_U4 }, /// to do ..
-  { DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, DQ_CHANNEL_TRIGGER_LAST - 1, "trigger source", OC::Strings::channel_trigger_sources, settings::STORAGE_TYPE_U8 },
+  //{ DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_LAST - 1, "CV source", dq_channel_input_sources, settings::STORAGE_TYPE_U4 },
+  { DQ_CHANNEL_SOURCE_CV1, DQ_CHANNEL_SOURCE_CV1, 4, "CV source", dq_channel_input_sources, settings::STORAGE_TYPE_U4 }, /// to do ..
+  { DQ_CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, DQ_CHANNEL_TRIGGER_LAST - 1, "trigger source", dq_channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "--> latency", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
-  { 0, -5, 7, "transpose #1", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, -5, 7, "transpose #2", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, -5, 7, "transpose #3", NULL, settings::STORAGE_TYPE_I8 },
-  { 0, -5, 7, "transpose #4", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, -5, 7, "transpose", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -4, 4, "octave", NULL, settings::STORAGE_TYPE_I8 },
   { 0, 0, DQ_AUX_MODE_LAST-1, "aux.output", dq_aux_outputs, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "--> pw", NULL, settings::STORAGE_TYPE_U8 },
@@ -1247,7 +1187,7 @@ void DQ_menu() {
     if (channel.get_aux_cv_dest() == DQ_DEST_ROOT)
       graphics.print(OC::Strings::note_names[channel.get_display_root()]);
     else
-      graphics.print(OC::Strings::note_names[channel.get_root(channel.get_display_scale())]);
+      graphics.print(OC::Strings::note_names[channel.get_root()]);
     int octave = channel.get_octave();
     if (octave)
       graphics.pretty_print(octave);
@@ -1427,18 +1367,16 @@ void DQ_leftButton() {
 }
 
 void DQ_leftButtonLong() {
-
-  // copy scale settings to all slots:
   DQ_QuantizerChannel &selected_channel = dq_quantizer_channels[dq_state.selected_channel];
-  int _slot = selected_channel.get_scale_select();
-  int scale = selected_channel.get_scale(_slot);
-  int mask = selected_channel.get_mask(_slot);
-  int root = selected_channel.get_root(_slot); 
-  int transpose = selected_channel.get_transpose(_slot); 
- 
+  int scale = selected_channel.get_scale(selected_channel.get_scale_select());
+  int mask = selected_channel.get_mask(selected_channel.get_scale_select());
+  int root = selected_channel.get_root();
+
+  dq_quantizer_channels[(~dq_state.selected_channel)&1u].apply_value(DQ_CHANNEL_SETTING_ROOT, root);
+   
   for (int i = 0; i < NUM_SCALE_SLOTS; ++i) {
     for (int j = 0; j < NUMCHANNELS; ++j)
-      dq_quantizer_channels[j].set_scale_at_slot(scale, mask, root, transpose, i);
+      dq_quantizer_channels[j].set_scale(scale, mask, i);
   }
 }
 
@@ -1446,7 +1384,7 @@ void DQ_downButtonLong() {
   // reset mask
   DQ_QuantizerChannel &selected_channel = dq_quantizer_channels[dq_state.selected_channel];
   int scale_slot = selected_channel.get_scale_select();
-  selected_channel.set_scale_at_slot(selected_channel.get_scale(scale_slot), 0xFFFF, selected_channel.get_root(scale_slot), selected_channel.get_transpose(scale_slot), scale_slot);
+  selected_channel.set_scale_at_slot(selected_channel.get_scale(scale_slot), 0xFFFF, scale_slot);
 }
 
 int32_t dq_history[5];

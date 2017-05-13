@@ -129,6 +129,10 @@ public:
     return values_[CHANNEL_SETTING_SCALE];
   }
 
+  int get_scale_select() const {
+    return 0;
+  }
+
   void set_scale(int scale) {
     if (scale != get_scale(DUMMY)) {
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
@@ -140,27 +144,12 @@ public:
     }
   }
 
-  // dummy
-  int get_scale_select() const {
-    return 0;
-  }
-
-  // dummy
-  void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
-    
-  }
-
-  // dummy
-  int get_transpose(uint8_t DUMMY) const {
-    return 0;
+  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+    // dummy
   }
   
   int get_root() const {
     return values_[CHANNEL_SETTING_ROOT];
-  }
-
-  int get_root(uint8_t DUMMY) const {
-    return 0x0;
   }
 
   uint16_t get_mask() const {
@@ -1109,6 +1098,10 @@ private:
   }
 };
 
+const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
+  "TR1", "TR2", "TR3", "TR4", "cnt+", "cnt-"
+};
+
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
   "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "IntSq"
 };
@@ -1131,7 +1124,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 },
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U8 },
   { QQ_DEST_NONE, QQ_DEST_NONE, QQ_DEST_LAST - 1, "CV aux >", aux_cv_dest, settings::STORAGE_TYPE_U8 },
-  { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", OC::Strings::channel_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 1, 1, 16, "Clock div", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "Transpose", NULL, settings::STORAGE_TYPE_I8 },
