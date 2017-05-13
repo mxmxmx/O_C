@@ -91,7 +91,7 @@ template <typename Owner>
 void PatternEditor<Owner>::Draw() {
   size_t num_slots = num_slots_;
 
-  static constexpr weegfx::coord_t kMinWidth = 8 * 7;
+  static constexpr weegfx::coord_t kMinWidth = 16 * 7;
 
   weegfx::coord_t w =
     mutable_pattern_ ? (num_slots + 1) * 7 : num_slots * 7;
@@ -127,12 +127,32 @@ void PatternEditor<Owner>::Draw() {
 
     graphics.setPrintPos(x, y + 24);
     graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-    //if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-    //  graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
 
-    // this should really be displayed  *below* the slot...
+    static constexpr weegfx::coord_t kDivWidth = 4;
+    static constexpr weegfx::coord_t kOctaveLineWidth = 12 * kDivWidth;
+
     int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
-    graphics.print(pitch, 0);  
+    int32_t octave = pitch / (12 << 7);
+    int32_t frac = pitch - octave * (12 << 7);
+    if (pitch < 0) {
+      frac = frac + (12 << 7) - 1;
+      octave -= 1;
+    }
+    graphics.pretty_print(octave, 2);
+
+    weegfx::coord_t lx = x + weegfx::Graphics::kFixedFontW * 3 + 2;
+    graphics.drawHLine(lx, y + 23, kOctaveLineWidth);
+    for (weegfx::coord_t i = 0; i <= 12; ++i)
+      graphics.drawVLine(lx + i * kDivWidth, y + 23, 2);
+
+    graphics.drawRect(lx + 2 * frac / (1 << 6), y + 26, 2, 5);
+
+    if (!OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
+      graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
+    else
+      graphics.drawBitmap8(lx + kOctaveLineWidth + 4, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
+    graphics.movePrintPos(kOctaveLineWidth + 4 + 8, 0);
+    graphics.printf("%d", pitch);
   }
 
   x += 2; y += 10;
