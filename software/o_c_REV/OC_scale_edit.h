@@ -418,12 +418,12 @@ void ScaleEditor<Owner>::change_note(size_t pos, int delta, bool notify) {
     int32_t note = mutable_scale_->notes[pos] + delta;
 
     const int32_t min = pos > 0 ? mutable_scale_->notes[pos - 1] : 0;
-    const int32_t max = pos < num_notes_ - 1 ? mutable_scale_->notes[pos + 1] : mutable_scale_->span + 1;
+    const int32_t max = pos < num_notes_ - 1 ? mutable_scale_->notes[pos + 1] : mutable_scale_->span;
 
     // TODO It's probably possible to construct a pothological scale,
     // maybe factor cursor_pos into it somehow?
-    if (note < min) note = pos > 0 ? min + 1 : 0;
-    if (note > max) note = max - 1;
+    if (note <= min) note = pos > 0 ? min + 1 : 0;
+    if (note >= max) note = max - 1;
     mutable_scale_->notes[pos] = note;
 //    braids::SortScale(*mutable_scale_); // TODO side effects?
 
