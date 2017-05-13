@@ -160,8 +160,15 @@ public:
   int get_scale_select() const {
     return 0;
   }
+
   // dummy
-  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
+  void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
+    
+  }
+
+  // dummy
+  int get_transpose(uint8_t DUMMY) const {
+    return 0;
   }
 
   bool octave_toggle() {
@@ -267,6 +274,10 @@ public:
   
   int get_root() const {
     return values_[CHORDS_SETTING_ROOT];
+  }
+
+  int get_root(uint8_t DUMMY) const {
+    return 0x0;
   }
 
   uint8_t get_root_cv() const {
@@ -1008,10 +1019,6 @@ const char* const chord_playmodes[] = {
   "-", "SEQ+1", "SEQ+2", "SEQ+3", "TR3+1", "TR3+2", "TR3+3", "S+H#1", "S+H#2", "S+H#3", "S+H#4", "CV#1", "CV#2", "CV#3", "CV#4" 
 };
 
-const char* const chord_directions[] = {
-  "fwd", "rev", "pnd1", "pnd2", "rnd", "brwn"
-};
-  
 SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { OC::Scales::SCALE_SEMI, OC::Scales::SCALE_SEMI, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names, settings::STORAGE_TYPE_U8 },
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
@@ -1020,7 +1027,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U4 }, /// to do ..
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_PLAYMODES_LAST - 1, "playmode", chord_playmodes, settings::STORAGE_TYPE_U8 },
-  { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", chord_directions, settings::STORAGE_TYPE_U8 },
+  { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", OC::Strings::seq_directions, settings::STORAGE_TYPE_U8 },
   { 64, 0, 255, "-->brown prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "TR1 delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 0, 0, 7, "chan A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },

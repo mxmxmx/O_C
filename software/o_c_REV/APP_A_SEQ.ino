@@ -261,6 +261,10 @@ public:
     return values_[SEQ_CHANNEL_SETTING_MODE];
   }
 
+  uint8_t get_root(uint8_t DUMMY) const {
+    return 0x0; // dummy
+  }
+
   uint8_t get_clock_source() const {
     return values_[SEQ_CHANNEL_SETTING_CLOCK];
   }
@@ -605,16 +609,23 @@ public:
     return values_[SEQ_CHANNEL_SETTING_SCALE];
   }
 
-  int get_scale_select() const {
-    return 0;
-  }
-
   void set_scale(int scale) {
      apply_value(SEQ_CHANNEL_SETTING_SCALE, scale);
   }
 
-  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
-    // dummy
+  // dummy
+  int get_scale_select() const {
+    return 0;
+  }
+
+  // dummy
+  void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
+    
+  }
+
+  // dummy
+  int get_transpose(uint8_t DUMMY) const {
+    return 0;
   }
   
   int get_scale_mask(uint8_t scale_select) const {
@@ -1696,10 +1707,6 @@ const char* const cv_ranges[] = {
   " 5V", "10V"
 };
 
-const char* const directions[] = {
-  "fwd", "rev", "pnd1", "pnd2", "rnd", "brwn"
-};
-
 const char* const arp_directions[] = {
   "up", "down", "u/d", "rnd"
 };
@@ -1731,7 +1738,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 3
   { OC::Patterns::kMax, OC::Patterns::kMin, OC::Patterns::kMax, "sequence length", NULL, settings::STORAGE_TYPE_U8 }, // seq 4
   { 0, 0, PM_LAST - 1, "playmode", OC::Strings::seq_playmodes, settings::STORAGE_TYPE_U8 },
-  { 0, 0, SEQ_DIRECTIONS_LAST - 1, "direction", directions, settings::STORAGE_TYPE_U8 },
+  { 0, 0, SEQ_DIRECTIONS_LAST - 1, "direction", OC::Strings::seq_directions, settings::STORAGE_TYPE_U8 },
   { 0, 0, 1, "CV adr. range", cv_ranges, settings::STORAGE_TYPE_U4 },
   { 0, 0, 3, "direction", arp_directions, settings::STORAGE_TYPE_U4 },
   { 0, 0, 3, "arp.range", arp_range, settings::STORAGE_TYPE_U8 },
