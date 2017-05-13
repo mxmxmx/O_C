@@ -117,7 +117,7 @@ template <typename Owner>
 void ScaleEditor<Owner>::Draw() {
   size_t num_notes = num_notes_;
 
-  static constexpr weegfx::coord_t kMinWidth = (1 + 4 + 1 + 4 + 3) * 7;
+  static constexpr weegfx::coord_t kMinWidth = 8 * 7;
 
   weegfx::coord_t w =
     mutable_scale_ ? (num_notes + 1) * 7 : num_notes * 7;
@@ -149,11 +149,23 @@ void ScaleEditor<Owner>::Draw() {
     graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
     if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
       graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
+    else if (mutable_scale_)
+      graphics.drawBitmap8(x + 1, y + 23, 4, bitmap_indicator_4x8);
 
     uint32_t note_value = scale_->notes[cursor_pos_];
     uint32_t cents = (note_value * 100) >> 7;
     uint32_t frac_cents = ((note_value * 100000) >> 7) - cents * 1000;
-    graphics.printf("%4u  %4u.%02uc", note_value, cents, (frac_cents + 5) / 10);
+    // move print position, so that things look somewhat nicer
+    if (cents < 10)
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -3, 0);
+    else if (cents < 100)
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -2, 0);
+    else if (cents < 1000)
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -1, 0);
+    // justify left ...  
+    if (! mutable_scale_)
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -1, 0);
+    graphics.printf("%4u.%02uc", cents, (frac_cents + 5) / 10);
 
   } else {
     graphics.print((int)num_notes, 2);
