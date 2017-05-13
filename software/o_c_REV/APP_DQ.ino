@@ -918,8 +918,6 @@ public:
 
     // to do -- might as well disable no scale
     if (OC::Scales::SCALE_NONE != get_scale(get_scale_select())) {
-      
-      *settings++ = DQ_CHANNEL_SETTING_SCALE_SEQ;
 
       switch(get_scale_select()) {
         
@@ -940,6 +938,7 @@ public:
       }
       
       *settings++ = DQ_CHANNEL_SETTING_SEQ_MODE;
+      *settings++ = DQ_CHANNEL_SETTING_SCALE_SEQ;
 
       switch(get_scale_select()) {
         

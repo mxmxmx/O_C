@@ -255,29 +255,40 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     if (!handled) {
       if (!SEQ_MODE)
         mask = RotateMask(mask_, num_notes_, event.value);
-      else {
-        int _scale = owner_->get_scale(edit_this_scale_) + event.value;
-        CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
-        
-        owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
-        scale_changed = true; 
-        
-        if (_scale < OC::Scales::SCALE_USER_LAST) {
-          scale_ = mutable_scale_ = &OC::user_scales[_scale];
-          scale_name_ = OC::scale_names_short[_scale];
-          // Serial.print("Editing mutable scale "); 
-          // Serial.println(scale_name_);
-        } 
+      else { // Meta-Q : 
+        if (!OC::ui.read_immediate(OC::CONTROL_BUTTON_UP))
+          mask = RotateMask(mask_, num_notes_, event.value);
         else {
-          scale_ = &OC::Scales::GetScale(_scale);
-          mutable_scale_ = nullptr;
-          scale_name_ = OC::scale_names_short[_scale];
-          // Serial.print("Editing const scale "); 
-          // Serial.println(scale_name_);
+          // change scale
+          int _scale = owner_->get_scale(edit_this_scale_) + event.value;
+          CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
+  
+          if (_scale == OC::Scales::SCALE_NONE) {
+             // just don't show this...
+             if (event.value > 0) _scale++;
+             else _scale--;
+          }
+          
+          owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
+          scale_changed = true; 
+          
+          if (_scale < OC::Scales::SCALE_USER_LAST) {
+            scale_ = mutable_scale_ = &OC::user_scales[_scale];
+            scale_name_ = OC::scale_names_short[_scale];
+            // Serial.print("Editing mutable scale "); 
+            // Serial.println(scale_name_);
+          } 
+          else {
+            scale_ = &OC::Scales::GetScale(_scale);
+            mutable_scale_ = nullptr;
+            scale_name_ = OC::scale_names_short[_scale];
+            // Serial.print("Editing const scale "); 
+            // Serial.println(scale_name_);
+          }
+          cursor_pos_ = 0;
+          num_notes_ = scale_->num_notes;
+          mask_ = owner_->get_scale_mask(edit_this_scale_);  
         }
-        cursor_pos_ = 0;
-        num_notes_ = scale_->num_notes;
-        mask_ = owner_->get_scale_mask(edit_this_scale_);  
       }
     }
   }
@@ -459,11 +470,13 @@ void ScaleEditor<Owner>::BeginEditing_Seq() {
   edit_this_scale_ = owner_->get_scale_select();
   num_notes_ = scale_->num_notes;
   mask_ = owner_->get_scale_mask(edit_this_scale_);
+  OC::ui._preemptScreensaver(true);
 }
 
 template <typename Owner>
 void ScaleEditor<Owner>::Close() {
   ui.SetButtonIgnoreMask();
+  OC::ui._preemptScreensaver(false);
   owner_ = nullptr;
   edit_this_scale_ = 0;
 }

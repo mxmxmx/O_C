@@ -57,6 +57,7 @@ public:
 
   void Poll();
   void _Poke();
+  void _preemptScreensaver(bool v);
 
   inline bool read_immediate(UiControl control) {
     return button_state_ & control;
@@ -113,6 +114,7 @@ private:
   uint16_t button_state_;
   uint16_t button_ignore_mask_;
   bool screensaver_;
+  bool preempt_screensaver_;
 
   UI::Encoder<encR1, encR2> encoder_right_;
   UI::Encoder<encL1, encL2> encoder_left_;
