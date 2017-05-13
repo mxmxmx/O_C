@@ -117,7 +117,7 @@ template <typename Owner>
 void ScaleEditor<Owner>::Draw() {
   size_t num_notes = num_notes_;
 
-  static constexpr weegfx::coord_t kMinWidth = 8 * 7;
+  static constexpr weegfx::coord_t kMinWidth = (1 + 4 + 1 + 4 + 3) * 7;
 
   weegfx::coord_t w =
     mutable_scale_ ? (num_notes + 1) * 7 : num_notes * 7;
@@ -149,7 +149,12 @@ void ScaleEditor<Owner>::Draw() {
     graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
     if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
       graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
-    graphics.print(scale_->notes[cursor_pos_], 4);
+
+    uint32_t note_value = scale_->notes[cursor_pos_];
+    uint32_t cents = (note_value * 100) >> 7;
+    uint32_t frac_cents = ((note_value * 100000) >> 7) - cents * 1000;
+    graphics.printf("%4u  %4u.%02uc", note_value, cents, (frac_cents + 5) / 10);
+
   } else {
     graphics.print((int)num_notes, 2);
   }
@@ -413,12 +418,12 @@ void ScaleEditor<Owner>::change_note(size_t pos, int delta, bool notify) {
     int32_t note = mutable_scale_->notes[pos] + delta;
 
     const int32_t min = pos > 0 ? mutable_scale_->notes[pos - 1] : 0;
-    const int32_t max = pos < num_notes_ - 1 ? mutable_scale_->notes[pos + 1] : mutable_scale_->span + 1;
+    const int32_t max = pos < num_notes_ - 1 ? mutable_scale_->notes[pos + 1] : mutable_scale_->span;
 
     // TODO It's probably possible to construct a pothological scale,
     // maybe factor cursor_pos into it somehow?
-    if (note < min) note = pos > 0 ? min + 1 : 0;
-    if (note > max) note = max - 1;
+    if (note <= min) note = pos > 0 ? min + 1 : 0;
+    if (note >= max) note = max - 1;
     mutable_scale_->notes[pos] = note;
 //    braids::SortScale(*mutable_scale_); // TODO side effects?
 
