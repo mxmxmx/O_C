@@ -1007,10 +1007,6 @@ const char* const chords_cv_main_source[] = {
   "CV1", "-"
 };
 
-const char* const chords_cv_sources[] = {
-  "-", "CV1", "CV2", "CV3", "CV4"
-};
-
 const char* const chords_slots[] = {
   "#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"
 };
@@ -1043,17 +1039,17 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, OC::Chords::CHORDS_USER_LAST - 1, "num.chords", NULL, settings::STORAGE_TYPE_U8 }, // progression 4
   { 0, 0, 0, "chords -->", NULL, settings::STORAGE_TYPE_U4 }, // = chord editor
   // CV
-  { 0, 0, 4, "root CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "mask CV      >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "transpose CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "octave CV    >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "quality CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "voicing CV   >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "inversion CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "prg.slot# CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "direction CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "-->br.prb CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "num.chrds CV >", chords_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "root CV      >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mask CV      >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "transpose CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "octave CV    >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "quality CV   >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "voicing CV   >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "inversion CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "prg.slot# CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "direction CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "-->br.prb CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "num.chrds CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY 
   { 0, 0, 0, " ", NULL, settings::STORAGE_TYPE_U4 }  // MORE DUMMY  
 };

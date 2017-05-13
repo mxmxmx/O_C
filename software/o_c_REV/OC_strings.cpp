@@ -26,13 +26,17 @@ namespace OC {
 
   const char * const cv_input_names[4] = { "CV1", "CV2", "CV3", "CV4" };
 
+  const char * const cv_input_names_none[5] = { " - ", "CV1", "CV2", "CV3", "CV4" };
+
   const char * const channel_id[4] = { "#A", "#B", "#C", "#D" };
 
   const char * const no_yes[] = { "No", "Yes" };
 
   const char * const off_on[] = { "off", "on" };
 
+  #ifdef PRINT_DEBUG
   const char * const encoder_config_strings[] = { "normal", "R reversed", "L reversed", "LR reversed" };
+  #endif
 
   const char * const trigger_delay_times[kNumDelayTimes] = {
       "off", "120us", "240us", "360us", "480us", "1ms", "2ms", "4ms"

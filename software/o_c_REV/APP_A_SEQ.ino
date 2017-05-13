@@ -1695,10 +1695,6 @@ const char* const display_multipliers[] = {
   "/64", "/48", "/32", "/16", "/8", "/7", "/6", "/5", "/4", "/3", "/2", "-", "x2", "x3", "x4", "x5", "x6", "x7", "x8"
 };
 
-const char* const cv_sources[] = {
-  "--", "CV1", "CV2", "CV3", "CV4"
-};
-
 const char* const modes[] = {
   "gate", "copy"
 };
@@ -1744,18 +1740,18 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 3, "arp.range", arp_range, settings::STORAGE_TYPE_U8 },
   { 64, 0, 255, "-->brown prob", NULL, settings::STORAGE_TYPE_U8 },
   // cv sources
-  { 0, 0, 4, "mult/div CV ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "transpose   ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "--> pw      ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "octave  -/+ ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "--> aux -/+ ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "sequence #  ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "mask rotate ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "direction   ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "arp.range   ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "direction   ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "-->brwn.prb ->", cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "seq.length  ->", cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mult/div CV ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "transpose   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> pw      ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "octave  -/+ ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> aux -/+ ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "sequence #  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "mask rotate ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "arp.range   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "-->brwn.prb ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "seq.length  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
   { 0, 0, 7, "main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
   { 0, 0, 7, "--> aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
