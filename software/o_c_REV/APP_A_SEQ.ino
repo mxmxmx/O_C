@@ -1483,7 +1483,6 @@ public:
             break;             
           }
 
-         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;
          *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE;
          
          if (get_playmode() < PM_SH1) {
@@ -1497,7 +1496,8 @@ public:
          }
          else 
             *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
-
+            
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;
          // aux output:   
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
