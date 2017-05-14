@@ -157,6 +157,9 @@ void PatternEditor<Owner>::Draw() {
       pitch -= 0x100;
       graphics.drawRect(x, y, 4, abs(pitch) >> 8);
     }
+    else if (pitch > - 0x200 && pitch < 0x200) {
+     graphics.drawRect(x + 1, y - 1, 2, 2);
+    }
     else if (pitch >= 0) {
       pitch += 0x100;
       graphics.drawFrame(x, y - (pitch >> 8), 4, pitch >> 8);
