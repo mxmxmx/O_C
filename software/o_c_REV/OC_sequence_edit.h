@@ -91,19 +91,12 @@ template <typename Owner>
 void PatternEditor<Owner>::Draw() {
   size_t num_slots = num_slots_;
 
-  static constexpr weegfx::coord_t kMinWidth = 10 * 7;
-
-  weegfx::coord_t w =
-    mutable_pattern_ ? (num_slots + 1) * 7 : num_slots * 7;
-
-  if (w < kMinWidth) w = kMinWidth;
-
-  weegfx::coord_t x = 64 - (w + 1)/ 2;
-  weegfx::coord_t y = 16 - 3;
-  weegfx::coord_t h = 36;
-
-  graphics.clearRect(x, y, w + 4, h);
-  graphics.drawFrame(x, y, w + 5, h);
+  weegfx::coord_t const w = 128;
+  weegfx::coord_t const h = 64;
+  weegfx::coord_t x = 0;
+  weegfx::coord_t y = 0;
+  graphics.clearRect(x, y, w, h);
+  graphics.drawFrame(x, y, w, h);
 
   x += 2;
   y += 3;
@@ -111,7 +104,7 @@ void PatternEditor<Owner>::Draw() {
   graphics.setPrintPos(x, y);
   
   uint8_t id = edit_this_sequence_;
-  
+
   if (edit_this_sequence_ == owner_->get_sequence())
     graphics.printf("#%d", id + 1);
   else {
@@ -129,54 +122,49 @@ void PatternEditor<Owner>::Draw() {
         graphics.print((int)num_slots, 1);  
   }
   else {
-    
-    // print DAC code
-    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
-    
-    int32_t octave = pitch / (12 << 7);
-    int32_t frac = pitch - octave * (12 << 7);
-    if (pitch < 0) {
-      frac = frac + (12 << 7) - 1;
-      octave -= 1;
-    }
-
-    static constexpr weegfx::coord_t kDivWidth = 4;
-    static constexpr weegfx::coord_t kOctaveLineWidth = 12 * kDivWidth;
-
-    weegfx::coord_t lx = x + 4 + (w - kOctaveLineWidth) / 2;
-    graphics.drawHLine(lx, y + 1, kOctaveLineWidth);
-    for (weegfx::coord_t i = 0; i <= 12; ++i)
-      graphics.drawVLine(lx + i * kDivWidth, y + 1, 2);
-
-    graphics.drawRect(lx + 2 * frac / (1 << 6), y + 4, 2, 3);
-    
-    graphics.setPrintPos(x, y + 24);
-
-    graphics.printf("%d: %d", octave, pitch);
+    // print pseudo voltage ... 
+      if ((mask_ >> cursor_pos_) & 0x1) { 
+        int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
+        graphics.printf(":%.3fV", (float)pitch * 0.00078125f);
+      }
   }
 
-  x += 2; y += 10;
-  uint16_t mask = mask_;
+  x += 2; y += 34;
+
   uint8_t clock_pos= owner_->get_clock_cnt();
   bool _draw_clock = (owner_->get_current_sequence() == edit_this_sequence_) && owner_->draw_clock();
+  uint16_t mask = mask_;
   
   for (size_t i = 0; i < num_slots; ++i, x += 7, mask >>= 1) {
-    if (mask & 0x1)
-      graphics.drawRect(x, y, 4, 8);
-    else
-      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4x8);
 
-    if (i == cursor_pos_)
-      graphics.drawFrame(x - 2, y - 2, 8, 12);
-    // draw clock   
+    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, i);
+     
+    if (mask & 0x1 & (pitch >= 0)) {
+      pitch += 0x100;
+      graphics.drawRect(x, y - (pitch >> 8), 4, pitch >> 8);
+    }
+    else if (mask & 0x1) {
+      pitch -= 0x100;
+      graphics.drawRect(x, y, 4, abs(pitch) >> 8);
+    }
+    else
+      graphics.drawBitmap8(x, y - 4, 4, OC::bitmap_indicator_4x8);
+
+    if (i == cursor_pos_) {
+      if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
+        graphics.drawFrame(x - 3, y - 5, 10, 10);
+      else 
+        graphics.drawFrame(x - 2, y - 4, 8, 8);
+    }
+      
     if (i == clock_pos && _draw_clock)
-      graphics.drawRect(x, y + 10, 4, 2);
+      graphics.drawRect(x, y + 23, 4, 2);
        
   }
   if (mutable_pattern_) {
-    graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
+     graphics.drawFrame(x, y - 2, 4, 4);
     if (cursor_pos_ == num_slots)
-      graphics.drawFrame(x - 2, y - 2, 8, 12);
+      graphics.drawFrame(x - 2, y - 4, 8, 8);
   }
 }
 
@@ -281,7 +269,7 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
       else
         pitch += (delta << 7); // semitone 
       // TODO .. proper limits  
-      CONSTRAIN(pitch, -6272, 6272);  
+      CONSTRAIN(pitch, -6143, 6143);  
       owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
       // TODO
       //mask = RotateMask(mask_, num_slots_, event.value);
