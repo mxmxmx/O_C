@@ -1497,7 +1497,7 @@ public:
          else 
             *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
             
-         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;    
          // aux output:   
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
@@ -1551,7 +1551,6 @@ public:
             break;             
           }
          
-         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE; 
          *settings++ = SEQ_CHANNEL_SETTING_LENGTH_CV; // = playmode
          
          if (get_playmode() < PM_SH1) {
@@ -1570,6 +1569,8 @@ public:
          }
          else 
             *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
+
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE;    
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
 
          switch (get_aux_mode()) {
@@ -1713,7 +1714,7 @@ const char* const arp_range[] = {
 
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
-  { 0, 0, 1, "mode", modes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "aux. mode", modes, settings::STORAGE_TYPE_U4 },
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
   { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
