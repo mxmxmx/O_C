@@ -148,14 +148,22 @@ void PatternEditor<Owner>::Draw() {
   for (size_t i = 0; i < num_slots; ++i, x += 7, mask >>= 1) {
 
     int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, i);
+    
+    bool _clock = (i == clock_pos && _draw_clock);
      
     if (mask & 0x1 & (pitch >= 0)) {
       pitch += 0x100;
-      graphics.drawRect(x, y - (pitch >> 8), 4, pitch >> 8);
+      if (_clock)
+        graphics.drawRect(x - 1, y - (pitch >> 8), 6, pitch >> 8);
+      else
+        graphics.drawRect(x, y - (pitch >> 8), 4, pitch >> 8);
     }
     else if (mask & 0x1) {
       pitch -= 0x100;
-      graphics.drawRect(x, y, 4, abs(pitch) >> 8);
+      if (_clock)
+        graphics.drawRect(x - 1, y, 6, abs(pitch) >> 8);
+      else 
+        graphics.drawRect(x, y, 4, abs(pitch) >> 8);
     }
     else if (pitch > - 0x200 && pitch < 0x200) {
      // disabled steps not visible otherwise..
@@ -177,8 +185,8 @@ void PatternEditor<Owner>::Draw() {
         graphics.drawFrame(x - 2, y - 4, 8, 8);
     }
       
-    if (i == clock_pos && _draw_clock)
-      graphics.drawRect(x, y + 23, 4, 2);
+    if (_clock)
+      graphics.drawRect(x, y + 17, 4, 2);
        
   }
   if (mutable_pattern_) {
