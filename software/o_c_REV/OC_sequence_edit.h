@@ -158,6 +158,7 @@ void PatternEditor<Owner>::Draw() {
       graphics.drawRect(x, y, 4, abs(pitch) >> 8);
     }
     else if (pitch > - 0x200 && pitch < 0x200) {
+     // disabled steps not visible otherwise..
      graphics.drawRect(x + 1, y - 1, 2, 2);
     }
     else if (pitch >= 0) {
