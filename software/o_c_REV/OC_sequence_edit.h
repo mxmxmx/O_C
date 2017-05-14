@@ -122,14 +122,24 @@ void PatternEditor<Owner>::Draw() {
         graphics.print((int)num_slots, 1);  
   }
   else {
-    // print pseudo voltage ... 
-      if ((mask_ >> cursor_pos_) & 0x1) { 
-        int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
-        graphics.printf(":%.3fV", (float)pitch * 0.00078125f);
+    // print pitch value at current step  ... 
+    // 0 -> 0V, 1536 -> 1V, 3072 -> 2V
+    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
+    int32_t octave = pitch / (12 << 7);
+    int32_t frac = pitch - octave * (12 << 7);
+    if (pitch >= 0)
+      graphics.printf(": +%d+%.2f", octave + owner_->get_octave(), (float)frac / 128.0f);
+    else {
+      octave--;
+      if (!frac) {
+        octave++;
+        frac = - 12 << 7;
       }
+      graphics.printf(": %d+%.2f", octave + owner_->get_octave(), 12.0f + ((float)frac / 128.0f));
+    }
   }
 
-  x += 2; y += 34;
+  x += 3 + (w >> 0x1) - (num_slots << 0x2); y += 40;
 
   uint8_t clock_pos= owner_->get_clock_cnt();
   bool _draw_clock = (owner_->get_current_sequence() == edit_this_sequence_) && owner_->draw_clock();
@@ -147,8 +157,14 @@ void PatternEditor<Owner>::Draw() {
       pitch -= 0x100;
       graphics.drawRect(x, y, 4, abs(pitch) >> 8);
     }
-    else
-      graphics.drawBitmap8(x, y - 4, 4, OC::bitmap_indicator_4x8);
+    else if (pitch >= 0) {
+      pitch += 0x100;
+      graphics.drawFrame(x, y - (pitch >> 8), 4, pitch >> 8);
+    }
+    else {
+      pitch -= 0x100;
+      graphics.drawFrame(x, y, 4, abs(pitch) >> 8);
+    }
 
     if (i == cursor_pos_) {
       if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
@@ -239,18 +255,12 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
           num_slots_ = num_slots;
            if (event.value > 0) {
             // erase  slots when expanding?
-            if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) 
+            if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) {
                mask &= ~(~(0xffff << (num_slots_ - cursor_pos_)) << cursor_pos_);
-             //mask |= ~(0xffff << (num_slots_ - cursor_pos_)) << cursor_pos_; // alternative behaviour would be to fill them
+               owner_->set_pitch_at_step(edit_this_sequence_, num_slots_, 0x0); 
+            }
           } 
           // empty patterns are ok -- 
-          /*
-          else {
-            // pattern might be shortened to where no slots are active in mask
-            if (0 == (mask & ~(0xffff < num_slots_)))
-              mask |= 0x1;
-          }
-          */
           owner_->set_sequence_length(num_slots_, edit_this_sequence_);
           cursor_pos_ = num_slots_;
           handled = true;
@@ -268,11 +278,9 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
        pitch += delta; // fine
       else
         pitch += (delta << 7); // semitone 
-      // TODO .. proper limits  
-      CONSTRAIN(pitch, -6143, 6143);  
+      CONSTRAIN(pitch, -3 * (12 << 7), 5 * (12 << 7)  - 128);  
       owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
-      // TODO
-      //mask = RotateMask(mask_, num_slots_, event.value);
+
     }
   }
   // This isn't entirely atomic

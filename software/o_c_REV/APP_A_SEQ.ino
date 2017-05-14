@@ -524,7 +524,7 @@ public:
     OC::Pattern *write_pattern_ = &OC::user_patterns[seq + _channel_offset];
     write_pattern_->notes[step] = pitch;
   }
-  
+
   uint16_t get_rotated_scale_mask() const {
     return last_scale_mask_;
   }
