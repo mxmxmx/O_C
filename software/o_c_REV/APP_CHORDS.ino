@@ -783,7 +783,7 @@ public:
     // S/H mode
       if (get_root_cv()) {
           root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv() - 1)) + 127) >> 8;
-          CONSTRAIN(root, 0, 11);
+          CONSTRAIN(root, 0, 15);
       }
 
       if (get_octave_cv()) {
@@ -793,7 +793,7 @@ public:
       
       if (get_transpose_cv()) {
         transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_transpose_cv() - 1)) + 63) >> 7;
-        CONSTRAIN(transpose, -12, 12);
+        CONSTRAIN(transpose, -15, 15);
       }
 
       if (get_quality_cv()) {
