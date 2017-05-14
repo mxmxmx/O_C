@@ -511,7 +511,7 @@ public:
               CONSTRAIN(_transpose, -12, 12); 
             break;
             case ASR_DEST_INPUT_SCALING:
-              _mult += (OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 7;
+              _mult += (OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8;
               CONSTRAIN(_mult, 0, NUM_INPUT_SCALING - 1);
             break;
             // CV for buffer length happens in updateASR_indexed
