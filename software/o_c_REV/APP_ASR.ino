@@ -92,6 +92,7 @@ enum ASR_CV4_DEST {
   ASR_DEST_ROOT,
   ASR_DEST_TRANSPOSE,
   ASR_DEST_BUFLEN,
+  ASR_DEST_INPUT_SCALING,
   ASR_DEST_LAST
 };
 
@@ -509,6 +510,10 @@ public:
               _transpose += (OC::ADC::value<ADC_CHANNEL_4>() + 63) >> 7;
               CONSTRAIN(_transpose, -12, 12); 
             break;
+            case ASR_DEST_INPUT_SCALING:
+              _mult += (OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 7;
+              CONSTRAIN(_mult, 0, NUM_INPUT_SCALING - 1);
+            break;
             // CV for buffer length happens in updateASR_indexed
             default:
             break;
@@ -752,7 +757,7 @@ const char* const asr_input_sources[] = {
 };
 
 const char* const asr_cv4_destinations[] = {
-  "oct", "root", "trns", "buf.l"
+  "oct", "root", "trns", "buf.l", "igain"
 };
 
 const char* const tm_CV_destinations[] = {
