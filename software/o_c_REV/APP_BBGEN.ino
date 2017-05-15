@@ -39,6 +39,7 @@ enum BouncingBallSettings {
   BB_SETTING_INITIAL_AMPLITUDE,
   BB_SETTING_INITIAL_VELOCITY,
   BB_SETTING_TRIGGER_INPUT,
+  BB_SETTING_RETRIGGER_BOUNCES,
   BB_SETTING_CV1,
   BB_SETTING_CV2,
   BB_SETTING_CV3,
@@ -53,6 +54,7 @@ enum BallCVMapping {
   BB_CV_MAPPING_BOUNCE_LOSS,
   BB_CV_MAPPING_INITIAL_AMPLITUDE,
   BB_CV_MAPPING_INITIAL_VELOCITY,
+  BB_CV_MAPPING_RETRIGGER_BOUNCES,
   BB_CV_MAPPING_LAST
 };
 
@@ -60,7 +62,7 @@ enum BallCVMapping {
 class BouncingBall : public settings::SettingsBase<BouncingBall, BB_SETTING_LAST> {
 public:
 
-  static constexpr int kMaxBouncingBallParameters = 4;
+  static constexpr int kMaxBouncingBallParameters = 5;
 
   void Init(OC::DigitalInput default_trigger);
 
@@ -104,35 +106,52 @@ public:
     return values_[BB_SETTING_BOUNCE_LOSS];
   }
 
+  int32_t get_retrigger_bounces() const {
+    return static_cast<int32_t>(values_[BB_SETTING_RETRIGGER_BOUNCES]);
+  }
+
+#ifdef BBGEN_DEBUG
+  uint16_t get_channel_parameter_value(uint8_t param) {
+    return s[param];
+  }
+
+  int16_t get_channel_retrigger_bounces() {
+    return(bb_.get_retrigger_bounces()) ;
+  }
+#endif // BBGEN_DEBUG
+
   inline void apply_cv_mapping(BouncingBallSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxBouncingBallParameters]) {
     int mapping = values_[cv_setting];
-    uint8_t bb_cv_rshift = 12 ;
+    uint8_t bb_cv_rshift = 13 ;
     switch (mapping) {
       case BB_CV_MAPPING_GRAVITY:
       case BB_CV_MAPPING_BOUNCE_LOSS:
+      case BB_CV_MAPPING_INITIAL_VELOCITY:
         bb_cv_rshift = 13 ;
         break ;
       case BB_CV_MAPPING_INITIAL_AMPLITUDE:
         bb_cv_rshift = 12 ;
         break;
-      case BB_CV_MAPPING_INITIAL_VELOCITY:
-        bb_cv_rshift = 13 ;
+      case BB_CV_MAPPING_RETRIGGER_BOUNCES:
+        bb_cv_rshift = 14 ;
         break;
       default:
+        bb_cv_rshift = 13 ;
         break;
     }
-    segments[mapping - BB_CV_MAPPING_GRAVITY] += (cvs[cv_setting - BB_SETTING_CV1] * 65536) >> bb_cv_rshift ;
+    if (mapping)
+      segments[mapping - BB_CV_MAPPING_GRAVITY] += (cvs[cv_setting - BB_SETTING_CV1]) << (16 - bb_cv_rshift) ;
   }
 
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
 
-    int32_t s[kMaxBouncingBallParameters];
     s[0] = SCALE8_16(static_cast<int32_t>(get_gravity()));
     s[1] = SCALE8_16(static_cast<int32_t>(get_bounce_loss()));
     s[2] = SCALE8_16(static_cast<int32_t>(get_initial_amplitude()));
     s[3] = SCALE8_16(static_cast<int32_t>(get_initial_velocity()));
-
+    s[4] = SCALE8_16(static_cast<int32_t>(get_retrigger_bounces()));
+    
     apply_cv_mapping(BB_SETTING_CV1, cvs, s);
     apply_cv_mapping(BB_SETTING_CV2, cvs, s);
     apply_cv_mapping(BB_SETTING_CV3, cvs, s);
@@ -142,6 +161,7 @@ public:
     s[1] = USAT16(s[1]);
     s[2] = USAT16(s[2]);
     s[3] = USAT16(s[3]);
+    s[4] = USAT16(s[4]);
     
     bb_.Configure(s) ; 
 
@@ -169,6 +189,8 @@ public:
 private:
   peaks::BouncingBall bb_;
   bool gate_raised_;
+  int32_t s[kMaxBouncingBallParameters];
+
 };
 
 void BouncingBall::Init(OC::DigitalInput default_trigger) {
@@ -179,7 +201,7 @@ void BouncingBall::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const bb_cv_mapping_names[BB_CV_MAPPING_LAST] = {
-  "off", "grav", "bnce", "ampl", "vel" 
+  "off", "grav", "bnce", "ampl", "vel", "retr"
 };
 
 SETTINGS_DECLARE(BouncingBall, BB_SETTING_LAST) {
@@ -188,6 +210,7 @@ SETTINGS_DECLARE(BouncingBall, BB_SETTING_LAST) {
   { 0, 0, 255, "Amplitude", NULL, settings::STORAGE_TYPE_U8 }, 
   { 228, 0, 255, "Velocity", NULL, settings::STORAGE_TYPE_U8 },
   { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 255, "Retrigger", NULL, settings::STORAGE_TYPE_U8 },
   { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV1 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV2 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { BB_CV_MAPPING_NONE, BB_CV_MAPPING_NONE, BB_CV_MAPPING_LAST - 1, "CV3 -> ", bb_cv_mapping_names, settings::STORAGE_TYPE_U4 },
@@ -358,9 +381,12 @@ void BBGEN_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
+#ifdef BBGEN_DEBUG
 void BBGEN_debug() {
   graphics.setPrintPos(2, 12);
   graphics.print(bbgen.cv1.value());
+  graphics.setPrintPos(32, 12);
+  graphics.print(bbgen.balls_[0].get_channel_retrigger_bounces());
   graphics.setPrintPos(2, 22);
   graphics.print(bbgen.cv2.value());
   graphics.setPrintPos(2, 32);
@@ -368,6 +394,7 @@ void BBGEN_debug() {
   graphics.setPrintPos(2, 42);
   graphics.print(bbgen.cv4.value());
 }
+#endif // BBGEN_DEBUG
 
 void BBGEN_screensaver() {
   OC::scope_render();

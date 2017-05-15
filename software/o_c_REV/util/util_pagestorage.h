@@ -129,7 +129,7 @@ public:
       if ((DATA_TYPE::FOURCC != next_page.header.fourcc) ||
           (sizeof(DATA_TYPE) != next_page.header.size) ||
           (next_page.header.checksum != checksum(next_page)) ||
-          (next_page.header.generation < page_.header.generation && page_.header.generation != -1)) {
+          (next_page.header.generation < page_.header.generation && (int32_t)page_.header.generation != -1)) {
         if (FASTSCAN) {
           STORAGE_PRINTF("Aborting scan at page %d\n", i);
           break;

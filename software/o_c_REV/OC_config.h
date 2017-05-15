@@ -15,9 +15,9 @@ static constexpr uint32_t OC_UI_TIMER_RATE   = 1000UL;
 
 // From kinetis.h
 // Cortex-M4: 0,16,32,48,64,80,96,112,128,144,160,176,192,208,224,240
-static constexpr int OC_CORE_TIMER_PRIO = 112; // higher
-static constexpr int OC_GPIO_ISR_PRIO   = 128; // default
-static constexpr int OC_UI_TIMER_PRIO   = 144; // lower
+static constexpr int OC_CORE_TIMER_PRIO = 80;  // yet higher
+static constexpr int OC_GPIO_ISR_PRIO   = 112;  // higher
+static constexpr int OC_UI_TIMER_PRIO   = 128; // default
 
 static constexpr unsigned long REDRAW_TIMEOUT_MS = 1;
 static constexpr uint32_t SCREENSAVER_TIMEOUT_S = 25; // default time out menu (in s)
@@ -40,7 +40,7 @@ static constexpr unsigned long SETTINGS_SAVE_TIMEOUT_MS = 1000;
 #define EEPROM_CALIBRATIONDATA_END 128
 
 #define EEPROM_GLOBALSETTINGS_START EEPROM_CALIBRATIONDATA_END
-#define EEPROM_GLOBALSETTINGS_END 576
+#define EEPROM_GLOBALSETTINGS_END 850 
 
 #define EEPROM_APPDATA_START EEPROM_GLOBALSETTINGS_END
 #define EEPROM_APPDATA_END EEPROMStorage::LENGTH
@@ -55,8 +55,23 @@ static constexpr unsigned long SETTINGS_SAVE_TIMEOUT_MS = 1000;
 
 #define OC_CALIBRATION_DEFAULT_FLAGS (0)
 
-#define QQ_DEBUG
-//#define QQ_DEBUG_SCREENSAVER
+/* ------------ uncomment line below to print boot-up and settings saving/restore info to serial ----- */
+//#define PRINT_DEBUG
+/* ------------ uncomment line below to enable ASR debug page ---------------------------------------- */
+//#define ASR_DEBUG
+/* ------------ uncomment line below to enable POLYLFO debug page ------------------------------------ */
+//#define POLYLFO_DEBUG
+/* ------------ uncomment line below to enable BBGEN debug page -------------------------------------- */
+//#define BBGEN_DEBUG
+/* ------------ uncomment line below to enable ENVGEN debug page ------------------------------------- */
+//#define ENVGEN_DEBUG
 //#define ENVGEN_DEBUG_SCREENSAVER
+/* ------------ uncomment line below to enable BYTEBEATGEN debug page -------------------------------- */
+//#define BYTEBEATGEN_DEBUG
+/* ------------ uncomment line below to enable H1200 debug page -------------------------------------- */
+//#define H1200_DEBUG
+/* ------------ uncomment line below to enable QQ debug page ----------------------------------------- */
+//#define QQ_DEBUG
+//#define QQ_DEBUG_SCREENSAVER
 
 #endif // OC_CONFIG_H_

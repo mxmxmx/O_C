@@ -23,7 +23,6 @@
 
 // Main startup/loop for O&C firmware
 
-#include <ADC.h>
 #include <EEPROM.h>
 
 #include "OC_apps.h"
@@ -38,14 +37,19 @@
 #include "OC_ui.h"
 #include "OC_version.h"
 #include "src/drivers/display.h"
+#include "src/drivers/ADC/OC_util_ADC.h"
 #include "util/util_debugpins.h"
 
 unsigned long LAST_REDRAW_TIME = 0;
 uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
-const bool DUMMY = 0;
+const bool DUMMY = false;
 
-/*  --------------------- UI timer ISR -------------------------   */
+/* ------------ uncomment for Buchla/non-octaval/quartertone support: -------------------------------  */
+//#define BUCHLA_SUPPORT
+
+
+/*  ------------------------ UI timer ISR ---------------------------   */
 
 IntervalTimer UI_timer;
 

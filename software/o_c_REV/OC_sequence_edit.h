@@ -35,7 +35,8 @@ public:
 
     pattern_ = mutable_pattern_ = &OC::user_patterns[pattern];
     pattern_name_ = OC::pattern_names_short[pattern];
-    //Serial.print("Editing user pattern "); Serial.println(pattern_name_);
+    // Serial.print("Editing user pattern "); 
+    // Serial.println(pattern_name_);
     owner_ = owner;
 
     BeginEditing();
@@ -90,19 +91,12 @@ template <typename Owner>
 void PatternEditor<Owner>::Draw() {
   size_t num_slots = num_slots_;
 
-  static constexpr weegfx::coord_t kMinWidth = 8 * 7;
-
-  weegfx::coord_t w =
-    mutable_pattern_ ? (num_slots + 1) * 7 : num_slots * 7;
-
-  if (w < kMinWidth) w = kMinWidth;
-
-  weegfx::coord_t x = 64 - (w + 1)/ 2;
-  weegfx::coord_t y = 16 - 3;
-  weegfx::coord_t h = 36;
-
-  graphics.clearRect(x, y, w + 4, h);
-  graphics.drawFrame(x, y, w + 5, h);
+  weegfx::coord_t const w = 128;
+  weegfx::coord_t const h = 64;
+  weegfx::coord_t x = 0;
+  weegfx::coord_t y = 0;
+  graphics.clearRect(x, y, w, h);
+  graphics.drawFrame(x, y, w, h);
 
   x += 2;
   y += 3;
@@ -110,51 +104,95 @@ void PatternEditor<Owner>::Draw() {
   graphics.setPrintPos(x, y);
   
   uint8_t id = edit_this_sequence_;
-  
+
   if (edit_this_sequence_ == owner_->get_sequence())
-    id += OC::Patterns::PATTERN_USER_LAST;
-  graphics.print(OC::Strings::seq_id[id]);
-  graphics.print("/");
-
-  // print length
-  if (num_slots > 9)
-      graphics.print((int)num_slots, 2);
-    else 
-      graphics.print((int)num_slots, 1); 
-
-  if (cursor_pos_ != num_slots) {
-
-    graphics.setPrintPos(x, y + 24);
-    graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-    //if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-    //  graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
-
-    // this should really be displayed  *below* the slot...
-    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
-    graphics.print(pitch, 0);  
+    graphics.printf("#%d", id + 1);
+  else {
+    graphics.drawBitmap8(x, y, 4, OC::bitmap_indicator_4x8);
+    graphics.setPrintPos(x + 4, y); 
+    graphics.print(id + 1);
   }
 
-  x += 2; y += 10;
-  uint16_t mask = mask_;
+  if (cursor_pos_ == num_slots) {
+    // print length
+    graphics.print(":");
+    if (num_slots > 9)
+        graphics.print((int)num_slots, 2);
+      else 
+        graphics.print((int)num_slots, 1);  
+  }
+  else {
+    // print pitch value at current step  ... 
+    // 0 -> 0V, 1536 -> 1V, 3072 -> 2V
+    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
+    int32_t octave = pitch / (12 << 7);
+    int32_t frac = pitch - octave * (12 << 7);
+    if (pitch >= 0)
+      graphics.printf(": +%d+%.2f", octave + owner_->get_octave(), (float)frac / 128.0f);
+    else {
+      octave--;
+      if (!frac) {
+        octave++;
+        frac = - 12 << 7;
+      }
+      graphics.printf(": %d+%.2f", octave + owner_->get_octave(), 12.0f + ((float)frac / 128.0f));
+    }
+  }
+
+  x += 3 + (w >> 0x1) - (num_slots << 0x2); y += 40;
+
   uint8_t clock_pos= owner_->get_clock_cnt();
+  bool _draw_clock = (owner_->get_current_sequence() == edit_this_sequence_) && owner_->draw_clock();
+  uint16_t mask = mask_;
   
   for (size_t i = 0; i < num_slots; ++i, x += 7, mask >>= 1) {
-    if (mask & 0x1)
-      graphics.drawRect(x, y, 4, 8);
-    else
-      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4x8);
 
-    if (i == cursor_pos_)
-      graphics.drawFrame(x - 2, y - 2, 8, 12);
-    // draw clock   
-    if (i == clock_pos && (owner_->get_current_sequence() == edit_this_sequence_))
-      graphics.drawRect(x, y + 10, 2, 2);
+    int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, i);
+    
+    bool _clock = (i == clock_pos && _draw_clock);
+     
+    if (mask & 0x1 & (pitch >= 0)) {
+      pitch += 0x100;
+      if (_clock)
+        graphics.drawRect(x - 1, y - (pitch >> 8), 6, pitch >> 8);
+      else
+        graphics.drawRect(x, y - (pitch >> 8), 4, pitch >> 8);
+    }
+    else if (mask & 0x1) {
+      pitch -= 0x100;
+      if (_clock)
+        graphics.drawRect(x - 1, y, 6, abs(pitch) >> 8);
+      else 
+        graphics.drawRect(x, y, 4, abs(pitch) >> 8);
+    }
+    else if (pitch > - 0x200 && pitch < 0x200) {
+     // disabled steps not visible otherwise..
+     graphics.drawRect(x + 1, y - 1, 2, 2);
+    }
+    else if (pitch >= 0) {
+      pitch += 0x100;
+      graphics.drawFrame(x, y - (pitch >> 8), 4, pitch >> 8);
+    }
+    else {
+      pitch -= 0x100;
+      graphics.drawFrame(x, y, 4, abs(pitch) >> 8);
+    }
+
+    if (i == cursor_pos_) {
+      if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
+        graphics.drawFrame(x - 3, y - 5, 10, 10);
+      else 
+        graphics.drawFrame(x - 2, y - 4, 8, 8);
+    }
+      
+    if (_clock)
+      graphics.drawRect(x, y + 17, 4, 2);
        
   }
   if (mutable_pattern_) {
-    graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
+     graphics.drawFrame(x, y - 2, 4, 4);
     if (cursor_pos_ == num_slots)
-      graphics.drawFrame(x - 2, y - 2, 8, 12);
+      graphics.drawFrame(x - 2, y - 4, 8, 8);
   }
 }
 
@@ -229,18 +267,12 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
           num_slots_ = num_slots;
            if (event.value > 0) {
             // erase  slots when expanding?
-            if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) 
+            if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) {
                mask &= ~(~(0xffff << (num_slots_ - cursor_pos_)) << cursor_pos_);
-             //mask |= ~(0xffff << (num_slots_ - cursor_pos_)) << cursor_pos_; // alternative behaviour would be to fill them
+               owner_->set_pitch_at_step(edit_this_sequence_, num_slots_, 0x0); 
+            }
           } 
           // empty patterns are ok -- 
-          /*
-          else {
-            // pattern might be shortened to where no slots are active in mask
-            if (0 == (mask & ~(0xffff < num_slots_)))
-              mask |= 0x1;
-          }
-          */
           owner_->set_sequence_length(num_slots_, edit_this_sequence_);
           cursor_pos_ = num_slots_;
           handled = true;
@@ -258,11 +290,9 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
        pitch += delta; // fine
       else
         pitch += (delta << 7); // semitone 
-      // TODO .. proper limits  
-      CONSTRAIN(pitch, -6272, 6272);  
+      CONSTRAIN(pitch, -3 * (12 << 7), 5 * (12 << 7)  - 128);  
       owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
-      // TODO
-      //mask = RotateMask(mask_, num_slots_, event.value);
+
     }
   }
   // This isn't entirely atomic
@@ -341,10 +371,9 @@ void PatternEditor<Owner>::copy_sequence() {
 
 template <typename Owner>
 void PatternEditor<Owner>::paste_sequence() {
-  
-     uint8_t newslots = owner_->paste_seq(edit_this_sequence_);
-     num_slots_ = newslots ? newslots  : num_slots_;
-     mask_ = owner_->get_mask(edit_this_sequence_);
+  uint8_t newslots = owner_->paste_seq(edit_this_sequence_);
+  num_slots_ = newslots ? newslots  : num_slots_;
+  mask_ = owner_->get_mask(edit_this_sequence_);
 }
 
 template <typename Owner>

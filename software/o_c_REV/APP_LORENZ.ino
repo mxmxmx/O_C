@@ -33,6 +33,8 @@ enum LORENZ_SETTINGS {
   LORENZ_SETTING_FREQ2,
   LORENZ_SETTING_RHO1,
   LORENZ_SETTING_RHO2,
+  LORENZ_SETTING_FREQ_RANGE1,
+  LORENZ_SETTING_FREQ_RANGE2,
   LORENZ_SETTING_OUT_A,
   LORENZ_SETTING_OUT_B,
   LORENZ_SETTING_OUT_C,
@@ -74,6 +76,14 @@ public:
 
   uint16_t get_freq2() const {
     return values_[LORENZ_SETTING_FREQ2];
+  }
+
+  uint8_t get_freq_range1() const {
+    return values_[LORENZ_SETTING_FREQ_RANGE1];
+  }
+
+  uint8_t get_freq_range2() const {
+    return values_[LORENZ_SETTING_FREQ_RANGE2];
   }
 
   uint16_t get_rho1() const {
@@ -133,11 +143,17 @@ void LorenzGenerator::Init() {
   frozen_= false;
 }
 
+const char* const lorenz_freq_range_names[5] = {
+ "sloth",  "lazy",  "slow", "med", "fast", 
+};
+
 SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
   { 128, 0, 255, "Freq 1", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "Freq 2", NULL, settings::STORAGE_TYPE_U8 },
   { 63, 4, 127, "Rho/c 1", NULL, settings::STORAGE_TYPE_U8 }, 
   { 63, 4, 127, "Rho/c 2", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 4, "LFreq 1 Rng", lorenz_freq_range_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFreq 2 Rng", lorenz_freq_range_names, settings::STORAGE_TYPE_U4 },
   {streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out A ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {streams::LORENZ_OUTPUT_Y1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out B ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {streams::LORENZ_OUTPUT_X2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out C ", lorenz_output_names, settings::STORAGE_TYPE_U8},
@@ -202,7 +218,7 @@ void FASTRUN LORENZ_isr() {
     reset2_phase = true ;
   }
   if (!freeze && !lorenz_generator.frozen())
-    lorenz_generator.lorenz.Process(freq1, freq2, reset1_phase, reset2_phase);
+    lorenz_generator.lorenz.Process(freq1, freq2, reset1_phase, reset2_phase, lorenz_generator.get_freq_range1(), lorenz_generator.get_freq_range2());
 
   OC::DAC::set<DAC_CHANNEL_A>(lorenz_generator.lorenz.dac_code(0));
   OC::DAC::set<DAC_CHANNEL_B>(lorenz_generator.lorenz.dac_code(1));

@@ -34,57 +34,97 @@
 #include "util/util_macros.h"
 //#include "stmlib/stmlib.h"
 //#include "frames/keyframer.h"
+#include "peaks_pattern_predictor.h"
 
+const uint32_t kSyncCounterMaxTime = 8 * 16667;
 
 namespace frames {
 
 const size_t kNumChannels = 4;
 
-enum PolyLfoFreqDivisions {
-  POLYLFO_FREQ_DIV_NONE,     // 0
-  POLYLFO_FREQ_DIV_4_OVER_5, // 1
-  POLYLFO_FREQ_DIV_2_OVER_3, // 2
-  POLYLFO_FREQ_DIV_3_OVER_5, // 3
-  POLYLFO_FREQ_DIV_BY2,      // 4
-  POLYLFO_FREQ_DIV_2_OVER_5, // 5
-  POLYLFO_FREQ_DIV_BY3,      // 6
-  POLYLFO_FREQ_DIV_BY4,      // 7
-  POLYLFO_FREQ_DIV_BY5,      // 8
-  POLYLFO_FREQ_DIV_BY6,      // 9
-  POLYLFO_FREQ_DIV_BY7,      // 10
-  POLYLFO_FREQ_DIV_BY8,      // 11
-  POLYLFO_FREQ_DIV_BY9,      // 12
-  POLYLFO_FREQ_DIV_BY10,     // 13
-  POLYLFO_FREQ_DIV_BY11,     // 14
-  POLYLFO_FREQ_DIV_BY12,     // 15
-  POLYLFO_FREQ_DIV_BY13,     // 16
-  POLYLFO_FREQ_DIV_BY14,     // 17
-  POLYLFO_FREQ_DIV_BY15,     // 18
-  POLYLFO_FREQ_DIV_BY16,     // 19
-  POLYLFO_FREQ_DIV_LAST      // 20
+enum PolyLfoFreqMultipliers {
+  POLYLFO_FREQ_MULT_BY16,     // 0
+  POLYLFO_FREQ_MULT_BY15,     // 1
+  POLYLFO_FREQ_MULT_BY14,     // 2
+  POLYLFO_FREQ_MULT_BY13,     // 3
+  POLYLFO_FREQ_MULT_BY12,     // 4
+  POLYLFO_FREQ_MULT_BY11,     // 5
+  POLYLFO_FREQ_MULT_BY10,     // 6
+  POLYLFO_FREQ_MULT_BY9,      // 7
+  POLYLFO_FREQ_MULT_BY8,      // 8
+  POLYLFO_FREQ_MULT_BY7,      // 9
+  POLYLFO_FREQ_MULT_BY6,      // 10
+  POLYLFO_FREQ_MULT_BY5,      // 11
+  POLYLFO_FREQ_MULT_BY4,      // 12
+  POLYLFO_FREQ_MULT_BY3,      // 13
+  POLYLFO_FREQ_MULT_5_OVER_2, // 14
+  POLYLFO_FREQ_MULT_BY2,      // 15
+  POLYLFO_FREQ_MULT_5_OVER_3, // 16
+  POLYLFO_FREQ_MULT_3_OVER_2, // 17
+  POLYLFO_FREQ_MULT_5_OVER_4, // 18
+  POLYLFO_FREQ_MULT_NONE,     // 19
+  POLYLFO_FREQ_MULT_4_OVER_5, // 20
+  POLYLFO_FREQ_MULT_2_OVER_3, // 21
+  POLYLFO_FREQ_MULT_3_OVER_5, // 22
+  POLYLFO_FREQ_MULT_1_OVER_2, // 23
+  POLYLFO_FREQ_MULT_2_OVER_5, // 24
+  POLYLFO_FREQ_MULT_1_OVER_3, // 25
+  POLYLFO_FREQ_MULT_1_OVER_4, // 26
+  POLYLFO_FREQ_MULT_1_OVER_5, // 27
+  POLYLFO_FREQ_MULT_1_OVER_6, // 28
+  POLYLFO_FREQ_MULT_1_OVER_7, // 29
+  POLYLFO_FREQ_MULT_1_OVER_8, // 30
+  POLYLFO_FREQ_MULT_1_OVER_9,  // 31
+  POLYLFO_FREQ_MULT_1_OVER_10, // 32
+  POLYLFO_FREQ_MULT_1_OVER_11, // 33
+  POLYLFO_FREQ_MULT_1_OVER_12, // 34
+  POLYLFO_FREQ_MULT_1_OVER_13, // 35
+  POLYLFO_FREQ_MULT_1_OVER_14, // 36
+  POLYLFO_FREQ_MULT_1_OVER_15, // 37
+  POLYLFO_FREQ_MULT_1_OVER_16, // 38
+  POLYLFO_FREQ_MULT_LAST       // 39
 };
 
-int32_t const PolyLfoFreqDivNumerators[] = {
-          16777216, // POLYLFO_FREQ_DIV_NONE     = 0
-          13421772, // POLYLFO_FREQ_DIV_4_OVER_5 = 1
-          11184810, // POLYLFO_FREQ_DIV_2_OVER_3 = 2
-          10066329, // POLYLFO_FREQ_DIV_3_OVER_5 = 3
-           8388608, // POLYLFO_FREQ_DIV_BY2      = 4
-           6710886, // POLYLFO_FREQ_DIV_2_OVER_5 = 5
-           5592405, // POLYLFO_FREQ_DIV_BY3      = 6
-           4194304, // POLYLFO_FREQ_DIV_BY4      = 7
-           3355443, // POLYLFO_FREQ_DIV_BY5      = 8
-           2796202, // POLYLFO_FREQ_DIV_BY6      = 9
-           2396745, // POLYLFO_FREQ_DIV_BY7      = 10
-           2097152, // POLYLFO_FREQ_DIV_BY8      = 11
-           1864135, // POLYLFO_FREQ_DIV_BY9      = 12
-           1677721, // POLYLFO_FREQ_DIV_BY10     = 13
-           1525201, // POLYLFO_FREQ_DIV_BY11     = 14
-           1398101, // POLYLFO_FREQ_DIV_BY12     = 15
-           1290555, // POLYLFO_FREQ_DIV_BY13     = 16
-           1198372, // POLYLFO_FREQ_DIV_BY14     = 17
-           1118481, // POLYLFO_FREQ_DIV_BY15     = 19
-           1048576, // POLYLFO_FREQ_DIV_BY16     = 20
+int32_t const PolyLfoFreqMultNumerators[] = {
+         268435456,  // POLYLFO_FREQ_MULT_BY16,     = 0
+         251658240,  // POLYLFO_FREQ_MULT_BY15,     = 1
+         234881024,  // POLYLFO_FREQ_MULT_BY14,     = 2
+         218103808,  // POLYLFO_FREQ_MULT_BY13,     = 3
+         201326592,  // POLYLFO_FREQ_MULT_BY12,     = 4
+         184549376,  // POLYLFO_FREQ_MULT_BY11,     = 5
+         167772160,  // POLYLFO_FREQ_MULT_BY10,     = 6
+         150994944,  // POLYLFO_FREQ_MULT_BY9,      = 7
+         134217728,  // POLYLFO_FREQ_MULT_BY8,      = 8
+         117440512,  // POLYLFO_FREQ_MULT_BY7,      = 9
+         100663296,  // POLYLFO_FREQ_MULT_BY6,      = 10
+          83886080,  // POLYLFO_FREQ_MULT_BY5,      = 11
+          67108864,  // POLYLFO_FREQ_MULT_BY4,      = 12
+          50331648,  // POLYLFO_FREQ_MULT_BY3,      = 13
+          41943040,  // POLYLFO_FREQ_MULT_5_OVER_2, = 14
+          33554432,  // POLYLFO_FREQ_MULT_BY2,      = 15
+          27962027,  // POLYLFO_FREQ_MULT_5_OVER_3, = 16
+          25165824,  // POLYLFO_FREQ_MULT_3_OVER_2, = 17
+          20971520,  // POLYLFO_FREQ_MULT_5_OVER_4, = 18
+          16777216,  // POLYLFO_FREQ_MULT_NONE,     = 19
+          13421772,  // POLYLFO_FREQ_MULT_4_OVER_5, = 20
+          11184810,  // POLYLFO_FREQ_MULT_2_OVER_3, = 21
+          10066329,  // POLYLFO_FREQ_MULT_3_OVER_5, = 22
+           8388608,  // POLYLFO_FREQ_MULT_1_OVER_2, = 23
+           6710886,  // POLYLFO_FREQ_MULT_2_OVER_5, = 24
+           5592405,  // POLYLFO_FREQ_MULT_1_OVER_3, = 25
+           4194304,  // POLYLFO_FREQ_MULT_1_OVER_4, = 26
+           3355443,  // POLYLFO_FREQ_MULT_1_OVER_5, = 27
+           2796202,  // POLYLFO_FREQ_MULT_1_OVER_6, = 28
+           2396745,  // POLYLFO_FREQ_MULT_1_OVER_7, = 29
+           2097152,  // POLYLFO_FREQ_MULT_1_OVER_8, = 30
+           1864135,  // POLYLFO_FREQ_MULT_1_OVER_9,  = 31
+           1677721,  // POLYLFO_FREQ_MULT_1_OVER_10, = 32
+           1525201,  // POLYLFO_FREQ_MULT_1_OVER_11, = 33
+           1398101,  // POLYLFO_FREQ_MULT_1_OVER_12, = 34
+           1290555,  // POLYLFO_FREQ_MULT_1_OVER_13, = 35
+           1198372,  // POLYLFO_FREQ_MULT_1_OVER_14, = 36
+           1118481,  // POLYLFO_FREQ_MULT_1_OVER_15, = 37
+           1048576,  // POLYLFO_FREQ_MULT_1_OVER_16, = 38
 } ;
 
 class PolyLfo {
@@ -93,7 +133,7 @@ class PolyLfo {
   ~PolyLfo() { }
   
   void Init();
-  void Render(int32_t frequency, bool reset_phase);
+  void Render(int32_t frequency, bool reset_phase, bool tempo_sync);
   void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
   inline void set_freq_range(uint16_t freq_range) {
@@ -136,21 +176,21 @@ class PolyLfo {
     offset_ = offs;
   }
 
-  inline void set_freq_div_b(PolyLfoFreqDivisions div) {
+  inline void set_freq_div_b(PolyLfoFreqMultipliers div) {
     if (div != freq_div_b_) {
       freq_div_b_ = div;
       phase_reset_flag_ = true;
     }
   }
 
-  inline void set_freq_div_c(PolyLfoFreqDivisions div) {
+  inline void set_freq_div_c(PolyLfoFreqMultipliers div) {
     if (div != freq_div_c_) {
       freq_div_c_ = div;
       phase_reset_flag_ = true;
     }
   }
 
-  inline void set_freq_div_d(PolyLfoFreqDivisions div) {
+  inline void set_freq_div_d(PolyLfoFreqMultipliers div) {
     if (div != freq_div_d_) {
       freq_div_d_ = div;
       phase_reset_flag_ = true;
@@ -181,10 +221,29 @@ class PolyLfo {
     }
   }
 
+  inline void set_sync(bool sync) {
+    sync_ = sync;
+  }
+
+  inline int get_sync() {
+    return static_cast<int>(sync_);
+  }
+
+  inline long get_sync_phase_increment() {
+    return sync_phase_increment_;
+  }
+
+  inline float get_freq_ch1() {
+    return(static_cast<float>(16666.6666666666666666667f * static_cast<double>(phase_increment_ch1_) / static_cast<double>(0xffffffff)));
+  }
+
+  inline long get_sync_counter() {
+    return sync_counter_;
+  }
+
   inline uint8_t level(uint8_t index) const {
     return level_[index];
   }
-
 
   inline const uint16_t dac_code(uint8_t index) const {
     return dac_code_[index];
@@ -192,8 +251,8 @@ class PolyLfo {
 
   static uint32_t FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng);
 
+
  private:
-  // static const uint8_t rainbow_[17][3];
   uint16_t freq_range_ ;
   uint16_t shape_;
   int16_t shape_spread_;
@@ -201,9 +260,9 @@ class PolyLfo {
   int16_t coupling_;
   int32_t attenuation_;
   int32_t offset_;
-  PolyLfoFreqDivisions freq_div_b_;
-  PolyLfoFreqDivisions freq_div_c_;
-  PolyLfoFreqDivisions freq_div_d_;
+  PolyLfoFreqMultipliers freq_div_b_;
+  PolyLfoFreqMultipliers freq_div_c_;
+  PolyLfoFreqMultipliers freq_div_d_;
   uint8_t b_xor_a_ ;
   uint8_t c_xor_a_ ;
   uint8_t d_xor_a_ ;
@@ -215,6 +274,13 @@ class PolyLfo {
   uint32_t phase_increment_ch1_;
   uint8_t level_[kNumChannels];
   uint16_t dac_code_[kNumChannels];
+
+  bool sync_ ;
+  uint32_t sync_counter_;
+  stmlib::PatternPredictor<32, 8> pattern_predictor_;
+  uint32_t period_;
+  uint32_t sync_phase_increment_;
+
 
   DISALLOW_COPY_AND_ASSIGN(PolyLfo);
 };

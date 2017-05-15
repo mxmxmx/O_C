@@ -31,6 +31,7 @@ void Ui::Init() {
   button_state_ = 0;
   button_ignore_mask_ = 0;
   screensaver_ = false;
+  preempt_screensaver_ = false;
 
   encoder_right_.Init(OC_GPIO_ENC_PINMODE);
   encoder_left_.Init(OC_GPIO_ENC_PINMODE);
@@ -53,6 +54,14 @@ void Ui::set_screensaver_timeout(uint32_t seconds) {
   screensaver_timeout_ = timeout;
   SERIAL_PRINTLN("Set screensaver timeout to %lu", timeout);
   event_queue_.Poke();
+}
+
+void FASTRUN Ui::_Poke() {
+  event_queue_.Poke();
+}
+
+void Ui::_preemptScreensaver(bool v) {
+  preempt_screensaver_ = v;
 }
 
 void FASTRUN Ui::Poll() {
@@ -104,8 +113,10 @@ UiMode Ui::DispatchEvents(App *app) {
         app->HandleButtonEvent(event);
         break;
       case UI::EVENT_BUTTON_LONG_PRESS:
-        if (OC::CONTROL_BUTTON_UP == event.control)
-          screensaver_ = true;
+        if (OC::CONTROL_BUTTON_UP == event.control) {
+          if (!preempt_screensaver_) 
+            screensaver_ = true;
+        }
         else if (OC::CONTROL_BUTTON_R == event.control)
           return UI_MODE_APP_SETTINGS;
         else

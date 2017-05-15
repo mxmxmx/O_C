@@ -55,6 +55,8 @@ enum EnvelopeSettings {
   ENV_SETTING_EUCLIDEAN_LENGTH,
   ENV_SETTING_EUCLIDEAN_FILL,
   ENV_SETTING_EUCLIDEAN_OFFSET,
+  ENV_SETTING_EUCLIDEAN_RESET_INPUT,
+  ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV,
   ENV_SETTING_CV1,
   ENV_SETTING_CV2,
   ENV_SETTING_CV3,
@@ -167,6 +169,14 @@ public:
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
   }
 
+ uint8_t get_euclidean_reset_trigger_input() const {
+    return values_[ENV_SETTING_EUCLIDEAN_RESET_INPUT];
+  }
+
+ uint8_t get_euclidean_reset_clock_div() const {
+    return values_[ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV];
+  }
+
   uint16_t get_amplitude() const {
     return values_[ENV_SETTING_AMPLITUDE] << 9 ;
   }
@@ -188,7 +198,7 @@ public:
   //    return static_cast<uint8_t>(s_euclidean_offset_);
   //  }
 
-  int get_trigger_delay_count() const {
+  uint32_t get_trigger_delay_count() const {
     return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
   }
 
@@ -312,6 +322,8 @@ public:
     if (get_euclidean_length()) {
       *settings++ = ENV_SETTING_EUCLIDEAN_FILL;
       *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
+      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
+      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
     }
 
     *settings++ = ENV_SETTING_ATTACK_SHAPE;
@@ -342,6 +354,8 @@ public:
       case ENV_SETTING_TRIGGER_DELAY_MILLISECONDS:
       case ENV_SETTING_EUCLIDEAN_FILL:
       case ENV_SETTING_EUCLIDEAN_OFFSET:
+      case ENV_SETTING_EUCLIDEAN_RESET_INPUT:
+      case ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV:
         return true;
       default:
       break;
@@ -429,6 +443,17 @@ public:
     uint8_t euclidean_length = static_cast<uint8_t>(s[4]);
     uint8_t euclidean_fill = static_cast<uint8_t>(s[5]);
     uint8_t euclidean_offset = static_cast<uint8_t>(s[6]);
+
+    // Process Euclidean pattern reset
+    uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
+    if (euclidean_reset_trigger_input) {
+      if (DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) ++euclidean_reset_counter_;
+      if (euclidean_reset_counter_ % get_euclidean_reset_clock_div() == 0) {
+        euclidean_counter_ = 0;
+        euclidean_reset_counter_= 0;
+      }
+    }
+    
     if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
       triggered = false;
     }
@@ -505,6 +530,7 @@ private:
   EnvelopeType last_type_;
   bool gate_raised_;
   uint32_t euclidean_counter_;
+  uint32_t euclidean_reset_counter_;
   // debug only
   //  int32_t s_euclidean_length_;  
   //  int32_t s_euclidean_fill_;  
@@ -559,7 +585,8 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   last_type_ = ENV_TYPE_LAST;
   gate_raised_ = false;
   euclidean_counter_ = 0;
-
+  euclidean_reset_counter_ = 0;
+  
   memset(delayed_triggers_, 0, sizeof(delayed_triggers_));
   delayed_triggers_free_ = delayed_triggers_next_ = 0;
 
@@ -595,7 +622,7 @@ const char* const reset_behaviours[peaks::RESET_BEHAVIOUR_LAST] = {
 const char* const euclidean_lengths[] = {
   "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
   " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
-  " 21", " 12", " 23", " 24", " 25", " 26", " 27", " 28", " 29", " 30",
+  " 21", " 22", " 23", " 24", " 25", " 26", " 27", " 28", " 29", " 30",
   " 31", " 32",
 };
 
@@ -617,6 +644,8 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 5, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 1, 1, 255, "Eucl reset div", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
@@ -979,6 +1008,7 @@ void ENVGEN_screensaver() {
 #endif
 }
 
+#ifdef ENVGEN_DEBUG  
 void ENVGEN_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -990,6 +1020,7 @@ void ENVGEN_debug() {
     graphics.print(envgen.envelopes_[i].get_is_amplitude_sampled()) ;
   }
 }
+#endif // ENVGEN_DEBUG
 
 void FASTRUN ENVGEN_isr() {
   envgen.ISR();

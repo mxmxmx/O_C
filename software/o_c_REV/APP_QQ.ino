@@ -76,6 +76,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_INT_SEQ_MODULUS,
   CHANNEL_SETTING_INT_SEQ_RANGE,
   CHANNEL_SETTING_INT_SEQ_DIRECTION,
+  CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB,
   CHANNEL_SETTING_INT_SEQ_LOOP_START,
   CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH,
   CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB,
@@ -86,6 +87,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER,
+  CHANNEL_SETTING_VOLTAGE_SCALING,
   CHANNEL_SETTING_LAST
 };
 
@@ -127,10 +129,6 @@ public:
     return values_[CHANNEL_SETTING_SCALE];
   }
 
-  int get_scale_select() const {
-    return 0;
-  }
-
   void set_scale(int scale) {
     if (scale != get_scale(DUMMY)) {
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
@@ -142,12 +140,27 @@ public:
     }
   }
 
-  void set_scale_at_slot(int scale, uint16_t mask, uint8_t scale_slot) {
-    // dummy
+  // dummy
+  int get_scale_select() const {
+    return 0;
+  }
+
+  // dummy
+  void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
+    
+  }
+
+  // dummy
+  int get_transpose(uint8_t DUMMY) const {
+    return 0;
   }
   
   int get_root() const {
     return values_[CHANNEL_SETTING_ROOT];
+  }
+
+  int get_root(uint8_t DUMMY) const {
+    return 0x0;
   }
 
   uint16_t get_mask() const {
@@ -188,6 +201,10 @@ public:
 
   int get_fine() const {
     return values_[CHANNEL_SETTING_FINE];
+  }
+
+  uint8_t get_voltage_scaling() const {
+    return values_[CHANNEL_SETTING_VOLTAGE_SCALING];
   }
 
   uint8_t get_aux_cv_dest() const {
@@ -306,6 +323,10 @@ public:
     return static_cast<bool>(values_[CHANNEL_SETTING_INT_SEQ_DIRECTION]);
   }
 
+  int16_t get_int_seq_brownian_prob() const {
+    return static_cast<int16_t>(values_[CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB]);
+  }
+
   uint8_t get_int_seq_index_cv_source() const {
     return values_[CHANNEL_SETTING_INT_SEQ_INDEX_CV_SOURCE];
   }
@@ -351,6 +372,12 @@ public:
     InitDefaults();
     apply_value(CHANNEL_SETTING_SOURCE, source);
     apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
+
+    #ifdef BUCHLA_SUPPORT
+      scaling_ = true;
+    #else
+      scaling_ = false;
+    #endif
 
     channel_index_ = source;
     force_update_ = true;
@@ -436,7 +463,7 @@ public:
           turing_machine_.set_length(get_turing_length());
           int32_t probability = get_turing_prob();
           if (get_turing_prob_cv_source()) {
-            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) >> 4);
+            probability += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_prob_cv_source() - 1)) + 7) >> 4;
             CONSTRAIN(probability, 0, 255);
           }
           turing_machine_.set_probability(probability);  
@@ -444,7 +471,7 @@ public:
             uint32_t shift_register = turing_machine_.Clock();
             uint8_t range = get_turing_range();
             if (get_turing_range_cv_source()) {
-              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) >> 5);
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_range_cv_source() - 1)) + 15) >> 5;
               CONSTRAIN(range, 1, 120);
             }
 
@@ -452,7 +479,7 @@ public:
     
               uint8_t modulus = get_turing_modulus();
               if (get_turing_modulus_cv_source()) {
-                 modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) >> 5);
+                 modulus += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_turing_modulus_cv_source() - 1)) + 15) >> 5;
                  CONSTRAIN(modulus, 2, 121);
               }
  
@@ -467,14 +494,14 @@ public:
               // directly instead of changing to pitch first.
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-              sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               // Scale range by 128, so 12 steps = 1V
               // We dont' need a calibrated value here, really.
               uint32_t scaled = multiply_u32xu32_rshift(range << 7, shift_register, get_turing_length());
               scaled += get_transpose() << 7;
-              sample = OC::DAC::pitch_to_dac(dac_channel, scaled, get_octave());
+              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, scaled, get_octave(), get_voltage_scaling());
               history_sample = scaled + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
              }
           }
@@ -517,7 +544,7 @@ public:
               uint32_t bb = bytebeat_.Clock();
               uint8_t range = get_bytebeat_range();
               if (get_bytebeat_range_cv_source()) {
-                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) >> 5);
+                range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_bytebeat_range_cv_source() - 1)) + 15) >> 5;
                 CONSTRAIN(range, 1, 120);
               }
 
@@ -531,7 +558,7 @@ public:
                 // directly instead of changing to pitch first.
                 int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-                sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
                 // We dont' need a calibrated value here, really
@@ -554,7 +581,7 @@ public:
           logistic_map_.set_seed(123);
           int32_t logistic_map_r = get_logistic_map_r();
           if (get_logistic_map_r_cv_source()) {
-            logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) >> 4);
+            logistic_map_r += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_r_cv_source() - 1)) + 7) >> 4;
             CONSTRAIN(logistic_map_r, 0, 255);
           }
           logistic_map_.set_r(logistic_map_r);  
@@ -562,7 +589,7 @@ public:
             int64_t logistic_map_x = logistic_map_.Clock();
             uint8_t range = get_logistic_map_range();
             if (get_logistic_map_range_cv_source()) {
-              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) >> 5);
+              range += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_logistic_map_range_cv_source() - 1)) + 15) >> 5;
               CONSTRAIN(range, 1, 120);
             }
             
@@ -572,7 +599,7 @@ public:
               // See above, may need tweaking    
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
-              sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               int octave = get_octave();
@@ -591,24 +618,25 @@ public:
               break;
             
             int_seq_.set_loop_direction(get_int_seq_dir());
+            int_seq_.set_brownian_prob(get_int_seq_brownian_prob());
             int16_t int_seq_index = get_int_seq_index();
             int16_t int_seq_stride = get_int_seq_stride();
 
             if (get_int_seq_index_cv_source()) {
-              int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) >> 8);
+              int_seq_index += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_index_cv_source() - 1)) + 127) >> 8;
             }
             if (int_seq_index < 0) int_seq_index = 0;
             if (int_seq_index > 8) int_seq_index = 8;
             int_seq_.set_int_seq(int_seq_index);
             int16_t int_seq_modulus_ = get_int_seq_modulus();
             if (get_int_seq_modulus_cv_source()) {
-                int_seq_modulus_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_modulus_cv_source() - 1)) >> 6);
+                int_seq_modulus_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_modulus_cv_source() - 1)) + 31) >> 6;
                 CONSTRAIN(int_seq_modulus_, 2, 121);
             }
             int_seq_.set_int_seq_modulus(int_seq_modulus_);
 
             if (get_int_seq_stride_cv_source()) {
-              int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) >> 6);
+              int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) + 31) >> 6;
             }
             if (int_seq_stride < 1) int_seq_stride = 1;
             if (int_seq_stride > 255) int_seq_stride = 255;
@@ -658,7 +686,7 @@ public:
               uint32_t is = int_seq_.Clock();
               int16_t range_ = get_int_seq_range();
               if (get_int_seq_range_cv_source()) {
-                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_range_cv_source() - 1)) >> 6);
+                range_ += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_range_cv_source() - 1)) + 31) >> 6;
                 CONSTRAIN(range_, 1, 120);
               }
               if (quantizer_.enabled()) {
@@ -671,7 +699,7 @@ public:
                 // directly instead of changing to pitch first.
                 int32_t pitch =
                   quantizer_.Lookup(64 + range_ / 2 - scaled) + (get_root() << 7);
-                sample = OC::DAC::pitch_to_dac(dac_channel, pitch, get_octave());
+                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
                 // We dont' need a calibrated value here, really
@@ -714,13 +742,13 @@ public:
                 case QQ_DEST_NONE:
                 break;
                 case QQ_DEST_TRANSPOSE:
-                  transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                  transpose += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 63) >> 7;
                 break;
                 case QQ_DEST_ROOT:
-                  root += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                  root += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
                 break;
                 case QQ_DEST_OCTAVE:
-                  octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                  octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 255) >> 9;
                 break;
                 case  QQ_DEST_MASK:
                   update_scale(false, (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8);
@@ -736,7 +764,7 @@ public:
             CONSTRAIN(transpose, -12, 12); 
             
             int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
-            sample = temp_sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+            sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, get_voltage_scaling());
 
             // continuous mode needs special treatment to give useful results.
             // basically, update on note change only
@@ -753,7 +781,7 @@ public:
                     case QQ_DEST_NONE:
                     break;
                     case QQ_DEST_TRANSPOSE:
-                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 63) >> 7;
                       if (_aux_cv != prev_transpose_cv_) {
                           transpose = get_transpose() + _aux_cv;
                           CONSTRAIN(transpose, -12, 12); 
@@ -762,7 +790,7 @@ public:
                       }
                     break;
                     case QQ_DEST_ROOT:
-                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 127) >> 8;
                       if (_aux_cv != prev_root_cv_) {
                           root = get_root() + _aux_cv;
                           CONSTRAIN(root, 0, 11);
@@ -771,7 +799,7 @@ public:
                       }
                     break;
                     case QQ_DEST_OCTAVE:
-                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) * 12 + 2047) >> 12;
+                      _aux_cv = (OC::ADC::value(static_cast<ADC_CHANNEL>(index)) + 255) >> 9;
                       if (_aux_cv != prev_octave_cv_) {
                           octave = get_octave() + _aux_cv;
                           CONSTRAIN(octave, -4, 4);
@@ -803,7 +831,7 @@ public:
               if (_re_quantize) 
                 quantized = quantizer_.Process(pitch, root << 7, transpose);
               if (_re_quantize || _trigger_update) 
-                sample = OC::DAC::pitch_to_dac(dac_channel, quantized, octave + continuous_offset_);
+                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, get_voltage_scaling());
             } 
             // end special treatment
                  
@@ -955,6 +983,7 @@ public:
         *settings++ = CHANNEL_SETTING_INT_SEQ_MODULUS;
         *settings++ = CHANNEL_SETTING_INT_SEQ_RANGE;
         *settings++ = CHANNEL_SETTING_INT_SEQ_DIRECTION;
+        *settings++ = CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_START;
         *settings++ = CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH;
         *settings++ = CHANNEL_SETTING_INT_SEQ_STRIDE;
@@ -976,6 +1005,8 @@ public:
     }
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
+    if (scaling_) 
+        *settings++ = CHANNEL_SETTING_VOLTAGE_SCALING;
 
     num_enabled_settings_ = settings - enabled_settings_;
   }
@@ -1007,6 +1038,7 @@ public:
       case CHANNEL_SETTING_INT_SEQ_MODULUS:
       case CHANNEL_SETTING_INT_SEQ_RANGE:
       case CHANNEL_SETTING_INT_SEQ_DIRECTION:
+      case CHANNEL_SETTING_INT_SEQ_BROWNIAN_PROB:
       case CHANNEL_SETTING_INT_SEQ_LOOP_START:
       case CHANNEL_SETTING_INT_SEQ_LOOP_LENGTH:
       case CHANNEL_SETTING_INT_SEQ_FRAME_SHIFT_PROB:
@@ -1030,6 +1062,7 @@ public:
 private:
   bool force_update_;
   bool instant_update_;
+  bool scaling_;
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_sample_;
@@ -1076,20 +1109,8 @@ private:
   }
 };
 
-const char* const channel_trigger_sources[CHANNEL_TRIGGER_LAST] = {
-  "TR1", "TR2", "TR3", "TR4", "cnt+", "cnt-"
-};
-
 const char* const channel_input_sources[CHANNEL_SOURCE_LAST] = {
   "CV1", "CV2", "CV3", "CV4", "Turing", "Lgstc", "ByteB", "IntSq"
-};
-
-const char* const turing_logistic_cv_sources[5] = {
-  "None", "CV1", "CV2", "CV3", "CV4"
-};
-
-const char* const qq_reset_trigger_sources[5] = {
-  "None", "TR1", "TR2", "TR3", "TR4"
 };
 
 const char* const aux_cv_dest[5] = {
@@ -1102,7 +1123,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 65535, 1, 65535, "Active notes", NULL, settings::STORAGE_TYPE_U16 },
   { CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_CV1, CHANNEL_SOURCE_LAST - 1, "CV Source", channel_input_sources, settings::STORAGE_TYPE_U8 },
   { QQ_DEST_NONE, QQ_DEST_NONE, QQ_DEST_LAST - 1, "CV aux >", aux_cv_dest, settings::STORAGE_TYPE_U8 },
-  { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", channel_trigger_sources, settings::STORAGE_TYPE_U8 },
+  { CHANNEL_TRIGGER_CONTINUOUS_DOWN, 0, CHANNEL_TRIGGER_LAST - 1, "Trigger source", OC::Strings::channel_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 1, 1, 16, "Clock div", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U4 },
   { 0, -5, 7, "Transpose", NULL, settings::STORAGE_TYPE_I8 },
@@ -1112,37 +1133,39 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 128, 0, 255, "LFSR prb", NULL, settings::STORAGE_TYPE_U8 },
   { 24, 2, 121, "LFSR modulus", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "LFSR range", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "LFSR prb CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "LFSR mod CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "LFSR rng CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR prb CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR mod CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR rng CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Log r   CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Log rng CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Log r   CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Log rng CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 15, "Bytebeat eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "Bytebeat rng", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "Bytebeat P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "Bytebeat P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "Bytebeat P2", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Bb eqn CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb rng CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb P0  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb P1  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "Bb P2  CV src", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 8, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb eqn CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb rng CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P0  CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P1  CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Bb P2  CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 9, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 24, 2, 121, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 255, "> Brownian prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
   { 8, 2, 256, "IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "IntSeq FS prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "IntSeq FS rng", NULL, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "Fractal stride", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "IntSeq CV   >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "IntSeq mod CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "IntSeq rng CV", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "F. stride CV >", turing_logistic_cv_sources, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "IntSeq reset", qq_reset_trigger_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq CV   >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq mod CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq rng CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "F. stride CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 7, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
 };
  
 // WIP refactoring to better encapsulate and for possible app interface change
@@ -1268,6 +1291,14 @@ void QQ_menu() {
         menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
         list_item.DrawNoValue<false>(value, attr);
         break;
+      case CHANNEL_SETTING_TRIGGER:
+      {
+        if (channel.get_source() > CHANNEL_SOURCE_CV4)
+           list_item.DrawValueMax(value, attr, CHANNEL_TRIGGER_TR4);
+        else 
+          list_item.DrawDefault(value, attr);
+      }
+        break;
       case CHANNEL_SETTING_SOURCE:
         if (CHANNEL_SOURCE_TURING == channel.get_source()) {
           int turing_length = channel.get_turing_length();
@@ -1282,7 +1313,10 @@ void QQ_menu() {
       default:
         if (QuantizerChannel::indentSetting(static_cast<ChannelSetting>(setting)))
           list_item.x += menu::kIndentDx;
-        list_item.DrawDefault(value, attr);
+        if (setting == CHANNEL_SETTING_SOURCE && channel.get_trigger_source() > CHANNEL_TRIGGER_TR4)
+          list_item.DrawValueMax(value, attr, CHANNEL_TRIGGER_TR4);
+        else list_item.DrawDefault(value, attr);
+      break;
     }
   }
 
@@ -1339,7 +1373,26 @@ void QQ_handleEncoderEvent(const UI::Event &event) {
     if (qq_state.editing()) {
       ChannelSetting setting = selected.enabled_setting_at(qq_state.cursor_pos());
       if (CHANNEL_SETTING_MASK != setting) {
-        if (selected.change_value(setting, event.value))
+
+        int event_value = event.value;
+
+        switch (setting) {
+          case CHANNEL_SETTING_TRIGGER:
+          {
+            if (selected.get_trigger_source() == CHANNEL_TRIGGER_TR4 && selected.get_source() > CHANNEL_SOURCE_CV4 && event.value > 0)
+              event_value = 0x0;
+          }
+          break;
+          case CHANNEL_SETTING_SOURCE: {
+             if (selected.get_source() == CHANNEL_SOURCE_CV4 && selected.get_trigger_source() > CHANNEL_TRIGGER_TR4 && event.value > 0)
+              event_value = 0x0;
+          }
+          break;
+          default:
+          break;
+        }
+        
+        if (selected.change_value(setting, event_value))
           selected.force_update();
 
         switch (setting) {
@@ -1501,6 +1554,7 @@ void QQ_screensaver() {
 #endif
 }
 
+#ifdef QQ_DEBUG
 void QQ_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -1516,3 +1570,5 @@ void QQ_debug() {
     graphics.print(quantizer_channels[i].get_int_seq_x());
  }
 }
+#endif // QQ_DEBUG
+

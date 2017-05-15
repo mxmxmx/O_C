@@ -266,8 +266,7 @@ public:
         break;
     }
     if (mapping)
-      segments[mapping - BYTEBEAT_CV_MAPPING_FIRST] += (cvs[cv_setting - BYTEBEAT_SETTING_CV1] * 65536) >> bytebeat_cv_rshift;
-  }
+     segments[mapping - BYTEBEAT_CV_MAPPING_FIRST] += (cvs[cv_setting - BYTEBEAT_SETTING_CV1] * 65536) >> bytebeat_cv_rshift;
 
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
@@ -555,6 +554,7 @@ void BYTEBEATGEN_handleEncoderEvent(const UI::Event &event) {
   }
 }
 
+#ifdef BYTEBEAT_DEBUG
 void BYTEBEATGEN_debug() {
   for (int i = 0; i < 4; ++i) { 
     uint8_t ypos = 10*(i + 1) + 2 ; 
@@ -566,6 +566,7 @@ void BYTEBEATGEN_debug() {
     graphics.print(bytebeatgen.bytebeats_[i].get_eqn_num(), 12);
   }
 }
+#endif // BYTEBEATGEN_DEBUG
 
 uint8_t bb_history[ByteBeat::kHistoryDepth];
 

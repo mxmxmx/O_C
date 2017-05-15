@@ -31,6 +31,7 @@ namespace OC {
 extern const uint8_t bitmap_empty_frame4x8[];
 extern const uint8_t bitmap_end_marker4x8[];
 extern const uint8_t bitmap_indicator_4x8[];
+extern const uint8_t bitmap_hold_indicator_4x8[];
 
 static constexpr int16_t kBitmapEditIndicatorW = 5;
 extern const uint8_t bitmap_edit_indicators_8[];

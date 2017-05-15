@@ -36,6 +36,9 @@
 #include <SPIFIFO.h>
 #include "OC_DAC.h"
 #include "OC_gpio.h"
+#include "OC_calibration.h"
+#include "OC_autotune_presets.h"
+#include "OC_autotune.h"
 
 #define SPICLOCK_30MHz   (SPI_CTAR_PBR(0) | SPI_CTAR_BR(0) | SPI_CTAR_DBR) //(60 / 2) * ((1+1)/2) = 30 MHz (= 24MHz, when F_BUS == 48000000)
 //#define DAC8564 // <-- uncomment, if using DAC8564
@@ -67,6 +70,100 @@ void DAC::Init(CalibrationData *calibration_data) {
   Update();
 }
 
+/*static*/
+uint8_t DAC::calibration_data_used(uint8_t channel_id) {
+  const OC::Autotune_data &autotune_data = OC::AUTOTUNE::GetAutotune_data(channel_id);
+  return autotune_data.use_auto_calibration_;
+}
+/*static*/
+void DAC::set_auto_channel_calibration_data(uint8_t channel_id) {
+  
+  //SERIAL_PRINTLN("use auto calibration data ... (channel: %d)", channel_id + 1);
+  
+  if (channel_id < DAC_CHANNEL_LAST) {
+  
+    OC::Autotune_data *_autotune_data = &OC::auto_calibration_data[channel_id];
+    if (_autotune_data->use_auto_calibration_ == 0xFF)  { // = data available ?
+      
+        _autotune_data->use_auto_calibration_ = 0x01; // = use auto data 
+        // update data:
+        const OC::Autotune_data &autotune_data = OC::AUTOTUNE::GetAutotune_data(channel_id);
+        for (int i = 0; i < OCTAVES + 1; i++)
+          calibration_data_->calibrated_octaves[channel_id][i] = autotune_data.auto_calibrated_octaves[i];
+    } 
+  }
+}
+/*static*/
+void DAC::set_default_channel_calibration_data(uint8_t channel_id) {
+  
+  //SERIAL_PRINTLN("reset to core/default calibration data ... (channel: %d)", channel_id + 1);
+  
+  if (channel_id < DAC_CHANNEL_LAST) {
+
+    // reset data
+    for (int i = 0; i < OCTAVES + 1; i++) 
+      calibration_data_->calibrated_octaves[channel_id][i] = OC::calibration_data.dac.calibrated_octaves[channel_id][i];
+    // + update info
+    OC::Autotune_data *autotune_data = &OC::auto_calibration_data[channel_id];
+    if (autotune_data->use_auto_calibration_ == 0xFF || autotune_data->use_auto_calibration_ == 0x01)
+      autotune_data->use_auto_calibration_ = 0xFF; // = data available, but not used
+    else 
+      autotune_data->use_auto_calibration_ = 0x00;
+  }
+}
+/*static*/
+void DAC::update_auto_channel_calibration_data(uint8_t channel_id, int8_t octave, uint32_t pitch_data) {
+  
+  //SERIAL_PRINTLN("update: ch.#%d -> %d (%d)", (int)(channel_id + 1), (int)pitch_data, (int)octave);
+  
+  if (channel_id < DAC_CHANNEL_LAST) {
+
+      // write data
+      OC::Autotune_data *autotune_data = &OC::auto_calibration_data[channel_id];
+      autotune_data->auto_calibrated_octaves[octave] = pitch_data;
+      // + update info
+      if (octave == OCTAVES) {
+        autotune_data->use_auto_calibration_ = 0xFF; // = data available, but not used
+        //SERIAL_PRINTLN("set auto calibration data, %d", autotune_data->use_auto_calibration_);
+      }
+   }
+}
+/*static*/
+void DAC::reset_auto_channel_calibration_data(uint8_t channel_id) {
+  
+  // reset data
+  if (channel_id < DAC_CHANNEL_LAST) {
+    //SERIAL_PRINTLN("resetting channel# %d calibration data", (int)(channel_id + 1));
+    OC::Autotune_data *autotune_data = &OC::auto_calibration_data[channel_id];
+    autotune_data->use_auto_calibration_ = 0x0;
+    for (int i = 0; i < OCTAVES + 1; i++)
+      autotune_data->auto_calibrated_octaves[i] = OC::calibration_data.dac.calibrated_octaves[channel_id][i];
+  }
+}
+/*static*/
+void DAC::reset_all_auto_channel_calibration_data(){
+   for (int i = 0; i < DAC_CHANNEL_LAST; i++)
+      reset_auto_channel_calibration_data(i);
+}
+/*static*/
+void DAC::choose_calibration_data() {
+  
+  // at this point, global settings are restored
+  for (int i = 0; i < DAC_CHANNEL_LAST; i++) {
+    
+    const OC::Autotune_data &autotune_data = OC::AUTOTUNE::GetAutotune_data(i);
+
+    if (autotune_data.use_auto_calibration_ == 0x0) { 
+    // no autotune_data yet, so we use defaults:
+      reset_auto_channel_calibration_data(i);
+    }
+    else if (autotune_data.use_auto_calibration_ == 0xFF) {
+    // use autotune_data
+      set_auto_channel_calibration_data(i);
+    }
+    // ... else use default calibration
+  }
+}
 /*static*/
 DAC::CalibrationData *DAC::calibration_data_ = nullptr;
 /*static*/
@@ -148,5 +245,4 @@ void SPI_init() {
     SPI0_MCR = mcr;
   }
 }
-
-
+// OC_DAC
