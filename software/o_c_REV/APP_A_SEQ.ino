@@ -2166,6 +2166,15 @@ void SEQ_menu() {
 
     switch (setting) {
 
+      case SEQ_CHANNEL_SETTING_SCALE:
+        list_item.SetPrintPos();
+        if (list_item.editing) {
+          menu::DrawEditIcon(6, list_item.y, value, attr);
+          graphics.movePrintPos(6, 0);
+        }
+        graphics.print(OC::scale_names[value]);
+        list_item.DrawCustom();
+        break;
       case SEQ_CHANNEL_SETTING_SCALE_MASK:
        menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_scale_mask(), OC::Scales::GetScale(channel.get_scale(DUMMY)).num_notes);
        list_item.DrawNoValue<false>(value, attr);
