@@ -994,11 +994,17 @@ void ENVGEN_screensaver() {
   debug::CycleMeasurement render_cycles;
 #endif
 
-  RenderFastPreview<0, 0, 0>();
-  RenderFastPreview<1, 64, 0>();
-  RenderFastPreview<2, 0, 32>();
-  RenderFastPreview<3, 64, 32>();
-
+  #ifdef BUCHLA_4U
+    RenderFastPreview<3, 0, 0>();
+    RenderFastPreview<4, 64, 0>();
+    RenderFastPreview<1, 0, 32>();
+    RenderFastPreview<2, 64, 32>();
+  #else
+    RenderFastPreview<0, 0, 0>();
+    RenderFastPreview<1, 64, 0>();
+    RenderFastPreview<2, 0, 32>();
+    RenderFastPreview<3, 64, 32>();
+  #endif
   OC::scope_render();
 
 #ifdef ENVGEN_DEBUG_SCREENSAVER
