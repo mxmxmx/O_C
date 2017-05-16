@@ -4,6 +4,7 @@
 #include "OC_bitmaps.h"
 #include "OC_menus.h"
 #include "OC_DAC.h"
+#include "OC_options.h"
 
 namespace OC {
 

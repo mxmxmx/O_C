@@ -995,10 +995,10 @@ void ENVGEN_screensaver() {
 #endif
 
   #ifdef BUCHLA_4U
-    RenderFastPreview<3, 0, 0>();
-    RenderFastPreview<4, 64, 0>();
-    RenderFastPreview<1, 0, 32>();
-    RenderFastPreview<2, 64, 32>();
+    RenderFastPreview<0, 0, 32>();
+    RenderFastPreview<1, 64, 32>();
+    RenderFastPreview<2, 0, 0>();
+    RenderFastPreview<3, 64, 0>();
   #else
     RenderFastPreview<0, 0, 0>();
     RenderFastPreview<1, 64, 0>();
