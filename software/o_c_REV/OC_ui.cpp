@@ -11,6 +11,7 @@
 #include "OC_strings.h"
 #include "OC_ui.h"
 #include "OC_version.h"
+#include "OC_options.h"
 #include "src/drivers/display.h"
 
 extern uint_fast8_t MENU_REDRAW;
@@ -155,7 +156,11 @@ UiMode Ui::Splashscreen(bool &reset_settings) {
       mode = UI_MODE_APP_SETTINGS;
 
     reset_settings = 
-      read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN);
+    #ifdef BUCHLA_4U
+       read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_R);
+    #else
+       read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN);
+    #endif
 
     now = millis();
 
