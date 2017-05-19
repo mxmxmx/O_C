@@ -109,6 +109,7 @@ void setup() {
 
   OC::DEBUG::Init();
   OC::DigitalInputs::Init();
+  delay(100); 
   OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
   OC::DAC::Init(&OC::calibration_data.dac);
 
