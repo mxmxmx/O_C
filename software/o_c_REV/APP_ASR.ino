@@ -306,6 +306,10 @@ public:
     freeze_switch_ = (~freeze_switch_) & 1u;
   }
 
+  void clear_freeze() {
+    freeze_switch_ = false;
+  }
+
   bool freeze_state() {
     return freeze_switch_;
   }
@@ -853,6 +857,7 @@ size_t ASR_restore(const void *storage) {
   size_t storage_size = asr.Restore(storage);
   asr_state.left_encoder_value = asr.get_scale(DUMMY); 
   asr.set_scale(asr_state.left_encoder_value);
+  asr.clear_freeze();
   asr.set_display_mask(asr.get_mask());
   asr.update_enabled_settings();
   asr_state.cursor.AdjustEnd(asr.num_enabled_settings() - 1);
