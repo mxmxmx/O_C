@@ -4,6 +4,7 @@
 #include "OC_bitmaps.h"
 #include "OC_menus.h"
 #include "OC_DAC.h"
+#include "OC_options.h"
 
 namespace OC {
 
@@ -112,10 +113,17 @@ void scope_render() {
 
   for (weegfx::coord_t x = 0; x < (weegfx::coord_t)kScopeDepth - 1; ++x) {
     size_t index = (x + averaged_scope_tail + 1) % kScopeDepth;
-    graphics.setPixel(x, 0 + averaged_scope_history[DAC_CHANNEL_A][index]);
-    graphics.setPixel(64 + x, 0 + averaged_scope_history[DAC_CHANNEL_B][index]);
-    graphics.setPixel(x, 32 + averaged_scope_history[DAC_CHANNEL_C][index]);
-    graphics.setPixel(64 + x, 32 + averaged_scope_history[DAC_CHANNEL_D][index]);
+    #ifdef BUCHLA_4U
+      graphics.setPixel(x, 0 + averaged_scope_history[DAC_CHANNEL_C][index]);
+      graphics.setPixel(64 + x, 0 + averaged_scope_history[DAC_CHANNEL_D][index]);
+      graphics.setPixel(x, 32 + averaged_scope_history[DAC_CHANNEL_A][index]);
+      graphics.setPixel(64 + x, 32 + averaged_scope_history[DAC_CHANNEL_B][index]);  
+    #else
+      graphics.setPixel(x, 0 + averaged_scope_history[DAC_CHANNEL_A][index]);
+      graphics.setPixel(64 + x, 0 + averaged_scope_history[DAC_CHANNEL_B][index]);
+      graphics.setPixel(x, 32 + averaged_scope_history[DAC_CHANNEL_C][index]);
+      graphics.setPixel(64 + x, 32 + averaged_scope_history[DAC_CHANNEL_D][index]);
+    #endif
   }
 }
 
