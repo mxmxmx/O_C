@@ -381,7 +381,7 @@ void ScaleEditor<Owner>::handleButtonUp(const UI::Event &event) {
       invert_mask();
     else {
       
-      if (ticks_ > 500) {
+      if (ticks_ > 250) {
         edit_this_scale_++;  
         if (edit_this_scale_ > 0x3) 
           edit_this_scale_ = 0;
@@ -419,7 +419,7 @@ void ScaleEditor<Owner>::handleButtonDown(const UI::Event &event) {
       invert_mask();
     else {
       
-      if (ticks_ > 500) {
+      if (ticks_ > 250) {
         edit_this_scale_--;  
         if (edit_this_scale_ < 0) 
           edit_this_scale_ = 3; 
@@ -459,19 +459,22 @@ void ScaleEditor<Owner>::handleButtonLeft(const UI::Event &) {
   }
   else { 
     // edit scale mask
-    edit_page_ = 0x0;
-    uint16_t m = 0x1 << cursor_pos_;
-    uint16_t mask = mask_;
-  
-    if (cursor_pos_ < num_notes_) {
-      // toggle note active state; avoid 0 mask
-      if (mask & m) {
-        if ((mask & ~(0xffff << num_notes_)) != m)
-          mask &= ~m;
-      } else {
-        mask |= m;
-      }
-      apply_mask(mask);
+    if (edit_page_)
+      edit_page_ = 0x0;
+    else {
+      uint16_t m = 0x1 << cursor_pos_;
+      uint16_t mask = mask_;
+    
+      if (cursor_pos_ < num_notes_) {
+        // toggle note active state; avoid 0 mask
+        if (mask & m) {
+          if ((mask & ~(0xffff << num_notes_)) != m)
+            mask &= ~m;
+        } else {
+          mask |= m;
+        }
+        apply_mask(mask);
+      } 
     }
   }
 }
