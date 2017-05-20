@@ -36,6 +36,7 @@
 #include "OC_menus.h"
 #include "OC_ui.h"
 #include "OC_version.h"
+#include "OC_options.h"
 #include "src/drivers/display.h"
 #include "src/drivers/ADC/OC_util_ADC.h"
 #include "util/util_debugpins.h"
@@ -44,10 +45,6 @@ unsigned long LAST_REDRAW_TIME = 0;
 uint_fast8_t MENU_REDRAW = true;
 OC::UiMode ui_mode = OC::UI_MODE_MENU;
 const bool DUMMY = false;
-
-/* ------------ uncomment for Buchla/non-octaval/quartertone support: -------------------------------  */
-//#define BUCHLA_SUPPORT
-
 
 /*  ------------------------ UI timer ISR ---------------------------   */
 
@@ -112,6 +109,7 @@ void setup() {
 
   OC::DEBUG::Init();
   OC::DigitalInputs::Init();
+  delay(100); 
   OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
   OC::DAC::Init(&OC::calibration_data.dac);
 
