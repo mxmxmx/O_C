@@ -562,7 +562,7 @@ public:
                      CONSTRAIN(_probability, 0, 255);
                     break;
                     default: // range
-                      _range += ((_pitch + 63) >> 6);
+                    _range += ((_pitch + 15) >> 5);
                      CONSTRAIN(_range, 1, 120);
                      break;
                 }
