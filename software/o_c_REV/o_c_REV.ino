@@ -100,7 +100,7 @@ void FASTRUN CORE_timer_ISR() {
 /*       ---------------------------------------------------------         */
 
 void setup() {
-  delay(100);
+  delay(50);
   NVIC_SET_PRIORITY(IRQ_PORTB, 0); // TR1 = 0 = PTB16
   SPI_init();
   SERIAL_PRINTLN("* O&C BOOTING...");
@@ -108,7 +108,7 @@ void setup() {
 
   OC::DEBUG::Init();
   OC::DigitalInputs::Init();
-  delay(500); 
+  delay(750); 
   OC::ADC::Init(&OC::calibration_data.adc); // Yes, it's using the calibration_data before it's loaded...
   OC::DAC::Init(&OC::calibration_data.dac);
 

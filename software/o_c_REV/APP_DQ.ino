@@ -173,10 +173,12 @@ public:
 
   void set_scale_at_slot(int scale, uint16_t mask, int root, int transpose, uint8_t scale_slot) {
 
-    if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot)) {
+    if (scale != get_scale(scale_slot) || mask != get_mask(scale_slot) || root != root_last_ || transpose != transpose_last_) {
  
       const OC::Scale &scale_def = OC::Scales::GetScale(scale);
-   
+      root_last_ = root;
+      transpose_last_ = transpose;
+      
       if (0 == (mask & ~(0xffff << scale_def.num_notes)))
         mask |= 0x1;
       switch (scale_slot) {  
@@ -394,6 +396,8 @@ public:
     active_scale_slot_ = 0;
     display_scale_slot_ = 0;
     display_root_ = 0;
+    root_last_ = 0;
+    transpose_last_ = 0;
     prev_scale_slot_ = 0;
     scale_advance_ = 0;
     scale_advance_state_ = 0;
@@ -1028,6 +1032,8 @@ private:
   int active_scale_slot_;
   int display_scale_slot_;
   int display_root_;
+  int root_last_;
+  int transpose_last_;
   int prev_scale_slot_;
   int8_t scale_advance_;
   int8_t scale_advance_state_;
