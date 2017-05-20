@@ -564,11 +564,13 @@ public:
                 turing_display_length_ = _length;
                 
                 _pitch = turing_machine_.Clock();
-                // scale LFSR output
-                if (_length < 12) {
+                
+                // scale LFSR output (0 - 4095) / compensate for length
+                if (_length < 12)
                   _pitch = _pitch << (12 -_length);
-                  _pitch &= 0xFFF;
-                }
+                else 
+                  _pitch = _pitch >> (_length - 12);
+                _pitch &= 0xFFF;
               }
               break; 
               case ASR_CHANNEL_SOURCE_BYTEBEAT:
@@ -769,11 +771,11 @@ const char* const tm_CV_destinations[] = {
 };
 
 const char* const bb_CV_destinations[] = {
-  "M/A", "EQN", "P0", "P1", "P2"
+  "igain", "eqn", "P0", "P1", "P2"
 };
 
 const char* const int_seq_CV_destinations[] = {
-  "M/A", "seq", "strt", "len", "strd", "mod"
+  "igain", "seq", "strt", "len", "strd", "mod"
 };
 
 
