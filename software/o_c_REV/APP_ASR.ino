@@ -769,11 +769,11 @@ const char* const tm_CV_destinations[] = {
 };
 
 const char* const bb_CV_destinations[] = {
-  "M/A", "EQN", "P0", "P1", "P2"
+  "igain", "eqn", "P0", "P1", "P2"
 };
 
 const char* const int_seq_CV_destinations[] = {
-  "M/A", "seq", "strt", "len", "strd", "mod"
+  "igain", "seq", "strt", "len", "strd", "mod"
 };
 
 
