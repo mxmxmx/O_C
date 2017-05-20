@@ -37,12 +37,18 @@ namespace menu = OC::menu; // Ugh. This works for all .ino files
 #define NUM_ASR_CHANNELS 0x4
 #define ASR_MAX_ITEMS 256 // = ASR ring buffer size. 
 #define ASR_HOLD_BUF_SIZE ASR_MAX_ITEMS / NUM_ASR_CHANNELS // max. delay size 
-#define NUM_INPUT_SCALING 20 // # steps for input sample scaling (sb)
+#define NUM_INPUT_SCALING 40 // # steps for input sample scaling (sb)
 
 // CV input gain multipliers 
 const int32_t multipliers[NUM_INPUT_SCALING] = {
-  6554, 13107, 19661, 26214, 32768, 39322, 45875, 52429, 58982, 65536, 72090, 78643, 85197, 91750, 98304, 104858, 111411, 117964, 124518, 131072
+  // 0.0 / 2.0 in 0.05 steps
+  3277, 6554, 9830, 13107, 16384, 19661, 22938, 26214, 29491, 32768, 
+  36045, 39322, 42598, 45875, 49152, 52429, 55706, 58982, 62259, 65536, 
+  68813, 72090, 75366, 78643, 81920, 85197, 88474, 91750, 95027, 98304, 
+  101581,104858, 108134, 111411, 114688, 117964, 121242, 124518, 127795, 131072
 };
+
+const uint8_t MULT_ONE = 19; // == 65536, see above
 
 enum ASRSettings {
   ASR_SETTING_SCALE,
@@ -515,7 +521,7 @@ public:
               CONSTRAIN(_transpose, -12, 12); 
             break;
             case ASR_DEST_INPUT_SCALING:
-              _mult += (OC::ADC::value<ADC_CHANNEL_4>() + 127) >> 8;
+              _mult += (OC::ADC::value<ADC_CHANNEL_4>() + 63) >> 7;
               CONSTRAIN(_mult, 0, NUM_INPUT_SCALING - 1);
             break;
             // CV for buffer length happens in updateASR_indexed
@@ -555,7 +561,7 @@ public:
                      CONSTRAIN(_probability, 0, 255);
                     break;
                     default: // mult
-                     _mult += ((_pitch + 255) >> 9);
+                     _mult += ((_pitch + 63) >> 7);
                     break;
                 }
                 
@@ -564,11 +570,13 @@ public:
                 turing_display_length_ = _length;
                 
                 _pitch = turing_machine_.Clock();
-                // scale LFSR output
-                if (_length < 12) {
+                
+                // scale LFSR output (0 - 4095) / compensate for length
+                if (_length < 12)
                   _pitch = _pitch << (12 -_length);
-                  _pitch &= 0xFFF;
-                }
+                else 
+                  _pitch = _pitch >> (_length - 12);
+                _pitch &= 0xFFF;
               }
               break; 
               case ASR_CHANNEL_SOURCE_BYTEBEAT:
@@ -598,7 +606,7 @@ public:
                      _bytebeat_p2 = USAT16(_bytebeat_p2);
                     break;
                     default: // mult
-                     _mult += ((_pitch + 255) >> 9);
+                     _mult += ((_pitch + 63) >> 7);
                     break;
                 }
     
@@ -644,7 +652,7 @@ public:
                    CONSTRAIN(_int_seq_modulus, 2, 121);
                   break;
                   default: // mult
-                   _mult += ((_pitch + 255) >> 8);
+                   _mult += ((_pitch + 63) >> 7);
                   break;
                 }
              
@@ -669,15 +677,15 @@ public:
     
               case ASR_CHANNEL_SOURCE_TURING:
                 if (get_turing_CV() == 0x0)
-                  _mult += ((_pitch + 255) >> 9);
+                  _mult += ((_pitch + 63) >> 7);
               break;
               case ASR_CHANNEL_SOURCE_INTEGER_SEQUENCES:
                 if (get_int_seq_CV() == 0x0)
-                  _mult += ((_pitch + 255) >> 9);
+                  _mult += ((_pitch + 63) >> 7);
               break;
               case ASR_CHANNEL_SOURCE_BYTEBEAT:
                 if (get_bytebeat_CV() == 0x0)
-                  _mult += ((_pitch + 255) >> 9);
+                  _mult += ((_pitch + 63) >> 7);
               break;
               default:
               break;
@@ -702,7 +710,7 @@ public:
              int32_t _sample = _asr_buffer[i];
           
             // scale sample
-             if (_mult != 9) {  
+             if (_mult != MULT_ONE) {  
                _sample = signed_multiply_32x16b(multipliers[_mult], _sample);
                _sample = signed_saturate_rshift(_sample, 16, 0);
              }
@@ -752,8 +760,11 @@ private:
   ASRSettings enabled_settings_[ASR_SETTING_LAST];
 };
 
-const char* const mult[20] = {
-  "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0"
+const char* const mult[NUM_INPUT_SCALING] = {
+  "0.05", "0.10", "0.15", "0.20", "0.25", "0.30", "0.35", "0.40", "0.45", "0.50", 
+  "0.55", "0.60", "0.65", "0.70", "0.75", "0.80", "0.85", "0.90", "0.95", "1.00", 
+  "1.05", "1.10", "1.15", "1.20", "1.25", "1.30", "1.35", "1.40", "1.45", "1.50",
+  "1.55", "1.60", "1.65", "1.70", "1.75", "1.80", "1.85", "1.90", "1.95", "2.00"
 };
 
 const char* const asr_input_sources[] = {
@@ -769,11 +780,11 @@ const char* const tm_CV_destinations[] = {
 };
 
 const char* const bb_CV_destinations[] = {
-  "M/A", "EQN", "P0", "P1", "P2"
+  "igain", "eqn", "P0", "P1", "P2"
 };
 
 const char* const int_seq_CV_destinations[] = {
-  "M/A", "seq", "strt", "len", "strd", "mod"
+  "igain", "seq", "strt", "len", "strd", "mod"
 };
 
 
@@ -783,7 +794,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, ASR_HOLD_BUF_SIZE - 1, "buf.index", NULL, settings::STORAGE_TYPE_U8 },
-  { 9, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
+  { MULT_ONE, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
   #ifdef BUCHLA_SUPPORT
