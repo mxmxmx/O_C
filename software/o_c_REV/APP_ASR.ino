@@ -63,6 +63,7 @@ enum ASRSettings {
   ASR_SETTING_CV4_DESTINATION,
   ASR_SETTING_TURING_LENGTH,
   ASR_SETTING_TURING_PROB,
+  ASR_SETTING_TURING_RANGE,
   ASR_SETTING_TURING_CV_SOURCE,
   ASR_SETTING_BYTEBEAT_EQUATION,
   ASR_SETTING_BYTEBEAT_P0,
@@ -188,7 +189,11 @@ public:
   uint8_t get_turing_probability() const {
     return values_[ASR_SETTING_TURING_PROB];
   }
-  
+
+  uint8_t get_turing_range() const {
+    return values_[ASR_SETTING_TURING_RANGE];
+  }
+    
   uint8_t get_turing_CV() const {
     return values_[ASR_SETTING_TURING_CV_SOURCE];
   }
@@ -411,6 +416,7 @@ public:
       case ASR_CHANNEL_SOURCE_TURING:
         *settings++ = ASR_SETTING_TURING_LENGTH;
         *settings++ = ASR_SETTING_TURING_PROB;
+        *settings++ = ASR_SETTING_TURING_RANGE;
         *settings++ = ASR_SETTING_TURING_CV_SOURCE;
        break;
       case ASR_CHANNEL_SOURCE_BYTEBEAT:
@@ -542,7 +548,8 @@ public:
               {
                 int16_t _length = get_turing_length();
                 int16_t _probability = get_turing_probability();
-  
+                int16_t _range = get_turing_range();
+                 
                 // _pitch can do other things now -- 
                 switch (get_turing_CV()) {
   
@@ -554,21 +561,28 @@ public:
                      _probability += ((_pitch + 7) >> 4);
                      CONSTRAIN(_probability, 0, 255);
                     break;
-                    default: // mult
-                     _mult += ((_pitch + 255) >> 9);
-                    break;
+                    default: // range
+                    _range += ((_pitch + 15) >> 5);
+                     CONSTRAIN(_range, 1, 120);
+                     break;
                 }
                 
                 turing_machine_.set_length(_length);
                 turing_machine_.set_probability(_probability); 
                 turing_display_length_ = _length;
-                
-                _pitch = turing_machine_.Clock();
-                // scale LFSR output
-                if (_length < 12) {
-                  _pitch = _pitch << (12 -_length);
-                  _pitch &= 0xFFF;
-                }
+
+                uint32_t _shift_register = turing_machine_.Clock();   
+                // Since our range is limited anyway, just grab the last byte for lengths > 8,
+                // otherwise scale to use bits. 
+                uint32_t shift = turing_machine_.length();
+                uint32_t _scaled = (_shift_register & 0xff) * _range;
+                _scaled = _scaled >> (shift > 7 ? 8 : shift);
+        
+                // The quantizer uses a lookup codebook with 128 entries centered
+                // about 0, so we use the range/scaled output to lookup a note
+                // directly instead of changing to pitch first.
+                _pitch =
+                     quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root() << 7);
               }
               break; 
               case ASR_CHANNEL_SOURCE_BYTEBEAT:
@@ -769,11 +783,11 @@ const char* const tm_CV_destinations[] = {
 };
 
 const char* const bb_CV_destinations[] = {
-  "M/A", "EQN", "P0", "P1", "P2"
+  "igain", "eqn", "P0", "P1", "P2"
 };
 
 const char* const int_seq_CV_destinations[] = {
-  "M/A", "seq", "strt", "len", "strd", "mod"
+  "igain", "seq", "strt", "len", "strd", "mod"
 };
 
 
@@ -796,6 +810,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
+  { 15, 1, 120, "> LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
