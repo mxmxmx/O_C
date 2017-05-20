@@ -396,7 +396,7 @@ public:
       if (ticks_since_last_freq_ > 2000) {
         int32_t new_auto_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_];
         // write to DAC and update data
-        if (new_auto_calibration_point >= 65536) {
+        if (new_auto_calibration_point >= 65536 || new_auto_calibration_point < 0) {
           auto_error_ = true;
           autotuner_step_++;
         }
