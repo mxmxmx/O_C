@@ -343,13 +343,11 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
          int _root = owner_->get_root(edit_this_scale_) + event.value;
          CONSTRAIN(_root, 0, 11);
          owner_->set_scale_at_slot(owner_->get_scale(edit_this_scale_), mask_, _root, owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
-         scale_changed = true;
        }
        else {
          int _transpose = owner_->get_transpose(edit_this_scale_) + event.value;
          CONSTRAIN(_transpose, -12, 12);
          owner_->set_scale_at_slot(owner_->get_scale(edit_this_scale_), mask_, owner_->get_root(edit_this_scale_), _transpose, edit_this_scale_); 
-         scale_changed = true; 
        }
     }
   }
