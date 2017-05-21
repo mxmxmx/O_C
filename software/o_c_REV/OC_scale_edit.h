@@ -31,6 +31,8 @@ public:
     num_notes_ = 0;
     edit_this_scale_ = 0;
     SEQ_MODE = false;
+    edit_page_ = 0;
+    ticks_ = 0;
   }
 
   void Init_seq() {
@@ -42,6 +44,8 @@ public:
     num_notes_ = 0;
     edit_this_scale_ = 0;
     SEQ_MODE = true;
+    edit_page_ = 0;
+    ticks_ = 0;
   }
 
   bool active() const {
@@ -88,7 +92,10 @@ private:
   size_t cursor_pos_;
   size_t num_notes_;
   int8_t edit_this_scale_;
+  // meta-Q: 
   bool SEQ_MODE;
+  uint8_t edit_page_; 
+  uint32_t ticks_;
 
   void BeginEditing();
   void BeginEditing_Seq();  
@@ -117,14 +124,14 @@ template <typename Owner>
 void ScaleEditor<Owner>::Draw() {
   size_t num_notes = num_notes_;
 
-  static constexpr weegfx::coord_t kMinWidth = 8 * 7;
+  static constexpr weegfx::coord_t kMinWidth = 8 * 7 + 2;
 
   weegfx::coord_t w =
-    mutable_scale_ ? (num_notes + 1) * 7 : num_notes * 7;
+    mutable_scale_ ? ((num_notes + 1) * 7) : (num_notes * 7);
 
-  if (w < kMinWidth) w = kMinWidth;
+  if (w < kMinWidth || edit_page_) w = kMinWidth;
 
-  weegfx::coord_t x = 64 - (w + 1)/ 2;
+  weegfx::coord_t x = 64 - (w + 1) / 2;
   weegfx::coord_t y = 16 - 3;
   weegfx::coord_t h = 36;
 
@@ -138,54 +145,84 @@ void ScaleEditor<Owner>::Draw() {
   graphics.print(scale_name_);
 
   if (SEQ_MODE) {
+    ticks_++;
     uint8_t id = edit_this_scale_;
     if (edit_this_scale_ == owner_->get_scale_select())
       id += 4;
     graphics.print(OC::Strings::scale_id[id]);
   }
 
-  graphics.setPrintPos(x, y + 24);
-  if (cursor_pos_ != num_notes) {
-    graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
-    if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
-      graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
-    else if (mutable_scale_)
-      graphics.drawBitmap8(x + 1, y + 23, 4, bitmap_indicator_4x8);
-
-    uint32_t note_value = scale_->notes[cursor_pos_];
-    uint32_t cents = (note_value * 100) >> 7;
-    uint32_t frac_cents = ((note_value * 100000) >> 7) - cents * 1000;
-    // move print position, so that things look somewhat nicer
-    if (cents < 10)
-      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -3, 0);
-    else if (cents < 100)
-      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -2, 0);
-    else if (cents < 1000)
-      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -1, 0);
-    // justify left ...  
-    if (! mutable_scale_)
-      graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -1, 0);
-    graphics.printf("%4u.%02uc", cents, (frac_cents + 5) / 10);
-
-  } else {
-    graphics.print((int)num_notes, 2);
-  }
-
-  x += 2; y += 10;
-  uint16_t mask = mask_;
-  for (size_t i = 0; i < num_notes; ++i, x += 7, mask >>= 1) {
-    if (mask & 0x1)
-      graphics.drawRect(x, y, 4, 8);
+  if (SEQ_MODE && edit_page_) {
+    // edit root / transpose
+    x += w / 2 - (25 + 3); y += 10;
+    graphics.drawFrame(x, y, 25, 20);
+    graphics.drawFrame(x + 32, y, 25, 20);
+    
+    // print root:
+    int root = owner_->get_root(edit_this_scale_);
+    if (root == 1 || root == 3 || root == 6 || root == 8 || root == 10)
+      graphics.setPrintPos(x + 7, y + 7);
+    else 
+      graphics.setPrintPos(x + 9, y + 7);
+    graphics.print(OC::Strings::note_names_unpadded[root]);
+    // print transpose:
+    int transpose = owner_->get_transpose(edit_this_scale_);
+    graphics.setPrintPos(x + 32 + 5, y + 7);
+    if (transpose >= 0)
+      graphics.print("+");
+    graphics.print(transpose);
+    // draw cursor
+    if (edit_page_ == 0x1)
+      graphics.invertRect(x - 1, y - 1, 27, 22); 
     else
-      graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4x8);
-
-    if (i == cursor_pos_)
-      graphics.drawFrame(x - 2, y - 2, 8, 12);
+      graphics.invertRect(x + 32 - 1, y - 1, 27, 22);
   }
-  if (mutable_scale_) {
-    graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
-    if (cursor_pos_ == num_notes)
-      graphics.drawFrame(x - 2, y - 2, 8, 12);
+  else {
+    // edit scale    
+    graphics.setPrintPos(x, y + 24);
+    if (cursor_pos_ != num_notes) {
+      graphics.movePrintPos(weegfx::Graphics::kFixedFontW, 0);
+      if (mutable_scale_ && OC::ui.read_immediate(OC::CONTROL_BUTTON_L))
+        graphics.drawBitmap8(x + 1, y + 23, kBitmapEditIndicatorW, bitmap_edit_indicators_8);
+      else if (mutable_scale_)
+        graphics.drawBitmap8(x + 1, y + 23, 4, bitmap_indicator_4x8);
+  
+      uint32_t note_value = scale_->notes[cursor_pos_];
+      uint32_t cents = (note_value * 100) >> 7;
+      uint32_t frac_cents = ((note_value * 100000) >> 7) - cents * 1000;
+      // move print position, so that things look somewhat nicer
+      if (cents < 10)
+        graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -3, 0);
+      else if (cents < 100)
+        graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -2, 0);
+      else if (cents < 1000)
+        graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -1, 0);
+      // justify left ...  
+      if (! mutable_scale_)
+        graphics.movePrintPos(weegfx::Graphics::kFixedFontW * -1, 0);
+      graphics.printf("%4u.%02uc", cents, (frac_cents + 5) / 10);
+  
+    } else {
+      graphics.print((int)num_notes);
+    }
+
+    x += mutable_scale_ ? (w >> 0x1) - (((num_notes) * 7 + 4) >> 0x1) : (w >> 0x1) - (((num_notes - 1) * 7 + 4) >> 0x1); 
+    y += 10;
+    uint16_t mask = mask_;
+    for (size_t i = 0; i < num_notes; ++i, x += 7, mask >>= 1) {
+      if (mask & 0x1)
+        graphics.drawRect(x, y, 4, 8);
+      else
+        graphics.drawBitmap8(x, y, 4, bitmap_empty_frame4x8);
+  
+      if (i == cursor_pos_)
+        graphics.drawFrame(x - 2, y - 2, 8, 12);
+    }
+    if (mutable_scale_) {
+      graphics.drawBitmap8(x, y, 4, bitmap_end_marker4x8);
+      if (cursor_pos_ == num_notes)
+        graphics.drawFrame(x - 2, y - 2, 8, 12);
+    }
   }
 }
 
@@ -218,73 +255,100 @@ void ScaleEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
     
     if (SEQ_MODE && OC::ui.read_immediate(OC::CONTROL_BUTTON_UP)) {
       
-        // we're in Meta-Q, so we change the scale:
-        int _scale = owner_->get_scale(edit_this_scale_) + event.value;
-        CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
-        
-        if (_scale == OC::Scales::SCALE_NONE) {
-           // just skip this here ...
-           if (event.value > 0) _scale++;
-           else _scale--;
-        }
-        // update active scale with mask/root/transpose settings, and set flag:
-        owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
-        scale_changed = true; 
-        
-        if (_scale < OC::Scales::SCALE_USER_LAST) {
-          scale_ = mutable_scale_ = &OC::user_scales[_scale];
-          scale_name_ = OC::scale_names_short[_scale];
-        } 
-        else {
-          scale_ = &OC::Scales::GetScale(_scale);
-          mutable_scale_ = nullptr;
-          scale_name_ = OC::scale_names_short[_scale];
-        }
-        cursor_pos_ = 0;
-        num_notes_ = scale_->num_notes;
-        mask_ = owner_->get_scale_mask(edit_this_scale_); // ? can go, because the mask didn't change
+          // we're in Meta-Q, so we can change the scale:
+         
+          int _scale = owner_->get_scale(edit_this_scale_) + event.value;
+          CONSTRAIN(_scale, OC::Scales::SCALE_USER_0, OC::Scales::NUM_SCALES-1);
+          
+          if (_scale == OC::Scales::SCALE_NONE) {
+             // just skip this here ...
+             if (event.value > 0) 
+                _scale++;
+             else 
+                _scale--;
+          }
+          // update active scale with mask/root/transpose settings, and set flag:
+          owner_->set_scale_at_slot(_scale, mask_, owner_->get_root(edit_this_scale_), owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
+          scale_changed = true; 
+          
+          if (_scale < OC::Scales::SCALE_USER_LAST) {
+            scale_ = mutable_scale_ = &OC::user_scales[_scale];
+            scale_name_ = OC::scale_names_short[_scale];
+          } 
+          else {
+            scale_ = &OC::Scales::GetScale(_scale);
+            mutable_scale_ = nullptr;
+            scale_name_ = OC::scale_names_short[_scale];
+          }
+          cursor_pos_ = 0;
+          num_notes_ = scale_->num_notes;
+          mask_ = owner_->get_scale_mask(edit_this_scale_); // ? can go, because the mask didn't change
+          ticks_ = 0;
+    }
+    else if (SEQ_MODE && edit_page_) {
+      // toggle root/tranpose: 
+      uint8_t item = edit_page_ + event.value;
+      CONSTRAIN(item, 1, 2);
+      edit_page_ = item;    
     }
     else {
       move_cursor(event.value);
     }
   } else if (OC::CONTROL_ENCODER_R == event.control) {
-    bool handled = false;
-    if (mutable_scale_) {
-      if (cursor_pos_ < num_notes_) {
-        if (event.mask & OC::CONTROL_BUTTON_L) {
-          OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
-          change_note(cursor_pos_, event.value, false);
-          scale_changed = true;
-          handled = true;
-        }
-      } else {
-        if (cursor_pos_ == num_notes_) {
-          int num_notes = num_notes_;
-          num_notes += event.value;
-          CONSTRAIN(num_notes, kMinScaleLength, kMaxScaleLength);
 
-          num_notes_ = num_notes;
-          if (event.value > 0) {
-            for (size_t pos = cursor_pos_; pos < num_notes_; ++pos)
-              change_note(pos, 0, false);
-
-            // Enable new notes by default
-            mask |= ~(0xffff << (num_notes_ - cursor_pos_)) << cursor_pos_;
-          } else {
-            // scale might be shortened to where no notes are active in mask
-            if (0 == (mask & ~(0xffff < num_notes_)))
-              mask |= 0x1;
+    if (!edit_page_) {
+      
+      bool handled = false;
+      if (mutable_scale_) {
+        if (cursor_pos_ < num_notes_) {
+          if (event.mask & OC::CONTROL_BUTTON_L) {
+            OC::ui.IgnoreButton(OC::CONTROL_BUTTON_L);
+            change_note(cursor_pos_, event.value, false);
+            scale_changed = true;
+            handled = true;
           }
-
-          mutable_scale_->num_notes = num_notes_;
-          cursor_pos_ = num_notes_;
-          handled = scale_changed = true;
+        } else {
+          if (cursor_pos_ == num_notes_) {
+            int num_notes = num_notes_;
+            num_notes += event.value;
+            CONSTRAIN(num_notes, kMinScaleLength, kMaxScaleLength);
+  
+            num_notes_ = num_notes;
+            if (event.value > 0) {
+              for (size_t pos = cursor_pos_; pos < num_notes_; ++pos)
+                change_note(pos, 0, false);
+  
+              // Enable new notes by default
+              mask |= ~(0xffff << (num_notes_ - cursor_pos_)) << cursor_pos_;
+            } else {
+              // scale might be shortened to where no notes are active in mask
+              if (0 == (mask & ~(0xffff < num_notes_)))
+                mask |= 0x1;
+            }
+  
+            mutable_scale_->num_notes = num_notes_;
+            cursor_pos_ = num_notes_;
+            handled = scale_changed = true;
+          }
         }
       }
+  
+      if (!handled) {
+          mask = RotateMask(mask_, num_notes_, event.value);
+      }
     }
-
-    if (!handled) {
-        mask = RotateMask(mask_, num_notes_, event.value);
+    else {
+      // update root/tranpose values
+       if (edit_page_ == 0x1) {
+         int _root = owner_->get_root(edit_this_scale_) + event.value;
+         CONSTRAIN(_root, 0, 11);
+         owner_->set_scale_at_slot(owner_->get_scale(edit_this_scale_), mask_, _root, owner_->get_transpose(edit_this_scale_), edit_this_scale_); 
+       }
+       else {
+         int _transpose = owner_->get_transpose(edit_this_scale_) + event.value;
+         CONSTRAIN(_transpose, -12, 12);
+         owner_->set_scale_at_slot(owner_->get_scale(edit_this_scale_), mask_, owner_->get_root(edit_this_scale_), _transpose, edit_this_scale_); 
+       }
     }
   }
 
@@ -316,28 +380,31 @@ void ScaleEditor<Owner>::handleButtonUp(const UI::Event &event) {
     if (!SEQ_MODE)
       invert_mask();
     else {
-      edit_this_scale_++;  
-      if (edit_this_scale_ > 3) 
-        edit_this_scale_ = 0;
-        
-      uint8_t scale = owner_->get_scale(edit_this_scale_);  
-      // Serial.println(scale);
-      if (scale < OC::Scales::SCALE_USER_LAST) {
-        scale_ = mutable_scale_ = &OC::user_scales[scale];
-        scale_name_ = OC::scale_names_short[scale];
-        // Serial.print("Editing mutable scale "); 
-        // Serial.println(scale_name_);
-       } 
-       else {
-        scale_ = &OC::Scales::GetScale(scale);
-        mutable_scale_ = nullptr;
-        scale_name_ = OC::scale_names_short[scale];
-        // Serial.print("Editing const scale "); 
-        // Serial.println(scale_name_);
+      
+      if (ticks_ > 250) {
+        edit_this_scale_++;  
+        if (edit_this_scale_ > 0x3) 
+          edit_this_scale_ = 0;
+          
+        uint8_t scale = owner_->get_scale(edit_this_scale_);  
+        // Serial.println(scale);
+        if (scale < OC::Scales::SCALE_USER_LAST) {
+          scale_ = mutable_scale_ = &OC::user_scales[scale];
+          scale_name_ = OC::scale_names_short[scale];
+          // Serial.print("Editing mutable scale "); 
+          // Serial.println(scale_name_);
+         } 
+         else {
+          scale_ = &OC::Scales::GetScale(scale);
+          mutable_scale_ = nullptr;
+          scale_name_ = OC::scale_names_short[scale];
+          // Serial.print("Editing const scale "); 
+          // Serial.println(scale_name_);
+        }
+        cursor_pos_ = 0;
+        num_notes_ = scale_->num_notes;
+        mask_ = owner_->get_scale_mask(edit_this_scale_);  
       }
-      cursor_pos_ = 0;
-      num_notes_ = scale_->num_notes;
-      mask_ = owner_->get_scale_mask(edit_this_scale_);  
     }
   }
 }
@@ -351,46 +418,64 @@ void ScaleEditor<Owner>::handleButtonDown(const UI::Event &event) {
     if (!SEQ_MODE)
       invert_mask();
     else {
-      edit_this_scale_--;  
-      if (edit_this_scale_ < 0) 
-        edit_this_scale_ = 3; 
-        
-      uint8_t scale = owner_->get_scale(edit_this_scale_);  
-      // Serial.println(scale);
-      if (scale < OC::Scales::SCALE_USER_LAST) {
-        scale_ = mutable_scale_ = &OC::user_scales[scale];
-        scale_name_ = OC::scale_names_short[scale];
-        // Serial.print("Editing mutable scale "); 
-        // Serial.println(scale_name_);
-       } 
-       else {
-        scale_ = &OC::Scales::GetScale(scale);
-        mutable_scale_ = nullptr;
-        scale_name_ = OC::scale_names_short[scale];
-        // Serial.print("Editing const scale "); 
-        // Serial.println(scale_name_);
+      
+      if (ticks_ > 250) {
+        edit_this_scale_--;  
+        if (edit_this_scale_ < 0) 
+          edit_this_scale_ = 3; 
+          
+        uint8_t scale = owner_->get_scale(edit_this_scale_);  
+        // Serial.println(scale);
+        if (scale < OC::Scales::SCALE_USER_LAST) {
+          scale_ = mutable_scale_ = &OC::user_scales[scale];
+          scale_name_ = OC::scale_names_short[scale];
+          // Serial.print("Editing mutable scale "); 
+          // Serial.println(scale_name_);
+         } 
+         else {
+          scale_ = &OC::Scales::GetScale(scale);
+          mutable_scale_ = nullptr;
+          scale_name_ = OC::scale_names_short[scale];
+          // Serial.print("Editing const scale "); 
+          // Serial.println(scale_name_);
+        }
+        cursor_pos_ = 0;
+        num_notes_ = scale_->num_notes;
+        mask_ = owner_->get_scale_mask(edit_this_scale_);
       }
-      cursor_pos_ = 0;
-      num_notes_ = scale_->num_notes;
-      mask_ = owner_->get_scale_mask(edit_this_scale_);
     }
   }
 }
 
 template <typename Owner>
 void ScaleEditor<Owner>::handleButtonLeft(const UI::Event &) {
-  uint16_t m = 0x1 << cursor_pos_;
-  uint16_t mask = mask_;
 
-  if (cursor_pos_ < num_notes_) {
-    // toggle note active state; avoid 0 mask
-    if (mask & m) {
-      if ((mask & ~(0xffff << num_notes_)) != m)
-        mask &= ~m;
-    } else {
-      mask |= m;
+  if (SEQ_MODE && OC::ui.read_immediate(OC::CONTROL_BUTTON_UP)) {
+
+    if (edit_page_ == 0x0) 
+      edit_page_ = 0x1; // switch to root
+    // and don't accidentally change scale slot:  
+    ticks_ = 0x0;
+  }
+  else { 
+    // edit scale mask
+    if (edit_page_)
+      edit_page_ = 0x0;
+    else {
+      uint16_t m = 0x1 << cursor_pos_;
+      uint16_t mask = mask_;
+    
+      if (cursor_pos_ < num_notes_) {
+        // toggle note active state; avoid 0 mask
+        if (mask & m) {
+          if ((mask & ~(0xffff << num_notes_)) != m)
+            mask &= ~m;
+        } else {
+          mask |= m;
+        }
+        apply_mask(mask);
+      } 
     }
-    apply_mask(mask);
   }
 }
 
@@ -474,6 +559,7 @@ void ScaleEditor<Owner>::Close() {
   OC::ui._preemptScreensaver(false);
   owner_ = nullptr;
   edit_this_scale_ = 0;
+  edit_page_ = 0;
 }
 
 }; // namespace OC

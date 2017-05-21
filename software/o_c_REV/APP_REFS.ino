@@ -396,10 +396,16 @@ public:
       if (ticks_since_last_freq_ > 2000) {
         int32_t new_auto_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_];
         // write to DAC and update data
-        OC::DAC::set(dac_channel_, new_auto_calibration_point);
-        OC::DAC::update_auto_channel_calibration_data(dac_channel_, octaves_cnt_, new_auto_calibration_point);
-        ticks_since_last_freq_ = 0x0;
-        octaves_cnt_++;
+        if (new_auto_calibration_point >= 65536 || new_auto_calibration_point < 0) {
+          auto_error_ = true;
+          autotuner_step_++;
+        }
+        else {
+          OC::DAC::set(dac_channel_, new_auto_calibration_point);
+          OC::DAC::update_auto_channel_calibration_data(dac_channel_, octaves_cnt_, new_auto_calibration_point);
+          ticks_since_last_freq_ = 0x0;
+          octaves_cnt_++;
+        }
       }
       // then stop ... 
       if (octaves_cnt_ > OCTAVES) { 
