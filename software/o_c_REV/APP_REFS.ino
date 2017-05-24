@@ -49,9 +49,6 @@ enum ReferenceSetting {
   REF_SETTING_PPQN,
   REF_SETTING_AUTOTUNE,
   REF_SETTING_DUMMY,
-  #ifdef BUCHLA_SUPPORT
-    REF_SETTING_VOLTAGE_SCALING,
-  #endif 
   REF_SETTING_LAST
 };
 
@@ -450,12 +447,8 @@ public:
     }
   }
 
-  uint8_t get_voltage_scaling() const {
-    #ifdef BUCHLA_SUPPORT
-      return values_[REF_SETTING_VOLTAGE_SCALING];
-    #else
-      return 0x0;
-    #endif
+  uint8_t get_voltage_scaling(uint8_t channel) const {
+    return OC::DAC::get_voltage_scaling(channel);
   }
  
   void Update() {
@@ -481,7 +474,7 @@ public:
     }
 
     int32_t semitone = get_semitone();
-    OC::DAC::set(dac_channel_, OC::DAC::semitone_to_scaled_voltage_dac(dac_channel_, semitone, octave, get_voltage_scaling()));
+    OC::DAC::set(dac_channel_, OC::DAC::semitone_to_scaled_voltage_dac(dac_channel_, semitone, octave, OC::DAC::get_voltage_scaling(dac_channel_)));
     last_pitch_ = (semitone + octave * 12) << 7;       
   }
 
@@ -513,9 +506,6 @@ public:
       *settings++ = REF_SETTING_DUMMY;
     }
     
-    #ifdef BUCHLA_SUPPORT
-      *settings++ = REF_SETTING_VOLTAGE_SCALING;
-    #endif
      num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -575,10 +565,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 99, " > mantissa", nullptr, settings::STORAGE_TYPE_U8 },
   { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "> ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 }, // dummy
-  #ifdef BUCHLA_SUPPORT
-  { 0, 0, 2, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U8 }
-  #endif
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // dummy
 };
 
 class ReferencesApp {
@@ -835,7 +822,7 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   int32_t pitch = last_pitch_ ;
   int32_t unscaled_pitch = last_pitch_ ;
 
-  switch (references_app.channels_[chan].get_voltage_scaling()) {
+  switch (references_app.channels_[chan].get_voltage_scaling(chan)) {
       case 1: // 1.2V/oct
           pitch = (pitch * 19661) >> 14 ;
           break;
@@ -870,7 +857,7 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   graphics.drawBitmap8(start_x + 28, 34 - unscaled_octave * 2 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW); // was 60
 
   // Try and round to 3 digits
-  switch (references_app.channels_[chan].get_voltage_scaling()) {
+  switch (references_app.channels_[chan].get_voltage_scaling(chan)) {
       case 1: // 1.2V/oct
           semitone = (semitone * 10000 + 40) / 100;
           break;

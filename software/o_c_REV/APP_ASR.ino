@@ -59,12 +59,6 @@ enum ASRSettings {
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
   ASR_SETTING_BUFFER_LENGTH,
-  #ifdef BUCHLA_SUPPORT
-  ASR_SETTING_VOLTAGE_SCALING_A,
-  ASR_SETTING_VOLTAGE_SCALING_B,
-  ASR_SETTING_VOLTAGE_SCALING_C,
-  ASR_SETTING_VOLTAGE_SCALING_D,
-  #endif
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_CV4_DESTINATION,
   ASR_SETTING_TURING_LENGTH,
@@ -275,31 +269,6 @@ public:
     return int_seq_.get_n();
   }
 
-  #ifdef BUCHLA_SUPPORT
-  uint8_t get_voltage_scaling(int channel_i) const {
-    uint8_t value = 0;
-    switch(channel_i) {
-      case 3:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_D];
-        break;
-      case 2:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_C];
-        break;
-      case 1:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_B];
-        break;
-      default:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_A];
-        break;
-    }
-    return value;
-  }
-  #else
-  uint8_t get_voltage_scaling(int channel_i) const {
-    return 0;
-  }
-  #endif
-
   void toggle_delay_mechanics() {
     delay_type_ = (~delay_type_) & 1u;
   }
@@ -440,13 +409,6 @@ public:
       break;
     } 
 
-    #ifdef BUCHLA_SUPPORT
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
-    #endif
-    
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -727,7 +689,7 @@ public:
              }
 
              _sample = quantizer_.Process(_sample, _root << 7, _transpose);
-             _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, get_voltage_scaling(i));
+             _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, OC::DAC::get_voltage_scaling(i));
              scrolling_history_[i].Push(_sample);
              _asr_buffer[i] = _sample;
          }
@@ -809,12 +771,6 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { MULT_ONE, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
-  #ifdef BUCHLA_SUPPORT
-  { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  #endif
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },

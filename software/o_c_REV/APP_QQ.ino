@@ -87,7 +87,6 @@ enum ChannelSetting {
   CHANNEL_SETTING_INT_SEQ_RANGE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_STRIDE_CV_SOURCE,
   CHANNEL_SETTING_INT_SEQ_RESET_TRIGGER,
-  CHANNEL_SETTING_VOLTAGE_SCALING,
   CHANNEL_SETTING_LAST
 };
 
@@ -201,10 +200,6 @@ public:
 
   int get_fine() const {
     return values_[CHANNEL_SETTING_FINE];
-  }
-
-  uint8_t get_voltage_scaling() const {
-    return values_[CHANNEL_SETTING_VOLTAGE_SCALING];
   }
 
   uint8_t get_aux_cv_dest() const {
@@ -373,12 +368,6 @@ public:
     apply_value(CHANNEL_SETTING_SOURCE, source);
     apply_value(CHANNEL_SETTING_TRIGGER, trigger_source);
 
-    #ifdef BUCHLA_SUPPORT
-      scaling_ = true;
-    #else
-      scaling_ = false;
-    #endif
-
     channel_index_ = source;
     force_update_ = true;
     instant_update_ = false;
@@ -494,14 +483,14 @@ public:
               // directly instead of changing to pitch first.
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
+              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               // Scale range by 128, so 12 steps = 1V
               // We dont' need a calibrated value here, really.
               uint32_t scaled = multiply_u32xu32_rshift(range << 7, shift_register, get_turing_length());
               scaled += get_transpose() << 7;
-              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, scaled, get_octave(), get_voltage_scaling());
+              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, scaled, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
               history_sample = scaled + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
              }
           }
@@ -558,7 +547,7 @@ public:
                 // directly instead of changing to pitch first.
                 int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
-                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
+                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
                 // We dont' need a calibrated value here, really
@@ -599,7 +588,7 @@ public:
               // See above, may need tweaking    
               int32_t pitch =
                   quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
-              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
+              sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
               int octave = get_octave();
@@ -699,7 +688,7 @@ public:
                 // directly instead of changing to pitch first.
                 int32_t pitch =
                   quantizer_.Lookup(64 + range_ / 2 - scaled) + (get_root() << 7);
-                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), get_voltage_scaling());
+                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
                 // We dont' need a calibrated value here, really
@@ -764,7 +753,7 @@ public:
             CONSTRAIN(transpose, -12, 12); 
             
             int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
-            sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, get_voltage_scaling());
+            sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
 
             // continuous mode needs special treatment to give useful results.
             // basically, update on note change only
@@ -831,7 +820,7 @@ public:
               if (_re_quantize) 
                 quantized = quantizer_.Process(pitch, root << 7, transpose);
               if (_re_quantize || _trigger_update) 
-                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, get_voltage_scaling());
+                sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
             } 
             // end special treatment
                  
@@ -1005,9 +994,7 @@ public:
     }
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
-    if (scaling_) 
-        *settings++ = CHANNEL_SETTING_VOLTAGE_SCALING;
-
+  
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -1062,7 +1049,6 @@ public:
 private:
   bool force_update_;
   bool instant_update_;
-  bool scaling_;
   int last_scale_;
   uint16_t last_mask_;
   int32_t last_sample_;
@@ -1164,8 +1150,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "IntSeq mod CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq rng CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "F. stride CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "IntSeq reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "V/octave", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "IntSeq reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 }
 };
  
 // WIP refactoring to better encapsulate and for possible app interface change

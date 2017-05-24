@@ -146,8 +146,6 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_BROWNIAN_CV,
   SEQ_CHANNEL_SETTING_LENGTH_CV,
   SEQ_CHANNEL_SETTING_DUMMY,
-  SEQ_CHANNEL_SETTING_VOLTAGE_SCALING,
-  SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX,
   SEQ_CHANNEL_SETTING_LAST
 };
 
@@ -279,14 +277,6 @@ public:
 
   int get_octave_aux() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX];
-  }
-
-  uint8_t get_voltage_scaling() const {
-    return values_[SEQ_CHANNEL_SETTING_VOLTAGE_SCALING];
-  }
-
-  uint8_t get_voltage_scaling_aux() const {
-    return values_[SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX];
   }
 
   int8_t get_multiplier() const {
@@ -657,11 +647,6 @@ public:
   void Init(SEQ_ChannelTriggerSource trigger_source, uint8_t id) {
     
     InitDefaults();
-    #ifdef BUCHLA_SUPPORT
-      scaling_ = true;
-    #else
-      scaling_ = false;
-    #endif
     channel_id_ = id;
     octave_toggle_ = false;
     wait_for_EoS_ = false;
@@ -1461,10 +1446,6 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
           *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
           
-          if (scaling_) {
-              *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
-          }
-          
           switch (get_sequence()) {
           
             case 0:
@@ -1508,9 +1489,6 @@ public:
             break;
             case 1: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
-              if (scaling_) {
-                  *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
-              }
             break;
             default:
             break; 
@@ -1528,10 +1506,6 @@ public:
          *settings++ = SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE;  // = transpose SCALE
          *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE; // = rotate mask 
          *settings++ = SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE; // sequence #
-
-         if (scaling_) {
-              *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
-         }
 
          switch (get_sequence()) {
           
@@ -1580,9 +1554,6 @@ public:
             break;
             case 1: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE;
-              if (scaling_) {
-                  *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
-              }
             break;
             default:
             break; 
@@ -1602,7 +1573,7 @@ public:
   
   template <DAC_CHANNEL dacChannel>
   void update_main_channel() {
-    int32_t _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch(), 0, get_voltage_scaling());
+    int32_t _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch(), 0, OC::DAC::get_voltage_scaling(dacChannel));
     OC::DAC::set<dacChannel>(_output);  
     
   }
@@ -1620,7 +1591,7 @@ public:
           _output = get_step_gate();
         break;
         case 1: // copy
-          _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, get_voltage_scaling_aux());
+          _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, OC::DAC::get_voltage_scaling(dacChannel));
         break;
         default:
         break;
@@ -1633,7 +1604,6 @@ public:
 private:
 
   bool channel_id_;
-  bool scaling_;
   bool octave_toggle_;
   bool wait_for_EoS_;
   bool note_repeat_;
@@ -1753,9 +1723,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "-->brwn.prb ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "seq.length  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
-  { 0, 0, 7, "main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "--> aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY, use to store update behaviour
 };
   
 class SEQ_State {
