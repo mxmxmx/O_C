@@ -335,6 +335,7 @@ public:
     delay_type_ = false;
     octave_toggle_ = false;
     freeze_switch_ = false;
+    unfreeze_ = true;
     TR2_state_ = 0x1;
     set_scale(OC::Scales::SCALE_SEMI);
     last_mask_ = 0x0;
@@ -491,7 +492,13 @@ public:
       
      update = trigger_delay_.triggered();
 
-      if (update) {        
+     // hack: don't wake up w/ frozen buffer.
+     if (unfreeze_) {
+        freeze_switch_ = false;
+        octave_toggle_ = false;
+     }
+
+     if (update) {        
 
          bool _freeze_switch, _freeze = digitalReadFast(TR2);
          int8_t _root  = get_root();
@@ -505,6 +512,10 @@ public:
          bool forced_update = force_update_;
          force_update_ = false;
          update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
+
+         // hack, continued
+         if (unfreeze_)
+            unfreeze_ = false;
 
          // cv4 destination, defaults to octave:
          switch(get_cv4_destination()) {
@@ -744,6 +755,7 @@ private:
   bool delay_type_;
   bool octave_toggle_;
   bool freeze_switch_;
+  bool unfreeze_;
   int8_t TR2_state_;
   int last_scale_;
   uint16_t last_mask_;
