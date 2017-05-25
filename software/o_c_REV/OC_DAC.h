@@ -24,8 +24,10 @@ enum OutputVoltageScaling {
   VOLTAGE_SCALING_CARLOS_GAMMA,  // 3
   VOLTAGE_SCALING_BOHLEN_PIERCE, // 4
   VOLTAGE_SCALING_QUARTERTONE,   // 5
-  VOLTAGE_SCALING_1_2V_PER_OCT,  // 6
-  VOLTAGE_SCALING_2V_PER_OCT,    // 7
+  #ifdef BUCHLA_SUPPORT
+    VOLTAGE_SCALING_1_2V_PER_OCT,  // 6
+    VOLTAGE_SCALING_2V_PER_OCT,    // 7
+  #endif
   VOLTAGE_SCALING_LAST  
 } ;
 
@@ -133,12 +135,14 @@ public:
       case VOLTAGE_SCALING_QUARTERTONE:   // Quartertone scaling (just down-scales to 0.5V/oct)
           pitch = pitch >> 1;
           break;
+      #ifdef BUCHLA_SUPPORT
       case VOLTAGE_SCALING_1_2V_PER_OCT:  // 1.2V/oct
           pitch = (pitch * 19661) >> 14;
           break;
       case VOLTAGE_SCALING_2V_PER_OCT:    // 2V/oct
           pitch = pitch << 1;
           break;
+      #endif    
       default: 
           break;
     }

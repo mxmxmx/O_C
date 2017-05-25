@@ -29,6 +29,7 @@
 #include "util/util_settings.h"
 #include "OC_autotuner.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
+#include <math.h>
 
 static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
 #define FREQ_MEASURE_TIMEOUT 512
@@ -260,7 +261,8 @@ public:
       uint32_t _wait = (F_correction_factor_ == 0x1) ? (FREQ_MEASURE_TIMEOUT << 2) :  (FREQ_MEASURE_TIMEOUT >> 2);
   
       if (ticks_since_last_freq_ > _wait) {
-        
+
+        // store frequency, reset, and poke ui to preempt screensaver:
         auto_frequency_ = FreqMeasure.countToFrequency(auto_freq_sum_ / auto_freq_count_);
         history_[0].Push(auto_frequency_);
         auto_freq_sum_ = 0;
@@ -298,19 +300,65 @@ public:
             average += history[i];
           // ... and derive target frequencies
           float target_frequency = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V
-          
-          /* can't use pow ( thus busts the available memory at this point), so we unroll ... */
-          auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
-          auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
-          auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
-          auto_target_frequencies_[3]  =  target_frequency * 1.0f;    // 0V
-          auto_target_frequencies_[4]  =  target_frequency * 2.0f;    // +1V 
-          auto_target_frequencies_[5]  =  target_frequency * 4.0f;    // +2V 
-          auto_target_frequencies_[6]  =  target_frequency * 8.0f;    // +3V 
-          auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
-          auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
-          auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-          auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
+
+          #ifdef BUCHLA_SUPPORT
+          switch(OC::DAC::get_voltage_scaling(dac_channel_)) {
+
+              case VOLTAGE_SCALING_1_2V_PER_OCT: // 1.2V/octave
+                auto_target_frequencies_[0]  =  target_frequency * 0.1767766952966368931843f;  // -3V = 2**(-3.0/1.2)
+                auto_target_frequencies_[1]  =  target_frequency * 0.3149802624737182976666f;  // -2V = 2**(-2.0/1.2)
+                auto_target_frequencies_[2]  =  target_frequency * 0.5612310241546865086093f;  // -1V = 2**(-1.0/1.2)
+                auto_target_frequencies_[3]  =  target_frequency * 1.0f;                       // 0V = 2**(0.0/1.2)
+                auto_target_frequencies_[4]  =  target_frequency * 1.7817974362806785482150f;  // +1V = 2**(1.0/1.2)
+                auto_target_frequencies_[5]  =  target_frequency * 3.1748021039363991668836f;  // +2V = 2**(2.0/1.2)
+                auto_target_frequencies_[6]  =  target_frequency * 5.6568542494923805818985f;  // +3V = 2**(3.0/1.2)
+                auto_target_frequencies_[7]  =  target_frequency * 10.0793683991589855253324f; // +4V = 2**(4.0/1.2)
+                auto_target_frequencies_[8]  =  target_frequency * 17.9593927729499718282113f; // +5V = 2**(5.0/1.2)
+                auto_target_frequencies_[9]  =  target_frequency * 32.0f;                      // +6V = 2**(6.0/1.2)
+                auto_target_frequencies_[10] =  target_frequency * 57.0175179609817419645879f; // ...
+              break;
+              case VOLTAGE_SCALING_2V_PER_OCT: // 2V/octave
+                auto_target_frequencies_[0]  =  target_frequency * 0.3535533905932737863687f;  // -3V - 2**(-3.0/2.0)
+                auto_target_frequencies_[1]  =  target_frequency * 0.5f;                       // -2V = 2**(-2.0/2.0)
+                auto_target_frequencies_[2]  =  target_frequency * 0.7071067811865475727373f;  // -1V = 2**(-1.0/2.0)
+                auto_target_frequencies_[3]  =  target_frequency * 1.0f;                       // 0V  = 2**(0.0/2.0)
+                auto_target_frequencies_[4]  =  target_frequency * 1.4142135623730951454746f;  // +1V = 2**(1.0/2.0)
+                auto_target_frequencies_[5]  =  target_frequency * 2.0f;                       // +2V = 2**(2.0/2.0)
+                auto_target_frequencies_[6]  =  target_frequency * 2.8284271247461902909492f;  // +3V = 2**(3.0/2.0)
+                auto_target_frequencies_[7]  =  target_frequency * 4.0f;                       // +4V = 2**(4.0/2.0)
+                auto_target_frequencies_[8]  =  target_frequency * 5.6568542494923805818985f;  // +5V = 2**(5.0/2.0)
+                auto_target_frequencies_[9]  =  target_frequency * 8.0f;                       // +6V = 2**(6.0/2.0)
+                auto_target_frequencies_[10] =  target_frequency * 11.3137084989847611637970f; // ...
+              break;
+              case VOLTAGE_SCALING_1V_PER_OCT: // 1V/octave
+              default:
+                auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
+                auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
+                auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
+                auto_target_frequencies_[3]  =  target_frequency * 1.0f;    // 0V
+                auto_target_frequencies_[4]  =  target_frequency * 2.0f;    // +1V 
+                auto_target_frequencies_[5]  =  target_frequency * 4.0f;    // +2V 
+                auto_target_frequencies_[6]  =  target_frequency * 8.0f;    // +3V 
+                auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
+                auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
+                auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
+                auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
+              break;
+          }
+          #else
+            /* can't use pow ( thus busts the available memory at this point), so we unroll ... */
+            auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
+            auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
+            auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
+            auto_target_frequencies_[3]  =  target_frequency * 1.0f;    // 0V
+            auto_target_frequencies_[4]  =  target_frequency * 2.0f;    // +1V 
+            auto_target_frequencies_[5]  =  target_frequency * 4.0f;    // +2V 
+            auto_target_frequencies_[6]  =  target_frequency * 8.0f;    // +3V 
+            auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
+            auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
+            auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
+            auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
+          #endif
           
           // reset step, and proceed:
           auto_reset_step();
@@ -336,9 +384,8 @@ public:
         if (_update && (auto_num_passes_ > MAX_NUM_PASSES)) {  
           /* target frequency reached */
           
-          // throw error, if things don't seem to double ...
           if ((autotuner_step_ > DAC_VOLT_2m) && (auto_last_frequency_ * 1.25f > auto_frequency_))
-              auto_error_ = true;
+              auto_error_ = true; // throw error, if things don't seem to double ...
           // average:
           float history[kHistoryDepth]; 
           float average = 0.0f;
@@ -445,10 +492,6 @@ public:
       }
       break;
     }
-  }
-
-  uint8_t get_voltage_scaling(uint8_t channel) const {
-    return OC::DAC::get_voltage_scaling(channel);
   }
  
   void Update() {
@@ -822,16 +865,19 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   int32_t pitch = last_pitch_ ;
   int32_t unscaled_pitch = last_pitch_ ;
 
-  switch (references_app.channels_[chan].get_voltage_scaling(chan)) {
-      case 1: // 1.2V/oct
-          pitch = (pitch * 19661) >> 14 ;
-          break;
-      case 2: // 2V/oct
-          pitch = pitch << 1 ;
-          break;
-      default: // 1V/oct
-          break;
-    }
+  #ifdef BUCHLA_SUPPORT
+    switch (OC::DAC::get_voltage_scaling(chan)) {
+      
+        case VOLTAGE_SCALING_1_2V_PER_OCT: // 1.2V/oct
+            pitch = (pitch * 19661) >> 14 ;
+            break;
+        case VOLTAGE_SCALING_2V_PER_OCT: // 2V/oct
+            pitch = pitch << 1 ;
+            break;
+        default: // 1V/oct
+            break;
+     }
+   #endif 
 
   pitch += (OC::DAC::kOctaveZero * 12) << 7;
   unscaled_pitch += (OC::DAC::kOctaveZero * 12) << 7;
@@ -856,17 +902,22 @@ void ReferenceChannel::RenderScreensaver(weegfx::coord_t start_x, uint8_t chan) 
   graphics.drawHLine(start_x + 16, y, 8);
   graphics.drawBitmap8(start_x + 28, 34 - unscaled_octave * 2 - 1, OC::kBitmapLoopMarkerW, OC::bitmap_loop_markers_8 + OC::kBitmapLoopMarkerW); // was 60
 
-  // Try and round to 3 digits
-  switch (references_app.channels_[chan].get_voltage_scaling(chan)) {
-      case 1: // 1.2V/oct
-          semitone = (semitone * 10000 + 40) / 100;
-          break;
-      case 2: // 2V/oct
-      default: // 1V/oct
-          semitone = (semitone * 10000 + 50) / 120;
-          break;
-    }
-  
+  #ifdef BUCHLA_SUPPORT
+    // Try and round to 3 digits
+    switch (OC::DAC::get_voltage_scaling(chan)) {
+      
+        case VOLTAGE_SCALING_1_2V_PER_OCT: // 1.2V/oct
+            semitone = (semitone * 10000 + 40) / 100;
+            break;
+        case VOLTAGE_SCALING_2V_PER_OCT: // 2V/oct
+        default: // 1V/oct
+            semitone = (semitone * 10000 + 50) / 120;
+            break;
+     }
+   #else
+    semitone = (semitone * 10000 + 50) / 120;
+   #endif
+   
   semitone %= 1000;
   octave -= OC::DAC::kOctaveZero;
 
