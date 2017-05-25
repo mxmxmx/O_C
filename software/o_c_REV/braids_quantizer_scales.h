@@ -274,7 +274,6 @@ const Scale scales[] = {
   // 8-4-SD2 (4 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 4, { 0,  296, 637, 1042} },
   
-#ifdef BUCHLA_SUPPORT
   // Bohlen-Pierce (equal) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
   { 12 << 7, 13, { 0, 118, 236, 354, 473, 591, 709, 827, 945, 1063,  1182,  1300,  1418} },
   // Bohlen-Pierce (just) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
@@ -302,8 +301,7 @@ const Scale scales[] = {
   // 15-5-HD3 (10 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 10, { 0, 96,  200, 312, 434, 567, 714, 879, 1066,  1281} },
   // 12-4-HD3 (8 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 8, { 0,  122, 255, 402, 567, 754, 969, 1224} },
-#endif  
+  { 12 << 7, 8, { 0,  122, 255, 402, 567, 754, 969, 1224} }
   } ;
 }// namespace braids
 

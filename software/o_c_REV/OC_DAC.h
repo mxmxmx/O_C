@@ -17,6 +17,18 @@ enum DAC_CHANNEL {
   DAC_CHANNEL_A, DAC_CHANNEL_B, DAC_CHANNEL_C, DAC_CHANNEL_D, DAC_CHANNEL_LAST
 };
 
+enum OutputVoltageScaling {
+  VOLTAGE_SCALING_1V_PER_OCT,    // 0
+  VOLTAGE_SCALING_CARLOS_ALPHA,  // 1
+  VOLTAGE_SCALING_CARLOS_BETA,   // 2
+  VOLTAGE_SCALING_CARLOS_GAMMA,  // 3
+  VOLTAGE_SCALING_BOHLEN_PIERCE, // 4
+  VOLTAGE_SCALING_QUARTERTONE,   // 5
+  VOLTAGE_SCALING_1_2V_PER_OCT,  // 6
+  VOLTAGE_SCALING_2V_PER_OCT,    // 7
+  VOLTAGE_SCALING_LAST  
+} ;
+
 namespace OC {
 
 class DAC {
@@ -103,29 +115,29 @@ public:
 
  
     switch (voltage_scaling) {
-      case 0: // 1V/oct
+      case VOLTAGE_SCALING_1V_PER_OCT:    // 1V/oct
           // do nothing
           break;
-      case 1: // 1.2V/oct
-          pitch = (pitch * 19661) >> 14 ;
+      case VOLTAGE_SCALING_CARLOS_ALPHA:  // Wendy Carlos alpha scale - scale by 0.77995
+          pitch = (pitch * 25548) >> 15;  // 2^15 * 0.77995 = 25547.571
           break;
-      case 2: // 2V/oct
-          pitch = pitch << 1 ;
+      case VOLTAGE_SCALING_CARLOS_BETA:   // Wendy Carlos beta scale - scale by 0.63833 
+          pitch = (pitch * 20917) >> 15;  // 2^15 * 0.63833 = 20916.776
           break;
-      case 3: // Wendy Carlos alpha scale - scale by 0.77995
-          pitch = (pitch * 25548) >> 15 ; // 2^15 * 0.77995 = 25547.571
+      case VOLTAGE_SCALING_CARLOS_GAMMA:  // Wendy Carlos gamma scale - scale by 0.35099
+          pitch = (pitch * 11501) >> 15;  // 2^15 * 0.35099 = 11501.2403
           break;
-      case 4: // Wendy Carlos beta scale - scale by 0.63833 
-          pitch = (pitch * 20917) >> 15 ; // 2^15 * 0.63833 = 20916.776
+      case VOLTAGE_SCALING_BOHLEN_PIERCE: // Bohlen-Pierce macrotonal scale - scale by 1.585
+          pitch = (pitch * 25969) >> 14;  // 2^14 * 1.585 = 25968.64
           break;
-      case 5: // Wendy Carlos gamma scale - scale by 0.35099
-          pitch = (pitch * 11501) >> 15 ; // 2^15 * 0.35099 = 11501.2403
+      case VOLTAGE_SCALING_QUARTERTONE:   // Quartertone scaling (just down-scales to 0.5V/oct)
+          pitch = pitch >> 1;
           break;
-      case 6: // Bohlen-Pierce macrotonal scale - scale by 1.585
-          pitch = (pitch * 25969) >> 14 ; // 2^14 * 1.585 = 25968.64
+      case VOLTAGE_SCALING_1_2V_PER_OCT:  // 1.2V/oct
+          pitch = (pitch * 19661) >> 14;
           break;
-      case 7: // Quartertone scaling (just down-scales to 0.5V/oct)
-          pitch = pitch >> 1 ;
+      case VOLTAGE_SCALING_2V_PER_OCT:    // 2V/oct
+          pitch = pitch << 1;
           break;
       default: 
           break;
@@ -147,7 +159,6 @@ public:
     return sample;
   }
     
-
   // Set channel to semitone value
   template <DAC_CHANNEL channel>
   static void set_semitone(int32_t semitone, int32_t octave_offset) {
