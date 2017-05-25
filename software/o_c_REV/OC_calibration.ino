@@ -256,9 +256,14 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { CV_OFFSET_2, "ADC CV3", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_3, nullptr, 0, 4095 },
   { CV_OFFSET_3, "ADC CV4", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
 
-  { ADC_PITCH_C2, "CV Scaling 1V", "CV1: Input 1V (C2)", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
-  { ADC_PITCH_C4, "CV Scaling 3V", "CV1: Input 3V (C4)", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
-
+  #ifdef BUCHLA_4U
+    { ADC_PITCH_C2, "ADC cal. oct.#4", "CV1: Input 4.8V", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
+    { ADC_PITCH_C4, "ADC cal. oct.#6", "CV1: Input 7.2V", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
+  #else
+    { ADC_PITCH_C2, "CV Scaling 1V", "CV1: Input 1V (C2)", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
+    { ADC_PITCH_C4, "CV Scaling 3V", "CV1: Input 3V (C4)", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
+  #endif
+  
   { CALIBRATION_SCREENSAVER_TIMEOUT, "Screensaver", "Timeout (s)", default_help_r, default_footer, CALIBRATE_SCREENSAVER, 0, nullptr, (OC::Ui::kLongPressTicks * 2 + 500) / 1000, SCREENSAVER_TIMEOUT_MAX_S },
 
   { CALIBRATION_EXIT, "Calibration complete", "Save values? ", select_help, end_footer, CALIBRATE_NONE, 0, OC::Strings::no_yes, 0, 1 }
