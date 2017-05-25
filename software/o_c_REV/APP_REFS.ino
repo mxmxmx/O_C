@@ -29,7 +29,6 @@
 #include "util/util_settings.h"
 #include "OC_autotuner.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
-#include <math.h>
 
 static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
 #define FREQ_MEASURE_TIMEOUT 512
