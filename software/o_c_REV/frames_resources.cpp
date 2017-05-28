@@ -41,6 +41,7 @@ const char* string_table[] = {
   str_dummy,
 };
 
+/*
 const uint16_t lut_easing_in_quartic[] = {
        0,      0,      0,      0,
        0,      0,      0,      0,
@@ -1479,6 +1480,7 @@ const uint16_t* lookup_table_table[] = {
   lut_vca_linear,
   lut_exponential,
 };
+*/
 
 // import numpy
 // def phase_lut(octave):

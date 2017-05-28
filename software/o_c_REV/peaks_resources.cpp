@@ -41,6 +41,7 @@ const char* string_table[] = {
   str_dummy,
 };
 
+/*
 const uint16_t lut_delay_times[] = {
        5,      7,      8,     10,
       12,     14,     16,     18,
@@ -108,6 +109,8 @@ const uint16_t lut_delay_times[] = {
    57121,  57832,  58548,  59271,
    60000,
 };
+*/
+
 const uint16_t lut_gravity[] = {
    33140,  31065,  29132,  27330,
    25650,  24084,  22621,  21256,
@@ -847,6 +850,7 @@ const uint16_t lut_env_little_dipper[] = {
 65315, 65390, 65463, 65535, 
 65535, 
 };
+
 const uint16_t lut_env_sinefold[] = {
           0,    31,    87,   178, 
         272,   368,   465,   563, 
@@ -914,6 +918,9 @@ const uint16_t lut_env_sinefold[] = {
       65262, 65356, 65447, 65535, 
       65535,
 };
+
+
+/*
 const uint16_t lut_raised_cosine[] = {
        0,      2,      9,     22,
       39,     61,     88,    120,
@@ -981,6 +988,9 @@ const uint16_t lut_raised_cosine[] = {
    65495,  65512,  65525,  65532,
    65532,
 };
+*/
+
+/*
 const uint16_t lut_svf_cutoff[] = {
       35,     37,     39,     41,
       44,     46,     49,     52,
@@ -1182,10 +1192,10 @@ const uint16_t lut_svf_scale[] = {
     2293,   2049,   1774,   1447,
     1022,
 };
-
+*/
 
 const uint16_t* lookup_table_table[] = {
-  lut_delay_times,
+  // lut_delay_times,
   lut_gravity,
   lut_env_linear,
   lut_env_expo,
@@ -1198,12 +1208,13 @@ const uint16_t* lookup_table_table[] = {
   lut_env_medium_dipper,
   lut_env_little_dipper,
   lut_env_sinefold,
-  lut_raised_cosine,
-  lut_svf_cutoff,
-  lut_svf_damp,
-  lut_svf_scale,
+  // lut_raised_cosine,
+  // lut_svf_cutoff,
+  // lut_svf_damp,
+  // lut_svf_scale,
 };
 
+/*
 const uint32_t lut_lfo_increments[] = {
     8053,   8326,   8609,   8901,
     9203,   9515,   9838,  10171,
@@ -1271,6 +1282,8 @@ const uint32_t lut_lfo_increments[] = {
   36082043, 37306152, 38571790, 39880365,
   41233335,
 };
+*/
+
 const uint32_t lut_env_increments[] = {
   515416692, 467165981, 424136651, 385689885,
   351273767, 320410310, 292684581, 267735574,
@@ -1338,6 +1351,8 @@ const uint32_t lut_env_increments[] = {
    34665,  34032,  33412,  32806,
    32213,
 };
+
+/*
 const uint32_t lut_oscillator_increments[] = {
   1712437488, 1724846516, 1737345464, 1749934986,
   1762615736, 1775388376, 1788253572, 1801211995,
@@ -1365,13 +1380,13 @@ const uint32_t lut_oscillator_increments[] = {
   3327375433UL, 3351486967UL, 3375773223UL, 3400235468UL,
   3424874976UL,
 };
+*/
 
-
-const uint32_t* lookup_table_32_table[] = {
-  lut_lfo_increments,
-  lut_env_increments,
-  lut_oscillator_increments,
-};
+// const uint32_t* lookup_table_32_table[] = {
+//   lut_lfo_increments,
+//   lut_env_increments,
+//   lut_oscillator_increments,
+// };
 
 
 }  // namespace peaks

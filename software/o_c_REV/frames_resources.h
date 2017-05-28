@@ -44,19 +44,19 @@ typedef uint8_t ResourceId;
 
 extern const char* string_table[];
 
-extern const uint16_t* lookup_table_table[];
+// extern const uint16_t* lookup_table_table[];
 
 extern const uint32_t* lookup_table_hr_table[];
 
 extern const uint8_t* wt_table[];
 
-extern const uint16_t lut_easing_in_quartic[];
-extern const uint16_t lut_easing_out_quartic[];
-extern const uint16_t lut_easing_in_out_sine[];
-extern const uint16_t lut_easing_in_out_bounce[];
-extern const uint16_t lut_response_balance[];
-extern const uint16_t lut_vca_linear[];
-extern const uint16_t lut_exponential[];
+// extern const uint16_t lut_easing_in_quartic[];
+// extern const uint16_t lut_easing_out_quartic[];
+// extern const uint16_t lut_easing_in_out_sine[];
+// extern const uint16_t lut_easing_in_out_bounce[];
+// extern const uint16_t lut_response_balance[];
+// extern const uint16_t lut_vca_linear[];
+// extern const uint16_t lut_exponential[];
 extern const uint32_t lut_increments_vslow[];
 extern const uint32_t lut_increments_slow[];
 extern const uint32_t lut_increments_med[];
@@ -64,20 +64,20 @@ extern const uint32_t lut_increments_fast[];
 extern const uint32_t lut_increments_vfast[];
 extern const uint8_t wt_lfo_waveforms[];
 #define STR_DUMMY 0  // dummy
-#define LUT_EASING_IN_QUARTIC 0
-#define LUT_EASING_IN_QUARTIC_SIZE 1025
-#define LUT_EASING_OUT_QUARTIC 1
-#define LUT_EASING_OUT_QUARTIC_SIZE 1025
-#define LUT_EASING_IN_OUT_SINE 2
-#define LUT_EASING_IN_OUT_SINE_SIZE 1025
-#define LUT_EASING_IN_OUT_BOUNCE 3
-#define LUT_EASING_IN_OUT_BOUNCE_SIZE 1025
-#define LUT_RESPONSE_BALANCE 4
-#define LUT_RESPONSE_BALANCE_SIZE 256
-#define LUT_VCA_LINEAR 5
-#define LUT_VCA_LINEAR_SIZE 1025
-#define LUT_EXPONENTIAL 6
-#define LUT_EXPONENTIAL_SIZE 256
+//#define LUT_EASING_IN_QUARTIC 0
+//#define LUT_EASING_IN_QUARTIC_SIZE 1025
+//#define LUT_EASING_OUT_QUARTIC 1
+//#define LUT_EASING_OUT_QUARTIC_SIZE 1025
+//#define LUT_EASING_IN_OUT_SINE 2
+//#define LUT_EASING_IN_OUT_SINE_SIZE 1025
+//#define LUT_EASING_IN_OUT_BOUNCE 3
+//#define LUT_EASING_IN_OUT_BOUNCE_SIZE 1025
+//#define LUT_RESPONSE_BALANCE 4
+//#define LUT_RESPONSE_BALANCE_SIZE 256
+//#define LUT_VCA_LINEAR 5
+//#define LUT_VCA_LINEAR_SIZE 1025
+//#define LUT_EXPONENTIAL 6
+//#define LUT_EXPONENTIAL_SIZE 256
 #define LUT_INCREMENTS_VSLOW 0
 #define LUT_INCREMENTS_VSLOW_SIZE 159
 #define LUT_INCREMENTS_SLOW 1
