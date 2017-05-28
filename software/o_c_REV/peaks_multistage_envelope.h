@@ -105,10 +105,6 @@ class MultistageEnvelope {
     sustain_point_ = sustain_point;
   }
 
-  inline void set_max_loops(uint8_t max_loops) {
-    max_loops_ = max_loops;
-  }
-  
   inline void set_adsr(
       uint16_t attack,
       uint16_t decay,
@@ -405,6 +401,11 @@ class MultistageEnvelope {
     amplitude_ = amp;
     amplitude_sampled_ = sampled;
   }
+
+  inline void set_max_loops(uint16_t max_loops) {
+    max_loops_ = static_cast<uint8_t>(max_loops >> 9);
+  }
+  
 
   inline uint16_t get_amplitude_value() {
     return(amplitude_) ;

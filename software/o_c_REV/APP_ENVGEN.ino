@@ -87,6 +87,7 @@ enum CVMapping {
   CV_MAPPING_EUCLIDEAN_OFFSET,
   CV_MAPPING_DELAY_MSEC,
   CV_MAPPING_AMPLITUDE,
+  CV_MAPPING_MAX_LOOPS,
   CV_MAPPING_LAST
 };
 
@@ -116,7 +117,7 @@ public:
   static constexpr int kMaxSegments = 4;
   static constexpr int kEuclideanParams = 3;
   static constexpr int kDelayParams = 1;
-  static constexpr int kAmplitudeParams = 1;
+  static constexpr int kAmplitudeParams = 2; // incremented to 2 to cover the MAX_LOOPS parameter
   static constexpr size_t kMaxDelayedTriggers = 32;
 
   struct DelayedTrigger {
@@ -186,8 +187,8 @@ public:
      return static_cast<bool>(values_[ENV_SETTING_SAMPLED_AMPLITUDE]);
   }
 
- uint8_t get_max_loops() const {
-    return values_[ENV_SETTING_MAX_LOOPS];
+  uint16_t get_max_loops() const {
+    return values_[ENV_SETTING_MAX_LOOPS] << 9 ;
   }
 
   // Debug only
@@ -298,7 +299,10 @@ public:
       case  CV_MAPPING_AMPLITUDE:
         segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1] << 5 ;
         break;
-       default:
+      case  CV_MAPPING_MAX_LOOPS:
+        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1] << 2 ;
+        break;
+      default:
         break;
     }
   }
@@ -382,6 +386,7 @@ public:
     s[6] = static_cast<int32_t>(get_euclidean_offset());
     s[7] = get_trigger_delay_ms();
     s[8] = get_amplitude();
+    s[9] = get_max_loops();
 
     apply_cv_mapping(ENV_SETTING_CV1, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV2, cvs, s);
@@ -397,6 +402,7 @@ public:
     CONSTRAIN(s[6], 0, 32);
     CONSTRAIN(s[7], 0, 65535);
     CONSTRAIN(s[8], 0, 65535);
+    CONSTRAIN(s[9], 0, 65535);
 
     // debug only
     // s_euclidean_length_ = s[4];
@@ -441,7 +447,7 @@ public:
     env_.set_release_time_multiplier(get_release_time_multiplier());
 
     // set the looping envelope maximum number of loops
-    env_.set_max_loops(get_max_loops());
+    env_.set_max_loops(s[9]);
 
     OC::DigitalInput trigger_input = get_trigger_input();
     bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
@@ -617,7 +623,7 @@ const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay", "Ampl"
+  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay", "Ampl", "Loops"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
@@ -670,7 +676,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   {0, 0, 13, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   {127, 0, 127, "Amplitude", NULL, settings::STORAGE_TYPE_U8 },
   {0, 0, 1, "Sampled Ampl", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
-  {0, 0, 255, "Max loops", NULL, settings::STORAGE_TYPE_U8 },
+  {0, 0, 127, "Max loops", NULL, settings::STORAGE_TYPE_U8 },
 };
 
 class QuadEnvelopeGenerator {
