@@ -72,6 +72,7 @@ enum EnvelopeSettings {
   ENV_SETTING_RELEASE_TIME_MULTIPLIER,
   ENV_SETTING_AMPLITUDE,
   ENV_SETTING_SAMPLED_AMPLITUDE,
+  ENV_SETTING_MAX_LOOPS,
   ENV_SETTING_LAST
 };
 
@@ -183,6 +184,10 @@ public:
 
   bool is_amplitude_sampled() const {
      return static_cast<bool>(values_[ENV_SETTING_SAMPLED_AMPLITUDE]);
+  }
+
+ uint8_t get_max_loops() const {
+    return values_[ENV_SETTING_MAX_LOOPS];
   }
 
   // Debug only
@@ -343,6 +348,7 @@ public:
     *settings++ = ENV_SETTING_GATE_HIGH;
     *settings++ = ENV_SETTING_AMPLITUDE;
     *settings++ = ENV_SETTING_SAMPLED_AMPLITUDE;
+    *settings++ = ENV_SETTING_MAX_LOOPS;
 
     num_enabled_settings_ = settings - enabled_settings_;
   }
@@ -433,6 +439,9 @@ public:
     env_.set_attack_time_multiplier(get_attack_time_multiplier());
     env_.set_decay_time_multiplier(get_decay_time_multiplier());
     env_.set_release_time_multiplier(get_release_time_multiplier());
+
+    // set the looping envelope maximum number of loops
+    env_.set_max_loops(get_max_loops());
 
     OC::DigitalInput trigger_input = get_trigger_input();
     bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
@@ -661,6 +670,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   {0, 0, 13, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   {127, 0, 127, "Amplitude", NULL, settings::STORAGE_TYPE_U8 },
   {0, 0, 1, "Sampled Ampl", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
+  {0, 0, 255, "Max loops", NULL, settings::STORAGE_TYPE_U8 },
 };
 
 class QuadEnvelopeGenerator {
