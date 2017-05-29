@@ -517,8 +517,8 @@ public:
     if (!is_inverted()) 
       value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
     else
-      value = OC::DAC::MAX_VALUE - env_.ProcessSingleSample(gate_state);
-      
+      value = OC::DAC::MAX_VALUE -  (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
+
     OC::DAC::set<dac_channel>(value);
   }
 
@@ -688,6 +688,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   {127, 0, 127, "Amplitude", NULL, settings::STORAGE_TYPE_U8 },
   {0, 0, 1, "Sampled Ampl", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   {0, 0, 127, "Max loops", NULL, settings::STORAGE_TYPE_U8 },
+  {0, 0, 1, "Inverted", OC::Strings::no_yes, settings::STORAGE_TYPE_U8 },
 };
 
 class QuadEnvelopeGenerator {

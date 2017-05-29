@@ -11,5 +11,7 @@
 //#define BUCHLA_SUPPORT
 /* ------------ uncomment for use with Northernlight 4U version: ------------------------------------  */
 //#define BUCHLA_4U
+/* ------------ uncomment for boring app names ------------------------------------------------------  */
+//#define BORING_APP_NAMES
 
 #endif
