@@ -73,6 +73,7 @@ enum EnvelopeSettings {
   ENV_SETTING_AMPLITUDE,
   ENV_SETTING_SAMPLED_AMPLITUDE,
   ENV_SETTING_MAX_LOOPS,
+  ENV_SETTING_INVERTED,
   ENV_SETTING_LAST
 };
 
@@ -189,6 +190,10 @@ public:
 
   uint16_t get_max_loops() const {
     return values_[ENV_SETTING_MAX_LOOPS] << 9 ;
+  }
+
+  bool is_inverted() const {
+     return static_cast<bool>(values_[ENV_SETTING_INVERTED]);
   }
 
   // Debug only
@@ -353,6 +358,7 @@ public:
     *settings++ = ENV_SETTING_AMPLITUDE;
     *settings++ = ENV_SETTING_SAMPLED_AMPLITUDE;
     *settings++ = ENV_SETTING_MAX_LOOPS;
+    *settings++ = ENV_SETTING_INVERTED;
 
     num_enabled_settings_ = settings - enabled_settings_;
   }
@@ -507,7 +513,12 @@ public:
     gate_raised_ = gate_raised;
 
     // TODO Scale range or offset?
-    uint32_t value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
+    uint32_t value ;
+    if (!is_inverted()) 
+      value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
+    else
+      value = OC::DAC::MAX_VALUE - env_.ProcessSingleSample(gate_state);
+      
     OC::DAC::set<dac_channel>(value);
   }
 
