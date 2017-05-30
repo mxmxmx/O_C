@@ -996,6 +996,7 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
         selected_env.change_value(setting, event.value);
         if (ENV_SETTING_TRIGGER_DELAY_MODE == setting || ENV_SETTING_EUCLIDEAN_LENGTH == setting)
           selected_env.update_enabled_settings();
+          envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
       } else {
         envgen.ui.cursor.Scroll(event.value);
       }
