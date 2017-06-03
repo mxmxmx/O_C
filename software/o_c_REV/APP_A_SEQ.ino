@@ -172,7 +172,7 @@ enum SEQ_ChannelCV_Mapping {
 
 enum SEQ_CLOCKSTATES {
   OFF,
-  ON = 50000
+  ON = 0xFFFF
 };
 
 enum MENU_PAGES {
@@ -644,11 +644,6 @@ public:
   int get_cv_input_range() const {
     return values_[SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES];
   }
-
-  template <DAC_CHANNEL dac_channel>
-  uint16_t get_zero() const {
-    return OC::DAC::get_zero_offset(dac_channel);
-  }
   
   void Init(SEQ_ChannelTriggerSource trigger_source, uint8_t id) {
     
@@ -683,8 +678,6 @@ public:
     ext_frequency_in_ticks_ = 0xFFFFFFFF;
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
     pulse_width_in_ticks_ = get_pulsewidth() << 10;
-    // zero volts (for outputs C/D):
-    _ZERO = OC::calibration_data.dac.calibrated_octaves[(id + 0x2)][OC::DAC::kOctaveZero];
 
     display_num_sequence_ = get_sequence();
     display_mask_ = get_mask(display_num_sequence_);
@@ -865,7 +858,7 @@ public:
          }
          else if (_multiplier <= MULT_BY_ONE && _triggered) {
             // division, mute output:
-            step_state_ = _ZERO;
+            step_state_ = OFF;
          }
          else if (_multiplier > MULT_BY_ONE && _triggered)  {
             // multiplication, force sync, if clocked:
@@ -1629,7 +1622,6 @@ private:
   uint16_t _sync_cnt;
   bool force_update_;
   bool force_scale_update_;
-  uint16_t _ZERO;
   uint8_t clk_src_;
   bool prev_reset_state_;
   bool reset_pending_;
