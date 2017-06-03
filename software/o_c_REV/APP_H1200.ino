@@ -695,6 +695,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   uint8_t nsh_transform_priority_ = h1200_settings.get_nsh_transform_priority();
 
   if (true) {
+    if (triggers) {
         switch (h1200_settings.get_root_offset_cv_src()) {
           case H1200_CV_SOURCE_CV1:
             root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1));
@@ -711,7 +712,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
           default:
             break; 
         } 
-      
+    }
       
         switch (h1200_settings.get_octave_cv_src()) {
           case H1200_CV_SOURCE_CV1:
