@@ -78,6 +78,7 @@ enum H1200Setting {
   H1200_SETTING_CV_SAMPLING,
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_TRIGGER_TYPE,
+  H1200_SETTING_TRIGGER_DELAY,
   H1200_SETTING_EUCLIDEAN_CV1_MAPPING,
   H1200_SETTING_EUCLIDEAN_CV2_MAPPING,
   H1200_SETTING_EUCLIDEAN_CV3_MAPPING,
@@ -207,6 +208,10 @@ public:
     return static_cast<H1200TriggerTypes>(values_[H1200_SETTING_TRIGGER_TYPE]);
   }
 
+  uint16_t get_trigger_delay() const {
+    return values_[H1200_SETTING_TRIGGER_DELAY];
+  }
+
   uint8_t get_euclidean_cv1_mapping() const {
     return values_[H1200_SETTING_EUCLIDEAN_CV1_MAPPING];
   }
@@ -327,6 +332,7 @@ public:
     *settings++ =   H1200_SETTING_CV_SAMPLING;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;
+    *settings++ =   H1200_SETTING_TRIGGER_DELAY;
  
     switch (get_trigger_type()) {
       case H1200_TRIGGER_TYPE_EUCLIDEAN:
@@ -363,7 +369,6 @@ public:
 private:
   int num_enabled_settings_;
   H1200Setting enabled_settings_[H1200_SETTING_LAST];
-  
 };
 
 const char * const output_mode_names[] = {
@@ -428,6 +433,7 @@ SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U8},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
+  { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV1 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV2 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV3 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
@@ -483,6 +489,8 @@ public:
 
     quantizer.Init();
     tonnetz_state.init();
+    trigger_delay_.Init();
+    delayed_triggers_ = 0;
 
     euclidean_counter_ = 0;
     root_sample_ = false;
@@ -595,6 +603,14 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
+  void set_delayed_triggers(uint32_t delayed_triggers) {
+    delayed_triggers_ = delayed_triggers;
+  }
+
+  uint32_t get_delayed_triggers() {
+    return(delayed_triggers_);
+  }
+
   void Render(int32_t root, int inversion, int octave, OutputMode output_mode) {
     tonnetz_state.render(root + octave * 12, inversion);
 
@@ -628,6 +644,8 @@ public:
   OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
   util::RingBuffer<H1200::UiAction, 4> ui_actions;
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
+  uint32_t delayed_triggers_;
   uint32_t euclidean_counter_;
   bool root_sample_ ;
   int32_t root_ ;
@@ -655,6 +673,16 @@ public:
 H1200State h1200_state;
 
 void FASTRUN H1200_clock(uint32_t triggers) {
+
+  h1200_state.trigger_delay_.Update();
+  if (triggers) {
+    h1200_state.trigger_delay_.Push(OC::trigger_delay_ticks[h1200_settings.get_trigger_delay()]);
+    h1200_state.set_delayed_triggers(triggers) ;
+    triggers = 0;
+  }
+  if (h1200_state.trigger_delay_.triggered())
+    triggers = h1200_state.get_delayed_triggers();
+  
   // Reset has priority
   if (triggers & TRIGGER_MASK_TR1) {
     h1200_state.tonnetz_state.reset(h1200_settings.mode());
