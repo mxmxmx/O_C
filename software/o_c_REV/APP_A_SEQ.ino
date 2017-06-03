@@ -20,6 +20,7 @@
 
 
 #include "util/util_settings.h"
+#include "util/util_trigger_delay.h"
 #include "OC_apps.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
@@ -108,6 +109,7 @@ enum SEQ_ChannelSetting {
 
   SEQ_CHANNEL_SETTING_MODE, // 
   SEQ_CHANNEL_SETTING_CLOCK,
+  SEQ_CHANNEL_SETTING_TRIGGER_DELAY,
   SEQ_CHANNEL_SETTING_RESET,
   SEQ_CHANNEL_SETTING_MULT,
   SEQ_CHANNEL_SETTING_PULSEWIDTH,
@@ -267,6 +269,10 @@ public:
     return values_[SEQ_CHANNEL_SETTING_CLOCK];
   }
 
+  uint16_t get_trigger_delay() const {
+    return values_[SEQ_CHANNEL_SETTING_TRIGGER_DELAY];
+  }
+  
   void set_clock_source(uint8_t _src) {
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, _src);
   }
@@ -647,6 +653,7 @@ public:
   void Init(SEQ_ChannelTriggerSource trigger_source, uint8_t id) {
     
     InitDefaults();
+    trigger_delay_.Init();
     channel_id_ = id;
     octave_toggle_ = false;
     wait_for_EoS_ = false;
@@ -769,6 +776,15 @@ public:
      _tock = false;
      _sync = false;
 
+     // trigger delay:
+     if (_playmode < PM_SH1) {
+      
+      trigger_delay_.Update();
+      if (_triggered) 
+        trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+        _triggered = trigger_delay_.triggered();
+     }
+
      // new tick frequency:
      if (_clock_source <= SEQ_CHANNEL_TRIGGER_TR2) {
       
@@ -863,6 +879,7 @@ public:
      else { 
      // S+H mode 
         if (_playmode <= PM_SH4) {
+          
           if (_triggered) {
             // new frequency (used for pulsewidth):
             channel_frequency_in_ticks_ = ext_frequency_in_ticks_;
@@ -1560,7 +1577,7 @@ public:
          }
 
          if (get_playmode() < PM_SH1) {
-           *settings++ =  SEQ_CHANNEL_SETTING_RESET; // =  TD: toggle clock source
+           *settings++ =  SEQ_CHANNEL_SETTING_TRIGGER_DELAY; // 
            *settings++ =  SEQ_CHANNEL_SETTING_CLOCK; // = reset source
          }
       }
@@ -1645,6 +1662,7 @@ private:
   uint8_t prev_playmode_;
   bool pending_sync_;
 
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::Arpeggiator arpeggiator_;
   
   int num_enabled_settings_;
@@ -1686,6 +1704,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
   { 0, 0, 1, "aux. mode", modes, settings::STORAGE_TYPE_U4 },
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "--> pw", NULL, settings::STORAGE_TYPE_U8 },
