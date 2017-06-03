@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "OC_config.h"
+#include "OC_options.h"
 #include "util/util_math.h"
 #include "util/util_macros.h"
 
@@ -38,7 +39,11 @@ public:
   static constexpr size_t kHistoryDepth = 8;
   static constexpr uint16_t MAX_VALUE = 65535; // DAC fullscale 
 
-  static constexpr int kOctaveZero = 3;
+  #ifdef BUCHLA_4U
+    static constexpr int kOctaveZero = 0;
+  #else
+    static constexpr int kOctaveZero = 3;
+  #endif
 
   struct CalibrationData {
     uint16_t calibrated_octaves[DAC_CHANNEL_LAST][OCTAVES + 1];
