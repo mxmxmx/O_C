@@ -1488,6 +1488,7 @@ const uint16_t* lookup_table_table[] = {
 //    phase_increment = frequency / 16667 * (1 << 32)
 //    return(numpy.round(phase_increment).astype(int))
 
+/*
 // phase_lut(15)
 const uint32_t lut_increments_vslow[] = {
         865,  869,  873,  877,  880,  884,  888,  892,  896,  900,  904,
@@ -1525,6 +1526,7 @@ const uint32_t lut_increments_slow[] = {
        3240, 3254, 3268, 3283, 3297, 3312, 3326, 3341, 3356, 3370, 3385,
        3400, 3415, 3430, 3445, 3460
 };
+*/
 
 // phase_lut(13)
 const uint32_t lut_increments_med[] = {
@@ -1545,6 +1547,7 @@ const uint32_t lut_increments_med[] = {
        6800, 6830, 6860, 6890, 6920
 };
 
+/*
 // phase_lut(12)
 const uint32_t lut_increments_fast[] = {
        6920,  6951,  6981,  7012,  7043,  7074,  7105,  7136,  7168,
@@ -1588,13 +1591,14 @@ const uint32_t lut_increments_vfast[] = {
        26033, 26147, 26262, 26378, 26494, 26610, 26727, 26845, 26963,
        27081, 27200, 27320, 27440, 27561, 27682
 };
+*/
 
 const uint32_t* lookup_table_hr_table[] = {
-  lut_increments_vslow,
-  lut_increments_slow,
+  // lut_increments_vslow,
+  // lut_increments_slow,
   lut_increments_med,
-  lut_increments_fast,
-  lut_increments_vfast,
+  // lut_increments_fast,
+  // lut_increments_vfast,
 };
 
 const uint8_t wt_lfo_waveforms[] = {
