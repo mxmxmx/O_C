@@ -1159,7 +1159,7 @@ public:
   void Init() {
     selected_channel = 0;
     cursor.Init(CHANNEL_SETTING_SCALE, CHANNEL_SETTING_LAST - 1);
-    scale_editor.Init();
+    scale_editor.Init(false);
   }
 
   inline bool editing() const {

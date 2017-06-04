@@ -1743,7 +1743,7 @@ public:
     selected_channel = 0;
     cursor.Init(SEQ_CHANNEL_SETTING_MODE, SEQ_CHANNEL_SETTING_LAST - 1);
     pattern_editor.Init();
-    scale_editor.Init();
+    scale_editor.Init(false);
   }
 
   inline bool editing() const {
