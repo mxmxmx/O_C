@@ -277,8 +277,15 @@ void ScaleEditor<Owner>::HandleButtonEvent(const UI::Event &event) {
         handleButtonLeft(event);
         break;
       case OC::CONTROL_BUTTON_R:
-        Close();
-        break;
+      {
+        if (edit_page_ < _SCALING)
+          Close();
+        else
+          edit_page_ = _SCALE;
+      }
+      break;
+      default:
+      break;
     }
   }
   else if (UI::EVENT_BUTTON_LONG_PRESS == event.type) {
