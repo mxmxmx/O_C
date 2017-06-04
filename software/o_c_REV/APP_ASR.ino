@@ -797,7 +797,7 @@ public:
 
   void Init() {
     cursor.Init(ASR_SETTING_SCALE, ASR_SETTING_LAST - 1);
-    scale_editor.Init();
+    scale_editor.Init(false);
     left_encoder_value = OC::Scales::SCALE_SEMI;
   }
   

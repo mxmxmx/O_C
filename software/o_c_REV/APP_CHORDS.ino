@@ -1030,7 +1030,7 @@ class ChordQuantizer {
 public:
   void Init() {
     cursor.Init(CHORDS_SETTING_SCALE, CHORDS_SETTING_LAST - 1);
-    scale_editor.Init();
+    scale_editor.Init(false);
     chord_editor.Init();
     left_encoder_value = OC::Scales::SCALE_SEMI;
   }

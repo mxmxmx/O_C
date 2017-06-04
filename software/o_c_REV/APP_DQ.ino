@@ -1130,7 +1130,7 @@ public:
   void Init() {
     selected_channel = 0;
     cursor.Init(DQ_CHANNEL_SETTING_SCALE1, DQ_CHANNEL_SETTING_LAST - 1);
-    scale_editor.Init_seq();
+    scale_editor.Init(true);
   }
 
   inline bool editing() const {

@@ -21,6 +21,7 @@ namespace OC {
     extern const char * const cv_input_names_none[];
     extern const char * const no_yes[];
     extern const char * const off_on[];
+    extern const char * const scaling_string[];
     #ifdef PRINT_DEBUG
     extern const char * const encoder_config_strings[];
     #endif

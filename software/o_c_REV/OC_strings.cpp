@@ -30,6 +30,8 @@ namespace OC {
 
   const char * const off_on[] = { "off", "on" };
 
+  const char * const scaling_string[] = {"scaling "};
+
   #ifdef PRINT_DEBUG
   const char * const encoder_config_strings[] = { "normal", "R reversed", "L reversed", "LR reversed" };
   #endif
