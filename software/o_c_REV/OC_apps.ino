@@ -241,7 +241,7 @@ void Init(bool reset_settings) {
   global_settings.encoders_enable_acceleration = OC_ENCODERS_ENABLE_ACCELERATION_DEFAULT;
   global_settings.reserved0 = false;
   global_settings.reserved1 = false;
-  global_settings.DAC_scaling = 0; //OC::DAC::DEFAULT_SCALING;
+  global_settings.DAC_scaling = VOLTAGE_SCALING_1V_PER_OCT; 
 
   if (reset_settings) {
     if (ui.ConfirmReset()) {
