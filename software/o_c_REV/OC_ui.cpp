@@ -41,7 +41,7 @@ void Ui::Init() {
 }
 
 void Ui::configure_encoders(EncoderConfig encoder_config) {
-  SERIAL_PRINTLN("Configuring encoders: %s (%x)", Strings::encoder_config_strings[encoder_config], encoder_config);
+  SERIAL_PRINTLN("Configuring encoders: %s (%x)", OC::Strings::encoder_config_strings[encoder_config], encoder_config);
 
   encoder_right_.reverse(encoder_config & ENCODER_CONFIG_R_REVERSED);
   encoder_left_.reverse(encoder_config & ENCODER_CONFIG_L_REVERSED);

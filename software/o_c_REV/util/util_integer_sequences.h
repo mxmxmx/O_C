@@ -137,13 +137,15 @@ public:
       	break;
       case 7:
       	x_ = OC::Strings::digsum_of_n_base5[k_];
-      	break;      	
+      	break;    
+      /*    	
       case 8:
       	x_ = OC::Strings::count_down_by_2[k_];
       	break;      	
       case 9:
       	x_ = OC::Strings::interspersion_of_A163253[k_];
       	break;      	
+      */
       default:
         break;
     }

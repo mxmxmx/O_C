@@ -120,7 +120,7 @@ static constexpr int DEFAULT_APP_INDEX = 0;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
 
 void save_global_settings() {
-  SERIAL_PRINTLN("Saving global settings...");
+  SERIAL_PRINTLN("Save global settings...");
 
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
   memcpy(global_settings.user_patterns, OC::user_patterns, sizeof(OC::user_patterns));
@@ -130,11 +130,11 @@ void save_global_settings() {
   global_settings.DAC_scaling = OC::DAC::store_scaling();
   
   global_settings_storage.Save(global_settings);
-  SERIAL_PRINTLN("Saved global settings in page_index %d", global_settings_storage.page_index());
+  SERIAL_PRINTLN("Saved global settings: page_index %d", global_settings_storage.page_index());
 }
 
 void save_app_data() {
-  SERIAL_PRINTLN("Saving app data... (%u bytes available)", OC::AppData::kAppDataSize);
+  SERIAL_PRINTLN("Save app data... (%u bytes available)", OC::AppData::kAppDataSize);
 
   app_settings.used = 0;
   char *data = app_settings.data;
@@ -148,7 +148,7 @@ void save_app_data() {
     if (storage_size > sizeof(AppChunkHeader) && app.Save) {
       if (data + storage_size > data_end) {
         SERIAL_PRINTLN("*********************");
-        SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
+        SERIAL_PRINTLN("%s: ERROR, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
         SERIAL_PRINTLN("*********************");
         continue;
       }
@@ -176,7 +176,7 @@ void restore_app_data() {
   while (data < data_end) {
     const AppChunkHeader *chunk = reinterpret_cast<const AppChunkHeader *>(data);
     if (data + chunk->length > data_end) {
-      SERIAL_PRINTLN("Uh oh, app chunk length %u exceeds available data left (%u)", chunk->length, data_end - data);
+      SERIAL_PRINTLN("App chunk length %u exceeds available space (%u)", chunk->length, data_end - data);
       break;
     }
 
@@ -245,13 +245,13 @@ void Init(bool reset_settings) {
 
   if (reset_settings) {
     if (ui.ConfirmReset()) {
-      SERIAL_PRINTLN("Erasing EEPROM settings...");
+      SERIAL_PRINTLN("Erase EEPROM ...");
       EEPtr d = EEPROM_GLOBALSETTINGS_START;
       size_t len = EEPROMStorage::LENGTH - EEPROM_GLOBALSETTINGS_START;
       while (len--)
         *d++ = 0;
       SERIAL_PRINTLN("...done");
-      SERIAL_PRINTLN("Skipping loading of global/app settings, using defaults...");
+      SERIAL_PRINTLN("Skip global/app settings, using defaults...");
       global_settings_storage.Init();
       app_data_storage.Init();
     } else {
@@ -260,14 +260,14 @@ void Init(bool reset_settings) {
   }
 
   if (!reset_settings) {
-    SERIAL_PRINTLN("Loading global settings: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
+    SERIAL_PRINTLN("Load global settings: size: %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
                   sizeof(GlobalSettings),
                   GlobalSettingsStorage::PAGESIZE,
                   GlobalSettingsStorage::PAGES,
                   GlobalSettingsStorage::LENGTH);
 
     if (!global_settings_storage.Load(global_settings)) {
-      SERIAL_PRINTLN("Settings not loaded or invalid, using defaults...");
+      SERIAL_PRINTLN("Settings invalid, using defaults...");
     } else {
       SERIAL_PRINTLN("Loaded settings from page_index %d, current_app_id is %02x",
                     global_settings_storage.page_index(),global_settings.current_app_id);
@@ -279,7 +279,7 @@ void Init(bool reset_settings) {
       DAC::restore_scaling(global_settings.DAC_scaling); // recover output scaling settings
     }
 
-    SERIAL_PRINTLN("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
+    SERIAL_PRINTLN("Load app data: size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
                   sizeof(AppData),
                   AppDataStorage::PAGESIZE,
                   AppDataStorage::PAGES,

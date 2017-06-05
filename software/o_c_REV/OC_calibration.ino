@@ -56,7 +56,7 @@ void calibration_reset() {
 }
 
 void calibration_load() {
-  SERIAL_PRINTLN("CalibrationStorage: PAGESIZE=%u, PAGES=%u, LENGTH=%u",
+  SERIAL_PRINTLN("Cal.Storage: PAGESIZE=%u, PAGES=%u, LENGTH=%u",
                  OC::CalibrationStorage::PAGESIZE, OC::CalibrationStorage::PAGES, OC::CalibrationStorage::LENGTH);
 
   calibration_reset();
@@ -64,13 +64,13 @@ void calibration_load() {
   if (!calibration_data_loaded) {
 #ifdef CALIBRATION_LOAD_LEGACY
     if (EEPROM.read(0x2) > 0) {
-      SERIAL_PRINTLN("Calibration not loaded, non-zero data found, trying to import...");
+      SERIAL_PRINTLN("Non-zero data found, trying to import...");
       calibration_read_old();
     } else {
-      SERIAL_PRINTLN("No calibration data found, using defaults");
+      SERIAL_PRINTLN("No calibration data, using defaults");
     }
 #else
-    SERIAL_PRINTLN("No calibration data found, using defaults");
+    SERIAL_PRINTLN("No calibration data, using defaults");
 #endif
   } else {
     SERIAL_PRINTLN("Calibration data loaded...");
@@ -78,7 +78,7 @@ void calibration_load() {
 
   // Fix-up left-overs from development
   if (!OC::calibration_data.adc.pitch_cv_scale) {
-    SERIAL_PRINTLN("NOTE: Pitch CV scale not set, using default...");
+    SERIAL_PRINTLN("Pitch CV scale not set, using default...");
     OC::calibration_data.adc.pitch_cv_scale = OC::ADC::kDefaultPitchCVScale;
   }
 
@@ -87,7 +87,7 @@ void calibration_load() {
 }
 
 void calibration_save() {
-  SERIAL_PRINTLN("Saving calibration data...");
+  SERIAL_PRINTLN("Save calibration data...");
   OC::calibration_storage.Save(OC::calibration_data);
 }
 
@@ -261,8 +261,8 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   { CV_OFFSET_3, "ADC CV4", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_4, nullptr, 0, 4095 },
 
   #ifdef BUCHLA_4U
-    { ADC_PITCH_C2, "ADC cal. oct.#4", "CV1: Input 4.8V", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
-    { ADC_PITCH_C4, "ADC cal. oct.#6", "CV1: Input 7.2V", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
+    { ADC_PITCH_C2, "ADC cal. octave #1", "CV1: Input 1.2V", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
+    { ADC_PITCH_C4, "ADC cal. octave #3", "CV1: Input 3.6V", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
   #else
     { ADC_PITCH_C2, "CV Scaling 1V", "CV1: Input 1V (C2)", "[R] Long press to set", default_footer, CALIBRATE_ADC_1V, 0, nullptr, 0, 0 },
     { ADC_PITCH_C4, "CV Scaling 3V", "CV1: Input 3V (C4)", "[R] Long press to set", default_footer, CALIBRATE_ADC_3V, 0, nullptr, 0, 0 },
@@ -277,7 +277,7 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
 void OC::Ui::Calibrate() {
 
   // Calibration data should be loaded (or defaults) by now
-  SERIAL_PRINTLN("Starting calibration...");
+  SERIAL_PRINTLN("Start calibration...");
 
   CalibrationState calibration_state = {
     HELLO,
@@ -357,7 +357,7 @@ void OC::Ui::Calibrate() {
       switch (calibration_state.current_step->step) {
         case HELLO:
           if (calibration_state.encoder_value) {
-            SERIAL_PRINTLN("Resetting to defaults...");
+            SERIAL_PRINTLN("Reset to defaults...");
             calibration_reset();
             calibration_state.used_defaults = true;
           }

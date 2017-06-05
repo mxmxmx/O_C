@@ -32,9 +32,7 @@ namespace OC {
 
   const char * const scaling_string[] = {"scaling "};
 
-  #ifdef PRINT_DEBUG
   const char * const encoder_config_strings[] = { "normal", "R reversed", "L reversed", "LR reversed" };
-  #endif
 
   const char * const trigger_delay_times[kNumDelayTimes] = {
       "off", "120us", "240us", "360us", "480us", "1ms", "2ms", "4ms"
@@ -133,6 +131,8 @@ namespace OC {
   5 , 6 , 7 , 8 , 9 , 6 , 7 , 8 , 9 , 10 , 7 , 8 , 9 , 10 , 11 , 8 , 9 , 10 , 11 , 12 , 9 ,
   10 , 11 , 12 , 13 , 2 , 3 , 4 , 5 , 6 , 3};
 
+  /*
+
   // Fractal sequence: count down by 2's from successive integers - see https://oeis.org/A122196
   const uint8_t count_down_by_2[256] = {1 , 2 , 3 , 1 , 4 , 2 , 5 , 3 , 1 , 6 , 4 , 2 , 7 , 5 , 3 , 1 , 8 , 6 , 4 , 2 , 9 , 7 , 5 ,
   3 , 1 , 10 , 8 , 6 , 4 , 2 , 11 , 9 , 7 , 5 , 3 , 1 , 12 , 10 , 8 , 6 , 4 , 2 , 13 , 11 ,
@@ -163,6 +163,8 @@ namespace OC {
   20 , 22 , 24 , 26 , 28 , 3 , 5 , 7 , 9 , 11 , 13 , 15 , 17 , 19 , 21 , 23 , 25 , 27 , 29 ,
   1 , 2 , 4 , 6 , 8 , 10 , 12 , 14 , 16 , 18 , 20 , 22 , 24 , 26 , 28 , 30 , 3 , 5 , 7 , 9 ,
   11 , 13 , 15 , 17 , 19 , 21 , 23 , 25 , 27 , 29 , 31 , 1};
+
+  */
   
 //  const uint8_t rt3_digits[256] =    {1,7,3,2,0,5,0,8,0,7,5,6,8,8,7,7,2,9,3,5,2,7,4,4,6,3,4,1,5,0,5,8,7,2,3,6,6,9,4,2,8,0,5,2,5,3,8,1,0,3,8,0,6,2,8,
 //  0,5,5,8,0,6,9,7,9,4,5,1,9,3,3,0,1,6,9,0,8,8,0,0,0,3,7,0,8,1,1,4,6,1,8,6,7,5,7,2,4,8,5,7,5,6,7,5,6,2,6,1,4,1,4,1,5,4,0,6,7,0,3,0,2,9,9,6,

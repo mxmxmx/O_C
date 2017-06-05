@@ -22,9 +22,7 @@ namespace OC {
     extern const char * const no_yes[];
     extern const char * const off_on[];
     extern const char * const scaling_string[];
-    #ifdef PRINT_DEBUG
     extern const char * const encoder_config_strings[];
-    #endif
     extern const char * const bytebeat_equation_names[];
     extern const char * const integer_sequence_names[];
     extern const char * const integer_sequence_dirs[];
@@ -41,8 +39,10 @@ namespace OC {
     extern const uint8_t digsum_of_n[256];
     extern const uint8_t digsum_of_n_base4[256];
     extern const uint8_t digsum_of_n_base5[256];
+    /*
     extern const uint8_t count_down_by_2[256];
     extern const uint8_t interspersion_of_A163253[256];
+    */
  };
 
   // Not a string, but needs to be closer to trigger_delay_times
