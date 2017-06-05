@@ -138,14 +138,12 @@ public:
       case 7:
       	x_ = OC::Strings::digsum_of_n_base5[k_];
       	break;    
-      /*    	
       case 8:
       	x_ = OC::Strings::count_down_by_2[k_];
       	break;      	
       case 9:
       	x_ = OC::Strings::interspersion_of_A163253[k_];
       	break;      	
-      */
       default:
         break;
     }
@@ -159,22 +157,22 @@ public:
 
   void set_loop_start(int16_t i) {
     if (i < 0) i = 0;
-    if (i > 254) i = 254;
+    if (i > kIntSeqLen - 2) i = kIntSeqLen - 2;
     i_ = i; // loop start point
     j_ = i_ + l_;
     if (j_ < 1) j_ = 1;
-    if (j_ > 255) j_ = 255;
+    if (j_ > kIntSeqLen - 1) j_ = kIntSeqLen - 1;
     if (k_ < i_) k_ = i_;
     if (k_ > j_) k_ = j_;
   }
   
   void set_loop_length(int16_t l) {
     if (l < 1) l = 1;
-    if (l > 255) l = 255;
+    if (l > kIntSeqLen - 1) l = kIntSeqLen - 1;
     l_ = l; // loop length
     j_ = i_ + l_;
     if (j_ < 1) j_ = 1;
-    if (j_ > 255) j_ = 255;
+    if (j_ > kIntSeqLen - 1) j_ = kIntSeqLen - 1;
     if (k_ < i_) k_ = i_;
     if (k_ > j_) k_ = j_;
   }

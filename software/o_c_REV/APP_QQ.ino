@@ -628,7 +628,7 @@ public:
               int_seq_stride += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_int_seq_stride_cv_source() - 1)) + 31) >> 6;
             }
             if (int_seq_stride < 1) int_seq_stride = 1;
-            if (int_seq_stride > 255) int_seq_stride = 255;
+            if (int_seq_stride > kIntSeqLen - 1) int_seq_stride = kIntSeqLen - 1;
             int_seq_.set_fractal_stride(int_seq_stride);
 
             int_seq_.set_loop_start(get_int_seq_start());
@@ -667,7 +667,7 @@ public:
                   // Serial.println(new_start_pos);
                   // Serial.println("==="); 
                   if (new_start_pos < 0) new_start_pos = 0;
-                  if (new_start_pos > 254) new_start_pos = 254;
+                  if (new_start_pos > kIntSeqLen - 2) new_start_pos = kIntSeqLen - 2;
                   set_int_seq_start(static_cast<uint8_t>(new_start_pos)) ;
                   int_seq_.set_loop_start(get_int_seq_start());                  
                 }
@@ -1136,16 +1136,16 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "Bb P0  CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P1  CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "Bb P2  CV src", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 9, "IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 24, 2, 121, "IntSeq modul.", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "IntSeq range", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
   { 0, 0, 255, "> Brownian prob", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 254, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, kIntSeqLen - 2, "IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, kIntSeqLen, "IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "IntSeq FS prob", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "IntSeq FS rng", NULL, settings::STORAGE_TYPE_U4 },
-  { 1, 1, 255, "Fractal stride", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 1, kIntSeqLen - 1, "Fractal stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "IntSeq CV   >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq mod CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "IntSeq rng CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },

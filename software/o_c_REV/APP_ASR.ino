@@ -608,17 +608,17 @@ public:
                    _int_seq_index += ((_pitch + 255) >> 9);
                    CONSTRAIN(_int_seq_index, 0, 8);
                   break;
-                   case 2:  // sequence start point, 0-254
-                   _int_seq_start += ((_pitch + 7) >> 4);
-                   CONSTRAIN(_int_seq_start, 0, 254);
+                   case 2:  // sequence start point, 0 to kIntSeqLen - 2
+                   _int_seq_start += ((_pitch + 15) >> 5);
+                   CONSTRAIN(_int_seq_start, 0, kIntSeqLen - 2);
                   break;
-                   case 3:  // sequence loop length, 1-255
-                   _int_seq_length += ((_pitch + 7) >> 4);
-                   CONSTRAIN(_int_seq_length, 1, 255);
+                   case 3:  // sequence loop length, 1 to kIntSeqLen - 1
+                   _int_seq_length += ((_pitch + 15) >> 5);
+                   CONSTRAIN(_int_seq_length, 1, kIntSeqLen - 1);
                   break;
-                   case 4:  // fractal sequence stride length, 1-255
-                   _fractal_seq_stride += ((_pitch + 7) >> 4);
-                   CONSTRAIN(_fractal_seq_stride, 1, 255);
+                   case 4:  // fractal sequence stride length, 1 to kIntSeqLen - 1
+                   _fractal_seq_stride += ((_pitch + 15) >> 5);
+                   CONSTRAIN(_fractal_seq_stride, 1, kIntSeqLen - 1);
                   break;
                    case 5:  // fractal sequence modulus
                    _int_seq_modulus += ((_pitch + 15) >> 5);
@@ -781,12 +781,12 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },
   { 14, 1, 255, "> BB P2", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "> BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 9, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 24, 2, 121, "> IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, kIntSeqLen - 2, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, kIntSeqLen, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
-  { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 1, kIntSeqLen - 1, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }
 };
 
