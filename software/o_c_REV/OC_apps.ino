@@ -120,7 +120,7 @@ static constexpr int DEFAULT_APP_INDEX = 0;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
 
 void save_global_settings() {
-  SERIAL_PRINTLN("Save global settings...");
+  SERIAL_PRINTLN("Save global settings");
 
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
   memcpy(global_settings.user_patterns, OC::user_patterns, sizeof(OC::user_patterns));
@@ -147,16 +147,18 @@ void save_app_data() {
     if (storage_size & 1) ++storage_size; // Align chunks on 2-byte boundaries
     if (storage_size > sizeof(AppChunkHeader) && app.Save) {
       if (data + storage_size > data_end) {
-        SERIAL_PRINTLN("*********************");
-        SERIAL_PRINTLN("%s: ERROR, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
-        SERIAL_PRINTLN("*********************");
+        SERIAL_PRINTLN("%s: ERROR: %u BYTES NEEDED, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
         continue;
       }
 
       AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
       chunk->id = app.id;
       chunk->length = storage_size;
-      SERIAL_PRINTLN("* %s (%02x) : Saved %u bytes... (%u)", app.name, app.id, app.Save(chunk + 1), storage_size);
+      #ifdef PRINT_DEBUG
+        SERIAL_PRINTLN("* %s (%02x) : Saved %u bytes... (%u)", app.name, app.id, app.Save(chunk + 1), storage_size);
+      #else
+        app.Save(chunk + 1);
+      #endif
       app_settings.used += chunk->length;
       data += chunk->length;
     }
@@ -197,7 +199,11 @@ void restore_app_data() {
     }
 
     if (app->Restore) {
+      #ifdef PRINT_DEBUG
         SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, app->Restore(chunk + 1), chunk->length - sizeof(AppChunkHeader), chunk->length);
+      #else
+        app->Restore(chunk + 1);
+      #endif
     }
     restored_bytes += chunk->length;
     data += chunk->length;
@@ -251,7 +257,7 @@ void Init(bool reset_settings) {
       while (len--)
         *d++ = 0;
       SERIAL_PRINTLN("...done");
-      SERIAL_PRINTLN("Skip global/app settings, using defaults...");
+      SERIAL_PRINTLN("Skip settings, using defaults...");
       global_settings_storage.Init();
       app_data_storage.Init();
     } else {
@@ -267,7 +273,7 @@ void Init(bool reset_settings) {
                   GlobalSettingsStorage::LENGTH);
 
     if (!global_settings_storage.Load(global_settings)) {
-      SERIAL_PRINTLN("Settings invalid, using defaults...");
+      SERIAL_PRINTLN("Settings invalid, using defaults!");
     } else {
       SERIAL_PRINTLN("Loaded settings from page_index %d, current_app_id is %02x",
                     global_settings_storage.page_index(),global_settings.current_app_id);
@@ -286,7 +292,7 @@ void Init(bool reset_settings) {
                   AppDataStorage::LENGTH);
 
     if (!app_data_storage.Load(app_settings)) {
-      SERIAL_PRINTLN("App data not loaded, using defaults...");
+      SERIAL_PRINTLN("Data not loaded, using defaults!");
     } else {
       restore_app_data();
     }
@@ -294,7 +300,7 @@ void Init(bool reset_settings) {
 
   int current_app_index = apps::index_of(global_settings.current_app_id);
   if (current_app_index < 0 || current_app_index >= NUM_AVAILABLE_APPS) {
-    SERIAL_PRINTLN("App id %02x not found, using default...", global_settings.current_app_id);
+    SERIAL_PRINTLN("App id %02x not found, using default!", global_settings.current_app_id);
     global_settings.current_app_id = DEFAULT_APP_INDEX;
     current_app_index = DEFAULT_APP_INDEX;
   }

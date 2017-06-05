@@ -78,7 +78,7 @@ inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
       case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
       case weegfx::DRAW_OVERWRITE: *dst++ = mask; break;
       case weegfx::DRAW_CLEAR: *dst++ &= ~mask; break;
-      case weegfx::DRAW_DOT: { *dst++|= mask; *dst++; count--; } break;
+      case weegfx::DRAW_DOT: { *dst++|= mask; *dst++ |= 0x0; count--; } break;
     }
   }
 }

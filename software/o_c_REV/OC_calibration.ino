@@ -78,7 +78,7 @@ void calibration_load() {
 
   // Fix-up left-overs from development
   if (!OC::calibration_data.adc.pitch_cv_scale) {
-    SERIAL_PRINTLN("Pitch CV scale not set, using default...");
+    SERIAL_PRINTLN("CV scale not set, using default");
     OC::calibration_data.adc.pitch_cv_scale = OC::ADC::kDefaultPitchCVScale;
   }
 
@@ -87,7 +87,7 @@ void calibration_load() {
 }
 
 void calibration_save() {
-  SERIAL_PRINTLN("Save calibration data...");
+  SERIAL_PRINTLN("Saving calibration data");
   OC::calibration_storage.Save(OC::calibration_data);
 }
 
@@ -352,7 +352,11 @@ void OC::Ui::Calibrate() {
 
     const CalibrationStep *next_step = &calibration_steps[calibration_state.step];
     if (next_step != calibration_state.current_step) {
-      SERIAL_PRINTLN("Step: %s (%d)", next_step->title, step_to_channel(next_step->step));
+      #ifdef PRINT_DEBUG
+        SERIAL_PRINTLN("%s (%d)", next_step->title, step_to_channel(next_step->step));
+      #else
+        step_to_channel(next_step->step);
+      #endif
       // Special cases on exit current step
       switch (calibration_state.current_step->step) {
         case HELLO:
@@ -422,7 +426,7 @@ void OC::Ui::Calibrate() {
     SERIAL_PRINTLN("Calibration complete");
     calibration_save();
   } else {
-    SERIAL_PRINTLN("Calibration complete, not saving values...");
+    SERIAL_PRINTLN("Calibration complete (but don't save)");
   }
 }
 
@@ -594,7 +598,7 @@ void calibration_read_old() {
        byte1 = EEPROM.read(adr);
        adr++;
        _offset[i] = (uint16_t)(byte0 << 8) + byte1;
-       SERIAL_PRINTLN(" ADC %d: %u", i, _offset[i]);
+       SERIAL_PRINTLN("ADC %d: %u", i, _offset[i]);
    }
    
    OC::calibration_data.adc.offset[ADC_CHANNEL_1] = _offset[0];

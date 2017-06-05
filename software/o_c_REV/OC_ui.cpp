@@ -198,6 +198,10 @@ UiMode Ui::Splashscreen(bool &reset_settings) {
       w = ((start + SPLASHSCREEN_DELAY_MS + SPLASHSCREEN_TIMEOUT_MS - now) << 7) / SPLASHSCREEN_TIMEOUT_MS;
     graphics.drawRect(0, 62, w, 2);
 
+    /* fixes spurious button presses when booting ? */
+    while (event_queue_.available())
+      (void)event_queue_.PullEvent();
+
     GRAPHICS_END_FRAME();
 
   } while (now - start < SPLASHSCREEN_TIMEOUT_MS + SPLASHSCREEN_DELAY_MS);
