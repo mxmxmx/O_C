@@ -30,7 +30,8 @@ enum DRAW_MODE {
   DRAW_NORMAL,
   DRAW_INVERSE,
   DRAW_OVERWRITE, // unused, but possible fastest
-  DRAW_CLEAR
+  DRAW_CLEAR,
+  DRAW_DOT
 };
 };
 using weegfx::Graphics;
@@ -77,6 +78,7 @@ inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
       case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
       case weegfx::DRAW_OVERWRITE: *dst++ = mask; break;
       case weegfx::DRAW_CLEAR: *dst++ &= ~mask; break;
+      case weegfx::DRAW_DOT: { *dst++|= mask; *dst++; count--; } break;
     }
   }
 }
@@ -190,6 +192,16 @@ void Graphics::drawHLine(coord_t x, coord_t y, coord_t w) {
   uint8_t *start = get_frame_ptr(x, y);
 
   draw_pixel_row<DRAW_NORMAL>(start, w, 0x1 << (y & 0x7));
+}
+
+void Graphics::drawHLineDots(coord_t x, coord_t y, coord_t w) {
+
+  coord_t h = 1;
+  CLIPX(x, w);
+  CLIPY(y, h);
+  uint8_t *start = get_frame_ptr(x, y);
+
+  draw_pixel_row<DRAW_DOT>(start, w, 0x1 << (y & 0x7));
 }
 
 void Graphics::drawVLine(coord_t x, coord_t y, coord_t h) {
