@@ -39,12 +39,12 @@ OC::App available_apps[] = {
   DECLARE_APP('A','S', "ASR", ASR, ASR_isr),
   DECLARE_APP('H','A', "Triads", H1200, H1200_isr),
   DECLARE_APP('A','T', "Vectors", Automatonnetz, Automatonnetz_isr),
-  DECLARE_APP('Q','Q', "4x quantiser", QQ, QQ_isr),
-  DECLARE_APP('D','Q', "2x quantiser", DQ, DQ_isr),
+  DECLARE_APP('Q','Q', "4x Quantizer", QQ, QQ_isr),
+  DECLARE_APP('D','Q', "2x Quantizer", DQ, DQ_isr),
   DECLARE_APP('P','L', "Quadrature LFO", POLYLFO, POLYLFO_isr),
   DECLARE_APP('L','R', "Lorenz", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "4x EG", ENVGEN, ENVGEN_isr),
-  DECLARE_APP('S','Q', "Sequencer", SEQ, SEQ_isr),
+  DECLARE_APP('S','Q', "2x Sequencer", SEQ, SEQ_isr),
   DECLARE_APP('B','B', "Balls", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Bytebeats", BYTEBEATGEN, BYTEBEATGEN_isr),
   DECLARE_APP('C','Q', "Chords", CHORDS, CHORDS_isr),
@@ -156,11 +156,7 @@ void save_app_data() {
       AppChunkHeader *chunk = reinterpret_cast<AppChunkHeader *>(data);
       chunk->id = app.id;
       chunk->length = storage_size;
-      #ifdef PRINT_DEBUG
-        SERIAL_PRINTLN("* %s (%02x) : Saved %u bytes... (%u)", app.name, app.id, app.Save(chunk + 1), storage_size);
-      #else
-        app.Save(chunk + 1);
-      #endif
+      SERIAL_PRINTLN("* %s (%02x) : Saved %u bytes... (%u)", app.name, app.id, app.Save(chunk + 1), storage_size);
       app_settings.used += chunk->length;
       data += chunk->length;
     }
@@ -201,13 +197,7 @@ void restore_app_data() {
     }
 
     if (app->Restore) {
-      #ifdef PRINT_DEBUG
-        const size_t len = chunk->length - sizeof(AppChunkHeader);
-        size_t used = app->Restore(chunk + 1);
-        SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, used, len, chunk->length);
-      #else
-        app->Restore(chunk + 1);
-      #endif
+        SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, app->Restore(chunk + 1), chunk->length - sizeof(AppChunkHeader), chunk->length);
     }
     restored_bytes += chunk->length;
     data += chunk->length;
