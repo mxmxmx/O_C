@@ -43,7 +43,7 @@ namespace OC {
   };
 
   const char* const integer_sequence_names[] = {
-    "pi", "vnEck", "ssdn", "Dress", "PNinf" , "Dsum", "Dsum4", "Dsum5", "CDn2", "Fracti" 
+    "pi", "vnEck", "ssdn", "Dress", "PNinf" , "Dsum", "Dsum4", "Dsum5", "CDn2", "Frcti" 
   };
 
   const char* const integer_sequence_dirs[] = {
