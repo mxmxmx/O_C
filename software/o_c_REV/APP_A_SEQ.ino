@@ -20,6 +20,7 @@
 
 
 #include "util/util_settings.h"
+#include "util/util_trigger_delay.h"
 #include "OC_apps.h"
 #include "OC_DAC.h"
 #include "OC_menus.h"
@@ -108,6 +109,7 @@ enum SEQ_ChannelSetting {
 
   SEQ_CHANNEL_SETTING_MODE, // 
   SEQ_CHANNEL_SETTING_CLOCK,
+  SEQ_CHANNEL_SETTING_TRIGGER_DELAY,
   SEQ_CHANNEL_SETTING_RESET,
   SEQ_CHANNEL_SETTING_MULT,
   SEQ_CHANNEL_SETTING_PULSEWIDTH,
@@ -146,8 +148,6 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_BROWNIAN_CV,
   SEQ_CHANNEL_SETTING_LENGTH_CV,
   SEQ_CHANNEL_SETTING_DUMMY,
-  SEQ_CHANNEL_SETTING_VOLTAGE_SCALING,
-  SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX,
   SEQ_CHANNEL_SETTING_LAST
 };
 
@@ -172,7 +172,7 @@ enum SEQ_ChannelCV_Mapping {
 
 enum SEQ_CLOCKSTATES {
   OFF,
-  ON = 50000
+  ON = 0xFFFF
 };
 
 enum MENU_PAGES {
@@ -269,6 +269,10 @@ public:
     return values_[SEQ_CHANNEL_SETTING_CLOCK];
   }
 
+  uint16_t get_trigger_delay() const {
+    return values_[SEQ_CHANNEL_SETTING_TRIGGER_DELAY];
+  }
+  
   void set_clock_source(uint8_t _src) {
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, _src);
   }
@@ -279,14 +283,6 @@ public:
 
   int get_octave_aux() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE_AUX];
-  }
-
-  uint8_t get_voltage_scaling() const {
-    return values_[SEQ_CHANNEL_SETTING_VOLTAGE_SCALING];
-  }
-
-  uint8_t get_voltage_scaling_aux() const {
-    return values_[SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX];
   }
 
   int8_t get_multiplier() const {
@@ -648,20 +644,11 @@ public:
   int get_cv_input_range() const {
     return values_[SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES];
   }
-
-  template <DAC_CHANNEL dac_channel>
-  uint16_t get_zero() const {
-    return OC::DAC::get_zero_offset(dac_channel);
-  }
   
   void Init(SEQ_ChannelTriggerSource trigger_source, uint8_t id) {
     
     InitDefaults();
-    #ifdef BUCHLA_SUPPORT
-      scaling_ = true;
-    #else
-      scaling_ = false;
-    #endif
+    trigger_delay_.Init();
     channel_id_ = id;
     octave_toggle_ = false;
     wait_for_EoS_ = false;
@@ -691,8 +678,6 @@ public:
     ext_frequency_in_ticks_ = 0xFFFFFFFF;
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
     pulse_width_in_ticks_ = get_pulsewidth() << 10;
-    // zero volts (for outputs C/D):
-    _ZERO = OC::calibration_data.dac.calibrated_octaves[(id + 0x2)][OC::DAC::kOctaveZero];
 
     display_num_sequence_ = get_sequence();
     display_mask_ = get_mask(display_num_sequence_);
@@ -784,6 +769,15 @@ public:
      _tock = false;
      _sync = false;
 
+     // trigger delay:
+     if (_playmode < PM_SH1) {
+      
+      trigger_delay_.Update();
+      if (_triggered) 
+        trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+        _triggered = trigger_delay_.triggered();
+     }
+
      // new tick frequency:
      if (_clock_source <= SEQ_CHANNEL_TRIGGER_TR2) {
       
@@ -864,7 +858,7 @@ public:
          }
          else if (_multiplier <= MULT_BY_ONE && _triggered) {
             // division, mute output:
-            step_state_ = _ZERO;
+            step_state_ = OFF;
          }
          else if (_multiplier > MULT_BY_ONE && _triggered)  {
             // multiplication, force sync, if clocked:
@@ -878,6 +872,7 @@ public:
      else { 
      // S+H mode 
         if (_playmode <= PM_SH4) {
+          
           if (_triggered) {
             // new frequency (used for pulsewidth):
             channel_frequency_in_ticks_ = ext_frequency_in_ticks_;
@@ -1461,10 +1456,6 @@ public:
           *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK;
           *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE;
           
-          if (scaling_) {
-              *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
-          }
-          
           switch (get_sequence()) {
           
             case 0:
@@ -1508,9 +1499,6 @@ public:
             break;
             case 1: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
-              if (scaling_) {
-                  *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
-              }
             break;
             default:
             break; 
@@ -1528,10 +1516,6 @@ public:
          *settings++ = SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE;  // = transpose SCALE
          *settings++ = SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE; // = rotate mask 
          *settings++ = SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE; // sequence #
-
-         if (scaling_) {
-              *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING;       
-         }
 
          switch (get_sequence()) {
           
@@ -1580,16 +1564,13 @@ public:
             break;
             case 1: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE;
-              if (scaling_) {
-                  *settings++ = SEQ_CHANNEL_SETTING_VOLTAGE_SCALING_AUX ;
-              }
             break;
             default:
             break; 
          }
 
          if (get_playmode() < PM_SH1) {
-           *settings++ =  SEQ_CHANNEL_SETTING_RESET; // =  TD: toggle clock source
+           *settings++ =  SEQ_CHANNEL_SETTING_TRIGGER_DELAY; // 
            *settings++ =  SEQ_CHANNEL_SETTING_CLOCK; // = reset source
          }
       }
@@ -1602,7 +1583,7 @@ public:
   
   template <DAC_CHANNEL dacChannel>
   void update_main_channel() {
-    int32_t _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch(), 0, get_voltage_scaling());
+    int32_t _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch(), 0, OC::DAC::get_voltage_scaling(dacChannel));
     OC::DAC::set<dacChannel>(_output);  
     
   }
@@ -1620,7 +1601,7 @@ public:
           _output = get_step_gate();
         break;
         case 1: // copy
-          _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, get_voltage_scaling_aux());
+          _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, OC::DAC::get_voltage_scaling(dacChannel));
         break;
         default:
         break;
@@ -1633,7 +1614,6 @@ public:
 private:
 
   bool channel_id_;
-  bool scaling_;
   bool octave_toggle_;
   bool wait_for_EoS_;
   bool note_repeat_;
@@ -1642,7 +1622,6 @@ private:
   uint16_t _sync_cnt;
   bool force_update_;
   bool force_scale_update_;
-  uint16_t _ZERO;
   uint8_t clk_src_;
   bool prev_reset_state_;
   bool reset_pending_;
@@ -1675,6 +1654,7 @@ private:
   uint8_t prev_playmode_;
   bool pending_sync_;
 
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   util::Arpeggiator arpeggiator_;
   
   int num_enabled_settings_;
@@ -1716,6 +1696,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
   { 0, 0, 1, "aux. mode", modes, settings::STORAGE_TYPE_U4 },
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
   { MULT_BY_ONE, 0, MULT_MAX, "mult/div", display_multipliers, settings::STORAGE_TYPE_U8 },
   { 25, 0, PULSEW_MAX, "--> pw", NULL, settings::STORAGE_TYPE_U8 },
@@ -1753,9 +1734,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "-->brwn.prb ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "seq.length  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
-  { 0, 0, 7, "main V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 7, "--> aux V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY, use to store update behaviour
 };
   
 class SEQ_State {
@@ -1764,7 +1743,7 @@ public:
     selected_channel = 0;
     cursor.Init(SEQ_CHANNEL_SETTING_MODE, SEQ_CHANNEL_SETTING_LAST - 1);
     pattern_editor.Init();
-    scale_editor.Init();
+    scale_editor.Init(false);
   }
 
   inline bool editing() const {

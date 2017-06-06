@@ -124,12 +124,12 @@ void setup() {
   OC::ui.Init();
   OC::ui.configure_encoders(OC::calibration_data.encoder_config());
 
-  SERIAL_PRINTLN("* Starting CORE ISR @%luus", OC_CORE_TIMER_RATE);
+  SERIAL_PRINTLN("* CORE ISR @%luus", OC_CORE_TIMER_RATE);
   CORE_timer.begin(CORE_timer_ISR, OC_CORE_TIMER_RATE);
   CORE_timer.priority(OC_CORE_TIMER_PRIO);
 
 #ifdef OC_UI_SEPARATE_ISR
-  SERIAL_PRINTLN("* Starting UI ISR @%luus", OC_UI_TIMER_RATE);
+  SERIAL_PRINTLN("* UI ISR @%luus", OC_UI_TIMER_RATE);
   UI_timer.begin(UI_timer_ISR, OC_UI_TIMER_RATE);
   UI_timer.priority(OC_UI_TIMER_PRIO);
 #endif

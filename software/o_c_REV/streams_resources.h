@@ -48,7 +48,7 @@ extern const char* string_table[];
 //
 //extern const uint16_t* lookup_table_table[];
 //
-extern const uint32_t* lookup_table_32_table[];
+// extern const uint32_t* lookup_table_32_table[];
 //
 //extern const int16_t wav_gompertz[];
 //extern const int16_t wav_db[];

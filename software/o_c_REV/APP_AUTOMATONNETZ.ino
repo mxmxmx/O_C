@@ -157,12 +157,9 @@ enum GridSettings {
   GRID_SETTING_DY,
   GRID_SETTING_MODE,
   GRID_SETTING_OCTAVE,
+  GRID_SETTING_TRIGGER_DELAY,
   GRID_SETTING_OUTPUTMODE,
   GRID_SETTING_CLEARMODE,
-  GRID_SETTING_VOLTAGE_SCALING_A,
-  GRID_SETTING_VOLTAGE_SCALING_B,
-  GRID_SETTING_VOLTAGE_SCALING_C,
-  GRID_SETTING_VOLTAGE_SCALING_D,
   GRID_SETTING_LAST
 };
 
@@ -197,6 +194,9 @@ public:
 
     quantizer.Init();
     tonnetz_state.init();
+
+    trigger_delay_.Init();
+    delayed_triggers_ = 0;
 
     memset(&ui, 0, sizeof(ui));
     ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
@@ -250,6 +250,10 @@ public:
     return values_[GRID_SETTING_OCTAVE];
   }
 
+  uint16_t get_trigger_delay() const {
+    return values_[GRID_SETTING_TRIGGER_DELAY];
+  }
+
   EOutputAMode output_mode() const {
     return static_cast<EOutputAMode>(values_[GRID_SETTING_OUTPUTMODE]);
   }
@@ -258,18 +262,12 @@ public:
     return static_cast<ClearMode>(values_[GRID_SETTING_CLEARMODE]);
   }
 
-  uint8_t get_voltage_scaling_a() const {
-    return values_[GRID_SETTING_VOLTAGE_SCALING_A];
+  void set_delayed_triggers(uint32_t delayed_triggers) {
+    delayed_triggers_ = delayed_triggers;
   }
 
-  uint8_t get_voltage_scaling_b() const {
-    return values_[GRID_SETTING_VOLTAGE_SCALING_B];
-  }
-  uint8_t get_voltage_scaling_c() const {
-    return values_[GRID_SETTING_VOLTAGE_SCALING_C];
-  }
-  uint8_t get_voltage_scaling_d() const {
-    return values_[GRID_SETTING_VOLTAGE_SCALING_D];
+  uint32_t get_delayed_triggers() {
+    return(delayed_triggers_);
   }
 
   // End of settings
@@ -314,6 +312,9 @@ private:
   int cell_transpose_, cell_inversion_;
   uint32_t history_;
 
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
+  uint32_t delayed_triggers_;
+
   util::RingBuffer<uint32_t, 4> user_actions_;
   util::CriticalSection critical_section_;
 
@@ -341,19 +342,9 @@ SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
   {4, 0, 8*GRID_DIMENSION - 1, "dy", NULL, settings::STORAGE_TYPE_I8},
   {MODE_MAJOR, 0, MODE_LAST-1, "Mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Oct", NULL, settings::STORAGE_TYPE_I8},
+  { 0, 0, OC::kNumDelayTimes - 1, "TrDly", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OutA", outputa_mode_names, settings::STORAGE_TYPE_U4},
   {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "Clr", clear_mode_names, settings::STORAGE_TYPE_U4},
-#ifdef BUCHLA_SUPPORT
-  { 0, 0, 5, "A V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 5, "B V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 5, "C V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 5, "D V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-#else
-  { 0, 0, 0, "A V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 0, "B V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 0, "C V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 0, "D V/o", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-#endif
 };
 
 AutomatonnetzState automatonnetz_state;
@@ -373,6 +364,15 @@ void FASTRUN AutomatonnetzState::ISR() {
   update_trigger_out();
 
   uint32_t triggers = OC::DigitalInputs::clocked();
+
+  trigger_delay_.Update();
+  if (triggers) {
+    trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+    set_delayed_triggers(triggers) ;
+    triggers = 0;
+  }
+  if (trigger_delay_.triggered())
+    triggers = get_delayed_triggers();
 
   bool reset = false;
   while (user_actions_.readable()) {
@@ -436,7 +436,8 @@ void FASTRUN AutomatonnetzState::ISR() {
       arp_index_ = 0;
   }
 
-  update_outputs(chord_changed, cell_transpose_, cell_inversion_);
+  if (triggers & TRIGGER_MASK_GRID)
+    update_outputs(chord_changed, cell_transpose_, cell_inversion_);
 }
 
 void AutomatonnetzState::Reset() {
@@ -463,7 +464,7 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
 
   switch (output_mode()) {
     case OUTPUTA_MODE_ROOT:
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), octave(), get_voltage_scaling_a());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
       break;
     case OUTPUTA_MODE_TRIG:
       if (chord_changed) {
@@ -473,16 +474,16 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
       break;
     case OUTPUTA_MODE_ARP:
     case OUTPUTA_MODE_STRUM:
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), get_voltage_scaling_a());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
       break;
     case OUTPUTA_MODE_LAST:
     default:
       break;
   }
 
-  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), octave(), get_voltage_scaling_b());
-  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), octave(), get_voltage_scaling_c());
-  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), octave(), get_voltage_scaling_d());
+  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_B));
+  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_C));
+  OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_D));
 }
 
 void AutomatonnetzState::update_trigger_out() {
