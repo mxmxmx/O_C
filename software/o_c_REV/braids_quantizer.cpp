@@ -27,6 +27,7 @@
 // Note quantizer
 
 #include "braids_quantizer.h"
+#include "OC_options.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -94,6 +95,9 @@ int32_t Quantizer::Process(int32_t pitch, int32_t root, int32_t transpose) {
   }
 
   pitch -= root;
+  #ifdef BUCHLA_4U
+    pitch -= ((12 << 7) << 2);
+  #endif
   if (pitch >= previous_boundary_ && pitch <= next_boundary_ && transpose == transpose_) {
     // We're still in the voronoi cell for the active codeword.
     pitch = codeword_;
@@ -128,6 +132,9 @@ int32_t Quantizer::Process(int32_t pitch, int32_t root, int32_t transpose) {
     pitch = codeword_;
   }
   pitch += root;
+  #ifdef BUCHLA_4U
+    pitch += ((12 << 7) << 2);
+  #endif
   return pitch;
 }
 
