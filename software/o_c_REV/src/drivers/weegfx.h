@@ -62,6 +62,7 @@ public:
   void drawFrame(coord_t x, coord_t y, coord_t w, coord_t h);
 
   void drawHLine(coord_t x, coord_t y, coord_t w);
+  void drawHLineDots(coord_t x, coord_t y, coord_t w);
   void drawVLine(coord_t x, coord_t y, coord_t h);
   void drawVLinePattern(coord_t x, coord_t y, coord_t h, uint8_t pattern);
 

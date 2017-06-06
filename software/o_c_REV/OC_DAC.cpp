@@ -49,6 +49,8 @@ namespace OC {
 void DAC::Init(CalibrationData *calibration_data) {
 
   calibration_data_ = calibration_data;
+  
+  restore_scaling(0x0);
 
   // set up DAC pins 
   pinMode(DAC_CS, OUTPUT);
@@ -124,7 +126,7 @@ void DAC::update_auto_channel_calibration_data(uint8_t channel_id, int8_t octave
       // + update info
       if (octave == OCTAVES) {
         autotune_data->use_auto_calibration_ = 0xFF; // = data available, but not used
-        SERIAL_PRINTLN("set auto calibration data, %d", autotune_data->use_auto_calibration_);
+        SERIAL_PRINTLN("set auto-calibration data, %d", autotune_data->use_auto_calibration_);
       }
    }
 }
@@ -133,7 +135,7 @@ void DAC::reset_auto_channel_calibration_data(uint8_t channel_id) {
   
   // reset data
   if (channel_id < DAC_CHANNEL_LAST) {
-    SERIAL_PRINTLN("resetting channel# %d calibration data", (int)(channel_id + 1));
+    SERIAL_PRINTLN("reset channel# %d calibration data", (int)(channel_id + 1));
     OC::Autotune_data *autotune_data = &OC::auto_calibration_data[channel_id];
     autotune_data->use_auto_calibration_ = 0x0;
     for (int i = 0; i < OCTAVES + 1; i++)
@@ -165,6 +167,33 @@ void DAC::choose_calibration_data() {
   }
 }
 /*static*/
+uint8_t DAC::get_voltage_scaling(uint8_t channel_id) {
+  return DAC_scaling[channel_id];
+}
+/*static*/
+void DAC::set_scaling(uint8_t scaling, uint8_t channel_id) {
+
+  if (channel_id < DAC_CHANNEL_LAST)
+    DAC_scaling[channel_id] = scaling;
+}
+/*static*/
+void DAC::restore_scaling(uint32_t scaling) {
+  
+  // restore scaling from global settings
+  for (int i = 0; i < DAC_CHANNEL_LAST; i++) {
+    uint8_t _scaling = (scaling >> (i * 8)) & 0xFF;
+    set_scaling(_scaling, i);
+  }
+}
+uint32_t DAC::store_scaling() {
+
+  uint32_t _scaling = 0;
+  // merge values into uint32_t : 
+  for (int i = 0; i < DAC_CHANNEL_LAST; i++)
+    _scaling |= (DAC_scaling[i] << (i * 8)); 
+  return _scaling;
+}
+/*static*/
 DAC::CalibrationData *DAC::calibration_data_ = nullptr;
 /*static*/
 uint32_t DAC::values_[DAC_CHANNEL_LAST];
@@ -172,7 +201,8 @@ uint32_t DAC::values_[DAC_CHANNEL_LAST];
 uint16_t DAC::history_[DAC_CHANNEL_LAST][DAC::kHistoryDepth];
 /*static*/ 
 volatile size_t DAC::history_tail_;
-
+/*static*/ 
+uint8_t DAC::DAC_scaling[DAC_CHANNEL_LAST];
 }; // namespace OC
 
 void set8565_CHA(uint32_t data) {

@@ -55,6 +55,8 @@ void MultistageEnvelope::Init() {
   sampled_amplitude_ = 65535 ;
   amplitude_sampled_ = false ;
   scaled_value_ = 0 ;
+  max_loops_ = 0 ;
+  loop_counter_ = 0;
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
@@ -64,6 +66,7 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
       start_value_ = level_[0];
       segment_ = 0;
       phase_ = 0 ;
+      loop_counter_ = 0;
     } else {
       if (segment_ == 0) reset_behaviour_ = attack_reset_behaviour_ ;
       else reset_behaviour_ = decay_release_reset_behaviour_;
@@ -102,7 +105,10 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
     ++segment_;
     phase_ = 0;
     if (segment_ == loop_end_ && (control & CONTROL_GATE)) {
-      segment_ = loop_start_;
+      ++loop_counter_;
+      if (!max_loops_ || loop_counter_ < max_loops_) {
+        segment_ = loop_start_;
+      }
     }
   }
   

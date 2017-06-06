@@ -1425,13 +1425,13 @@ const uint32_t lut_lorenz_rate[] = {
 };
 
 
-const uint32_t* lookup_table_32_table[] = {
+// const uint32_t* lookup_table_32_table[] = {
 //  lut_env_increments,
 //  lut_lp_coefficients,
 //  lut_exp2,
 //  lut_log2,
-  lut_lorenz_rate,
-};
+//   lut_lorenz_rate,
+// };
 
 
 }  // namespace streams

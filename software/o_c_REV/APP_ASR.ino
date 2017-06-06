@@ -59,12 +59,6 @@ enum ASRSettings {
   ASR_SETTING_MULT,
   ASR_SETTING_DELAY,
   ASR_SETTING_BUFFER_LENGTH,
-  #ifdef BUCHLA_SUPPORT
-  ASR_SETTING_VOLTAGE_SCALING_A,
-  ASR_SETTING_VOLTAGE_SCALING_B,
-  ASR_SETTING_VOLTAGE_SCALING_C,
-  ASR_SETTING_VOLTAGE_SCALING_D,
-  #endif
   ASR_SETTING_CV_SOURCE,
   ASR_SETTING_CV4_DESTINATION,
   ASR_SETTING_TURING_LENGTH,
@@ -275,31 +269,6 @@ public:
     return int_seq_.get_n();
   }
 
-  #ifdef BUCHLA_SUPPORT
-  uint8_t get_voltage_scaling(int channel_i) const {
-    uint8_t value = 0;
-    switch(channel_i) {
-      case 3:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_D];
-        break;
-      case 2:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_C];
-        break;
-      case 1:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_B];
-        break;
-      default:
-        value = values_[ASR_SETTING_VOLTAGE_SCALING_A];
-        break;
-    }
-    return value;
-  }
-  #else
-  uint8_t get_voltage_scaling(int channel_i) const {
-    return 0;
-  }
-  #endif
-
   void toggle_delay_mechanics() {
     delay_type_ = (~delay_type_) & 1u;
   }
@@ -335,7 +304,6 @@ public:
     delay_type_ = false;
     octave_toggle_ = false;
     freeze_switch_ = false;
-    unfreeze_ = true;
     TR2_state_ = 0x1;
     set_scale(OC::Scales::SCALE_SEMI);
     last_mask_ = 0x0;
@@ -440,13 +408,6 @@ public:
       break;
     } 
 
-    #ifdef BUCHLA_SUPPORT
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_A;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_B;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_C;
-      *settings++ = ASR_SETTING_VOLTAGE_SCALING_D;
-    #endif
-    
     num_enabled_settings_ = settings - enabled_settings_;
   }
 
@@ -492,12 +453,6 @@ public:
       
      update = trigger_delay_.triggered();
 
-     // hack: don't wake up w/ frozen buffer.
-     if (unfreeze_) {
-        freeze_switch_ = false;
-        octave_toggle_ = false;
-     }
-
      if (update) {        
 
          bool _freeze_switch, _freeze = digitalReadFast(TR2);
@@ -512,11 +467,7 @@ public:
          bool forced_update = force_update_;
          force_update_ = false;
          update_scale(forced_update, (OC::ADC::value<ADC_CHANNEL_3>() + 127) >> 8);
-
-         // hack, continued
-         if (unfreeze_)
-            unfreeze_ = false;
-
+         
          // cv4 destination, defaults to octave:
          switch(get_cv4_destination()) {
 
@@ -646,17 +597,17 @@ public:
                    _int_seq_index += ((_pitch + 255) >> 9);
                    CONSTRAIN(_int_seq_index, 0, 8);
                   break;
-                   case 2:  // sequence start point, 0-254
-                   _int_seq_start += ((_pitch + 7) >> 4);
-                   CONSTRAIN(_int_seq_start, 0, 254);
+                   case 2:  // sequence start point, 0 to kIntSeqLen - 2
+                   _int_seq_start += ((_pitch + 15) >> 5);
+                   CONSTRAIN(_int_seq_start, 0, kIntSeqLen - 2);
                   break;
-                   case 3:  // sequence loop length, 1-255
-                   _int_seq_length += ((_pitch + 7) >> 4);
-                   CONSTRAIN(_int_seq_length, 1, 255);
+                   case 3:  // sequence loop length, 1 to kIntSeqLen - 1
+                   _int_seq_length += ((_pitch + 15) >> 5);
+                   CONSTRAIN(_int_seq_length, 1, kIntSeqLen - 1);
                   break;
-                   case 4:  // fractal sequence stride length, 1-255
-                   _fractal_seq_stride += ((_pitch + 7) >> 4);
-                   CONSTRAIN(_fractal_seq_stride, 1, 255);
+                   case 4:  // fractal sequence stride length, 1 to kIntSeqLen - 1
+                   _fractal_seq_stride += ((_pitch + 15) >> 5);
+                   CONSTRAIN(_fractal_seq_stride, 1, kIntSeqLen - 1);
                   break;
                    case 5:  // fractal sequence modulus
                    _int_seq_modulus += ((_pitch + 15) >> 5);
@@ -727,7 +678,7 @@ public:
              }
 
              _sample = quantizer_.Process(_sample, _root << 7, _transpose);
-             _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, get_voltage_scaling(i));
+             _sample = OC::DAC::pitch_to_scaled_voltage_dac(static_cast<DAC_CHANNEL>(i), _sample, _octave, OC::DAC::get_voltage_scaling(i));
              scrolling_history_[i].Push(_sample);
              _asr_buffer[i] = _sample;
          }
@@ -755,7 +706,6 @@ private:
   bool delay_type_;
   bool octave_toggle_;
   bool freeze_switch_;
-  bool unfreeze_;
   int8_t TR2_state_;
   int last_scale_;
   uint16_t last_mask_;
@@ -809,12 +759,6 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { MULT_ONE, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
-  #ifdef BUCHLA_SUPPORT
-  { 0, 0, 7, "Ch A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 }, 
-  { 0, 0, 7, "Ch D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  #endif
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
@@ -827,10 +771,10 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 4, "> BB CV1", bb_CV_destinations, settings::STORAGE_TYPE_U4 },
   { 0, 0, 9, "> IntSeq", OC::Strings::integer_sequence_names, settings::STORAGE_TYPE_U4 },
   { 24, 2, 121, "> IntSeq modul", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 254, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
-  { 8, 2, 256, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, kIntSeqLen - 2, "> IntSeq start", NULL, settings::STORAGE_TYPE_U8 },
+  { 8, 2, kIntSeqLen, "> IntSeq len", NULL, settings::STORAGE_TYPE_U8 },
   { 1, 0, 1, "> IntSeq dir", OC::Strings::integer_sequence_dirs, settings::STORAGE_TYPE_U4 },
-  { 1, 1, 255, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 1, kIntSeqLen - 1, "> Fract stride", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "> IntSeq CV1", int_seq_CV_destinations, settings::STORAGE_TYPE_U4 }
 };
 
@@ -841,7 +785,7 @@ public:
 
   void Init() {
     cursor.Init(ASR_SETTING_SCALE, ASR_SETTING_LAST - 1);
-    scale_editor.Init();
+    scale_editor.Init(false);
     left_encoder_value = OC::Scales::SCALE_SEMI;
   }
   

@@ -146,8 +146,7 @@ const char* const scale_names_short[] = {
     "6S2",
     "5S2",
     "4S2",
-    
-#if BUCHLA_SUPPORT
+    //
     "B-Pe",
     "B-Pj",
     "B-Pl",
@@ -160,8 +159,7 @@ const char* const scale_names_short[] = {
     "14S3",
     "12S3", 
     "10S3", 
-    "8S3", 
-#endif    
+    "8S3"  
     };
 
 const char* const scale_names[] = {
@@ -287,8 +285,7 @@ const char* const scale_names[] = {
     "6-SD2",
     "5-SD2",
     "4-SD2",
-
-#ifdef BUCHLA_SUPPORT
+    
     "Bohlen-Pierce =",
     "Bohlen-Pierce j",
     "Bohlen-Pierce l",
@@ -301,19 +298,18 @@ const char* const scale_names[] = {
     "21-7-SD3[14]",
     "18-6-SD3[12]", 
     "15-5-SD3[10]", 
-    "12-4-SD3[8]", 
-#endif
+    "12-4-SD3[8]"
     };
 
 const char* const voltage_scalings[] = {
-    "1", // 1V/octave
-    "1.2", // 1.2V/octave Buchla
-    "2", // 2V/oct Buchla
-    "a", // Wendy Carlos alpha scale
-    "b", // Wendy Carlos beta scale
-    "g", // Wendy Carlos gamma scale
-    "tri", // Tritave (as used by Bohlen-Pierce macrotonal scale)
-    "qtr" // quartertone scale (essentially dowbscales to 0.5V/oct)
+    " 1V/O", // 1V/octave
+    "alpha", // Wendy Carlos alpha scale
+    " beta", // Wendy Carlos beta scale
+    "gamma", // Wendy Carlos gamma scale
+    "  tri", // Tritave (as used by Bohlen-Pierce macrotonal scale)
+    "  qtr", // quartertone scale (essentially dowbscales to 0.5V/oct)
+    "1.2/O", // 1.2V/octave Buchla
+    " 2V/O"  // 2V/oct Buchla
     } ;
 
 }; // namespace OC

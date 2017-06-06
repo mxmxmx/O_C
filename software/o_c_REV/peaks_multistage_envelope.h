@@ -71,7 +71,7 @@ class MultistageEnvelope {
   
   void Init();
   int16_t ProcessSingleSample(uint8_t control);
-  
+
   void Configure(uint16_t* parameter, ControlMode control_mode) {
     if (control_mode == CONTROL_MODE_HALF) {
       set_ad(parameter[0], parameter[1]);
@@ -104,7 +104,7 @@ class MultistageEnvelope {
   inline void set_sustain_point(uint16_t sustain_point) {
     sustain_point_ = sustain_point;
   }
-  
+
   inline void set_adsr(
       uint16_t attack,
       uint16_t decay,
@@ -402,6 +402,11 @@ class MultistageEnvelope {
     amplitude_sampled_ = sampled;
   }
 
+  inline void set_max_loops(uint16_t max_loops) {
+    max_loops_ = static_cast<uint8_t>(max_loops >> 9);
+  }
+  
+
   inline uint16_t get_amplitude_value() {
     return(amplitude_) ;
   }
@@ -440,6 +445,8 @@ class MultistageEnvelope {
   uint16_t sustain_point_;
   uint16_t loop_start_;
   uint16_t loop_end_;
+  uint8_t max_loops_;
+  uint8_t loop_counter_;
   
   EnvResetBehaviour attack_reset_behaviour_;
   EnvResetBehaviour decay_release_reset_behaviour_;

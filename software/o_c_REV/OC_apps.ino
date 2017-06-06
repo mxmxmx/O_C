@@ -34,6 +34,23 @@
   isr \
 }
 
+#ifdef BORING_APP_NAMES
+OC::App available_apps[] = {
+  DECLARE_APP('A','S', "ASR", ASR, ASR_isr),
+  DECLARE_APP('H','A', "Triads", H1200, H1200_isr),
+  DECLARE_APP('A','T', "Vectors", Automatonnetz, Automatonnetz_isr),
+  DECLARE_APP('Q','Q', "4x Quantizer", QQ, QQ_isr),
+  DECLARE_APP('D','Q', "2x Quantizer", DQ, DQ_isr),
+  DECLARE_APP('P','L', "Quadrature LFO", POLYLFO, POLYLFO_isr),
+  DECLARE_APP('L','R', "Lorenz", LORENZ, LORENZ_isr),
+  DECLARE_APP('E','G', "4x EG", ENVGEN, ENVGEN_isr),
+  DECLARE_APP('S','Q', "2x Sequencer", SEQ, SEQ_isr),
+  DECLARE_APP('B','B', "Balls", BBGEN, BBGEN_isr),
+  DECLARE_APP('B','Y', "Bytebeats", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('C','Q', "Chords", CHORDS, CHORDS_isr),
+  DECLARE_APP('R','F', "Voltages", REFS, REFS_isr)
+};
+#else 
 OC::App available_apps[] = {
   DECLARE_APP('A','S', "CopierMaschine", ASR, ASR_isr),
   DECLARE_APP('H','A', "Harrington 1200", H1200, H1200_isr),
@@ -49,6 +66,7 @@ OC::App available_apps[] = {
   DECLARE_APP('C','Q', "Acid Curds", CHORDS, CHORDS_isr),
   DECLARE_APP('R','F', "References", REFS, REFS_isr)
 };
+#endif
 
 static constexpr int NUM_AVAILABLE_APPS = ARRAY_SIZE(available_apps);
 
@@ -62,8 +80,9 @@ struct GlobalSettings {
   bool encoders_enable_acceleration;
   bool reserved0;
   bool reserved1;
-
+  uint32_t DAC_scaling;
   uint16_t current_app_id;
+  
   OC::Scale user_scales[OC::Scales::SCALE_USER_LAST];
   OC::Pattern user_patterns[OC::Patterns::PATTERN_USER_ALL];
   OC::Chord user_chords[OC::Chords::CHORDS_USER_LAST];
@@ -101,19 +120,21 @@ static constexpr int DEFAULT_APP_INDEX = 0;
 static const uint16_t DEFAULT_APP_ID = available_apps[DEFAULT_APP_INDEX].id;
 
 void save_global_settings() {
-  SERIAL_PRINTLN("Saving global settings...");
+  SERIAL_PRINTLN("Save global settings");
 
   memcpy(global_settings.user_scales, OC::user_scales, sizeof(OC::user_scales));
   memcpy(global_settings.user_patterns, OC::user_patterns, sizeof(OC::user_patterns));
   memcpy(global_settings.user_chords, OC::user_chords, sizeof(OC::user_chords));
   memcpy(global_settings.auto_calibration_data, OC::auto_calibration_data, sizeof(OC::auto_calibration_data));
+  // scaling settings:
+  global_settings.DAC_scaling = OC::DAC::store_scaling();
   
   global_settings_storage.Save(global_settings);
-  SERIAL_PRINTLN("Saved global settings in page_index %d", global_settings_storage.page_index());
+  SERIAL_PRINTLN("Saved global settings: page_index %d", global_settings_storage.page_index());
 }
 
 void save_app_data() {
-  SERIAL_PRINTLN("Saving app data... (%u bytes available)", OC::AppData::kAppDataSize);
+  SERIAL_PRINTLN("Save app data... (%u bytes available)", OC::AppData::kAppDataSize);
 
   app_settings.used = 0;
   char *data = app_settings.data;
@@ -126,9 +147,7 @@ void save_app_data() {
     if (storage_size & 1) ++storage_size; // Align chunks on 2-byte boundaries
     if (storage_size > sizeof(AppChunkHeader) && app.Save) {
       if (data + storage_size > data_end) {
-        SERIAL_PRINTLN("*********************");
-        SERIAL_PRINTLN("%s: CANNOT BE SAVED, NOT ENOUGH SPACE FOR %u BYTES, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
-        SERIAL_PRINTLN("*********************");
+        SERIAL_PRINTLN("%s: ERROR: %u BYTES NEEDED, %u BYTES AVAILABLE OF %u BYTES TOTAL", app.name, storage_size, data_end - data, AppData::kAppDataSize);
         continue;
       }
 
@@ -159,7 +178,7 @@ void restore_app_data() {
   while (data < data_end) {
     const AppChunkHeader *chunk = reinterpret_cast<const AppChunkHeader *>(data);
     if (data + chunk->length > data_end) {
-      SERIAL_PRINTLN("Uh oh, app chunk length %u exceeds available data left (%u)", chunk->length, data_end - data);
+      SERIAL_PRINTLN("App chunk length %u exceeds available space (%u)", chunk->length, data_end - data);
       break;
     }
 
@@ -181,9 +200,7 @@ void restore_app_data() {
 
     if (app->Restore) {
       #ifdef PRINT_DEBUG
-        const size_t len = chunk->length - sizeof(AppChunkHeader);
-        size_t used = app->Restore(chunk + 1);
-        SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, used, len, chunk->length);
+        SERIAL_PRINTLN("* %s (%02x): Restored %u from %u (chunk length %u)...", app->name, chunk->id, app->Restore(chunk + 1), chunk->length - sizeof(AppChunkHeader), chunk->length);
       #else
         app->Restore(chunk + 1);
       #endif
@@ -230,16 +247,17 @@ void Init(bool reset_settings) {
   global_settings.encoders_enable_acceleration = OC_ENCODERS_ENABLE_ACCELERATION_DEFAULT;
   global_settings.reserved0 = false;
   global_settings.reserved1 = false;
+  global_settings.DAC_scaling = VOLTAGE_SCALING_1V_PER_OCT; 
 
   if (reset_settings) {
     if (ui.ConfirmReset()) {
-      SERIAL_PRINTLN("Erasing EEPROM settings...");
+      SERIAL_PRINTLN("Erase EEPROM ...");
       EEPtr d = EEPROM_GLOBALSETTINGS_START;
       size_t len = EEPROMStorage::LENGTH - EEPROM_GLOBALSETTINGS_START;
       while (len--)
         *d++ = 0;
       SERIAL_PRINTLN("...done");
-      SERIAL_PRINTLN("Skipping loading of global/app settings, using defaults...");
+      SERIAL_PRINTLN("Skip settings, using defaults...");
       global_settings_storage.Init();
       app_data_storage.Init();
     } else {
@@ -248,14 +266,14 @@ void Init(bool reset_settings) {
   }
 
   if (!reset_settings) {
-    SERIAL_PRINTLN("Loading global settings: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
+    SERIAL_PRINTLN("Load global settings: size: %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
                   sizeof(GlobalSettings),
                   GlobalSettingsStorage::PAGESIZE,
                   GlobalSettingsStorage::PAGES,
                   GlobalSettingsStorage::LENGTH);
 
     if (!global_settings_storage.Load(global_settings)) {
-      SERIAL_PRINTLN("Settings not loaded or invalid, using defaults...");
+      SERIAL_PRINTLN("Settings invalid, using defaults!");
     } else {
       SERIAL_PRINTLN("Loaded settings from page_index %d, current_app_id is %02x",
                     global_settings_storage.page_index(),global_settings.current_app_id);
@@ -264,16 +282,17 @@ void Init(bool reset_settings) {
       memcpy(user_chords, global_settings.user_chords, sizeof(user_chords));
       memcpy(auto_calibration_data, global_settings.auto_calibration_data, sizeof(auto_calibration_data));
       DAC::choose_calibration_data(); // either use default data, or auto_calibration_data
+      DAC::restore_scaling(global_settings.DAC_scaling); // recover output scaling settings
     }
 
-    SERIAL_PRINTLN("Loading app data: struct size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
+    SERIAL_PRINTLN("Load app data: size is %u, PAGESIZE=%u, PAGES=%u, LENGTH=%u",
                   sizeof(AppData),
                   AppDataStorage::PAGESIZE,
                   AppDataStorage::PAGES,
                   AppDataStorage::LENGTH);
 
     if (!app_data_storage.Load(app_settings)) {
-      SERIAL_PRINTLN("App data not loaded, using defaults...");
+      SERIAL_PRINTLN("Data not loaded, using defaults!");
     } else {
       restore_app_data();
     }
@@ -281,7 +300,7 @@ void Init(bool reset_settings) {
 
   int current_app_index = apps::index_of(global_settings.current_app_id);
   if (current_app_index < 0 || current_app_index >= NUM_AVAILABLE_APPS) {
-    SERIAL_PRINTLN("App id %02x not found, using default...", global_settings.current_app_id);
+    SERIAL_PRINTLN("App id %02x not found, using default!", global_settings.current_app_id);
     global_settings.current_app_id = DEFAULT_APP_INDEX;
     current_app_index = DEFAULT_APP_INDEX;
   }

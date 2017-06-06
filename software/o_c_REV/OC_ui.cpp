@@ -41,7 +41,7 @@ void Ui::Init() {
 }
 
 void Ui::configure_encoders(EncoderConfig encoder_config) {
-  SERIAL_PRINTLN("Configuring encoders: %s (%x)", Strings::encoder_config_strings[encoder_config], encoder_config);
+  SERIAL_PRINTLN("Configuring encoders: %s (%x)", OC::Strings::encoder_config_strings[encoder_config], encoder_config);
 
   encoder_right_.reverse(encoder_config & ENCODER_CONFIG_R_REVERSED);
   encoder_left_.reverse(encoder_config & ENCODER_CONFIG_L_REVERSED);
@@ -197,6 +197,10 @@ UiMode Ui::Splashscreen(bool &reset_settings) {
     else
       w = ((start + SPLASHSCREEN_DELAY_MS + SPLASHSCREEN_TIMEOUT_MS - now) << 7) / SPLASHSCREEN_TIMEOUT_MS;
     graphics.drawRect(0, 62, w, 2);
+
+    /* fixes spurious button presses when booting ? */
+    while (event_queue_.available())
+      (void)event_queue_.PullEvent();
 
     GRAPHICS_END_FRAME();
 

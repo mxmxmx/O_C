@@ -2,6 +2,7 @@
 #define UTIL_MISC_H
 
 #include <stdint.h>
+#include "../OC_options.h"
 
 template <uint32_t a, uint32_t b, uint32_t c, uint32_t d>
 struct FOURCC

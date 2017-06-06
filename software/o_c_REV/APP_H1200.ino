@@ -78,10 +78,7 @@ enum H1200Setting {
   H1200_SETTING_CV_SAMPLING,
   H1200_SETTING_OUTPUT_MODE,
   H1200_SETTING_TRIGGER_TYPE,
-  H1200_SETTING_VOLTAGE_SCALING_A,
-  H1200_SETTING_VOLTAGE_SCALING_B,
-  H1200_SETTING_VOLTAGE_SCALING_C,
-  H1200_SETTING_VOLTAGE_SCALING_D,
+  H1200_SETTING_TRIGGER_DELAY,
   H1200_SETTING_EUCLIDEAN_CV1_MAPPING,
   H1200_SETTING_EUCLIDEAN_CV2_MAPPING,
   H1200_SETTING_EUCLIDEAN_CV3_MAPPING,
@@ -211,18 +208,8 @@ public:
     return static_cast<H1200TriggerTypes>(values_[H1200_SETTING_TRIGGER_TYPE]);
   }
 
-  uint8_t get_voltage_scaling_a() const {
-    return values_[H1200_SETTING_VOLTAGE_SCALING_A];
-  }
-
-  uint8_t get_voltage_scaling_b() const {
-    return values_[H1200_SETTING_VOLTAGE_SCALING_B];
-  }
-  uint8_t get_voltage_scaling_c() const {
-    return values_[H1200_SETTING_VOLTAGE_SCALING_C];
-  }
-  uint8_t get_voltage_scaling_d() const {
-    return values_[H1200_SETTING_VOLTAGE_SCALING_D];
+  uint16_t get_trigger_delay() const {
+    return values_[H1200_SETTING_TRIGGER_DELAY];
   }
 
   uint8_t get_euclidean_cv1_mapping() const {
@@ -345,13 +332,7 @@ public:
     *settings++ =   H1200_SETTING_CV_SAMPLING;
     *settings++ =   H1200_SETTING_OUTPUT_MODE;
     *settings++ =   H1200_SETTING_TRIGGER_TYPE;
-    
-    #ifdef BUCHLA_SUPPORT
-        *settings++ = H1200_SETTING_VOLTAGE_SCALING_A;
-        *settings++ = H1200_SETTING_VOLTAGE_SCALING_B;
-        *settings++ = H1200_SETTING_VOLTAGE_SCALING_C;
-        *settings++ = H1200_SETTING_VOLTAGE_SCALING_D;
-    #endif
+    *settings++ =   H1200_SETTING_TRIGGER_DELAY;
  
     switch (get_trigger_type()) {
       case H1200_TRIGGER_TYPE_EUCLIDEAN:
@@ -388,7 +369,6 @@ public:
 private:
   int num_enabled_settings_;
   H1200Setting enabled_settings_[H1200_SETTING_LAST];
-  
 };
 
 const char * const output_mode_names[] = {
@@ -440,23 +420,20 @@ const char* const h1200_eucl_cv_mappings[] = {
 
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
-  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Transpose CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Transpose CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
-  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Octave CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Octave CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},
-  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Inversion CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Inversion CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
   {TRANSFORM_PRIO_XPLR, 0, TRANSFORM_PRIO_PLR_LAST-1, "PLR Priority", plr_trigger_mode_names, settings::STORAGE_TYPE_U8},
-  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "PLR Prior CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "PLR Prior CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
   {TRANSFORM_PRIO_XNSH, 0, TRANSFORM_PRIO_NSH_LAST-1, "NSH Priority", nsh_trigger_mode_names, settings::STORAGE_TYPE_U8},
-  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "NSH Prior CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4},
-  {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U4},
+  {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "NSH Prior CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
+  {H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_CONT, H1200_CV_SAMPLING_LAST-1, "CV sampling", h1200_cv_sampling, settings::STORAGE_TYPE_U8},
   {OUTPUT_CHORD_VOICING, 0, OUTPUT_MODE_LAST-1, "Output mode", output_mode_names, settings::STORAGE_TYPE_U8},
   {H1200_TRIGGER_TYPE_PLR, 0, H1200_TRIGGER_TYPE_LAST-1, "Trigger type", trigger_type_names, settings::STORAGE_TYPE_U8},
-  { 0, 0, 5, "chan A V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 5, "chan B V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 5, "chan C V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 5, "chan D V/oct", OC::voltage_scalings, settings::STORAGE_TYPE_U4 },
+  { 0, 0, OC::kNumDelayTimes - 1, "Trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV1 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV2 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
   {H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_NONE, H1200_EUCL_CV_MAPPING_LAST-1, "Eucl CV3 map", h1200_eucl_cv_mappings, settings::STORAGE_TYPE_U8},
@@ -512,6 +489,8 @@ public:
 
     quantizer.Init();
     tonnetz_state.init();
+    trigger_delay_.Init();
+    delayed_triggers_ = 0;
 
     euclidean_counter_ = 0;
     root_sample_ = false;
@@ -624,22 +603,30 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
+  void set_delayed_triggers(uint32_t delayed_triggers) {
+    delayed_triggers_ = delayed_triggers;
+  }
+
+  uint32_t get_delayed_triggers() {
+    return(delayed_triggers_);
+  }
+
   void Render(int32_t root, int inversion, int octave, OutputMode output_mode) {
     tonnetz_state.render(root + octave * 12, inversion);
 
     switch (output_mode) {
     case OUTPUT_CHORD_VOICING: {
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_a());
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), 0, h1200_settings.get_voltage_scaling_b());
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), 0, h1200_settings.get_voltage_scaling_c());
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), 0, h1200_settings.get_voltage_scaling_d());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(1), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_B));
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(2), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_C));
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(3), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_D));
     }
     break;
     case OUTPUT_TUNE: {
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_a());
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_b());
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_c());
-      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(0), 0, h1200_settings.get_voltage_scaling_d());
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(0), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_B>(tonnetz_state.outputs(0), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_B));
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_C>(tonnetz_state.outputs(0), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_C));
+      OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_D>(tonnetz_state.outputs(0), 0, OC::DAC::get_voltage_scaling(DAC_CHANNEL_D));
     }
     break;
     default: break;
@@ -657,6 +644,8 @@ public:
   OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
   util::RingBuffer<H1200::UiAction, 4> ui_actions;
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
+  uint32_t delayed_triggers_;
   uint32_t euclidean_counter_;
   bool root_sample_ ;
   int32_t root_ ;
@@ -684,6 +673,16 @@ public:
 H1200State h1200_state;
 
 void FASTRUN H1200_clock(uint32_t triggers) {
+
+  h1200_state.trigger_delay_.Update();
+  if (triggers) {
+    h1200_state.trigger_delay_.Push(OC::trigger_delay_ticks[h1200_settings.get_trigger_delay()]);
+    h1200_state.set_delayed_triggers(triggers) ;
+    triggers = 0;
+  }
+  if (h1200_state.trigger_delay_.triggered())
+    triggers = h1200_state.get_delayed_triggers();
+  
   // Reset has priority
   if (triggers & TRIGGER_MASK_TR1) {
     h1200_state.tonnetz_state.reset(h1200_settings.mode());
@@ -695,7 +694,7 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   uint8_t plr_transform_priority_ = h1200_settings.get_transform_priority();
   uint8_t nsh_transform_priority_ = h1200_settings.get_nsh_transform_priority();
 
-  if (true) {
+  if (triggers || (h1200_settings.get_cv_sampling() == H1200_CV_SAMPLING_CONT)) {
         switch (h1200_settings.get_root_offset_cv_src()) {
           case H1200_CV_SOURCE_CV1:
             root_ += h1200_state.quantizer.Process(OC::ADC::raw_pitch_value(ADC_CHANNEL_1));
@@ -712,7 +711,6 @@ void FASTRUN H1200_clock(uint32_t triggers) {
           default:
             break; 
         } 
-      
       
         switch (h1200_settings.get_octave_cv_src()) {
           case H1200_CV_SOURCE_CV1:
