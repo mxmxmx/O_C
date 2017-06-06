@@ -4,6 +4,7 @@
 #include "OC_bitmaps.h"
 #include "OC_patterns.h"
 #include "OC_patterns_presets.h"
+#include "OC_options.h"
 
 namespace OC {
 
@@ -127,8 +128,13 @@ void PatternEditor<Owner>::Draw() {
     int pitch = (int)owner_->get_pitch_at_step(edit_this_sequence_, cursor_pos_);
     int32_t octave = pitch / (12 << 7);
     int32_t frac = pitch - octave * (12 << 7);
-    if (pitch >= 0)
-      graphics.printf(": +%d+%.2f", octave + owner_->get_octave(), (float)frac / 128.0f);
+    if (pitch >= 0) {
+      octave += owner_->get_octave();
+      if (octave >= 0)
+        graphics.printf(": +%d+%.2f", octave, (float)frac / 128.0f);
+      else
+        graphics.printf(": %d+%.2f", octave, (float)frac / 128.0f);
+    }
     else {
       octave--;
       if (!frac) {
@@ -140,6 +146,9 @@ void PatternEditor<Owner>::Draw() {
   }
 
   x += 3 + (w >> 0x1) - (num_slots << 0x2); y += 40;
+  #ifdef BUCHLA_4U
+    y += 16;
+  #endif 
 
   uint8_t clock_pos= owner_->get_clock_cnt();
   bool _draw_clock = (owner_->get_current_sequence() == edit_this_sequence_) && owner_->draw_clock();
@@ -289,8 +298,12 @@ void PatternEditor<Owner>::HandleEncoderEvent(const UI::Event &event) {
       if (OC::ui.read_immediate(OC::CONTROL_BUTTON_L)) 
        pitch += delta; // fine
       else
-        pitch += (delta << 7); // semitone 
-      CONSTRAIN(pitch, -3 * (12 << 7), 5 * (12 << 7)  - 128);  
+        pitch += (delta << 7); // semitone
+      #ifdef BUCHLA_4U
+        CONSTRAIN(pitch, 0x0, 8 * (12 << 7)  - 128); 
+      #else 
+        CONSTRAIN(pitch, -3 * (12 << 7), 5 * (12 << 7)  - 128); 
+      #endif 
       owner_->set_pitch_at_step(edit_this_sequence_, cursor_pos_, pitch);
 
     }
