@@ -72,13 +72,13 @@ inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, const uint8_t *s
 
 template <weegfx::DRAW_MODE draw_mode>
 inline void draw_pixel_row(uint8_t *dst, weegfx::coord_t count, uint8_t mask) {
-  while (count--) {
+  while (count-- > 0x0) {
     switch (draw_mode) {
       case weegfx::DRAW_NORMAL: *dst++ |= mask; break;
       case weegfx::DRAW_INVERSE: *dst++ ^= mask; break;
       case weegfx::DRAW_OVERWRITE: *dst++ = mask; break;
       case weegfx::DRAW_CLEAR: *dst++ &= ~mask; break;
-      case weegfx::DRAW_DOT: { *dst++|= mask; *dst++ |= 0x0; count--; } break;
+      case weegfx::DRAW_DOT: { *dst++|= mask; *dst++|= mask; *dst++ |= 0x0; *dst++ |= 0x0; count -= 0x3; } break;
     }
   }
 }

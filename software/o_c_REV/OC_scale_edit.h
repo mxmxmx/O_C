@@ -205,7 +205,7 @@ void ScaleEditor<Owner>::Draw() {
       }
   
       x += mutable_scale_ ? (w >> 0x1) - (((num_notes) * 7 + 4) >> 0x1) : (w >> 0x1) - (((num_notes - 1) * 7 + 4) >> 0x1); 
-      y += 10;
+      y += 11;
       uint16_t mask = mask_;
       for (size_t i = 0; i < num_notes; ++i, x += 7, mask >>= 1) {
         if (mask & 0x1)
