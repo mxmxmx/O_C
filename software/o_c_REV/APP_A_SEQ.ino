@@ -1598,7 +1598,11 @@ public:
       switch (_mode) {
 
         case 0: // gate
-          _output = get_step_gate();
+          #ifdef BUCHLA_4U
+          _output = (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - 0x2) : OC::DAC::get_zero_offset(dacChannel);
+          #else
+          _output = (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES) : OC::DAC::get_zero_offset(dacChannel);
+          #endif   
         break;
         case 1: // copy
           _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, OC::DAC::get_voltage_scaling(dacChannel));
