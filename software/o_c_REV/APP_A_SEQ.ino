@@ -1599,7 +1599,7 @@ public:
       switch (_mode) {
 
         case 0: // gate
-          _output =  (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - OC::DAC::kOctaveZero) : OC::DAC::get_zero_offset(dacChannel);
+          _output =  (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(dacChannel);
         break;
         case 1: // copy
           _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, OC::DAC::get_voltage_scaling(dacChannel));

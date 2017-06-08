@@ -805,7 +805,7 @@ public:
              }
          }  
        // scale gate
-       aux_sample_ = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero) : OC::DAC::get_zero_offset(aux_channel);
+       aux_sample_ = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
       } 
       break;
       default:
