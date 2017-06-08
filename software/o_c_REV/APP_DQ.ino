@@ -754,7 +754,7 @@ public:
       break;
       case DQ_GATE:
       { 
-      if (aux_sample_) { 
+      if (aux_sample_ == ON) { 
            
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
@@ -768,17 +768,7 @@ public:
                 // we-can't-echo-hack  
                 if (continuous && !_pulsewidth)
                   _pulsewidth = 0x1;
-                // CV?
-                /*
-                if (get_pulsewidth_cv_source()) {
-    
-                  _pulsewidth += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_pulsewidth_cv_source() - 1)) + 8) >> 3; 
-                  if (!_gates)          
-                    CONSTRAIN(_pulsewidth, 1, PULSEW_MAX);
-                  else // CV for 50% duty cycle: 
-                    CONSTRAIN(_pulsewidth, 1, (PULSEW_MAX<<1) - 55);  // incl margin, max < 2x mult. see below 
-                }
-                */
+           
                 // recalculate (in ticks), if new pulsewidth setting:
                 if (prev_pulsewidth_ != _pulsewidth || ! ticks_) {
                   
@@ -812,8 +802,10 @@ public:
              else {
                 // we simply echo the pulsewidth:
                  aux_sample_ = OC::DigitalInputs::read_immediate(get_digital_input()) ? ON : OFF;
-             }   
+             }
          }  
+       // scale gate
+       aux_sample_ = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
       } 
       break;
       default:
