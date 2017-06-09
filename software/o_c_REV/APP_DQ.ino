@@ -365,7 +365,6 @@ public:
     aux_sample_ = 0;
     last_sample_ = 0;
     last_aux_sample_ = 0;
-    clock_ = 0;
     continuous_offset_ = 0;
     scale_sequence_cnt_ = 0;
     scale_reset_ = 0;
@@ -1009,7 +1008,6 @@ private:
   int32_t aux_sample_;
   int32_t last_aux_sample_;
   int8_t continuous_offset_;
-  uint8_t clock_;
   uint8_t prev_pulsewidth_;
   int8_t prev_destination_;
   int8_t prev_octave_cv_;
