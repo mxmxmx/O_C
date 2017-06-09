@@ -1339,14 +1339,21 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
   }
 
   if (OC::CONTROL_ENCODER_L == event.control) {
+    
     int selected_channel = dq_state.selected_channel + event.value;
-    CONSTRAIN(selected_channel, 0, NUMCHANNELS-1);
+    CONSTRAIN(selected_channel, 0, NUMCHANNELS - 0x1);
     dq_state.selected_channel = selected_channel;
 
     DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
+    selected.update_enabled_settings();
     dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
+    //??
+    dq_state.cursor.Scroll(0x0);
+    
   } else if (OC::CONTROL_ENCODER_R == event.control) {
+    
     DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
+    
     if (dq_state.editing()) {
       DQ_ChannelSetting setting = selected.enabled_setting_at(dq_state.cursor_pos());
       if (DQ_CHANNEL_SETTING_MASK1 != setting || DQ_CHANNEL_SETTING_MASK2 != setting || DQ_CHANNEL_SETTING_MASK3 != setting || DQ_CHANNEL_SETTING_MASK4 != setting) {
