@@ -405,7 +405,6 @@ public:
 
     turing_machine_.Init();
     turing_display_length_ = get_turing_length();
-    last_turing_pitch_ = 0;
 
     scrolling_history_.Init(OC::DAC::kOctaveZero * 12 << 7);
   }
@@ -483,7 +482,7 @@ public:
 
     if (update) {
         
-      int32_t transpose, pitch;
+      int32_t transpose, pitch, quantized = 0x0;
       int source, cv_source, channel_id, octave, root, _aux_cv_destination;
       
       source = cv_source = get_source();
@@ -501,93 +500,6 @@ public:
       transpose = get_transpose(display_scale_slot_) + prev_transpose_cv_;
       // get octave value
       octave = get_octave() + prev_octave_cv_;
-
-      // internal CV source?
-      if (source > DQ_CHANNEL_SOURCE_CV4) 
-        cv_source = channel_id - 1;
-        
-      pitch = quantizer_.enabled()
-                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
-                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
-     
-              
-      switch (source) {
-
-        case DQ_CHANNEL_SOURCE_CV1:
-        case DQ_CHANNEL_SOURCE_CV2:
-        case DQ_CHANNEL_SOURCE_CV3:
-        case DQ_CHANNEL_SOURCE_CV4:
-        break;
-        case DQ_CHANNEL_SOURCE_TURING:
-        {
-          if (continuous)
-              break;
-              
-          int16_t _length = get_turing_length();
-          int16_t _probability = get_turing_probability();
-          int16_t _range = get_turing_range();
-
-          // _pitch can do other things now -- 
-          switch (get_turing_CV()) {
-
-              case 1:  // LEN, 1-32
-               _length += ((pitch + 255) >> 8);
-               CONSTRAIN(_length, 1, 32);
-              break;
-               case 2:  // P
-               _probability += ((pitch + 15) >> 4);
-               CONSTRAIN(_probability, 0, 255);
-              break;
-              default: // range
-               _range += ((pitch + 63) >> 6);
-               CONSTRAIN(_range, 1, 120);
-              break;
-          }
-          
-          turing_machine_.set_length(_length);
-          turing_machine_.set_probability(_probability); 
-          turing_display_length_ = _length;
-
-          uint32_t _shift_register = turing_machine_.Clock();   
-          // Since our range is limited anyway, just grab the last byte for lengths > 8,
-          // otherwise scale to use bits. And apply the modulus
-          uint32_t shift = turing_machine_.length();
-          uint32_t _scaled = (_shift_register & 0xff) * _range;
-          _scaled = _scaled >> (shift > 7 ? 8 : shift);
- 
-          // shouldn't this (for DQ) just be some raw value at this point? see below, things get re-quantized, anyways
-          pitch =
-              quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root(display_scale_slot_) << 7); 
-        
-          // gate?
-          switch(get_turing_trig_out()) {
-            
-            case DQ_ECHO:
-            break;
-            case DQ_LSB:
-            if (!turing_machine_.get_LSB())
-              aux_sample_ = OFF;
-            break;
-            case DQ_CHANGE:
-            if (last_turing_pitch_ == pitch)
-              aux_sample_ = OFF;
-            break;
-            default:
-            break;
-          }
-          
-          last_turing_pitch_ = pitch;
-        }
-        break;
-        case DQ_CHANNEL_SOURCE_LOGISTIC_MAP:
-        break;
-        case DQ_CHANNEL_SOURCE_BYTEBEAT:
-        break;
-        case DQ_CHANNEL_SOURCE_INT_SEQ:
-        break;
-        default:
-        break;
-      }
 
       // S/H 
       if (!continuous) {
@@ -626,10 +538,67 @@ public:
       CONSTRAIN(octave, -4, 4);
       CONSTRAIN(root, 0, 11);
       CONSTRAIN(transpose, -12, 12); 
-               
-      int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
-      sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
 
+      // internal CV source?
+      if (source > DQ_CHANNEL_SOURCE_CV4) 
+        cv_source = channel_id - 1;
+        
+      pitch = quantizer_.enabled()
+                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
+                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
+
+      switch (source) {
+
+        case DQ_CHANNEL_SOURCE_CV1:
+        case DQ_CHANNEL_SOURCE_CV2:
+        case DQ_CHANNEL_SOURCE_CV3:
+        case DQ_CHANNEL_SOURCE_CV4:
+        quantized = quantizer_.Process(pitch, root << 7, transpose);
+        break;
+        case DQ_CHANNEL_SOURCE_TURING:
+        {
+          if (continuous)
+              break;
+              
+          int16_t _length = get_turing_length();
+          int16_t _probability = get_turing_probability();
+          int16_t _range = get_turing_range();
+
+          // _pitch can do other things now -- 
+          switch (get_turing_CV()) {
+
+              case 1:  // LEN, 1-32
+               _length += ((pitch + 255) >> 8);
+               CONSTRAIN(_length, 1, 32);
+              break;
+               case 2:  // P
+               _probability += ((pitch + 15) >> 4);
+               CONSTRAIN(_probability, 0, 255);
+              break;
+              default: // range
+               _range += ((pitch + 63) >> 6);
+               CONSTRAIN(_range, 1, 120);
+              break;
+          }
+          
+          turing_machine_.set_length(_length);
+          turing_machine_.set_probability(_probability); 
+          turing_display_length_ = _length;
+
+          uint32_t _shift_register = turing_machine_.Clock();   
+          // Since our range is limited anyway, just grab the last byte for lengths > 8, otherwise scale to use bits.
+          uint32_t shift = turing_machine_.length();
+          uint32_t _scaled = (_shift_register & 0xFF) * _range;
+          _scaled = _scaled >> (shift > 7 ? 8 : shift);
+          quantized = quantizer_.Lookup(64 + _range / 2 - _scaled) + (root<< 7) + transpose;
+        }
+        break;
+        default:
+        break;
+      }
+      // 
+      sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
+      
       bool _continuous_update = continuous && last_sample_ != sample;
 
       if ((!continuous && schedule_scale_update_) || (_continuous_update && schedule_scale_update_)) {
@@ -724,11 +693,29 @@ public:
       if (aux_mode == DQ_COPY) 
         aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
       else if (aux_mode == DQ_ASR) {
-        // to do ... more settings
+        // to do ... continuous ..
         const int32_t quantized_aux = quantizer_.Process(last_raw_sample_, root << 7, transpose);
         aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized_aux, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
         last_raw_sample_ = pitch;
       }
+      else if (aux_mode == DQ_GATE && source == DQ_CHANNEL_SOURCE_TURING) {
+        
+          switch(get_turing_trig_out()) {
+            
+            case DQ_ECHO:
+            break;
+            case DQ_LSB:
+            if (!turing_machine_.get_LSB())
+              aux_sample_ = OFF;
+            break;
+            case DQ_CHANGE:
+            if (last_sample_ == sample)
+              aux_sample_ = OFF;
+            break;
+            default:
+            break;
+          }
+       }
     }
 
     // in continuous mode, don't track transposed sample:
@@ -745,7 +732,8 @@ public:
       } 
     }
     
-    // pulsewidth / gate outputs: 
+    // aux outputs:
+    int32_t aux_sample = aux_sample_; 
 
     switch (aux_mode) {
 
@@ -754,7 +742,7 @@ public:
       break;
       case DQ_GATE:
       { 
-      if (aux_sample_ == ON) { 
+      if (aux_sample_) { 
            
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
@@ -804,16 +792,16 @@ public:
                  aux_sample_ = OC::DigitalInputs::read_immediate(get_digital_input()) ? ON : OFF;
              }
          }  
-       // scale gate
-       aux_sample_ = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
       } 
+      // scale gate
+      aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
       break;
       default:
       break;
     }
     
     OC::DAC::set(dac_channel, sample);
-    OC::DAC::set(aux_channel, aux_sample_);
+    OC::DAC::set(aux_channel, aux_sample);
 
     if (triggered || (continuous && changed)) {
       scrolling_history_.Push(history_sample);
@@ -1031,7 +1019,6 @@ private:
   // internal CV sources;
   util::TuringShiftRegister turing_machine_;
   int8_t turing_display_length_;
-  int32_t last_turing_pitch_;
   
   int num_enabled_settings_;
   DQ_ChannelSetting enabled_settings_[DQ_CHANNEL_SETTING_LAST];
