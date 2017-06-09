@@ -421,7 +421,11 @@ const char* const h1200_eucl_cv_mappings[] = {
 SETTINGS_DECLARE(H1200Settings, H1200_SETTING_LAST) {
   {0, -11, 11, "Transpose", NULL, settings::STORAGE_TYPE_I8},
   {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Transpose CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
+  #ifdef BUCHLA_4U
+  {0, 0, 8, "Octave", NULL, settings::STORAGE_TYPE_I8},
+  #else
   {0, -3, 3, "Octave", NULL, settings::STORAGE_TYPE_I8},
+  #endif
   {H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_NONE, H1200_CV_SOURCE_LAST-1, "Octave CV", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8},
   {MODE_MAJOR, 0, MODE_LAST-1, "Root mode", mode_names, settings::STORAGE_TYPE_U8},
   {0, -3, 3, "Inversion", NULL, settings::STORAGE_TYPE_I8},

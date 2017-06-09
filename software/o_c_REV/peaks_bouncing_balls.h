@@ -66,8 +66,8 @@ class BouncingBall {
     set_retrigger_bounces(parameter[4]);
   }
   
-  inline int16_t ProcessSingleSample(uint8_t control) {
-    uint16_t const kMaxPos = 32767L ;
+  inline int32_t ProcessSingleSample(uint8_t control, uint16_t _kMaxPos) {
+    uint16_t const kMaxPos = _kMaxPos; //32767L ;
     if (retrigger_bounces_ && (bounces_since_trigger_ >= retrigger_bounces_)) {
       retrigger_ = true;
       bounces_since_trigger_ = 0 ;
