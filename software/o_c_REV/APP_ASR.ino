@@ -513,17 +513,19 @@ public:
   
                 // _pitch can do other things now -- 
                 switch (get_turing_CV()) {
-  
-                    case 1:  // LEN, 1-32
+
+                    case 1: // mult
+                     _mult += ((_pitch + 63) >> 7);
+                    break;
+                    case 2:  // LEN, 1-32
                      _length += ((_pitch + 255) >> 9);
                      CONSTRAIN(_length, 1, 32);
                     break;
-                     case 2:  // P
+                    case 3:  // P
                      _probability += ((_pitch + 7) >> 4);
                      CONSTRAIN(_probability, 0, 255);
                     break;
-                    default: // mult
-                     _mult += ((_pitch + 63) >> 7);
+                    default:
                     break;
                 }
                 
@@ -730,10 +732,6 @@ const char* const asr_cv4_destinations[] = {
   "oct", "root", "trns", "buf.l", "igain"
 };
 
-const char* const tm_CV_destinations[] = {
-  "rng", "len", "p"
-};
-
 const char* const bb_CV_destinations[] = {
   "igain", "eqn", "P0", "P1", "P2"
 };
@@ -756,7 +754,7 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
+  { 0, 0, 3, "> LFSR CV1", OC::Strings::TM_aux_cv_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },

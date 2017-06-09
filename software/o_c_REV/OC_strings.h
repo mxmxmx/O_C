@@ -31,6 +31,7 @@ namespace OC {
     extern const char * const trigger_delay_times[kNumDelayTimes];
     extern const char* const chord_property_names[];
     extern const char* const mult[];
+    extern const char* const TM_aux_cv_destinations[];
     // Not strings but are constant integer sequences
     extern const uint8_t pi_digits[kIntSeqLen];
     // extern const uint8_t phi_digits[kIntSeqLen];

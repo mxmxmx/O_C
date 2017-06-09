@@ -1068,10 +1068,6 @@ const char* const dq_aux_cv_dest[] = {
   "-", "scl#", "root", "oct", "trns", "mask"
 };
 
-const char* const dq_tm_CV_destinations[] = {
-  "-", "rng", "len", "prb"
-};
-
 const char* const dq_tm_trig_out[] = {
   "echo", "lsb", "chng"
 };
@@ -1105,7 +1101,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 0, 0, DQ_DEST_LAST-1, "CV aux.", dq_aux_cv_dest, settings::STORAGE_TYPE_U8 },
   { 16, 1, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 3, " > LFSR CV", dq_tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
+  { 0, 0, 3, " > LFSR CV", OC::Strings::TM_aux_cv_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 15, 1, 120, " > LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, DQ_TRIG_AUX_LAST-1, " > LFSR TRIG", dq_tm_trig_out, settings::STORAGE_TYPE_U8 }
 };
