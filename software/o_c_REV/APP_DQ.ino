@@ -356,7 +356,6 @@ public:
     apply_value(DQ_CHANNEL_SETTING_TRIGGER, trigger_source);
 
     force_update_ = true;
-    instant_update_ = false;
 
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
@@ -408,10 +407,6 @@ public:
 
   void schedule_scale_update() {
     schedule_scale_update_ = true;
-  }
-       
-  void instant_update() {
-    instant_update_ = (~instant_update_) & 1u;
   }
 
   inline void Update(uint32_t triggers, DAC_CHANNEL dac_channel, DAC_CHANNEL aux_channel) {
@@ -837,19 +832,20 @@ public:
   void update_scale_mask(uint16_t mask, uint8_t scale_select) {
 
     switch (scale_select) {
-      case 0:  
+      
+      case SLOT1: 
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         last_mask_[0] = mask;
       break;
-      case 1:  
+      case SLOT2: 
         apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
         last_mask_[1] = mask;
       break;
-      case 2:  
+      case SLOT3:  
         apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
         last_mask_[2] = mask;
       break;
-      case 3: 
+      case SLOT4: 
         apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
         last_mask_[3] = mask;
       break;
@@ -994,7 +990,6 @@ public:
 
 private:
   bool force_update_;
-  bool instant_update_;
   bool update_asr_;
   int last_scale_[NUM_SCALE_SLOTS];
   uint16_t last_mask_[NUM_SCALE_SLOTS];
