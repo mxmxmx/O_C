@@ -134,10 +134,7 @@ public:
   int get_scale(uint8_t selected_scale_slot_) const {
 
     switch(selected_scale_slot_) {
-      
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_SCALE1];
-       break;
+   
        case SLOT2:
         return values_[DQ_CHANNEL_SETTING_SCALE2];
        break;
@@ -147,6 +144,7 @@ public:
        case SLOT4:
         return values_[DQ_CHANNEL_SETTING_SCALE4];
        break;
+       case SLOT1:
        default:
         return values_[DQ_CHANNEL_SETTING_SCALE1];
        break;        
@@ -198,6 +196,7 @@ public:
         apply_value(DQ_CHANNEL_SETTING_ROOT4, root);
         apply_value(DQ_CHANNEL_SETTING_TRANSPOSE4, transpose);
         break;
+        case SLOT1:
         default:
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
@@ -212,9 +211,6 @@ public:
 
     switch(selected_scale_slot_) {
       
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_ROOT1];
-       break;
        case SLOT2:
         return values_[DQ_CHANNEL_SETTING_ROOT2];
        break;
@@ -224,6 +220,7 @@ public:
        case SLOT4:
         return values_[DQ_CHANNEL_SETTING_ROOT4];
        break;
+       case SLOT1:
        default:
         return values_[DQ_CHANNEL_SETTING_ROOT1];
        break;        
@@ -234,9 +231,6 @@ public:
 
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_MASK1];
-      break;
       case SLOT2:
         return values_[DQ_CHANNEL_SETTING_MASK2];
       break;
@@ -246,6 +240,7 @@ public:
       case SLOT4:  
         return values_[DQ_CHANNEL_SETTING_MASK4];
       break;
+      case SLOT1:  
       default:
         return values_[DQ_CHANNEL_SETTING_MASK1];
       break;
@@ -280,9 +275,6 @@ public:
     
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
-      break;
       case SLOT2:
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE2];
       break;
@@ -292,6 +284,7 @@ public:
       case SLOT4:   
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE4];
       break;
+      case SLOT1:
       default:
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
       break;
@@ -593,7 +586,7 @@ public:
           uint32_t shift = turing_machine_.length();
           uint32_t _scaled = (_shift_register & 0xFF) * _range;
           _scaled = _scaled >> (shift > 7 ? 8 : shift);
-          quantized = quantizer_.Lookup(64 + _range / 2 - _scaled) + (root<< 7) + transpose;
+          quantized = quantizer_.Lookup(64 + _range / 2 - _scaled + transpose) + (root<< 7);
         }
         break;
         default:
@@ -602,15 +595,14 @@ public:
       
       // the output, thus far:
       sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
-      
+
+      // special treatment, continuous update -- only update the modulation values if/when the quantized input changes:    
       bool _continuous_update = continuous && last_sample_ != sample;
 
       if ((!continuous && schedule_scale_update_) || (_continuous_update && schedule_scale_update_)) {
         update_scale(true, display_scale_slot_, schedule_mask_rotate_);
         schedule_scale_update_ = false;
       }  
-
-      // special treatment, continuous update:
        
       if (_continuous_update) {
 
@@ -699,6 +691,7 @@ public:
       switch (aux_mode) {
         
         case DQ_COPY:
+        // offset the quantized value:
           aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
         break;
         case DQ_ASR:
@@ -744,7 +737,8 @@ public:
       
       MENU_REDRAW = 1;
       last_sample_ = continuous ? temp_sample : sample;
-      
+
+      // in continuous mode, make aux output go high:
       if (continuous && aux_mode == DQ_GATE) {
         aux_sample_ = ON;
         ticks_ = 0x0;
@@ -761,7 +755,7 @@ public:
       break;
       case DQ_GATE:
       { 
-      if (aux_sample_) { 
+      if (aux_sample) { 
            
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
