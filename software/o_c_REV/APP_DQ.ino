@@ -134,10 +134,7 @@ public:
   int get_scale(uint8_t selected_scale_slot_) const {
 
     switch(selected_scale_slot_) {
-      
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_SCALE1];
-       break;
+   
        case SLOT2:
         return values_[DQ_CHANNEL_SETTING_SCALE2];
        break;
@@ -147,6 +144,7 @@ public:
        case SLOT4:
         return values_[DQ_CHANNEL_SETTING_SCALE4];
        break;
+       case SLOT1:
        default:
         return values_[DQ_CHANNEL_SETTING_SCALE1];
        break;        
@@ -198,6 +196,7 @@ public:
         apply_value(DQ_CHANNEL_SETTING_ROOT4, root);
         apply_value(DQ_CHANNEL_SETTING_TRANSPOSE4, transpose);
         break;
+        case SLOT1:
         default:
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
@@ -212,9 +211,6 @@ public:
 
     switch(selected_scale_slot_) {
       
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_ROOT1];
-       break;
        case SLOT2:
         return values_[DQ_CHANNEL_SETTING_ROOT2];
        break;
@@ -224,6 +220,7 @@ public:
        case SLOT4:
         return values_[DQ_CHANNEL_SETTING_ROOT4];
        break;
+       case SLOT1:
        default:
         return values_[DQ_CHANNEL_SETTING_ROOT1];
        break;        
@@ -234,9 +231,6 @@ public:
 
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_MASK1];
-      break;
       case SLOT2:
         return values_[DQ_CHANNEL_SETTING_MASK2];
       break;
@@ -246,6 +240,7 @@ public:
       case SLOT4:  
         return values_[DQ_CHANNEL_SETTING_MASK4];
       break;
+      case SLOT1:  
       default:
         return values_[DQ_CHANNEL_SETTING_MASK1];
       break;
@@ -280,9 +275,6 @@ public:
     
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
-      break;
       case SLOT2:
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE2];
       break;
@@ -292,6 +284,7 @@ public:
       case SLOT4:   
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE4];
       break;
+      case SLOT1:
       default:
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
       break;
@@ -363,7 +356,6 @@ public:
     apply_value(DQ_CHANNEL_SETTING_TRIGGER, trigger_source);
 
     force_update_ = true;
-    instant_update_ = false;
 
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
@@ -373,7 +365,6 @@ public:
     aux_sample_ = 0;
     last_sample_ = 0;
     last_aux_sample_ = 0;
-    clock_ = 0;
     continuous_offset_ = 0;
     scale_sequence_cnt_ = 0;
     scale_reset_ = 0;
@@ -415,10 +406,6 @@ public:
 
   void schedule_scale_update() {
     schedule_scale_update_ = true;
-  }
-       
-  void instant_update() {
-    instant_update_ = (~instant_update_) & 1u;
   }
 
   inline void Update(uint32_t triggers, DAC_CHANNEL dac_channel, DAC_CHANNEL aux_channel) {
@@ -593,7 +580,7 @@ public:
           uint32_t shift = turing_machine_.length();
           uint32_t _scaled = (_shift_register & 0xFF) * _range;
           _scaled = _scaled >> (shift > 7 ? 8 : shift);
-          quantized = quantizer_.Lookup(64 + _range / 2 - _scaled) + (root<< 7) + transpose;
+          quantized = quantizer_.Lookup(64 + _range / 2 - _scaled + transpose) + (root<< 7);
         }
         break;
         default:
@@ -602,15 +589,14 @@ public:
       
       // the output, thus far:
       sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
-      
+
+      // special treatment, continuous update -- only update the modulation values if/when the quantized input changes:    
       bool _continuous_update = continuous && last_sample_ != sample;
 
       if ((!continuous && schedule_scale_update_) || (_continuous_update && schedule_scale_update_)) {
         update_scale(true, display_scale_slot_, schedule_mask_rotate_);
         schedule_scale_update_ = false;
       }  
-
-      // special treatment, continuous update:
        
       if (_continuous_update) {
 
@@ -699,6 +685,7 @@ public:
       switch (aux_mode) {
         
         case DQ_COPY:
+        // offset the quantized value:
           aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
         break;
         case DQ_ASR:
@@ -744,7 +731,8 @@ public:
       
       MENU_REDRAW = 1;
       last_sample_ = continuous ? temp_sample : sample;
-      
+
+      // in continuous mode, make aux output go high:
       if (continuous && aux_mode == DQ_GATE) {
         aux_sample_ = ON;
         ticks_ = 0x0;
@@ -761,7 +749,7 @@ public:
       break;
       case DQ_GATE:
       { 
-      if (aux_sample_) { 
+      if (aux_sample) { 
            
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
@@ -813,7 +801,11 @@ public:
          }  
       } 
       // scale gate
-      aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
+      #ifdef BUCHLA_4U
+        aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x2) : OC::DAC::get_zero_offset(aux_channel);
+      #else
+        aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
+      #endif
       break;
       default:
       break;
@@ -843,19 +835,20 @@ public:
   void update_scale_mask(uint16_t mask, uint8_t scale_select) {
 
     switch (scale_select) {
-      case 0:  
+      
+      case SLOT1: 
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         last_mask_[0] = mask;
       break;
-      case 1:  
+      case SLOT2: 
         apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
         last_mask_[1] = mask;
       break;
-      case 2:  
+      case SLOT3:  
         apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
         last_mask_[2] = mask;
       break;
-      case 3: 
+      case SLOT4: 
         apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
         last_mask_[3] = mask;
       break;
@@ -1000,7 +993,6 @@ public:
 
 private:
   bool force_update_;
-  bool instant_update_;
   bool update_asr_;
   int last_scale_[NUM_SCALE_SLOTS];
   uint16_t last_mask_[NUM_SCALE_SLOTS];
@@ -1020,7 +1012,6 @@ private:
   int32_t aux_sample_;
   int32_t last_aux_sample_;
   int8_t continuous_offset_;
-  uint8_t clock_;
   uint8_t prev_pulsewidth_;
   int8_t prev_destination_;
   int8_t prev_octave_cv_;
@@ -1081,10 +1072,6 @@ const char* const dq_aux_cv_dest[] = {
   "-", "scl#", "root", "oct", "trns", "mask"
 };
 
-const char* const dq_tm_CV_destinations[] = {
-  "-", "rng", "len", "prb"
-};
-
 const char* const dq_tm_trig_out[] = {
   "echo", "lsb", "chng"
 };
@@ -1118,7 +1105,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 0, 0, DQ_DEST_LAST-1, "CV aux.", dq_aux_cv_dest, settings::STORAGE_TYPE_U8 },
   { 16, 1, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 3, " > LFSR CV", dq_tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
+  { 0, 0, 3, " > LFSR CV", OC::Strings::TM_aux_cv_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 15, 1, 120, " > LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, DQ_TRIG_AUX_LAST-1, " > LFSR TRIG", dq_tm_trig_out, settings::STORAGE_TYPE_U8 }
 };

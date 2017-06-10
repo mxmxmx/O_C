@@ -43,6 +43,7 @@ void MultistageEnvelope::Init() {
   start_value_ = 0;
   value_ = 0;
   attack_reset_behaviour_ = RESET_BEHAVIOUR_NULL;
+  attack_falling_gate_behaviour_ = FALLING_GATE_BEHAVIOUR_IGNORE;
   decay_release_reset_behaviour_ = RESET_BEHAVIOUR_SEGMENT_PHASE;
   reset_behaviour_ = RESET_BEHAVIOUR_NULL;
   attack_shape_ = ENV_SHAPE_QUARTIC;
@@ -57,10 +58,12 @@ void MultistageEnvelope::Init() {
   scaled_value_ = 0 ;
   max_loops_ = 0 ;
   loop_counter_ = 0;
+  state_mask_ = 0;
 }
 
-int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
-  
+uint16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
+
+  state_mask_ = 0;
   if (control & CONTROL_GATE_RISING) {
     if (segment_ == num_segments_) {
       start_value_ = level_[0];
@@ -96,7 +99,7 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
       }
     }
     if (segment_ == 0 and amplitude_sampled_) sampled_amplitude_ = amplitude_ ;
-  } else if (control & CONTROL_GATE_FALLING && sustain_point_) {
+  } else if ((control & CONTROL_GATE_FALLING) && sustain_point_ && attack_falling_gate_behaviour_ == FALLING_GATE_BEHAVIOUR_HONOUR) {
     start_value_ = value_;
     segment_ = sustain_point_;
     phase_ = 0;
@@ -110,6 +113,8 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
         segment_ = loop_start_;
       }
     }
+    if (segment_ == num_segments_)
+      state_mask_ |= ENV_EOC;    
   }
   
   bool done = segment_ == num_segments_;
@@ -126,12 +131,15 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
   value_ = a + ((b - a) * (t >> 1) >> 15);
   phase_ += phase_increment_;
   if (amplitude_sampled_) {
-    scaled_value_ = (value_ * sampled_amplitude_) >> 16 ;
+    scaled_value_ = (value_ * sampled_amplitude_) >> 16;
   } else {
-    scaled_value_ = (value_ * amplitude_) >> 16 ;
+    scaled_value_ = (value_ * amplitude_) >> 16;
   }
-  return(static_cast<uint16_t>(scaled_value_)) ;
-  // return(value_) ;
+  #ifdef BUCHLA_4U
+    return(static_cast<uint16_t>(scaled_value_ << 1));
+  #else
+    return(static_cast<uint16_t>(scaled_value_));
+  #endif
 }
 
 uint16_t MultistageEnvelope::RenderPreview(

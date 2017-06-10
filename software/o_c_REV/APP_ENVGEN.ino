@@ -62,6 +62,7 @@ enum EnvelopeSettings {
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
   ENV_SETTING_ATTACK_RESET_BEHAVIOUR,
+  ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR,
   ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR,
   ENV_SETTING_GATE_HIGH,
   ENV_SETTING_ATTACK_SHAPE,
@@ -112,6 +113,24 @@ enum TriggerDelayMode {
   TRIGGER_DELAY_LAST
 };
 
+// With only one type, the U4 setting size still works. Each of the these maps to 3 values in the
+// setting, 1 for each channel other than the current.
+// Ordering here ideally maps to peaks::EnvStateBitMask shifts
+enum IntTriggerType {
+  INT_TRIGGER_EOC,
+  INT_TRIGGER_LAST
+};
+
+inline int TriggerSettingToChannel(int setting_value) __attribute__((always_inline));
+inline int TriggerSettingToChannel(int setting_value) {
+  return (setting_value - OC::DIGITAL_INPUT_LAST) / INT_TRIGGER_LAST;
+}
+
+inline IntTriggerType TriggerSettingToType(int setting_value, int channel) __attribute__((always_inline));
+inline IntTriggerType TriggerSettingToType(int setting_value, int channel) {
+  return static_cast<IntTriggerType>((setting_value - OC::DIGITAL_INPUT_LAST) - channel * INT_TRIGGER_LAST);
+}
+
 class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
 public:
 
@@ -140,8 +159,8 @@ public:
     return static_cast<EnvelopeType>(values_[ENV_SETTING_TYPE]);
   }
 
-  OC::DigitalInput get_trigger_input() const {
-    return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
+int get_trigger_input() const {
+    return values_[ENV_SETTING_TRIGGER_INPUT];
   }
 
   int32_t get_trigger_delay_ms() const {
@@ -154,6 +173,10 @@ public:
 
   peaks::EnvResetBehaviour get_attack_reset_behaviour() const {
     return static_cast<peaks::EnvResetBehaviour>(values_[ENV_SETTING_ATTACK_RESET_BEHAVIOUR]);
+  }
+
+  peaks::EnvFallingGateBehaviour get_attack_falling_gate_behaviour() const {
+    return static_cast<peaks::EnvFallingGateBehaviour>(values_[ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR]);
   }
 
   peaks::EnvResetBehaviour get_decay_release_reset_behaviour() const {
@@ -353,6 +376,7 @@ public:
     *settings++ = ENV_SETTING_CV3;
     *settings++ = ENV_SETTING_CV4;
     *settings++ = ENV_SETTING_ATTACK_RESET_BEHAVIOUR;
+    *settings++ = ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR;
     *settings++ = ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_GATE_HIGH;
     *settings++ = ENV_SETTING_AMPLITUDE;
@@ -380,8 +404,7 @@ public:
   }
 
   template <DAC_CHANNEL dac_channel>
-  void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
-
+  void Update(uint32_t triggers, uint32_t internal_trigger_mask, const int32_t cvs[ADC_CHANNEL_LAST]) {
     int32_t s[kMaxSegments + kEuclideanParams + kDelayParams + kAmplitudeParams];
     s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
     s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
@@ -438,8 +461,9 @@ public:
       env_.reset();
     }
 
-    // set the specified reset behaviour
+    // set the specified reset behaviours
     env_.set_attack_reset_behaviour(get_attack_reset_behaviour());
+    env_.set_attack_falling_gate_behaviour(get_attack_falling_gate_behaviour());
     env_.set_decay_release_reset_behaviour(get_decay_release_reset_behaviour());
 
     // set the envelope segment shapes
@@ -455,8 +479,19 @@ public:
     // set the looping envelope maximum number of loops
     env_.set_max_loops(s[9]);
 
-    OC::DigitalInput trigger_input = get_trigger_input();
-    bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
+    int trigger_input = get_trigger_input();
+    bool triggered = false;
+    bool gate_raised = false;
+    if (trigger_input < OC::DIGITAL_INPUT_LAST) {
+      triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
+      gate_raised = OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(trigger_input));
+    } else {
+      const int trigger_channel = TriggerSettingToChannel(trigger_input);
+      const IntTriggerType trigger_type = TriggerSettingToType(trigger_input, trigger_channel);
+  
+      triggered = (internal_trigger_mask >> (trigger_setting_to_channel_index(trigger_channel) * 8)) & (0x1 << trigger_type);
+      gate_raised = triggered;
+    }
 
     trigger_display_.Update(1, triggered || gate_raised_);
 
@@ -505,7 +540,6 @@ public:
     if (triggered)
       gate_state |= peaks::CONTROL_GATE_RISING;
  
-    bool gate_raised = OC::DigitalInputs::read_immediate(trigger_input);
     if (gate_raised || get_gate_high())
       gate_state |= peaks::CONTROL_GATE;
     else if (gate_raised_)
@@ -517,13 +551,9 @@ public:
     if (!is_inverted()) 
       value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
     else
-      value = OC::DAC::MAX_VALUE -  (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
+      value = OC::DAC::MAX_VALUE - (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
 
-    #ifdef BUCHLA_4U
-      OC::DAC::set<dac_channel>(value << 1);
-    #else
-      OC::DAC::set<dac_channel>(value);
-    #endif
+      OC::DAC::set<dac_channel>(value);   
   }
 
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const {
@@ -554,8 +584,18 @@ public:
     return(env_.get_is_amplitude_sampled()) ;
   }
 
+  inline int trigger_setting_to_channel_index(int s) const {
+    return s < channel_index_ ? s : s + 1;
+  }
+
+  uint32_t internal_trigger_mask() const {
+    return env_.get_state_mask();
+  }
+ 
 private:
 
+  int channel_index_;
+ 
   peaks::MultistageEnvelope env_;
   EnvelopeType last_type_;
   bool gate_raised_;
@@ -612,6 +652,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   InitDefaults();
   apply_value(ENV_SETTING_TRIGGER_INPUT, default_trigger);
   env_.Init();
+  channel_index_ = default_trigger;
   last_type_ = ENV_TYPE_LAST;
   gate_raised_ = false;
   euclidean_counter_ = 0;
@@ -649,6 +690,10 @@ const char* const reset_behaviours[peaks::RESET_BEHAVIOUR_LAST] = {
   "None",  "SP", "SLP", "SL", "P", 
 };
 
+const char* const falling_gate_behaviours[peaks::FALLING_GATE_BEHAVIOUR_LAST] = {
+  "Ignor",  "Honor", 
+};
+
 const char* const euclidean_lengths[] = {
   "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
   " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
@@ -660,13 +705,17 @@ const char* const time_multipliers[] = {
   "1", "  2", "  4", "  8", "  16", "  32", "  64", " 128", " 256", " 512", "1024", "2048", "4096", "8192"
 };
 
+const char* const internal_trigger_types[INT_TRIGGER_LAST] = {
+  "EOC", // Keep length == 3
+};
+
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
   { 128, 0, 255, "S2", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
-  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
+  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4 + 3 * INT_TRIGGER_LAST, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
   { TRIGGER_DELAY_OFF, TRIGGER_DELAY_OFF, TRIGGER_DELAY_LAST - 1, "Tr delay mode", trigger_delay_modes, settings::STORAGE_TYPE_U4 },
   { 1, 1, EnvelopeGenerator::kMaxDelayedTriggers, "Tr delay count", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
@@ -681,6 +730,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "Attack reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
+  { peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_LAST - 1, "Att fall gt", falling_gate_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "DecRel reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
@@ -722,10 +772,16 @@ public:
     const int32_t cvs[ADC_CHANNEL_LAST] = { cv1.value(), cv2.value(), cv3.value(), cv4.value() };
     uint32_t triggers = OC::DigitalInputs::clocked();
 
-    envelopes_[0].Update<DAC_CHANNEL_A>(triggers, cvs);
-    envelopes_[1].Update<DAC_CHANNEL_B>(triggers, cvs);
-    envelopes_[2].Update<DAC_CHANNEL_C>(triggers, cvs);
-    envelopes_[3].Update<DAC_CHANNEL_D>(triggers, cvs);
+    uint32_t internal_trigger_mask =
+        envelopes_[0].internal_trigger_mask() |
+        envelopes_[1].internal_trigger_mask() << 8 |
+        envelopes_[2].internal_trigger_mask() << 16 |
+        envelopes_[3].internal_trigger_mask() << 24;
+
+    envelopes_[0].Update<DAC_CHANNEL_A>(triggers, internal_trigger_mask, cvs);
+    envelopes_[1].Update<DAC_CHANNEL_B>(triggers, internal_trigger_mask, cvs);
+    envelopes_[2].Update<DAC_CHANNEL_C>(triggers, internal_trigger_mask, cvs);
+    envelopes_[3].Update<DAC_CHANNEL_D>(triggers, internal_trigger_mask, cvs);
   }
 
   enum EnvEditMode {
@@ -890,6 +946,21 @@ void ENVGEN_menu_settings() {
         }
         graphics.print(attr.value_names[value]);
         list_item.DrawCustom();
+      break;
+      case ENV_SETTING_TRIGGER_INPUT:
+        if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
+          list_item.x += menu::kIndentDx;
+        if (value < OC::DIGITAL_INPUT_LAST) {
+          list_item.DrawDefault(value, attr);
+        } else {
+          const int trigger_channel = TriggerSettingToChannel(value);
+          const IntTriggerType trigger_type = TriggerSettingToType(value, trigger_channel);
+
+          char s[6] = "_ xxx";
+          s[0] = 'A' + env.trigger_setting_to_channel_index(trigger_channel);
+          memcpy(s + 2, internal_trigger_types[trigger_type], 3);
+          list_item.DrawDefault(s, value, attr);
+        }
       break;
       default:
         if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
