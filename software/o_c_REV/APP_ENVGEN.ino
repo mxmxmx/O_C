@@ -1030,14 +1030,14 @@ void ENVGEN_menu_settings() {
       list_item.DrawDefault(env.get_euclidean_length(), attr);
     } else {
       auto attr = EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_FILL);
-      list_item.DrawDefault(env.get_euclidean_fill(), attr);
+      list_item.DrawValueMax(env.get_euclidean_fill(), attr, env.get_euclidean_length() + 0x1);
     }
 
     list_item.editing = true;
     list_item.x = 60;
     list_item.valuex = 106;
     list_item.endx = menu::kDisplayWidth - 2;
-    list_item.DrawDefault(env.get_euclidean_offset(), EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_OFFSET));
+    list_item.DrawValueMax(env.get_euclidean_offset(), EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_OFFSET), env.get_euclidean_length());
   }
 }
 
@@ -1127,10 +1127,18 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
       if (envgen.ui.euclidean_edit_length) {
         // Artificially constrain length here
         int length = envgen.selected().get_euclidean_length() + event.value;
-        if (length > 0)
+        if (length > 0) {
           envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_LENGTH, length);
+          // constrain k:
+          if (length < envgen.selected().get_euclidean_fill())
+             envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_FILL, length + 0x1);
+        }
       } else {
-        envgen.selected().change_value(ENV_SETTING_EUCLIDEAN_FILL, event.value);
+        // constrain k: 
+        if (envgen.selected().get_euclidean_fill() <= envgen.selected().get_euclidean_length())
+          envgen.selected().change_value(ENV_SETTING_EUCLIDEAN_FILL, event.value);
+        else if (event.value < 0)
+          envgen.selected().change_value(ENV_SETTING_EUCLIDEAN_FILL, event.value);
       }
     } else {
       int left_value = envgen.ui.selected_channel + event.value;
@@ -1154,7 +1162,18 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
       if (envgen.ui.cursor.editing()) {
         auto &selected_env = envgen.selected();
         EnvelopeSettings setting = selected_env.enabled_setting_at(envgen.ui.cursor.cursor_pos());
-        selected_env.change_value(setting, event.value);
+
+        if (ENV_SETTING_EUCLIDEAN_OFFSET == setting) {
+          // constrain offset 
+          if (selected_env.get_euclidean_offset() < selected_env.get_euclidean_length())
+            selected_env.change_value(ENV_SETTING_EUCLIDEAN_OFFSET, event.value);
+          else if (event.value < 0)
+            selected_env.change_value(ENV_SETTING_EUCLIDEAN_OFFSET, event.value);
+        }
+        else {
+           selected_env.change_value(setting, event.value);
+        }
+        
         if (ENV_SETTING_TRIGGER_DELAY_MODE == setting || ENV_SETTING_EUCLIDEAN_LENGTH == setting)
           selected_env.update_enabled_settings();
           envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
