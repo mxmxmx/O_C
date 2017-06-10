@@ -61,7 +61,7 @@ void MultistageEnvelope::Init() {
   state_mask_ = 0;
 }
 
-int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
+uint16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
 
   state_mask_ = 0;
   if (control & CONTROL_GATE_RISING) {
@@ -131,12 +131,15 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
   value_ = a + ((b - a) * (t >> 1) >> 15);
   phase_ += phase_increment_;
   if (amplitude_sampled_) {
-    scaled_value_ = (value_ * sampled_amplitude_) >> 16 ;
+    scaled_value_ = (value_ * sampled_amplitude_) >> 16;
   } else {
-    scaled_value_ = (value_ * amplitude_) >> 16 ;
+    scaled_value_ = (value_ * amplitude_) >> 16;
   }
-  return(static_cast<uint16_t>(scaled_value_)) ;
-  // return(value_) ;
+  #ifdef BUCHLA_4U
+    return(static_cast<uint16_t>(scaled_value_ << 1));
+  #else
+    return(static_cast<uint16_t>(scaled_value_));
+  #endif
 }
 
 uint16_t MultistageEnvelope::RenderPreview(

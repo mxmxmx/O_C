@@ -551,13 +551,9 @@ int get_trigger_input() const {
     if (!is_inverted()) 
       value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
     else
-      value = OC::DAC::MAX_VALUE -  (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
+      value = OC::DAC::MAX_VALUE - (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
 
-    #ifdef BUCHLA_4U
-      OC::DAC::set<dac_channel>(value << 1);
-    #else
-      OC::DAC::set<dac_channel>(value);
-    #endif
+      OC::DAC::set<dac_channel>(value);   
   }
 
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const {

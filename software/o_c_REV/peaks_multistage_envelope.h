@@ -31,7 +31,7 @@
 
 #include <stdint.h>
 #include "util/util_macros.h"
-//#include "stmlib/stmlib.h"
+#include "OC_options.h"
 #include "peaks_gate_processor.h"
 
 namespace peaks {
@@ -80,7 +80,7 @@ class MultistageEnvelope {
   ~MultistageEnvelope() { }
   
   void Init();
-  int16_t ProcessSingleSample(uint8_t control);
+  uint16_t ProcessSingleSample(uint8_t control);
 
   void Configure(uint16_t* parameter, ControlMode control_mode) {
     if (control_mode == CONTROL_MODE_HALF) {
