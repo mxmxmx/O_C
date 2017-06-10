@@ -1129,9 +1129,11 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
         int length = envgen.selected().get_euclidean_length() + event.value;
         if (length > 0) {
           envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_LENGTH, length);
-          // constrain k:
+          // constrain k, offset:
           if (length < envgen.selected().get_euclidean_fill())
              envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_FILL, length + 0x1);
+          if (length < envgen.selected().get_euclidean_offset())
+            envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_OFFSET, length);
         }
       } else {
         // constrain k: 
