@@ -33,6 +33,7 @@
 #include "util/util_settings.h"
 #include "peaks_multistage_envelope.h"
 #include "bjorklund.h"
+#include "OC_euclidean_mask_draw.h"
 
 // peaks::MultistageEnvelope allow setting of more parameters per stage, but
 // that will involve more editing code, so keeping things simple for now
@@ -357,7 +358,7 @@ int get_trigger_input() const {
     
     *settings++ = ENV_SETTING_EUCLIDEAN_LENGTH;
     if (get_euclidean_length()) {
-      *settings++ = ENV_SETTING_EUCLIDEAN_FILL;
+      //*settings++ = ENV_SETTING_EUCLIDEAN_FILL;
       *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
       *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
       *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
@@ -721,8 +722,8 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, "Fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, "Offset", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "Eucl reset div", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
@@ -761,6 +762,8 @@ public:
     ui.selected_segment = 0;
     ui.segment_editing = false;
     ui.cursor.Init(0, envelopes_[0].num_enabled_settings() - 1);
+    ui.euclidean_mask_draw.Init();
+    ui.euclidean_edit_length = false;
   }
 
   void ISR() {
@@ -784,6 +787,12 @@ public:
     envelopes_[3].Update<DAC_CHANNEL_D>(triggers, internal_trigger_mask, cvs);
   }
 
+  bool euclidean_edit_active() const {
+    return
+        ui.cursor.editing() &&
+        ENV_SETTING_EUCLIDEAN_OFFSET == selected().enabled_setting_at(ui.cursor.cursor_pos());
+  }
+
   enum EnvEditMode {
     MODE_EDIT_SEGMENTS,
     MODE_EDIT_SETTINGS
@@ -797,9 +806,15 @@ public:
     bool segment_editing;
 
     menu::ScreenCursor<menu::kScreenLines> cursor;
+    OC::EuclideanMaskDraw euclidean_mask_draw;
+    bool euclidean_edit_length;
   } ui;
 
   EnvelopeGenerator &selected() {
+    return envelopes_[ui.selected_channel];
+  }
+
+  const EnvelopeGenerator &selected() const {
     return envelopes_[ui.selected_channel];
   }
 
@@ -928,6 +943,8 @@ void ENVGEN_menu_preview() {
 void ENVGEN_menu_settings() {
   auto const &env = envgen.selected();
 
+  bool draw_euclidean_editor = false;
+
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(envgen.ui.cursor);
   menu::SettingsListItem list_item;
 
@@ -962,12 +979,59 @@ void ENVGEN_menu_settings() {
           list_item.DrawDefault(s, value, attr);
         }
       break;
+      case ENV_SETTING_EUCLIDEAN_OFFSET:
+        if (!list_item.editing) {
+          // Follow-up: Draw dynamically generated mask including CV inputs when not editing
+          envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth, list_item.y,
+                                                env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset());
+          list_item.DrawCustom();
+        } else {
+          draw_euclidean_editor = true;
+        }
+      break;
+
       default:
         if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
           list_item.x += menu::kIndentDx;
         list_item.DrawDefault(value, attr);
       break;
     }
+  }
+
+  // Ugly. With a capital blargh.
+  if (draw_euclidean_editor) {
+    weegfx::coord_t y = 32 - menu::kMenuLineH / 2 - 1;
+    graphics.clearRect(0, y, menu::kDisplayWidth, menu::kMenuLineH * 2 + 2);
+    graphics.drawFrame(0, y, menu::kDisplayWidth, menu::kMenuLineH * 2 + 2);
+
+    y += 2;
+    envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth - 2, y,
+                                          env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset());
+
+    y += menu::kMenuLineH;
+    menu::SettingsListItem list_item;
+    list_item.selected = false;
+    list_item.editing = true;
+    list_item.y = y;
+
+    list_item.x = 1;
+    list_item.valuex = 38;
+    list_item.endx = 60 - 2;
+    if (envgen.ui.euclidean_edit_length) {
+      auto attr = EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_LENGTH);
+      attr.min_ = 1;
+      attr.name = "Len";
+      list_item.DrawDefault(env.get_euclidean_length(), attr);
+    } else {
+      auto attr = EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_FILL);
+      list_item.DrawDefault(env.get_euclidean_fill(), attr);
+    }
+
+    list_item.editing = true;
+    list_item.x = 60;
+    list_item.valuex = 106;
+    list_item.endx = menu::kDisplayWidth - 2;
+    list_item.DrawDefault(env.get_euclidean_offset(), EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_OFFSET));
   }
 }
 
@@ -1013,13 +1077,18 @@ void ENVGEN_rightButton() {
     envgen.ui.segment_editing = !envgen.ui.segment_editing;
   } else {
     envgen.ui.cursor.toggle_editing();
+    envgen.ui.euclidean_edit_length = false;
   }
 }
 
 void ENVGEN_leftButton() {
   if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.edit_mode) {
-    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS;
-    envgen.ui.cursor.set_editing(false);
+    if (!envgen.euclidean_edit_active()) {
+      envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS;
+      envgen.ui.cursor.set_editing(false);
+    } else {
+      envgen.ui.euclidean_edit_length = !envgen.ui.euclidean_edit_length;
+    }
   } else {
     envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.segment_editing = false;
@@ -1048,12 +1117,23 @@ void ENVGEN_handleButtonEvent(const UI::Event &event) {
 void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
-    int left_value = envgen.ui.selected_channel + event.value;
-    CONSTRAIN(left_value, 0, 3);
-    envgen.ui.selected_channel = left_value;
-    auto &selected_env = envgen.selected();
-    CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
-    envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
+    if (envgen.euclidean_edit_active()) {
+      if (envgen.ui.euclidean_edit_length) {
+        // Artificially constrain length here
+        int length = envgen.selected().get_euclidean_length() + event.value;
+        if (length > 0)
+          envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_LENGTH, length);
+      } else {
+        envgen.selected().change_value(ENV_SETTING_EUCLIDEAN_FILL, event.value);
+      }
+    } else {
+      int left_value = envgen.ui.selected_channel + event.value;
+      CONSTRAIN(left_value, 0, 3);
+      envgen.ui.selected_channel = left_value;
+      auto &selected_env = envgen.selected();
+      CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
+      envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
+    }
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS == envgen.ui.edit_mode) {
       auto &selected_env = envgen.selected();
