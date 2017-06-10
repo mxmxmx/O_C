@@ -204,6 +204,10 @@ int get_trigger_input() const {
     return values_[ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV];
   }
 
+  uint32_t get_euclidean_counter() const {
+    return euclidean_counter_;
+  }
+
   uint16_t get_amplitude() const {
     return values_[ENV_SETTING_AMPLITUDE] << 9 ;
   }
@@ -592,7 +596,7 @@ int get_trigger_input() const {
   uint32_t internal_trigger_mask() const {
     return env_.get_state_mask();
   }
- 
+
 private:
 
   int channel_index_;
@@ -983,7 +987,8 @@ void ENVGEN_menu_settings() {
         if (!list_item.editing) {
           // Follow-up: Draw dynamically generated mask including CV inputs when not editing
           envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth, list_item.y,
-                                                env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset());
+                                                env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset(),
+                                                env.get_euclidean_counter());
           list_item.DrawCustom();
         } else {
           draw_euclidean_editor = true;
@@ -1006,7 +1011,8 @@ void ENVGEN_menu_settings() {
 
     y += 2;
     envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth - 2, y,
-                                          env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset());
+                                          env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset(),
+                                          env.get_euclidean_counter());
 
     y += menu::kMenuLineH;
     menu::SettingsListItem list_item;
