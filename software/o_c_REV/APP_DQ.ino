@@ -801,7 +801,11 @@ public:
          }  
       } 
       // scale gate
-      aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
+      #ifdef BUCHLA_4U
+        aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x2) : OC::DAC::get_zero_offset(aux_channel);
+      #else
+        aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
+      #endif
       break;
       default:
       break;
