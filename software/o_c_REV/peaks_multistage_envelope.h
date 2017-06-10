@@ -66,6 +66,10 @@ enum EnvFallingGateBehaviour {
   FALLING_GATE_BEHAVIOUR_LAST  
 } ;
 
+enum EnvStateBitMask {
+  ENV_EOC = 1 << 0, // End of envelope reached
+};
+
 const uint16_t kMaxNumSegments = 8;
 const uint32_t kPreviewWidth = 128;
 const uint32_t kFastPreviewWidth = 64;
@@ -429,6 +433,11 @@ class MultistageEnvelope {
     return(amplitude_sampled_) ;
   }
 
+  // Get current state mask; note that this is reset every call to ::Process
+  inline uint8_t get_state_mask() const {
+    return state_mask_;
+  }
+
   // Render preview, normalized to kPreviewWidth pixels width
   // NOTE Lives dangerously and uses live values that might be updated by ISR
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const;
@@ -473,6 +482,8 @@ class MultistageEnvelope {
   bool amplitude_sampled_ ;
   uint16_t sampled_amplitude_;
   uint32_t scaled_value_ ;
+
+  uint8_t state_mask_;
 
   DISALLOW_COPY_AND_ASSIGN(MultistageEnvelope);
 };

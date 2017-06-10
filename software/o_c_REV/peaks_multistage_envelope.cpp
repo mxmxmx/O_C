@@ -58,10 +58,12 @@ void MultistageEnvelope::Init() {
   scaled_value_ = 0 ;
   max_loops_ = 0 ;
   loop_counter_ = 0;
+  state_mask_ = 0;
 }
 
 int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
-  
+
+  state_mask_ = 0;
   if (control & CONTROL_GATE_RISING) {
     if (segment_ == num_segments_) {
       start_value_ = level_[0];
@@ -111,6 +113,8 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
         segment_ = loop_start_;
       }
     }
+    if (segment_ == num_segments_)
+      state_mask_ |= ENV_EOC;    
   }
   
   bool done = segment_ == num_segments_;
