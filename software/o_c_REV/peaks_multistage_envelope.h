@@ -60,6 +60,12 @@ enum EnvResetBehaviour {
   RESET_BEHAVIOUR_LAST
 };
 
+enum EnvFallingGateBehaviour {
+  FALLING_GATE_BEHAVIOUR_IGNORE,
+  FALLING_GATE_BEHAVIOUR_HONOUR,
+  FALLING_GATE_BEHAVIOUR_LAST  
+} ;
+
 const uint16_t kMaxNumSegments = 8;
 const uint32_t kPreviewWidth = 128;
 const uint32_t kFastPreviewWidth = 64;
@@ -361,6 +367,10 @@ class MultistageEnvelope {
     attack_reset_behaviour_ = reset_behaviour;
   }
 
+  inline void set_attack_falling_gate_behaviour(EnvFallingGateBehaviour falling_gate_behaviour) {
+    attack_falling_gate_behaviour_ = falling_gate_behaviour;
+  }
+
   inline void set_decay_release_reset_behaviour(EnvResetBehaviour reset_behaviour) {
     decay_release_reset_behaviour_ = reset_behaviour;
   }
@@ -449,6 +459,7 @@ class MultistageEnvelope {
   uint8_t loop_counter_;
   
   EnvResetBehaviour attack_reset_behaviour_;
+  EnvFallingGateBehaviour attack_falling_gate_behaviour_;
   EnvResetBehaviour decay_release_reset_behaviour_;
   EnvResetBehaviour reset_behaviour_;
   EnvelopeShape attack_shape_;

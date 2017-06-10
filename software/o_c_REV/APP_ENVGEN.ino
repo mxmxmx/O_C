@@ -62,6 +62,7 @@ enum EnvelopeSettings {
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
   ENV_SETTING_ATTACK_RESET_BEHAVIOUR,
+  ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR,
   ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR,
   ENV_SETTING_GATE_HIGH,
   ENV_SETTING_ATTACK_SHAPE,
@@ -154,6 +155,10 @@ public:
 
   peaks::EnvResetBehaviour get_attack_reset_behaviour() const {
     return static_cast<peaks::EnvResetBehaviour>(values_[ENV_SETTING_ATTACK_RESET_BEHAVIOUR]);
+  }
+
+  peaks::EnvFallingGateBehaviour get_attack_falling_gate_behaviour() const {
+    return static_cast<peaks::EnvFallingGateBehaviour>(values_[ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR]);
   }
 
   peaks::EnvResetBehaviour get_decay_release_reset_behaviour() const {
@@ -353,6 +358,7 @@ public:
     *settings++ = ENV_SETTING_CV3;
     *settings++ = ENV_SETTING_CV4;
     *settings++ = ENV_SETTING_ATTACK_RESET_BEHAVIOUR;
+    *settings++ = ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR;
     *settings++ = ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_GATE_HIGH;
     *settings++ = ENV_SETTING_AMPLITUDE;
@@ -438,8 +444,9 @@ public:
       env_.reset();
     }
 
-    // set the specified reset behaviour
+    // set the specified reset behaviours
     env_.set_attack_reset_behaviour(get_attack_reset_behaviour());
+    env_.set_attack_falling_gate_behaviour(get_attack_falling_gate_behaviour());
     env_.set_decay_release_reset_behaviour(get_decay_release_reset_behaviour());
 
     // set the envelope segment shapes
@@ -649,6 +656,10 @@ const char* const reset_behaviours[peaks::RESET_BEHAVIOUR_LAST] = {
   "None",  "SP", "SLP", "SL", "P", 
 };
 
+const char* const falling_gate_behaviours[peaks::FALLING_GATE_BEHAVIOUR_LAST] = {
+  "Ignor",  "Honor", 
+};
+
 const char* const euclidean_lengths[] = {
   "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
   " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
@@ -681,6 +692,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "Attack reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
+  { peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_LAST - 1, "Att fall gt", falling_gate_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "DecRel reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },

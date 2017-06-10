@@ -43,6 +43,7 @@ void MultistageEnvelope::Init() {
   start_value_ = 0;
   value_ = 0;
   attack_reset_behaviour_ = RESET_BEHAVIOUR_NULL;
+  attack_falling_gate_behaviour_ = FALLING_GATE_BEHAVIOUR_IGNORE;
   decay_release_reset_behaviour_ = RESET_BEHAVIOUR_SEGMENT_PHASE;
   reset_behaviour_ = RESET_BEHAVIOUR_NULL;
   attack_shape_ = ENV_SHAPE_QUARTIC;
@@ -96,7 +97,7 @@ int16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
       }
     }
     if (segment_ == 0 and amplitude_sampled_) sampled_amplitude_ = amplitude_ ;
-  } else if (control & CONTROL_GATE_FALLING && sustain_point_) {
+  } else if ((control & CONTROL_GATE_FALLING) && sustain_point_ && attack_falling_gate_behaviour_ == FALLING_GATE_BEHAVIOUR_HONOUR) {
     start_value_ = value_;
     segment_ = sustain_point_;
     phase_ = 0;
