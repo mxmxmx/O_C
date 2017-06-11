@@ -160,7 +160,7 @@ public:
     return static_cast<EnvelopeType>(values_[ENV_SETTING_TYPE]);
   }
 
-int get_trigger_input() const {
+  int get_trigger_input() const {
     return values_[ENV_SETTING_TRIGGER_INPUT];
   }
 
@@ -196,11 +196,11 @@ int get_trigger_input() const {
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
   }
 
- uint8_t get_euclidean_reset_trigger_input() const {
+  uint8_t get_euclidean_reset_trigger_input() const {
     return values_[ENV_SETTING_EUCLIDEAN_RESET_INPUT];
   }
 
- uint8_t get_euclidean_reset_clock_div() const {
+  uint8_t get_euclidean_reset_clock_div() const {
     return values_[ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV];
   }
 
