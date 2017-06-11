@@ -24,22 +24,28 @@
 #define BJORKLUND_H_
 
 #include <stdint.h>
-#include <limits.h> // for CHAR_BIT
+// #include <limits.h> // for CHAR_BIT
 
 // rotate functions by John Regehr
 // see http://stackoverflow.com/questions/776508/best-practices-for-circular-shift-rotate-operations-in-c
-inline uint32_t rotr32 (uint32_t n, uint8_t c) __attribute__((always_inline));
-inline uint32_t rotr32 (uint32_t n, uint8_t c) {
-  const unsigned int mask = (CHAR_BIT*sizeof(n)-1);
-  c &= mask;  // avoid undef behaviour with NDEBUG.  0 overhead for most types / compilers
-  return (n>>c) | (n<<( (-c)&mask ));
-}
+//inline uint32_t rotr32 (uint32_t n, uint8_t c) __attribute__((always_inline));
+//inline uint32_t rotr32 (uint32_t n, uint8_t c) {
+//  const unsigned int mask = (CHAR_BIT*sizeof(n)-1);
+//  c &= mask;  // avoid undef behaviour with NDEBUG.  0 overhead for most types / compilers
+//  return (n>>c) | (n<<( (-c)&mask ));
+//}
 
-inline uint32_t rotl32 (uint32_t n, unsigned int c) __attribute__((always_inline));
-inline uint32_t rotl32 (uint32_t n, unsigned int c) {
-  const unsigned int mask = (CHAR_BIT*sizeof(n)-1);
-  c &= mask;  // avoid undef behaviour with NDEBUG.  0 overhead for most types / compilers
-  return (n<<c) | (n>>( (-c)&mask ));
+//inline uint32_t rotl32 (uint32_t n, unsigned int c) __attribute__((always_inline));
+//inline uint32_t rotl32 (uint32_t n, unsigned int c) {
+//  const unsigned int mask = (CHAR_BIT*sizeof(n)-1);
+//  c &= mask;  // avoid undef behaviour with NDEBUG.  0 overhead for most types / compilers
+//  return (n<<c) | (n>>( (-c)&mask ));
+//}
+
+inline uint32_t rotl32(uint32_t input, unsigned int length, unsigned int count) __attribute__((always_inline));
+inline uint32_t rotl32(uint32_t input, unsigned int length, unsigned int count) {
+  input &= ~(0xffffffff << length);
+  return (input << count) | (input >> (length - count + 1)); // off-by-ones or parenthesis mismatch likely
 }
 
 bool EuclideanFilter(uint8_t num_steps, uint8_t num_beats, uint8_t rotation, uint32_t clock);
