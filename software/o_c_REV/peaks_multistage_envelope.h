@@ -419,8 +419,8 @@ class MultistageEnvelope {
   inline void set_max_loops(uint16_t max_loops) {
     max_loops_ = static_cast<uint8_t>(max_loops >> 9);
   }
-  
-
+ 
+#ifdef ENVGEN_DEBUG
   inline uint16_t get_amplitude_value() {
     return(amplitude_) ;
   }
@@ -432,6 +432,7 @@ class MultistageEnvelope {
    inline bool get_is_amplitude_sampled() {
     return(amplitude_sampled_) ;
   }
+#endif
 
   // Get current state mask; note that this is reset every call to ::Process
   inline uint8_t get_state_mask() const {

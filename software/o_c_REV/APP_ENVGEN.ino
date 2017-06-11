@@ -224,18 +224,17 @@ public:
      return static_cast<bool>(values_[ENV_SETTING_INVERTED]);
   }
 
-  // Debug only
-  //  uint8_t get_s_euclidean_length() const {
-  //    return static_cast<uint8_t>(s_euclidean_length_);
-  //  }
-  //
-  //  uint8_t get_s_euclidean_fill() const {
-  //    return static_cast<uint8_t>(s_euclidean_fill_);
-  //  }
-  //
-  //  uint8_t get_s_euclidean_offset() const {
-  //    return static_cast<uint8_t>(s_euclidean_offset_);
-  //  }
+  uint8_t get_s_euclidean_length() const {
+    return s_euclidean_length_;
+  }
+
+  uint8_t get_s_euclidean_fill() const {
+    return s_euclidean_fill_;
+  }
+
+  uint8_t get_s_euclidean_offset() const {
+    return s_euclidean_offset_;
+  }
 
   uint32_t get_trigger_delay_count() const {
     return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
@@ -438,11 +437,6 @@ public:
     CONSTRAIN(s[8], 0, 65535);
     CONSTRAIN(s[9], 0, 65535);
 
-    // debug only
-    // s_euclidean_length_ = s[4];
-    // s_euclidean_fill_ = s[5];
-    // s_euclidean_offset_ = s[6];
-
     EnvelopeType type = get_type();
     switch (type) {
       case ENV_TYPE_AD: env_.set_ad(s[0], s[1]); break;
@@ -514,10 +508,14 @@ public:
         euclidean_reset_counter_= 0;
       }
     }
-    
+
     if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
       triggered = false;
     }
+
+    s_euclidean_length_ = euclidean_length;
+    s_euclidean_fill_ = euclidean_fill;
+    s_euclidean_offset_ = euclidean_offset;
       
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
@@ -577,6 +575,7 @@ public:
     trigger = delayed_triggers_[delayed_triggers_next_];
   }
 
+#ifdef ENVGEN_DEBUG
   inline uint16_t get_amplitude_value() {
     return(env_.get_amplitude_value()) ;
   }
@@ -588,6 +587,7 @@ public:
   inline bool get_is_amplitude_sampled() {
     return(env_.get_is_amplitude_sampled()) ;
   }
+#endif
 
   inline int trigger_setting_to_channel_index(int s) const {
     return s < channel_index_ ? s : s + 1;
@@ -606,10 +606,11 @@ private:
   bool gate_raised_;
   uint32_t euclidean_counter_;
   uint32_t euclidean_reset_counter_;
-  // debug only
-  //  int32_t s_euclidean_length_;  
-  //  int32_t s_euclidean_fill_;  
-  //  int32_t s_euclidean_offset_;  
+
+  // debug/live-view only
+  uint8_t s_euclidean_length_;
+  uint8_t s_euclidean_fill_;
+  uint8_t s_euclidean_offset_;  
   
   DelayedTrigger delayed_triggers_[kMaxDelayedTriggers];
   size_t delayed_triggers_free_;
@@ -985,10 +986,10 @@ void ENVGEN_menu_settings() {
       break;
       case ENV_SETTING_EUCLIDEAN_OFFSET:
         if (!list_item.editing) {
-          // Follow-up: Draw dynamically generated mask including CV inputs when not editing
+          // Use the live values
           envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth, list_item.y,
-                                                env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset(),
-                                                env.get_euclidean_counter());
+                                               env.get_s_euclidean_length(), env.get_s_euclidean_fill(), env.get_s_euclidean_offset(),
+                                               env.get_euclidean_counter());
           list_item.DrawCustom();
         } else {
           draw_euclidean_editor = true;

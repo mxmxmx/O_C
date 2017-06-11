@@ -41,6 +41,7 @@ public:
 
   void Render(weegfx::coord_t x, weegfx::coord_t y, uint8_t length, uint8_t fill, uint8_t offset, uint8_t active_step)
   {
+    (void)x;
     UpdateMask(length, fill, offset);
     menu::DrawMask<false, 32, 7, 1>(64 + 2 + (length + 1) * 3 / 2, y, mask_, length + 1, active_step % (length + 1));
   }
