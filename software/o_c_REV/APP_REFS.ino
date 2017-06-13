@@ -341,6 +341,18 @@ public:
                 auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
               break;
           }
+          #elif defined(BUCHLA_4U)
+            /* can't use pow (busts the available memory at this point), so we unroll ... */
+            auto_target_frequencies_[0]  =  target_frequency * 1.0f;    // 0V
+            auto_target_frequencies_[1]  =  target_frequency * 2.0f;    // +1.2V 
+            auto_target_frequencies_[2]  =  target_frequency * 4.0f;    // +2.4V 
+            auto_target_frequencies_[3]  =  target_frequency * 8.0f;    // +3.6V 
+            auto_target_frequencies_[4]  =  target_frequency * 16.0f;   // +4.8V 
+            auto_target_frequencies_[5]  =  target_frequency * 32.0f;   // +6.0V 
+            auto_target_frequencies_[6]  =  target_frequency * 64.0f;   // +7.2V 
+            auto_target_frequencies_[7]  =  target_frequency * 128.0f;  // +8.4V
+            auto_target_frequencies_[8]  =  target_frequency * 256.0f;  // +9.6V
+            auto_target_frequencies_[9]  =  target_frequency * 512.0f;  // +10.8V
           #else
             /* can't use pow (busts the available memory at this point), so we unroll ... */
             auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
@@ -469,21 +481,12 @@ public:
       {
         F_correction_factor_ = 0x1; // don't go so fast
         auto_frequency();
-        #ifdef BUCHLA_4U
-          OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero + 0x3]);
-        #else
-          OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
-        #endif
-        
+        OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
       }
       break;
       case DAC_VOLT_0_BASELINE:
       // set DAC to 0.000V, default calibration:
-      #ifdef BUCHLA_4U
-        OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero + 0x3]);
-      #else
-        OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
-      #endif
+      OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
       break;
       case AUTO_CALIBRATION_STEP_LAST:
       // do nothing
