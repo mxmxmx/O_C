@@ -298,7 +298,7 @@ public:
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
           // ... and derive target frequencies
-          float target_frequency = round(((auto_frequency_ + average) / (float)(kHistoryDepth + 1))); // 0V
+          float target_frequency = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V
 
           #ifdef BUCHLA_SUPPORT
           switch(OC::DAC::get_voltage_scaling(dac_channel_)) {
