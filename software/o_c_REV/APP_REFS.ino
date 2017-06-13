@@ -314,7 +314,6 @@ public:
                 auto_target_frequencies_[7]  =  target_frequency * 10.0793683991589855253324f; // +4V = 2**(4.0/1.2)
                 auto_target_frequencies_[8]  =  target_frequency * 17.9593927729499718282113f; // +5V = 2**(5.0/1.2)
                 auto_target_frequencies_[9]  =  target_frequency * 32.0f;                      // +6V = 2**(6.0/1.2)
-                auto_target_frequencies_[10] =  target_frequency * 57.0175179609817419645879f; // ...
               break;
               case VOLTAGE_SCALING_2V_PER_OCT: // 2V/octave
                 auto_target_frequencies_[0]  =  target_frequency * 0.3535533905932737863687f;  // -3V - 2**(-3.0/2.0)
@@ -327,7 +326,6 @@ public:
                 auto_target_frequencies_[7]  =  target_frequency * 4.0f;                       // +4V = 2**(4.0/2.0)
                 auto_target_frequencies_[8]  =  target_frequency * 5.6568542494923805818985f;  // +5V = 2**(5.0/2.0)
                 auto_target_frequencies_[9]  =  target_frequency * 8.0f;                       // +6V = 2**(6.0/2.0)
-                auto_target_frequencies_[10] =  target_frequency * 11.3137084989847611637970f; // ...
               break;
               case VOLTAGE_SCALING_1V_PER_OCT: // 1V/octave
               default:
@@ -341,11 +339,22 @@ public:
                 auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
                 auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
                 auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-                auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
               break;
           }
+          #elif defined(BUCHLA_4U)
+            /* can't use pow (busts the available memory at this point), so we unroll ... */
+            auto_target_frequencies_[0]  =  target_frequency * 1.0f;    // 0V
+            auto_target_frequencies_[1]  =  target_frequency * 2.0f;    // +1.2V 
+            auto_target_frequencies_[2]  =  target_frequency * 4.0f;    // +2.4V 
+            auto_target_frequencies_[3]  =  target_frequency * 8.0f;    // +3.6V 
+            auto_target_frequencies_[4]  =  target_frequency * 16.0f;   // +4.8V 
+            auto_target_frequencies_[5]  =  target_frequency * 32.0f;   // +6.0V 
+            auto_target_frequencies_[6]  =  target_frequency * 64.0f;   // +7.2V 
+            auto_target_frequencies_[7]  =  target_frequency * 128.0f;  // +8.4V
+            auto_target_frequencies_[8]  =  target_frequency * 256.0f;  // +9.6V
+            auto_target_frequencies_[9]  =  target_frequency * 512.0f;  // +10.8V
           #else
-            /* can't use pow ( thus busts the available memory at this point), so we unroll ... */
+            /* can't use pow (busts the available memory at this point), so we unroll ... */
             auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
             auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
             auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
@@ -356,7 +365,6 @@ public:
             auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
             auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
             auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-            auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
           #endif
           
           // reset step, and proceed:
@@ -598,7 +606,11 @@ const char* const error[] = {
 };
 
 SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
+  #ifdef BUCHLA_4U
+  { 0, 0, 9, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
+  #else
   { 0, -3, 6, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
+  #endif
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },

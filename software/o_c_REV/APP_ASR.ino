@@ -513,17 +513,19 @@ public:
   
                 // _pitch can do other things now -- 
                 switch (get_turing_CV()) {
-  
-                    case 1:  // LEN, 1-32
+
+                    case 1: // mult
+                     _mult += ((_pitch + 63) >> 7);
+                    break;
+                    case 2:  // LEN, 1-32
                      _length += ((_pitch + 255) >> 9);
                      CONSTRAIN(_length, 1, 32);
                     break;
-                     case 2:  // P
+                    case 3:  // P
                      _probability += ((_pitch + 7) >> 4);
                      CONSTRAIN(_probability, 0, 255);
                     break;
-                    default: // mult
-                     _mult += ((_pitch + 63) >> 7);
+                    default:
                     break;
                 }
                 
@@ -722,23 +724,12 @@ private:
   ASRSettings enabled_settings_[ASR_SETTING_LAST];
 };
 
-const char* const mult[NUM_INPUT_SCALING] = {
-  "0.05", "0.10", "0.15", "0.20", "0.25", "0.30", "0.35", "0.40", "0.45", "0.50", 
-  "0.55", "0.60", "0.65", "0.70", "0.75", "0.80", "0.85", "0.90", "0.95", "1.00", 
-  "1.05", "1.10", "1.15", "1.20", "1.25", "1.30", "1.35", "1.40", "1.45", "1.50",
-  "1.55", "1.60", "1.65", "1.70", "1.75", "1.80", "1.85", "1.90", "1.95", "2.00"
-};
-
 const char* const asr_input_sources[] = {
   "CV1", "TM", "ByteB", "IntSq"
 };
 
 const char* const asr_cv4_destinations[] = {
   "oct", "root", "trns", "buf.l", "igain"
-};
-
-const char* const tm_CV_destinations[] = {
-  "rng", "len", "p"
 };
 
 const char* const bb_CV_destinations[] = {
@@ -756,14 +747,14 @@ SETTINGS_DECLARE(ASR, ASR_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "mask", NULL, settings::STORAGE_TYPE_U16 }, // mask
   { 0, 0, ASR_HOLD_BUF_SIZE - 1, "buf.index", NULL, settings::STORAGE_TYPE_U8 },
-  { MULT_ONE, 0, NUM_INPUT_SCALING - 1, "input gain", mult, settings::STORAGE_TYPE_U8 },
+  { MULT_ONE, 0, NUM_INPUT_SCALING - 1, "input gain", OC::Strings::mult, settings::STORAGE_TYPE_U8 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 4, 4, ASR_HOLD_BUF_SIZE - 1, "hold (buflen)", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, ASR_CHANNEL_SOURCE_LAST -1, "CV source", asr_input_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, ASR_DEST_LAST - 1, "CV4 dest. ->", asr_cv4_destinations, settings::STORAGE_TYPE_U4 },
   { 16, 1, 32, "> LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "> LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, "> LFSR CV1", tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
+  { 0, 0, 3, "> LFSR CV1", OC::Strings::TM_aux_cv_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 0, 0, 15, "> BB eqn", OC::Strings::bytebeat_equation_names, settings::STORAGE_TYPE_U8 },
   { 8, 1, 255, "> BB P0", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 255, "> BB P1", NULL, settings::STORAGE_TYPE_U8 },

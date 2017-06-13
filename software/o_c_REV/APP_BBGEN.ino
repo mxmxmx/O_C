@@ -181,7 +181,7 @@ public:
     gate_raised_ = gate_raised;
 
     // TODO Scale range or offset?
-    uint32_t value = OC::DAC::get_zero_offset(dac_channel) + bb_.ProcessSingleSample(gate_state);
+    uint32_t value = OC::DAC::get_zero_offset(dac_channel) + bb_.ProcessSingleSample(gate_state, OC::DAC::MAX_VALUE - OC::DAC::get_zero_offset(dac_channel));
     OC::DAC::set<dac_channel>(value);
   }
 

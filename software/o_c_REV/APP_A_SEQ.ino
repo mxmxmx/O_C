@@ -1282,7 +1282,8 @@ public:
       if (_playmode != PM_ARP) {
         _out = (display_mask_ >> clk_cnt_) & 1u;
         step_state_ = _out ? ON : OFF;  
-        _out = (_out && _change) ? true : false;   
+        _out = (_out && _change) ? true : false; 
+                Serial.println(step_state_);
       }
       else {
          step_state_ = ON;
@@ -1598,7 +1599,11 @@ public:
       switch (_mode) {
 
         case 0: // gate
-          _output = get_step_gate();
+          #ifdef BUCHLA_4U
+          _output = (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - OC::DAC::kOctaveZero - 0x2) : OC::DAC::get_zero_offset(dacChannel);
+          #else
+          _output = (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(dacChannel);
+          #endif
         break;
         case 1: // copy
           _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, OC::DAC::get_voltage_scaling(dacChannel));

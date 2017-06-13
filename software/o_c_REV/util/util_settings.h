@@ -35,9 +35,9 @@ enum StorageType {
 };
 
 struct value_attr {
-  const int default_;
-  const int min_;
-  const int max_;
+  int default_;
+  int min_;
+  int max_;
   const char *name;
   const char * const *value_names;
   StorageType storage_type;

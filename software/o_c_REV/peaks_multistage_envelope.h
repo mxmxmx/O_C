@@ -31,7 +31,7 @@
 
 #include <stdint.h>
 #include "util/util_macros.h"
-//#include "stmlib/stmlib.h"
+#include "OC_options.h"
 #include "peaks_gate_processor.h"
 
 namespace peaks {
@@ -60,6 +60,16 @@ enum EnvResetBehaviour {
   RESET_BEHAVIOUR_LAST
 };
 
+enum EnvFallingGateBehaviour {
+  FALLING_GATE_BEHAVIOUR_IGNORE,
+  FALLING_GATE_BEHAVIOUR_HONOUR,
+  FALLING_GATE_BEHAVIOUR_LAST  
+} ;
+
+enum EnvStateBitMask {
+  ENV_EOC = 1 << 0, // End of envelope reached
+};
+
 const uint16_t kMaxNumSegments = 8;
 const uint32_t kPreviewWidth = 128;
 const uint32_t kFastPreviewWidth = 64;
@@ -70,7 +80,7 @@ class MultistageEnvelope {
   ~MultistageEnvelope() { }
   
   void Init();
-  int16_t ProcessSingleSample(uint8_t control);
+  uint16_t ProcessSingleSample(uint8_t control);
 
   void Configure(uint16_t* parameter, ControlMode control_mode) {
     if (control_mode == CONTROL_MODE_HALF) {
@@ -361,6 +371,10 @@ class MultistageEnvelope {
     attack_reset_behaviour_ = reset_behaviour;
   }
 
+  inline void set_attack_falling_gate_behaviour(EnvFallingGateBehaviour falling_gate_behaviour) {
+    attack_falling_gate_behaviour_ = falling_gate_behaviour;
+  }
+
   inline void set_decay_release_reset_behaviour(EnvResetBehaviour reset_behaviour) {
     decay_release_reset_behaviour_ = reset_behaviour;
   }
@@ -405,8 +419,8 @@ class MultistageEnvelope {
   inline void set_max_loops(uint16_t max_loops) {
     max_loops_ = static_cast<uint8_t>(max_loops >> 9);
   }
-  
-
+ 
+#ifdef ENVGEN_DEBUG
   inline uint16_t get_amplitude_value() {
     return(amplitude_) ;
   }
@@ -417,6 +431,12 @@ class MultistageEnvelope {
 
    inline bool get_is_amplitude_sampled() {
     return(amplitude_sampled_) ;
+  }
+#endif
+
+  // Get current state mask; note that this is reset every call to ::Process
+  inline uint8_t get_state_mask() const {
+    return state_mask_;
   }
 
   // Render preview, normalized to kPreviewWidth pixels width
@@ -449,6 +469,7 @@ class MultistageEnvelope {
   uint8_t loop_counter_;
   
   EnvResetBehaviour attack_reset_behaviour_;
+  EnvFallingGateBehaviour attack_falling_gate_behaviour_;
   EnvResetBehaviour decay_release_reset_behaviour_;
   EnvResetBehaviour reset_behaviour_;
   EnvelopeShape attack_shape_;
@@ -462,6 +483,8 @@ class MultistageEnvelope {
   bool amplitude_sampled_ ;
   uint16_t sampled_amplitude_;
   uint32_t scaled_value_ ;
+
+  uint8_t state_mask_;
 
   DISALLOW_COPY_AND_ASSIGN(MultistageEnvelope);
 };

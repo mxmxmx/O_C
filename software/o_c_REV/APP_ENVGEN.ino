@@ -33,6 +33,7 @@
 #include "util/util_settings.h"
 #include "peaks_multistage_envelope.h"
 #include "bjorklund.h"
+#include "OC_euclidean_mask_draw.h"
 
 // peaks::MultistageEnvelope allow setting of more parameters per stage, but
 // that will involve more editing code, so keeping things simple for now
@@ -62,6 +63,7 @@ enum EnvelopeSettings {
   ENV_SETTING_CV3,
   ENV_SETTING_CV4,
   ENV_SETTING_ATTACK_RESET_BEHAVIOUR,
+  ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR,
   ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR,
   ENV_SETTING_GATE_HIGH,
   ENV_SETTING_ATTACK_SHAPE,
@@ -112,6 +114,24 @@ enum TriggerDelayMode {
   TRIGGER_DELAY_LAST
 };
 
+// With only one type, the U4 setting size still works. Each of the these maps to 3 values in the
+// setting, 1 for each channel other than the current.
+// Ordering here ideally maps to peaks::EnvStateBitMask shifts
+enum IntTriggerType {
+  INT_TRIGGER_EOC,
+  INT_TRIGGER_LAST
+};
+
+inline int TriggerSettingToChannel(int setting_value) __attribute__((always_inline));
+inline int TriggerSettingToChannel(int setting_value) {
+  return (setting_value - OC::DIGITAL_INPUT_LAST) / INT_TRIGGER_LAST;
+}
+
+inline IntTriggerType TriggerSettingToType(int setting_value, int channel) __attribute__((always_inline));
+inline IntTriggerType TriggerSettingToType(int setting_value, int channel) {
+  return static_cast<IntTriggerType>((setting_value - OC::DIGITAL_INPUT_LAST) - channel * INT_TRIGGER_LAST);
+}
+
 class EnvelopeGenerator : public settings::SettingsBase<EnvelopeGenerator, ENV_SETTING_LAST> {
 public:
 
@@ -140,8 +160,8 @@ public:
     return static_cast<EnvelopeType>(values_[ENV_SETTING_TYPE]);
   }
 
-  OC::DigitalInput get_trigger_input() const {
-    return static_cast<OC::DigitalInput>(values_[ENV_SETTING_TRIGGER_INPUT]);
+  int get_trigger_input() const {
+    return values_[ENV_SETTING_TRIGGER_INPUT];
   }
 
   int32_t get_trigger_delay_ms() const {
@@ -154,6 +174,10 @@ public:
 
   peaks::EnvResetBehaviour get_attack_reset_behaviour() const {
     return static_cast<peaks::EnvResetBehaviour>(values_[ENV_SETTING_ATTACK_RESET_BEHAVIOUR]);
+  }
+
+  peaks::EnvFallingGateBehaviour get_attack_falling_gate_behaviour() const {
+    return static_cast<peaks::EnvFallingGateBehaviour>(values_[ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR]);
   }
 
   peaks::EnvResetBehaviour get_decay_release_reset_behaviour() const {
@@ -172,12 +196,16 @@ public:
     return values_[ENV_SETTING_EUCLIDEAN_OFFSET];
   }
 
- uint8_t get_euclidean_reset_trigger_input() const {
+  uint8_t get_euclidean_reset_trigger_input() const {
     return values_[ENV_SETTING_EUCLIDEAN_RESET_INPUT];
   }
 
- uint8_t get_euclidean_reset_clock_div() const {
+  uint8_t get_euclidean_reset_clock_div() const {
     return values_[ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV];
+  }
+
+  uint32_t get_euclidean_counter() const {
+    return euclidean_counter_;
   }
 
   uint16_t get_amplitude() const {
@@ -196,18 +224,17 @@ public:
      return static_cast<bool>(values_[ENV_SETTING_INVERTED]);
   }
 
-  // Debug only
-  //  uint8_t get_s_euclidean_length() const {
-  //    return static_cast<uint8_t>(s_euclidean_length_);
-  //  }
-  //
-  //  uint8_t get_s_euclidean_fill() const {
-  //    return static_cast<uint8_t>(s_euclidean_fill_);
-  //  }
-  //
-  //  uint8_t get_s_euclidean_offset() const {
-  //    return static_cast<uint8_t>(s_euclidean_offset_);
-  //  }
+  uint8_t get_s_euclidean_length() const {
+    return s_euclidean_length_;
+  }
+
+  uint8_t get_s_euclidean_fill() const {
+    return s_euclidean_fill_;
+  }
+
+  uint8_t get_s_euclidean_offset() const {
+    return s_euclidean_offset_;
+  }
 
   uint32_t get_trigger_delay_count() const {
     return values_[ENV_SETTING_TRIGGER_DELAY_COUNT];
@@ -334,7 +361,7 @@ public:
     
     *settings++ = ENV_SETTING_EUCLIDEAN_LENGTH;
     if (get_euclidean_length()) {
-      *settings++ = ENV_SETTING_EUCLIDEAN_FILL;
+      //*settings++ = ENV_SETTING_EUCLIDEAN_FILL;
       *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
       *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
       *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
@@ -353,6 +380,7 @@ public:
     *settings++ = ENV_SETTING_CV3;
     *settings++ = ENV_SETTING_CV4;
     *settings++ = ENV_SETTING_ATTACK_RESET_BEHAVIOUR;
+    *settings++ = ENV_SETTING_ATTACK_FALLING_GATE_BEHAVIOUR;
     *settings++ = ENV_SETTING_DECAY_RELEASE_RESET_BEHAVIOUR;
     *settings++ = ENV_SETTING_GATE_HIGH;
     *settings++ = ENV_SETTING_AMPLITUDE;
@@ -380,8 +408,7 @@ public:
   }
 
   template <DAC_CHANNEL dac_channel>
-  void Update(uint32_t triggers, const int32_t cvs[ADC_CHANNEL_LAST]) {
-
+  void Update(uint32_t triggers, uint32_t internal_trigger_mask, const int32_t cvs[ADC_CHANNEL_LAST]) {
     int32_t s[kMaxSegments + kEuclideanParams + kDelayParams + kAmplitudeParams];
     s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
     s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
@@ -410,11 +437,6 @@ public:
     CONSTRAIN(s[8], 0, 65535);
     CONSTRAIN(s[9], 0, 65535);
 
-    // debug only
-    // s_euclidean_length_ = s[4];
-    // s_euclidean_fill_ = s[5];
-    // s_euclidean_offset_ = s[6];
-
     EnvelopeType type = get_type();
     switch (type) {
       case ENV_TYPE_AD: env_.set_ad(s[0], s[1]); break;
@@ -438,8 +460,9 @@ public:
       env_.reset();
     }
 
-    // set the specified reset behaviour
+    // set the specified reset behaviours
     env_.set_attack_reset_behaviour(get_attack_reset_behaviour());
+    env_.set_attack_falling_gate_behaviour(get_attack_falling_gate_behaviour());
     env_.set_decay_release_reset_behaviour(get_decay_release_reset_behaviour());
 
     // set the envelope segment shapes
@@ -455,8 +478,19 @@ public:
     // set the looping envelope maximum number of loops
     env_.set_max_loops(s[9]);
 
-    OC::DigitalInput trigger_input = get_trigger_input();
-    bool triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
+    int trigger_input = get_trigger_input();
+    bool triggered = false;
+    bool gate_raised = false;
+    if (trigger_input < OC::DIGITAL_INPUT_LAST) {
+      triggered = triggers & DIGITAL_INPUT_MASK(trigger_input);
+      gate_raised = OC::DigitalInputs::read_immediate(static_cast<OC::DigitalInput>(trigger_input));
+    } else {
+      const int trigger_channel = TriggerSettingToChannel(trigger_input);
+      const IntTriggerType trigger_type = TriggerSettingToType(trigger_input, trigger_channel);
+  
+      triggered = (internal_trigger_mask >> (trigger_setting_to_channel_index(trigger_channel) * 8)) & (0x1 << trigger_type);
+      gate_raised = triggered;
+    }
 
     trigger_display_.Update(1, triggered || gate_raised_);
 
@@ -474,10 +508,14 @@ public:
         euclidean_reset_counter_= 0;
       }
     }
-    
+
     if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
       triggered = false;
     }
+
+    s_euclidean_length_ = euclidean_length;
+    s_euclidean_fill_ = euclidean_fill;
+    s_euclidean_offset_ = euclidean_offset;
       
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
@@ -505,7 +543,6 @@ public:
     if (triggered)
       gate_state |= peaks::CONTROL_GATE_RISING;
  
-    bool gate_raised = OC::DigitalInputs::read_immediate(trigger_input);
     if (gate_raised || get_gate_high())
       gate_state |= peaks::CONTROL_GATE;
     else if (gate_raised_)
@@ -517,9 +554,9 @@ public:
     if (!is_inverted()) 
       value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
     else
-      value = OC::DAC::MAX_VALUE -  (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
+      value = OC::DAC::MAX_VALUE - (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
 
-    OC::DAC::set<dac_channel>(value);
+      OC::DAC::set<dac_channel>(value);   
   }
 
   uint16_t RenderPreview(int16_t *values, uint16_t *segment_start_points, uint16_t *loop_points, uint16_t &current_phase) const {
@@ -538,6 +575,7 @@ public:
     trigger = delayed_triggers_[delayed_triggers_next_];
   }
 
+#ifdef ENVGEN_DEBUG
   inline uint16_t get_amplitude_value() {
     return(env_.get_amplitude_value()) ;
   }
@@ -549,18 +587,30 @@ public:
   inline bool get_is_amplitude_sampled() {
     return(env_.get_is_amplitude_sampled()) ;
   }
+#endif
+
+  inline int trigger_setting_to_channel_index(int s) const {
+    return s < channel_index_ ? s : s + 1;
+  }
+
+  uint32_t internal_trigger_mask() const {
+    return env_.get_state_mask();
+  }
 
 private:
 
+  int channel_index_;
+ 
   peaks::MultistageEnvelope env_;
   EnvelopeType last_type_;
   bool gate_raised_;
   uint32_t euclidean_counter_;
   uint32_t euclidean_reset_counter_;
-  // debug only
-  //  int32_t s_euclidean_length_;  
-  //  int32_t s_euclidean_fill_;  
-  //  int32_t s_euclidean_offset_;  
+
+  // debug/live-view only
+  uint8_t s_euclidean_length_;
+  uint8_t s_euclidean_fill_;
+  uint8_t s_euclidean_offset_;  
   
   DelayedTrigger delayed_triggers_[kMaxDelayedTriggers];
   size_t delayed_triggers_free_;
@@ -608,6 +658,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
   InitDefaults();
   apply_value(ENV_SETTING_TRIGGER_INPUT, default_trigger);
   env_.Init();
+  channel_index_ = default_trigger;
   last_type_ = ENV_TYPE_LAST;
   gate_raised_ = false;
   euclidean_counter_ = 0;
@@ -645,6 +696,10 @@ const char* const reset_behaviours[peaks::RESET_BEHAVIOUR_LAST] = {
   "None",  "SP", "SLP", "SL", "P", 
 };
 
+const char* const falling_gate_behaviours[peaks::FALLING_GATE_BEHAVIOUR_LAST] = {
+  "Ignor",  "Honor", 
+};
+
 const char* const euclidean_lengths[] = {
   "Off", "  2", "  3", "  4", "  5", "  6", "  7", "  8", "  9", " 10",
   " 11", " 12", " 13", " 14", " 15", " 16", " 17", " 18", " 19", " 20",
@@ -656,20 +711,24 @@ const char* const time_multipliers[] = {
   "1", "  2", "  4", "  8", "  16", "  32", "  64", " 128", " 256", " 512", "1024", "2048", "4096", "8192"
 };
 
+const char* const internal_trigger_types[INT_TRIGGER_LAST] = {
+  "EOC", // Keep length == 3
+};
+
 SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { ENV_TYPE_AD, ENV_TYPE_FIRST, ENV_TYPE_LAST-1, "TYPE", envelope_types, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, "S1", NULL, settings::STORAGE_TYPE_U16 }, // u16 in case resolution proves insufficent
   { 128, 0, 255, "S2", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S3", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "S4", NULL, settings::STORAGE_TYPE_U16 },
-  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
+  { OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_1, OC::DIGITAL_INPUT_4 + 3 * INT_TRIGGER_LAST, "Trigger input", OC::Strings::trigger_input_names, settings::STORAGE_TYPE_U4 },
   { TRIGGER_DELAY_OFF, TRIGGER_DELAY_OFF, TRIGGER_DELAY_LAST - 1, "Tr delay mode", trigger_delay_modes, settings::STORAGE_TYPE_U4 },
   { 1, 1, EnvelopeGenerator::kMaxDelayedTriggers, "Tr delay count", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 999, "Tr delay msecs", NULL, settings::STORAGE_TYPE_U16 },
   { 0, 0, 64, "Tr delay secs", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
-  { 1, 0, 32, "Eucl fill", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 32, "Eucl offset", NULL, settings::STORAGE_TYPE_U8 },
+  { 1, 0, 32, "Fill", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 32, "Offset", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 5, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "Eucl reset div", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
@@ -677,6 +736,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV3 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV4 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "Attack reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
+  { peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_LAST - 1, "Att fall gt", falling_gate_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "DecRel reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
   { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
@@ -707,6 +767,8 @@ public:
     ui.selected_segment = 0;
     ui.segment_editing = false;
     ui.cursor.Init(0, envelopes_[0].num_enabled_settings() - 1);
+    ui.euclidean_mask_draw.Init();
+    ui.euclidean_edit_length = false;
   }
 
   void ISR() {
@@ -718,10 +780,22 @@ public:
     const int32_t cvs[ADC_CHANNEL_LAST] = { cv1.value(), cv2.value(), cv3.value(), cv4.value() };
     uint32_t triggers = OC::DigitalInputs::clocked();
 
-    envelopes_[0].Update<DAC_CHANNEL_A>(triggers, cvs);
-    envelopes_[1].Update<DAC_CHANNEL_B>(triggers, cvs);
-    envelopes_[2].Update<DAC_CHANNEL_C>(triggers, cvs);
-    envelopes_[3].Update<DAC_CHANNEL_D>(triggers, cvs);
+    uint32_t internal_trigger_mask =
+        envelopes_[0].internal_trigger_mask() |
+        envelopes_[1].internal_trigger_mask() << 8 |
+        envelopes_[2].internal_trigger_mask() << 16 |
+        envelopes_[3].internal_trigger_mask() << 24;
+
+    envelopes_[0].Update<DAC_CHANNEL_A>(triggers, internal_trigger_mask, cvs);
+    envelopes_[1].Update<DAC_CHANNEL_B>(triggers, internal_trigger_mask, cvs);
+    envelopes_[2].Update<DAC_CHANNEL_C>(triggers, internal_trigger_mask, cvs);
+    envelopes_[3].Update<DAC_CHANNEL_D>(triggers, internal_trigger_mask, cvs);
+  }
+
+  bool euclidean_edit_active() const {
+    return
+        ui.cursor.editing() &&
+        ENV_SETTING_EUCLIDEAN_OFFSET == selected().enabled_setting_at(ui.cursor.cursor_pos());
   }
 
   enum EnvEditMode {
@@ -737,9 +811,15 @@ public:
     bool segment_editing;
 
     menu::ScreenCursor<menu::kScreenLines> cursor;
+    OC::EuclideanMaskDraw euclidean_mask_draw;
+    bool euclidean_edit_length;
   } ui;
 
   EnvelopeGenerator &selected() {
+    return envelopes_[ui.selected_channel];
+  }
+
+  const EnvelopeGenerator &selected() const {
     return envelopes_[ui.selected_channel];
   }
 
@@ -868,6 +948,8 @@ void ENVGEN_menu_preview() {
 void ENVGEN_menu_settings() {
   auto const &env = envgen.selected();
 
+  bool draw_euclidean_editor = false;
+
   menu::SettingsList<menu::kScreenLines, 0, menu::kDefaultValueX> settings_list(envgen.ui.cursor);
   menu::SettingsListItem list_item;
 
@@ -887,12 +969,76 @@ void ENVGEN_menu_settings() {
         graphics.print(attr.value_names[value]);
         list_item.DrawCustom();
       break;
+      case ENV_SETTING_TRIGGER_INPUT:
+        if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
+          list_item.x += menu::kIndentDx;
+        if (value < OC::DIGITAL_INPUT_LAST) {
+          list_item.DrawDefault(value, attr);
+        } else {
+          const int trigger_channel = TriggerSettingToChannel(value);
+          const IntTriggerType trigger_type = TriggerSettingToType(value, trigger_channel);
+
+          char s[6] = "_ xxx";
+          s[0] = 'A' + env.trigger_setting_to_channel_index(trigger_channel);
+          memcpy(s + 2, internal_trigger_types[trigger_type], 3);
+          list_item.DrawDefault(s, value, attr);
+        }
+      break;
+      case ENV_SETTING_EUCLIDEAN_OFFSET:
+        if (!list_item.editing) {
+          // Use the live values
+          envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth, list_item.y,
+                                               env.get_s_euclidean_length(), env.get_s_euclidean_fill(), env.get_s_euclidean_offset(),
+                                               env.get_euclidean_counter());
+          list_item.DrawCustom();
+        } else {
+          draw_euclidean_editor = true;
+        }
+      break;
+
       default:
         if (EnvelopeGenerator::indentSetting(static_cast<EnvelopeSettings>(setting)))
           list_item.x += menu::kIndentDx;
         list_item.DrawDefault(value, attr);
       break;
     }
+  }
+
+  // Ugly. With a capital blargh.
+  if (draw_euclidean_editor) {
+    weegfx::coord_t y = 32 - menu::kMenuLineH / 2 - 1;
+    graphics.clearRect(0, y, menu::kDisplayWidth, menu::kMenuLineH * 2 + 2);
+    graphics.drawFrame(0, y, menu::kDisplayWidth, menu::kMenuLineH * 2 + 2);
+
+    y += 2;
+    envgen.ui.euclidean_mask_draw.Render(menu::kDisplayWidth - 2, y,
+                                          env.get_euclidean_length(), env.get_euclidean_fill(), env.get_euclidean_offset(),
+                                          env.get_euclidean_counter());
+
+    y += menu::kMenuLineH;
+    menu::SettingsListItem list_item;
+    list_item.selected = false;
+    list_item.editing = true;
+    list_item.y = y;
+
+    list_item.x = 1;
+    list_item.valuex = 38;
+    list_item.endx = 60 - 2;
+    if (envgen.ui.euclidean_edit_length) {
+      auto attr = EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_LENGTH);
+      attr.min_ = 1;
+      attr.name = "Len";
+      list_item.DrawDefault(env.get_euclidean_length(), attr);
+    } else {
+      auto attr = EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_FILL);
+      list_item.DrawValueMax(env.get_euclidean_fill(), attr, env.get_euclidean_length() + 0x1);
+    }
+
+    list_item.editing = true;
+    list_item.x = 60;
+    list_item.valuex = 106;
+    list_item.endx = menu::kDisplayWidth - 2;
+    list_item.DrawValueMax(env.get_euclidean_offset(), EnvelopeGenerator::value_attr(ENV_SETTING_EUCLIDEAN_OFFSET), env.get_euclidean_length());
   }
 }
 
@@ -938,13 +1084,18 @@ void ENVGEN_rightButton() {
     envgen.ui.segment_editing = !envgen.ui.segment_editing;
   } else {
     envgen.ui.cursor.toggle_editing();
+    envgen.ui.euclidean_edit_length = false;
   }
 }
 
 void ENVGEN_leftButton() {
   if (QuadEnvelopeGenerator::MODE_EDIT_SETTINGS == envgen.ui.edit_mode) {
-    envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS;
-    envgen.ui.cursor.set_editing(false);
+    if (!envgen.euclidean_edit_active()) {
+      envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS;
+      envgen.ui.cursor.set_editing(false);
+    } else {
+      envgen.ui.euclidean_edit_length = !envgen.ui.euclidean_edit_length;
+    }
   } else {
     envgen.ui.edit_mode = QuadEnvelopeGenerator::MODE_EDIT_SETTINGS;
     envgen.ui.segment_editing = false;
@@ -973,12 +1124,33 @@ void ENVGEN_handleButtonEvent(const UI::Event &event) {
 void ENVGEN_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
-    int left_value = envgen.ui.selected_channel + event.value;
-    CONSTRAIN(left_value, 0, 3);
-    envgen.ui.selected_channel = left_value;
-    auto &selected_env = envgen.selected();
-    CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
-    envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
+    if (envgen.euclidean_edit_active()) {
+      if (envgen.ui.euclidean_edit_length) {
+        // Artificially constrain length here
+        int length = envgen.selected().get_euclidean_length() + event.value;
+        if (length > 0) {
+          envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_LENGTH, length);
+          // constrain k, offset:
+          if (length < envgen.selected().get_euclidean_fill())
+             envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_FILL, length + 0x1);
+          if (length < envgen.selected().get_euclidean_offset())
+            envgen.selected().apply_value(ENV_SETTING_EUCLIDEAN_OFFSET, length);
+        }
+      } else {
+        // constrain k: 
+        if (envgen.selected().get_euclidean_fill() <= envgen.selected().get_euclidean_length())
+          envgen.selected().change_value(ENV_SETTING_EUCLIDEAN_FILL, event.value);
+        else if (event.value < 0)
+          envgen.selected().change_value(ENV_SETTING_EUCLIDEAN_FILL, event.value);
+      }
+    } else {
+      int left_value = envgen.ui.selected_channel + event.value;
+      CONSTRAIN(left_value, 0, 3);
+      envgen.ui.selected_channel = left_value;
+      auto &selected_env = envgen.selected();
+      CONSTRAIN(envgen.ui.selected_segment, 0, selected_env.num_editable_segments() - 1);
+      envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);
+    }
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (QuadEnvelopeGenerator::MODE_EDIT_SEGMENTS == envgen.ui.edit_mode) {
       auto &selected_env = envgen.selected();
@@ -993,7 +1165,18 @@ void ENVGEN_handleEncoderEvent(const UI::Event &event) {
       if (envgen.ui.cursor.editing()) {
         auto &selected_env = envgen.selected();
         EnvelopeSettings setting = selected_env.enabled_setting_at(envgen.ui.cursor.cursor_pos());
-        selected_env.change_value(setting, event.value);
+
+        if (ENV_SETTING_EUCLIDEAN_OFFSET == setting) {
+          // constrain offset 
+          if (selected_env.get_euclidean_offset() < selected_env.get_euclidean_length())
+            selected_env.change_value(ENV_SETTING_EUCLIDEAN_OFFSET, event.value);
+          else if (event.value < 0)
+            selected_env.change_value(ENV_SETTING_EUCLIDEAN_OFFSET, event.value);
+        }
+        else {
+           selected_env.change_value(setting, event.value);
+        }
+        
         if (ENV_SETTING_TRIGGER_DELAY_MODE == setting || ENV_SETTING_EUCLIDEAN_LENGTH == setting)
           selected_env.update_enabled_settings();
           envgen.ui.cursor.AdjustEnd(selected_env.num_enabled_settings() - 1);

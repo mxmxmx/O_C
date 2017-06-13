@@ -134,10 +134,7 @@ public:
   int get_scale(uint8_t selected_scale_slot_) const {
 
     switch(selected_scale_slot_) {
-      
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_SCALE1];
-       break;
+   
        case SLOT2:
         return values_[DQ_CHANNEL_SETTING_SCALE2];
        break;
@@ -147,6 +144,7 @@ public:
        case SLOT4:
         return values_[DQ_CHANNEL_SETTING_SCALE4];
        break;
+       case SLOT1:
        default:
         return values_[DQ_CHANNEL_SETTING_SCALE1];
        break;        
@@ -198,6 +196,7 @@ public:
         apply_value(DQ_CHANNEL_SETTING_ROOT4, root);
         apply_value(DQ_CHANNEL_SETTING_TRANSPOSE4, transpose);
         break;
+        case SLOT1:
         default:
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         apply_value(DQ_CHANNEL_SETTING_SCALE1, scale);
@@ -212,9 +211,6 @@ public:
 
     switch(selected_scale_slot_) {
       
-       case SLOT1:
-        return values_[DQ_CHANNEL_SETTING_ROOT1];
-       break;
        case SLOT2:
         return values_[DQ_CHANNEL_SETTING_ROOT2];
        break;
@@ -224,6 +220,7 @@ public:
        case SLOT4:
         return values_[DQ_CHANNEL_SETTING_ROOT4];
        break;
+       case SLOT1:
        default:
         return values_[DQ_CHANNEL_SETTING_ROOT1];
        break;        
@@ -234,9 +231,6 @@ public:
 
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_MASK1];
-      break;
       case SLOT2:
         return values_[DQ_CHANNEL_SETTING_MASK2];
       break;
@@ -246,6 +240,7 @@ public:
       case SLOT4:  
         return values_[DQ_CHANNEL_SETTING_MASK4];
       break;
+      case SLOT1:  
       default:
         return values_[DQ_CHANNEL_SETTING_MASK1];
       break;
@@ -280,9 +275,6 @@ public:
     
     switch(selected_scale_slot_) {
       
-      case SLOT1:  
-        return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
-      break;
       case SLOT2:
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE2];
       break;
@@ -292,6 +284,7 @@ public:
       case SLOT4:   
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE4];
       break;
+      case SLOT1:
       default:
         return values_[DQ_CHANNEL_SETTING_TRANSPOSE1];
       break;
@@ -363,17 +356,15 @@ public:
     apply_value(DQ_CHANNEL_SETTING_TRIGGER, trigger_source);
 
     force_update_ = true;
-    instant_update_ = false;
 
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
       last_mask_[i] = 0;
     }
     
-    last_sample_ = 0;
-    last_raw_sample_ = 0;
-    clock_ = 0;
     aux_sample_ = 0;
+    last_sample_ = 0;
+    last_aux_sample_ = 0;
     continuous_offset_ = 0;
     scale_sequence_cnt_ = 0;
     scale_reset_ = 0;
@@ -405,7 +396,6 @@ public:
 
     turing_machine_.Init();
     turing_display_length_ = get_turing_length();
-    last_turing_pitch_ = 0;
 
     scrolling_history_.Init(OC::DAC::kOctaveZero * 12 << 7);
   }
@@ -416,10 +406,6 @@ public:
 
   void schedule_scale_update() {
     schedule_scale_update_ = true;
-  }
-       
-  void instant_update() {
-    instant_update_ = (~instant_update_) & 1u;
   }
 
   inline void Update(uint32_t triggers, DAC_CHANNEL dac_channel, DAC_CHANNEL aux_channel) {
@@ -439,6 +425,7 @@ public:
     if (triggered) {
       channel_frequency_in_ticks_ = ticks_;
       ticks_ = 0x0;
+      update_asr_ = true;  
       aux_sample_ = ON; 
     }
          
@@ -483,7 +470,7 @@ public:
 
     if (update) {
         
-      int32_t transpose, pitch;
+      int32_t transpose, pitch, quantized = 0x0;
       int source, cv_source, channel_id, octave, root, _aux_cv_destination;
       
       source = cv_source = get_source();
@@ -502,94 +489,7 @@ public:
       // get octave value
       octave = get_octave() + prev_octave_cv_;
 
-      // internal CV source?
-      if (source > DQ_CHANNEL_SOURCE_CV4) 
-        cv_source = channel_id - 1;
-        
-      pitch = quantizer_.enabled()
-                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
-                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
-     
-              
-      switch (source) {
-
-        case DQ_CHANNEL_SOURCE_CV1:
-        case DQ_CHANNEL_SOURCE_CV2:
-        case DQ_CHANNEL_SOURCE_CV3:
-        case DQ_CHANNEL_SOURCE_CV4:
-        break;
-        case DQ_CHANNEL_SOURCE_TURING:
-        {
-          if (continuous)
-              break;
-              
-          int16_t _length = get_turing_length();
-          int16_t _probability = get_turing_probability();
-          int16_t _range = get_turing_range();
-
-          // _pitch can do other things now -- 
-          switch (get_turing_CV()) {
-
-              case 1:  // LEN, 1-32
-               _length += ((pitch + 255) >> 8);
-               CONSTRAIN(_length, 1, 32);
-              break;
-               case 2:  // P
-               _probability += ((pitch + 15) >> 4);
-               CONSTRAIN(_probability, 0, 255);
-              break;
-              default: // range
-               _range += ((pitch + 63) >> 6);
-               CONSTRAIN(_range, 1, 120);
-              break;
-          }
-          
-          turing_machine_.set_length(_length);
-          turing_machine_.set_probability(_probability); 
-          turing_display_length_ = _length;
-
-          uint32_t _shift_register = turing_machine_.Clock();   
-          // Since our range is limited anyway, just grab the last byte for lengths > 8,
-          // otherwise scale to use bits. And apply the modulus
-          uint32_t shift = turing_machine_.length();
-          uint32_t _scaled = (_shift_register & 0xff) * _range;
-          _scaled = _scaled >> (shift > 7 ? 8 : shift);
- 
-          // shouldn't this (for DQ) just be some raw value at this point? see below, things get re-quantized, anyways
-          pitch =
-              quantizer_.Lookup(64 + _range / 2 - _scaled) + (get_root(display_scale_slot_) << 7); 
-        
-          // gate?
-          switch(get_turing_trig_out()) {
-            
-            case DQ_ECHO:
-            break;
-            case DQ_LSB:
-            if (!turing_machine_.get_LSB())
-              aux_sample_ = OFF;
-            break;
-            case DQ_CHANGE:
-            if (last_turing_pitch_ == pitch)
-              aux_sample_ = OFF;
-            break;
-            default:
-            break;
-          }
-          
-          last_turing_pitch_ = pitch;
-        }
-        break;
-        case DQ_CHANNEL_SOURCE_LOGISTIC_MAP:
-        break;
-        case DQ_CHANNEL_SOURCE_BYTEBEAT:
-        break;
-        case DQ_CHANNEL_SOURCE_INT_SEQ:
-        break;
-        default:
-        break;
-      }
-
-      // S/H 
+      // S/H: ADC values
       if (!continuous) {
         
         switch(_aux_cv_destination) {
@@ -619,25 +519,84 @@ public:
           default:
           break;
         } // end switch  
-      } 
+      } // -> triggered update
 
-      // limit:
+      // constrain values: 
       CONSTRAIN(display_scale_slot_, 0, NUM_SCALE_SLOTS-1);
       CONSTRAIN(octave, -4, 4);
       CONSTRAIN(root, 0, 11);
       CONSTRAIN(transpose, -12, 12); 
-               
-      int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
+
+      // internal CV source?
+      if (source > DQ_CHANNEL_SOURCE_CV4) 
+        cv_source = channel_id - 1;
+
+      // now, acquire + process sample:   
+      pitch = quantizer_.enabled()
+                ? OC::ADC::raw_pitch_value(static_cast<ADC_CHANNEL>(cv_source))
+                : OC::ADC::pitch_value(static_cast<ADC_CHANNEL>(cv_source));
+
+      switch (source) {
+
+        case DQ_CHANNEL_SOURCE_CV1:
+        case DQ_CHANNEL_SOURCE_CV2:
+        case DQ_CHANNEL_SOURCE_CV3:
+        case DQ_CHANNEL_SOURCE_CV4:
+        quantized = quantizer_.Process(pitch, root << 7, transpose);
+        break;
+        case DQ_CHANNEL_SOURCE_TURING:
+        {
+          if (continuous)
+              break;
+              
+          int16_t _length = get_turing_length();
+          int16_t _probability = get_turing_probability();
+          int16_t _range = get_turing_range();
+
+          // _pitch can do other things now -- 
+          switch (get_turing_CV()) {
+
+              case 1:  // range
+               _range += ((pitch + 63) >> 6);
+               CONSTRAIN(_range, 1, 120);
+              case 2:  // LEN, 1-32
+               _length += ((pitch + 255) >> 8);
+               CONSTRAIN(_length, 1, 32);
+              break;
+               case 3:  // P
+               _probability += ((pitch + 15) >> 4);
+               CONSTRAIN(_probability, 0, 255);
+              break;
+              default:
+              break;
+          }
+          
+          turing_machine_.set_length(_length);
+          turing_machine_.set_probability(_probability); 
+          turing_display_length_ = _length;
+
+          uint32_t _shift_register = turing_machine_.Clock();   
+          // Since our range is limited anyway, just grab the last byte for lengths > 8, otherwise scale to use bits.
+          uint32_t shift = turing_machine_.length();
+          uint32_t _scaled = (_shift_register & 0xFF) * _range;
+          _scaled = _scaled >> (shift > 7 ? 8 : shift);
+          quantized = quantizer_.Lookup(64 + _range / 2 - _scaled + transpose) + (root<< 7);
+        }
+        break;
+        default:
+        break;
+      }
+      
+      // the output, thus far:
       sample = temp_sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
 
+      // special treatment, continuous update -- only update the modulation values if/when the quantized input changes:    
       bool _continuous_update = continuous && last_sample_ != sample;
 
       if ((!continuous && schedule_scale_update_) || (_continuous_update && schedule_scale_update_)) {
         update_scale(true, display_scale_slot_, schedule_mask_rotate_);
         schedule_scale_update_ = false;
       }  
-
-      // special treatment, continuous update:
        
       if (_continuous_update) {
 
@@ -713,7 +672,9 @@ public:
             quantized = quantizer_.Process(pitch, root << 7, transpose);
           if (_re_quantize || _trigger_update)
             sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, quantized, octave + continuous_offset_, OC::DAC::get_voltage_scaling(dac_channel));
-            
+          // update ASR?
+          update_asr_ = (aux_mode == DQ_ASR && last_sample_ != sample);
+
       } 
       // end special treatment
       
@@ -721,13 +682,45 @@ public:
       history_sample = quantized + ((OC::DAC::kOctaveZero + octave) * 12 << 7);  
       
       // deal with aux output:
-      if (aux_mode == DQ_COPY) 
-        aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
-      else if (aux_mode == DQ_ASR) {
-        // to do ... more settings
-        const int32_t quantized_aux = quantizer_.Process(last_raw_sample_, root << 7, transpose);
-        aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized_aux, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
-        last_raw_sample_ = pitch;
+      switch (aux_mode) {
+        
+        case DQ_COPY:
+        // offset the quantized value:
+          aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, quantized, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
+        break;
+        case DQ_ASR:
+        {
+          if (update_asr_) {
+            update_asr_ = false;
+            aux_sample_ = OC::DAC::pitch_to_scaled_voltage_dac(aux_channel, last_aux_sample_, octave + continuous_offset_ + get_aux_octave(), OC::DAC::get_voltage_scaling(aux_channel));
+            last_aux_sample_ = quantized;
+          }
+        }
+        break;
+        case DQ_GATE: {
+        
+           if (source == DQ_CHANNEL_SOURCE_TURING) {
+          
+            switch(get_turing_trig_out()) {
+              
+              case DQ_ECHO:
+              break;
+              case DQ_LSB:
+              if (!turing_machine_.get_LSB())
+                aux_sample_ = OFF;
+              break;
+              case DQ_CHANGE:
+              if (last_sample_ == sample)
+                aux_sample_ = OFF;
+              break;
+              default:
+              break;
+            }
+          }
+        }
+        break;
+        default:
+        break;
       }
     }
 
@@ -738,14 +731,16 @@ public:
       
       MENU_REDRAW = 1;
       last_sample_ = continuous ? temp_sample : sample;
-      
+
+      // in continuous mode, make aux output go high:
       if (continuous && aux_mode == DQ_GATE) {
         aux_sample_ = ON;
         ticks_ = 0x0;
       } 
     }
     
-    // pulsewidth / gate outputs: 
+    // aux outputs:
+    int32_t aux_sample = aux_sample_; 
 
     switch (aux_mode) {
 
@@ -754,7 +749,7 @@ public:
       break;
       case DQ_GATE:
       { 
-      if (aux_sample_) { 
+      if (aux_sample) { 
            
             // pulsewidth setting -- 
             int16_t _pulsewidth = get_pulsewidth();
@@ -768,17 +763,7 @@ public:
                 // we-can't-echo-hack  
                 if (continuous && !_pulsewidth)
                   _pulsewidth = 0x1;
-                // CV?
-                /*
-                if (get_pulsewidth_cv_source()) {
-    
-                  _pulsewidth += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_pulsewidth_cv_source() - 1)) + 8) >> 3; 
-                  if (!_gates)          
-                    CONSTRAIN(_pulsewidth, 1, PULSEW_MAX);
-                  else // CV for 50% duty cycle: 
-                    CONSTRAIN(_pulsewidth, 1, (PULSEW_MAX<<1) - 55);  // incl margin, max < 2x mult. see below 
-                }
-                */
+           
                 // recalculate (in ticks), if new pulsewidth setting:
                 if (prev_pulsewidth_ != _pulsewidth || ! ticks_) {
                   
@@ -812,16 +797,22 @@ public:
              else {
                 // we simply echo the pulsewidth:
                  aux_sample_ = OC::DigitalInputs::read_immediate(get_digital_input()) ? ON : OFF;
-             }   
+             }
          }  
       } 
+      // scale gate
+      #ifdef BUCHLA_4U
+        aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x2) : OC::DAC::get_zero_offset(aux_channel);
+      #else
+        aux_sample = (aux_sample_ == ON) ? OC::DAC::get_octave_offset(aux_channel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(aux_channel);
+      #endif
       break;
       default:
       break;
     }
     
     OC::DAC::set(dac_channel, sample);
-    OC::DAC::set(aux_channel, aux_sample_);
+    OC::DAC::set(aux_channel, aux_sample);
 
     if (triggered || (continuous && changed)) {
       scrolling_history_.Push(history_sample);
@@ -844,19 +835,20 @@ public:
   void update_scale_mask(uint16_t mask, uint8_t scale_select) {
 
     switch (scale_select) {
-      case 0:  
+      
+      case SLOT1: 
         apply_value(DQ_CHANNEL_SETTING_MASK1, mask); 
         last_mask_[0] = mask;
       break;
-      case 1:  
+      case SLOT2: 
         apply_value(DQ_CHANNEL_SETTING_MASK2, mask); 
         last_mask_[1] = mask;
       break;
-      case 2:  
+      case SLOT3:  
         apply_value(DQ_CHANNEL_SETTING_MASK3, mask); 
         last_mask_[2] = mask;
       break;
-      case 3: 
+      case SLOT4: 
         apply_value(DQ_CHANNEL_SETTING_MASK4, mask); 
         last_mask_[3] = mask;
       break;
@@ -1001,7 +993,7 @@ public:
 
 private:
   bool force_update_;
-  bool instant_update_;
+  bool update_asr_;
   int last_scale_[NUM_SCALE_SLOTS];
   uint16_t last_mask_[NUM_SCALE_SLOTS];
   int scale_sequence_cnt_;
@@ -1017,10 +1009,9 @@ private:
   bool schedule_scale_update_;
   int32_t schedule_mask_rotate_;
   int32_t last_sample_;
-  int32_t last_raw_sample_;
   int32_t aux_sample_;
+  int32_t last_aux_sample_;
   int8_t continuous_offset_;
-  uint8_t clock_;
   uint8_t prev_pulsewidth_;
   int8_t prev_destination_;
   int8_t prev_octave_cv_;
@@ -1039,7 +1030,6 @@ private:
   // internal CV sources;
   util::TuringShiftRegister turing_machine_;
   int8_t turing_display_length_;
-  int32_t last_turing_pitch_;
   
   int num_enabled_settings_;
   DQ_ChannelSetting enabled_settings_[DQ_CHANNEL_SETTING_LAST];
@@ -1082,10 +1072,6 @@ const char* const dq_aux_cv_dest[] = {
   "-", "scl#", "root", "oct", "trns", "mask"
 };
 
-const char* const dq_tm_CV_destinations[] = {
-  "rng", "len", "prb"
-};
-
 const char* const dq_tm_trig_out[] = {
   "echo", "lsb", "chng"
 };
@@ -1119,7 +1105,7 @@ SETTINGS_DECLARE(DQ_QuantizerChannel, DQ_CHANNEL_SETTING_LAST) {
   { 0, 0, DQ_DEST_LAST-1, "CV aux.", dq_aux_cv_dest, settings::STORAGE_TYPE_U8 },
   { 16, 1, 32, " > LFSR length", NULL, settings::STORAGE_TYPE_U8 },
   { 128, 0, 255, " > LFSR p", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 2, " > LFSR CV", dq_tm_CV_destinations, settings::STORAGE_TYPE_U8 }, // ??
+  { 0, 0, 3, " > LFSR CV", OC::Strings::TM_aux_cv_destinations, settings::STORAGE_TYPE_U8 }, // ??
   { 15, 1, 120, " > LFSR range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, DQ_TRIG_AUX_LAST-1, " > LFSR TRIG", dq_tm_trig_out, settings::STORAGE_TYPE_U8 }
 };
@@ -1264,7 +1250,16 @@ void DQ_menu() {
         menu::DrawMask<false, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_rotated_mask(channel.get_display_scale()), OC::Scales::GetScale(channel.get_scale(channel.get_display_scale())).num_notes); 
         list_item.DrawNoValue<false>(value, attr);
         break;
+      case DQ_CHANNEL_SETTING_TRIGGER:
+      {
+        if (channel.get_source() > DQ_CHANNEL_SOURCE_CV4)
+           list_item.DrawValueMax(value, attr, DQ_CHANNEL_TRIGGER_TR4);
+        else 
+          list_item.DrawDefault(value, attr);
+      }
+      break;
       case DQ_CHANNEL_SETTING_SOURCE:
+      {
       if (channel.get_source() == DQ_CHANNEL_SOURCE_TURING) {
        
           int turing_length = channel.get_turing_display_length();
@@ -1273,8 +1268,12 @@ void DQ_menu() {
           menu::DrawMask<true, 16, 8, 1>(menu::kDisplayWidth, list_item.y, channel.get_shift_register(), turing_length);
           list_item.valuex = menu::kDisplayWidth - w - 1;
           list_item.DrawNoValue<true>(value, attr);
-       } else
-       list_item.DrawDefault(value, attr);
+       } 
+       else if (channel.get_trigger_source() > DQ_CHANNEL_TRIGGER_TR4)
+          list_item.DrawValueMax(value, attr, DQ_CHANNEL_SOURCE_CV4);
+       else 
+          list_item.DrawDefault(value, attr);
+      }
       break;
       case DQ_CHANNEL_SETTING_PULSEWIDTH:
         list_item.Draw_PW_Value(value, attr);
@@ -1327,18 +1326,47 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
   }
 
   if (OC::CONTROL_ENCODER_L == event.control) {
+    
     int selected_channel = dq_state.selected_channel + event.value;
-    CONSTRAIN(selected_channel, 0, NUMCHANNELS-1);
+    CONSTRAIN(selected_channel, 0, NUMCHANNELS - 0x1);
     dq_state.selected_channel = selected_channel;
 
     DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
+    selected.update_enabled_settings();
     dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
+    //??
+    dq_state.cursor.Scroll(0x0);
+    
   } else if (OC::CONTROL_ENCODER_R == event.control) {
+    
     DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
+    
     if (dq_state.editing()) {
       DQ_ChannelSetting setting = selected.enabled_setting_at(dq_state.cursor_pos());
-      if (DQ_CHANNEL_SETTING_MASK1 != setting || DQ_CHANNEL_SETTING_MASK2 != setting || DQ_CHANNEL_SETTING_MASK3 != setting || DQ_CHANNEL_SETTING_MASK4 != setting) { 
-        if (selected.change_value(setting, event.value))
+      if (DQ_CHANNEL_SETTING_MASK1 != setting || DQ_CHANNEL_SETTING_MASK2 != setting || DQ_CHANNEL_SETTING_MASK3 != setting || DQ_CHANNEL_SETTING_MASK4 != setting) {
+
+        int event_value = event.value;
+
+        // hack disable internal sources when mode = continuous:
+        switch (setting) {
+          
+          case DQ_CHANNEL_SETTING_TRIGGER:
+          {
+            if (selected.get_trigger_source() == DQ_CHANNEL_TRIGGER_TR4 && selected.get_source() > DQ_CHANNEL_SOURCE_CV4 && event_value > 0)
+              event_value = 0x0;
+          }
+          break;
+          case DQ_CHANNEL_SETTING_SOURCE: 
+          {
+             if (selected.get_source() == DQ_CHANNEL_SOURCE_CV4 && selected.get_trigger_source() > DQ_CHANNEL_TRIGGER_TR4 && event_value > 0)
+              event_value = 0x0;
+          }
+          break;
+          default:
+          break;
+        }
+        
+        if (selected.change_value(setting, event_value))
           selected.force_update();
 
         switch (setting) {

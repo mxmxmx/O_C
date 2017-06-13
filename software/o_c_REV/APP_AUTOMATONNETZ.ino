@@ -341,7 +341,11 @@ SETTINGS_DECLARE(AutomatonnetzState, GRID_SETTING_LAST) {
   {8, 0, 8*GRID_DIMENSION - 1, "dx", NULL, settings::STORAGE_TYPE_I8},
   {4, 0, 8*GRID_DIMENSION - 1, "dy", NULL, settings::STORAGE_TYPE_I8},
   {MODE_MAJOR, 0, MODE_LAST-1, "Mode", mode_names, settings::STORAGE_TYPE_U8},
+  #ifdef BUCHLA_4U
+  {0, 0, 7, "Oct", NULL, settings::STORAGE_TYPE_I8},
+  #else
   {0, -3, 3, "Oct", NULL, settings::STORAGE_TYPE_I8},
+  #endif
   { 0, 0, OC::kNumDelayTimes - 1, "TrDly", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   {OUTPUTA_MODE_ROOT, OUTPUTA_MODE_ROOT, OUTPUTA_MODE_LAST - 1, "OutA", outputa_mode_names, settings::STORAGE_TYPE_U4},
   {CLEAR_MODE_ZERO, CLEAR_MODE_ZERO, CLEAR_MODE_LAST - 1, "Clr", clear_mode_names, settings::STORAGE_TYPE_U4},

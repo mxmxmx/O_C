@@ -482,7 +482,7 @@ public:
               // about 0, so we use the range/scaled output to lookup a note
               // directly instead of changing to pitch first.
               int32_t pitch =
-                  quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
+                  quantizer_.Lookup(64 + range / 2 - scaled + get_transpose()) + (get_root() << 7);
               sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
@@ -546,7 +546,7 @@ public:
                 // about 0, so we use the range/scaled output to lookup a note
                 // directly instead of changing to pitch first.
                 int32_t pitch =
-                  quantizer_.Lookup(64 + range / 2 - scaled) + (get_root() << 7);
+                  quantizer_.Lookup(64 + range / 2 - scaled + get_transpose()) + (get_root() << 7);
                 sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
@@ -587,7 +587,7 @@ public:
 
               // See above, may need tweaking    
               int32_t pitch =
-                  quantizer_.Lookup(64 + range / 2 - logistic_scaled) + (get_root() << 7);
+                  quantizer_.Lookup(64 + range / 2 - logistic_scaled + get_transpose()) + (get_root() << 7);
               sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
               history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
             } else {
@@ -687,7 +687,7 @@ public:
                 // about 0, so we use the range/scaled output to lookup a note
                 // directly instead of changing to pitch first.
                 int32_t pitch =
-                  quantizer_.Lookup(64 + range_ / 2 - scaled) + (get_root() << 7);
+                  quantizer_.Lookup(64 + range_ / 2 - scaled + get_transpose()) + (get_root() << 7);
                 sample = OC::DAC::pitch_to_scaled_voltage_dac(dac_channel, pitch, get_octave(), OC::DAC::get_voltage_scaling(dac_channel));
                 history_sample = pitch + ((OC::DAC::kOctaveZero + get_octave()) * 12 << 7);
               } else {
