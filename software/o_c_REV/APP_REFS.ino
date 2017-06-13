@@ -298,7 +298,7 @@ public:
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
           // ... and derive target frequencies
-          float target_frequency = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V
+          float target_frequency = round(((auto_frequency_ + average) / (float)(kHistoryDepth + 1))); // 0V
 
           #ifdef BUCHLA_SUPPORT
           switch(OC::DAC::get_voltage_scaling(dac_channel_)) {
@@ -314,7 +314,6 @@ public:
                 auto_target_frequencies_[7]  =  target_frequency * 10.0793683991589855253324f; // +4V = 2**(4.0/1.2)
                 auto_target_frequencies_[8]  =  target_frequency * 17.9593927729499718282113f; // +5V = 2**(5.0/1.2)
                 auto_target_frequencies_[9]  =  target_frequency * 32.0f;                      // +6V = 2**(6.0/1.2)
-                auto_target_frequencies_[10] =  target_frequency * 57.0175179609817419645879f; // ...
               break;
               case VOLTAGE_SCALING_2V_PER_OCT: // 2V/octave
                 auto_target_frequencies_[0]  =  target_frequency * 0.3535533905932737863687f;  // -3V - 2**(-3.0/2.0)
@@ -327,7 +326,6 @@ public:
                 auto_target_frequencies_[7]  =  target_frequency * 4.0f;                       // +4V = 2**(4.0/2.0)
                 auto_target_frequencies_[8]  =  target_frequency * 5.6568542494923805818985f;  // +5V = 2**(5.0/2.0)
                 auto_target_frequencies_[9]  =  target_frequency * 8.0f;                       // +6V = 2**(6.0/2.0)
-                auto_target_frequencies_[10] =  target_frequency * 11.3137084989847611637970f; // ...
               break;
               case VOLTAGE_SCALING_1V_PER_OCT: // 1V/octave
               default:
@@ -341,7 +339,6 @@ public:
                 auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
                 auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
                 auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-                auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
               break;
           }
           #elif BUCHLA_4U
@@ -356,7 +353,6 @@ public:
             auto_target_frequencies_[7]  =  target_frequency * 128.0f;  // +8.4V
             auto_target_frequencies_[8]  =  target_frequency * 256.0f;  // +9.6V
             auto_target_frequencies_[9]  =  target_frequency * 512.0f;  // +10.8V
-            auto_target_frequencies_[10] =  target_frequency * 1024.0f; // ...
           #else
             /* can't use pow (busts the available memory at this point), so we unroll ... */
             auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
@@ -369,7 +365,6 @@ public:
             auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
             auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
             auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-            auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
           #endif
           
           // reset step, and proceed:
