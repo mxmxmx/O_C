@@ -341,7 +341,7 @@ public:
                 auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
               break;
           }
-          #elif BUCHLA_4U
+          #elif defined(BUCHLA_4U)
             /* can't use pow (busts the available memory at this point), so we unroll ... */
             auto_target_frequencies_[0]  =  target_frequency * 1.0f;    // 0V
             auto_target_frequencies_[1]  =  target_frequency * 2.0f;    // +1.2V 
