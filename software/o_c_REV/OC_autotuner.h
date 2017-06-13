@@ -2,11 +2,17 @@
 #define OC_AUTOTUNER_H
 
 #include "OC_autotune.h"
+#include "OC_options.h"
 
-
+#ifdef BUCHLA_4U
+const char* const AT_steps[] = {
+  "0.0V", "0.0V", "0.0V", "1.2V", "2.4V", "3.6V", "4.8V", "6.0V", "7.2V", "8.4V", "9.6V", "10.8V", " " 
+};
+#else
 const char* const AT_steps[] = {
   " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", " " 
 };
+#endif
 
 namespace OC {
 

@@ -344,8 +344,21 @@ public:
                 auto_target_frequencies_[10] =  target_frequency * 128.0f;  // ...
               break;
           }
+          #elif BUCHLA_4U
+            /* can't use pow (busts the available memory at this point), so we unroll ... */
+            auto_target_frequencies_[0]  =  target_frequency * 1.0f;    // 0V
+            auto_target_frequencies_[1]  =  target_frequency * 2.0f;    // +1.2V 
+            auto_target_frequencies_[2]  =  target_frequency * 4.0f;    // +2.4V 
+            auto_target_frequencies_[3]  =  target_frequency * 8.0f;    // +3.6V 
+            auto_target_frequencies_[4]  =  target_frequency * 16.0f;   // +4.8V 
+            auto_target_frequencies_[5]  =  target_frequency * 32.0f;   // +6.0V 
+            auto_target_frequencies_[6]  =  target_frequency * 64.0f;   // +7.2V 
+            auto_target_frequencies_[7]  =  target_frequency * 128.0f;  // +8.4V
+            auto_target_frequencies_[8]  =  target_frequency * 256.0f;  // +9.6V
+            auto_target_frequencies_[9]  =  target_frequency * 512.0f;  // +10.8V
+            auto_target_frequencies_[10] =  target_frequency * 1024.0f; // ...
           #else
-            /* can't use pow ( thus busts the available memory at this point), so we unroll ... */
+            /* can't use pow (busts the available memory at this point), so we unroll ... */
             auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
             auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
             auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
@@ -598,7 +611,11 @@ const char* const error[] = {
 };
 
 SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
+  #ifdef BUCHLA_4U
+  { 0, 0, 9, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
+  #else
   { 0, -3, 6, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
+  #endif
   { 0, 0, 11, "Semitone", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -3, 3, "Mod range oct", nullptr, settings::STORAGE_TYPE_U8 },
   { 0, 0, 30, "Mod rate (s)", nullptr, settings::STORAGE_TYPE_U8 },
