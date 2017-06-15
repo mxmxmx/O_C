@@ -163,7 +163,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
         if (FreqDivs[i] == POLYLFO_FREQ_MULT_NONE) {
             phase_[i] += phase_increment_ch1_;
         } else {
-            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
+           phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
         }  
     }
 
@@ -171,13 +171,12 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     if (freq_div_b_ == POLYLFO_FREQ_MULT_NONE && freq_div_c_ && POLYLFO_FREQ_MULT_NONE && freq_div_c_ == POLYLFO_FREQ_MULT_NONE && !sync_) {
       // original Frames behaviour
       if (spread_ >= 0) {
-        phase_[0] += FrequencyToPhaseIncrement(frequency, freq_range_);
         uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
         phase_[1] = phase_[0] + phase_difference;
         phase_[2] = phase_[1] + phase_difference;
         phase_[3] = phase_[2] + phase_difference;
       } else {
-        for (uint8_t i = 0; i < kNumChannels; ++i) {
+        for (uint8_t i = 1; i < kNumChannels; ++i) { 
           phase_[i] += FrequencyToPhaseIncrement(frequency, freq_range_);
           frequency -= 5040 * spread_ >> 15;
         }
