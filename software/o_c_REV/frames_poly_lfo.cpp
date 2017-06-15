@@ -168,7 +168,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     }
 
     // Advance phasors.
-    if (!(freq_div_b_ || freq_div_c_ || freq_div_c_ || sync_)) {
+    if (freq_div_b_ == POLYLFO_FREQ_MULT_NONE && freq_div_c_ && POLYLFO_FREQ_MULT_NONE && freq_div_c_ == POLYLFO_FREQ_MULT_NONE && !sync_) {
       // original Frames behaviour
       if (spread_ >= 0) {
         phase_[0] += FrequencyToPhaseIncrement(frequency, freq_range_);
@@ -183,7 +183,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
         }
       }
     } else {
-      // if frequency division is in use
+      // if frequency division or tap-tempo is in use
       if (spread_ > 10) {
         uint32_t phase_difference = static_cast<uint32_t>(spread_ - 10) << 2;
         phase_[1] = phase_[1] + phase_difference;
