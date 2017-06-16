@@ -104,8 +104,8 @@ enum EnvelopeType {
   ENV_TYPE_ADL2,
   ENV_TYPE_ADRL3,
   ENV_TYPE_ADL2R,
+  ENV_TYPE_ADAL2R,
   ENV_TYPE_ADARL4,
-  ENV_TYPE_ADARL2,
   ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
 
@@ -308,7 +308,7 @@ public:
       case ENV_TYPE_ADRL3:
       case ENV_TYPE_ADL2R:
       case ENV_TYPE_ADARL4:
-      case ENV_TYPE_ADARL2:
+      case ENV_TYPE_ADAL2R:
         return 4;
       default: break;
     }
@@ -453,7 +453,7 @@ public:
       case ENV_TYPE_ADRL3: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 3); break;
       case ENV_TYPE_ADL2R: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 2); break;
       case ENV_TYPE_ADARL4: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 4); break;
-      case ENV_TYPE_ADARL2: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 2, 4); break;
+      case ENV_TYPE_ADAL2R: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 1, 3); break; // was 2, 4
       default:
       break;
     }
@@ -679,7 +679,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const envelope_types[ENV_TYPE_LAST] = {
-  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "ADL2", "ADRL3", "ADL2R", "ADARL4", "ADARL2"
+  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "ADL2", "ADRL3", "ADL2R", "ADAL2R", "ADARL4"
 };
 
 const char* const segment_names[] = {
@@ -735,7 +735,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 1, 0, 32, "Fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "Offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
   { 1, 1, 255, "Eucl reset div", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
