@@ -101,9 +101,11 @@ enum EnvelopeType {
   ENV_TYPE_AR,
   ENV_TYPE_ADSAR,
   ENV_TYPE_ADAR,
-  ENV_TYPE_AD_LOOP,
-  ENV_TYPE_ADR_LOOP,
-  ENV_TYPE_ADAR_LOOP,
+  ENV_TYPE_ADL2,
+  ENV_TYPE_ADRL3,
+  ENV_TYPE_ADL2R,
+  ENV_TYPE_ADARL4,
+  ENV_TYPE_ADARL2,
   ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
 
@@ -139,7 +141,7 @@ public:
   static constexpr int kEuclideanParams = 3;
   static constexpr int kDelayParams = 1;
   static constexpr int kAmplitudeParams = 2; // incremented to 2 to cover the MAX_LOOPS parameter
-  static constexpr size_t kMaxDelayedTriggers = 32;
+  static constexpr size_t kMaxDelayedTriggers = 24; 
 
   struct DelayedTrigger {
     uint32_t delay;
@@ -297,14 +299,16 @@ public:
     switch (get_type()) {
       case ENV_TYPE_AD:
       case ENV_TYPE_AR:
-      case ENV_TYPE_AD_LOOP:
+      case ENV_TYPE_ADL2:
         return 2;
       case ENV_TYPE_ADR:
       case ENV_TYPE_ADSR:
       case ENV_TYPE_ADSAR:
       case ENV_TYPE_ADAR:
-      case ENV_TYPE_ADR_LOOP:
-      case ENV_TYPE_ADAR_LOOP:
+      case ENV_TYPE_ADRL3:
+      case ENV_TYPE_ADL2R:
+      case ENV_TYPE_ADARL4:
+      case ENV_TYPE_ADARL2:
         return 4;
       default: break;
     }
@@ -439,15 +443,17 @@ public:
 
     EnvelopeType type = get_type();
     switch (type) {
-      case ENV_TYPE_AD: env_.set_ad(s[0], s[1]); break;
+      case ENV_TYPE_AD: env_.set_ad(s[0], s[1], 0, 0); break;
       case ENV_TYPE_ADSR: env_.set_adsr(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADR: env_.set_adr(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADR: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 0 ); break;
       case ENV_TYPE_AR: env_.set_ar(s[0], s[1]); break;
       case ENV_TYPE_ADSAR: env_.set_adsar(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADAR: env_.set_adar(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_AD_LOOP: env_.set_ad_loop(s[0], s[1]); break;
-      case ENV_TYPE_ADR_LOOP: env_.set_adr_loop(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADAR_LOOP: env_.set_adar_loop(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADAR: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 0); break;
+      case ENV_TYPE_ADL2: env_.set_ad(s[0], s[1], 0, 2); break;
+      case ENV_TYPE_ADRL3: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 3); break;
+      case ENV_TYPE_ADL2R: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 2); break;
+      case ENV_TYPE_ADARL4: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 4); break;
+      case ENV_TYPE_ADARL2: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 2, 4); break;
       default:
       break;
     }
@@ -673,7 +679,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const envelope_types[ENV_TYPE_LAST] = {
-  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "AD loop", "ADR loop", "ADAR loop"
+  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "ADL2", "ADRL3", "ADL2R", "ADARL4", "ADARL2"
 };
 
 const char* const segment_names[] = {
