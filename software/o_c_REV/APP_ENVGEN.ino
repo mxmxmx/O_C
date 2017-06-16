@@ -367,8 +367,8 @@ public:
     if (get_euclidean_length()) {
       //*settings++ = ENV_SETTING_EUCLIDEAN_FILL;
       *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
-      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
-      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
+      // *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
+      // *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
     }
 
     *settings++ = ENV_SETTING_ATTACK_SHAPE;
