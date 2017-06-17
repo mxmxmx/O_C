@@ -367,8 +367,8 @@ public:
     if (get_euclidean_length()) {
       //*settings++ = ENV_SETTING_EUCLIDEAN_FILL;
       *settings++ = ENV_SETTING_EUCLIDEAN_OFFSET;
-      // *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
-      // *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
+      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_INPUT;
+      *settings++ = ENV_SETTING_EUCLIDEAN_RESET_CLOCK_DIV;
     }
 
     *settings++ = ENV_SETTING_ATTACK_SHAPE;
@@ -508,10 +508,12 @@ public:
     // Process Euclidean pattern reset
     uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
     if (euclidean_reset_trigger_input) {
-      if (triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) ++euclidean_reset_counter_;
-      if (euclidean_reset_counter_ % get_euclidean_reset_clock_div() == 0) {
-        euclidean_counter_ = 0;
-        euclidean_reset_counter_= 0;
+      if (triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) {
+        ++euclidean_reset_counter_;
+        if (euclidean_reset_counter_ % get_euclidean_reset_clock_div() == 0) {
+          euclidean_counter_ = 0;
+          euclidean_reset_counter_= 0;
+        }
       }
     }
 
