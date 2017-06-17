@@ -560,7 +560,7 @@ public:
     if (!is_inverted()) 
       value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
     else
-      value = OC::DAC::MAX_VALUE - (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
+      value = OC::DAC::get_zero_offset(dac_channel) + 32767 - env_.ProcessSingleSample(gate_state);
 
       OC::DAC::set<dac_channel>(value);   
   }
