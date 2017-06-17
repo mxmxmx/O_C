@@ -508,7 +508,7 @@ public:
     // Process Euclidean pattern reset
     uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
     if (euclidean_reset_trigger_input) {
-      if (DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) ++euclidean_reset_counter_;
+      if (triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) ++euclidean_reset_counter_;
       if (euclidean_reset_counter_ % get_euclidean_reset_clock_div() == 0) {
         euclidean_counter_ = 0;
         euclidean_reset_counter_= 0;
