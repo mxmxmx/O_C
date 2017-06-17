@@ -510,7 +510,7 @@ public:
     if (euclidean_reset_trigger_input) {
       if (triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) {
         ++euclidean_reset_counter_;
-        if (euclidean_reset_counter_ % get_euclidean_reset_clock_div() == 0) {
+        if (euclidean_reset_counter_ >= get_euclidean_reset_clock_div()) {
           euclidean_counter_ = 0;
           euclidean_reset_counter_= 0;
         }
@@ -737,7 +737,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 1, 0, 32, "Fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "Offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 4, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U8 },
   { 1, 1, 255, "Eucl reset div", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
