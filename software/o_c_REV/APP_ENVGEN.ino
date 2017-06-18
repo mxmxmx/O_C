@@ -85,6 +85,7 @@ enum CVMapping {
   CV_MAPPING_SEG2,
   CV_MAPPING_SEG3,
   CV_MAPPING_SEG4,
+  CV_MAPPING_ADR,
   CV_MAPPING_EUCLIDEAN_LENGTH,
   CV_MAPPING_EUCLIDEAN_FILL,
   CV_MAPPING_EUCLIDEAN_OFFSET,
@@ -323,6 +324,11 @@ public:
       case CV_MAPPING_SEG3:
       case CV_MAPPING_SEG4:
         segments[mapping - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        break;
+      case CV_MAPPING_ADR:
+        segments[CV_MAPPING_SEG1 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG2 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG4 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
         break;
       case CV_MAPPING_EUCLIDEAN_LENGTH:
       case CV_MAPPING_EUCLIDEAN_FILL:
@@ -693,7 +699,7 @@ const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay", "Ampl", "Loops"
+  "None", "Att", "Dec", "Sus", "Rel", "ADR", "Eleng", "Efill", "Eoffs", "Delay", "Ampl", "Loops"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
