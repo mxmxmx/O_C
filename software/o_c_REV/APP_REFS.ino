@@ -639,10 +639,6 @@ public:
     freq_sum_ = 0;
     freq_count_ = 0;
     frequency_ = 0;
-    freq_decicents_deviation_ = 0;
-    freq_octave_ = 0;
-    freq_note_ = 0;
-    freq_decicents_residual_ = 0;
     autotuner.Init();
   }
 
@@ -669,10 +665,6 @@ public:
         freq_sum_ = 0;
         freq_count_ = 0;
         milliseconds_since_last_freq_ = 0;
-        freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / get_C0_freq())) + 500;
-        freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
-        freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
-        freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
        }
      } else if (milliseconds_since_last_freq_ > 100000) {
       frequency_ = 0.0f;
@@ -746,31 +738,11 @@ public:
           return(static_cast<float>(channels_[DAC_CHANNEL_D].get_a_above_mid_c() * kAaboveMidCtoC0));
   }
 
-  float get_cents_deviation( ) {
-    return(static_cast<float>(freq_decicents_deviation_) / 10.0) ;
-  }
-  
-  float get_cents_residual( ) {
-    return(static_cast<float>(freq_decicents_residual_) / 10.0) ;
-  }
-  
-  int8_t get_octave( ) {
-    return(freq_octave_) ;
-  }
-  
-  int8_t get_note( ) {
-    return(freq_note_) ;
-  }
-
 private:
   double freq_sum_;
   uint32_t freq_count_;
   float frequency_ ;
   elapsedMillis milliseconds_since_last_freq_;
-  int32_t freq_decicents_deviation_;
-  int8_t freq_octave_ ;
-  int8_t freq_note_;
-  int32_t freq_decicents_residual_;
 };
 
 ReferencesApp references_app;
@@ -954,13 +926,23 @@ void REFS_screensaver() {
   references_app.channels_[2].RenderScreensaver(64, 2);
   references_app.channels_[3].RenderScreensaver(96, 3);
   graphics.setPrintPos(2, 44);
-  if (references_app.get_frequency() > 0.0) {
-    graphics.printf("TR4 %7.3f Hz", references_app.get_frequency()) ;
+
+  float frequency_ = references_app.get_frequency() ;
+  float c0_freq_ = references_app.get_C0_freq() ;
+  float bpm_ = (60.0 * frequency_)/references_app.get_ppqn() ;
+
+  int32_t freq_decicents_deviation_ = round(12000.0 * log2f(frequency_ / c0_freq_)) + 500;
+  int8_t freq_octave_ = -2 + ((freq_decicents_deviation_)/ 12000) ;
+  int8_t freq_note_ = (freq_decicents_deviation_ - ((freq_octave_ + 2) * 12000)) / 1000;
+  int32_t freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
+
+  if (frequency_ > 0.0) {
+    graphics.printf("TR4 %7.3f Hz", frequency_) ;
     graphics.setPrintPos(2, 56);
     if (references_app.get_notes_or_bpm()) {
-      graphics.printf("%7.2f bpm %2.0fppqn", references_app.get_bpm(), references_app.get_ppqn());
-    } else if(references_app.get_frequency() >= references_app.get_C0_freq()) {
-      graphics.printf("%+i %s %+7.1fc", references_app.get_octave(), OC::Strings::note_names[references_app.get_note()], references_app.get_cents_residual()) ;
+      graphics.printf("%7.2f bpm %2.0fppqn", bpm_, references_app.get_ppqn());
+    } else if(frequency_ >= c0_freq_) {
+      graphics.printf("%+i %s %+7.1fc", freq_octave_, OC::Strings::note_names[freq_note_], freq_decicents_residual_ / 10.0) ;
     }
   } else {
     graphics.print("TR4 no input") ;
