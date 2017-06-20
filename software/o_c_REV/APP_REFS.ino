@@ -30,11 +30,48 @@
 #include "OC_autotuner.h"
 #include "src/drivers/FreqMeasure/OC_FreqMeasure.h"
 
-static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
+// autotune constants:
 #define FREQ_MEASURE_TIMEOUT 512
 #define ERROR_TIMEOUT (FREQ_MEASURE_TIMEOUT << 0x4)
 #define MAX_NUM_PASSES 1500
 #define CONVERGE_PASSES 5
+// 
+static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
+
+// 
+#ifdef BUCHLA_4U
+  const float target_multipliers[OCTAVES] = { 1.0f, 2.0f, 4.0f, 8.0f, 16.0f, 32.0f, 64.0f, 128.0f, 256.0f, 512.0f };
+#else
+  const float target_multipliers[OCTAVES] = { 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f, 8.0f, 16.0f, 32.0f, 64.0f };
+#endif
+
+#ifdef BUCHLA_SUPPORT
+  const float target_multipliers_1V2[OCTAVES] = {
+    0.1767766952966368931843f,
+    0.3149802624737182976666f,
+    0.5612310241546865086093f,
+    1.0f,
+    1.7817974362806785482150f,
+    3.1748021039363991668836f,
+    5.6568542494923805818985f,
+    10.0793683991589855253324f,
+    17.9593927729499718282113f,
+    32.0f
+  };
+
+  const float target_multipliers_2V0[OCTAVES] = {
+    0.3535533905932737863687f,
+    0.5f,
+    0.7071067811865475727373f,
+    1.0f,
+    1.4142135623730951454746f,
+    2.0f,
+    2.8284271247461902909492f,
+    4.0f,
+    5.6568542494923805818985f,
+    8.0f
+  };
+#endif
 
 const uint8_t NUM_REF_CHANNELS = DAC_CHANNEL_LAST;
 
@@ -66,22 +103,6 @@ enum ChannelPpqn {
   CHANNEL_PPQN_LAST
 };
 
-enum AUTO_CALIBRATION_STEP {
-  DAC_VOLT_0_ARM,
-  DAC_VOLT_0_BASELINE,
-  DAC_VOLT_3m, 
-  DAC_VOLT_2m, 
-  DAC_VOLT_1m, 
-  DAC_VOLT_0, 
-  DAC_VOLT_1, 
-  DAC_VOLT_2, 
-  DAC_VOLT_3, 
-  DAC_VOLT_4, 
-  DAC_VOLT_5, 
-  DAC_VOLT_6,
-  AUTO_CALIBRATION_STEP_LAST
-};
-
 class ReferenceChannel : public settings::SettingsBase<ReferenceChannel, REF_SETTING_LAST> {
 public:
 
@@ -94,7 +115,7 @@ public:
     mod_offset_ = 0;
     last_pitch_ = 0;
     autotuner_ = false;
-    autotuner_step_ = DAC_VOLT_0_ARM;
+    autotuner_step_ = OC::DAC_VOLT_0_ARM;
     dac_channel_ = dac_channel;
     auto_DAC_offset_error_ = 0;
     auto_frequency_ = 0;
@@ -181,8 +202,8 @@ public:
   }
   
   void autotuner_run() {     
-    autotuner_step_ = autotuner_ ? DAC_VOLT_0_BASELINE : DAC_VOLT_0_ARM;
-    if (autotuner_step_ == DAC_VOLT_0_BASELINE)
+    autotuner_step_ = autotuner_ ? OC::DAC_VOLT_0_BASELINE : OC::DAC_VOLT_0_ARM;
+    if (autotuner_step_ == OC::DAC_VOLT_0_BASELINE)
     // we start, so reset data to defaults:
       OC::DAC::set_default_channel_calibration_data(dac_channel_);
   }
@@ -281,10 +302,10 @@ public:
 
     switch(autotuner_step_) {
 
-      case DAC_VOLT_0_ARM:
+      case OC::DAC_VOLT_0_ARM:
       // do nothing
       break;
-      case DAC_VOLT_0_BASELINE:
+      case OC::DAC_VOLT_0_BASELINE:
       // 0V baseline / calibration point: in this case, we don't correct.
       {
         bool _update = auto_frequency();
@@ -297,101 +318,60 @@ public:
           history_->Read(history);
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
-          // ... and derive target frequencies
-          float target_frequency = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V
-
-          #ifdef BUCHLA_SUPPORT
-          switch(OC::DAC::get_voltage_scaling(dac_channel_)) {
-
-              case VOLTAGE_SCALING_1_2V_PER_OCT: // 1.2V/octave
-                auto_target_frequencies_[0]  =  target_frequency * 0.1767766952966368931843f;  // -3V = 2**(-3.0/1.2)
-                auto_target_frequencies_[1]  =  target_frequency * 0.3149802624737182976666f;  // -2V = 2**(-2.0/1.2)
-                auto_target_frequencies_[2]  =  target_frequency * 0.5612310241546865086093f;  // -1V = 2**(-1.0/1.2)
-                auto_target_frequencies_[3]  =  target_frequency * 1.0f;                       // 0V = 2**(0.0/1.2)
-                auto_target_frequencies_[4]  =  target_frequency * 1.7817974362806785482150f;  // +1V = 2**(1.0/1.2)
-                auto_target_frequencies_[5]  =  target_frequency * 3.1748021039363991668836f;  // +2V = 2**(2.0/1.2)
-                auto_target_frequencies_[6]  =  target_frequency * 5.6568542494923805818985f;  // +3V = 2**(3.0/1.2)
-                auto_target_frequencies_[7]  =  target_frequency * 10.0793683991589855253324f; // +4V = 2**(4.0/1.2)
-                auto_target_frequencies_[8]  =  target_frequency * 17.9593927729499718282113f; // +5V = 2**(5.0/1.2)
-                auto_target_frequencies_[9]  =  target_frequency * 32.0f;                      // +6V = 2**(6.0/1.2)
-              break;
-              case VOLTAGE_SCALING_2V_PER_OCT: // 2V/octave
-                auto_target_frequencies_[0]  =  target_frequency * 0.3535533905932737863687f;  // -3V - 2**(-3.0/2.0)
-                auto_target_frequencies_[1]  =  target_frequency * 0.5f;                       // -2V = 2**(-2.0/2.0)
-                auto_target_frequencies_[2]  =  target_frequency * 0.7071067811865475727373f;  // -1V = 2**(-1.0/2.0)
-                auto_target_frequencies_[3]  =  target_frequency * 1.0f;                       // 0V  = 2**(0.0/2.0)
-                auto_target_frequencies_[4]  =  target_frequency * 1.4142135623730951454746f;  // +1V = 2**(1.0/2.0)
-                auto_target_frequencies_[5]  =  target_frequency * 2.0f;                       // +2V = 2**(2.0/2.0)
-                auto_target_frequencies_[6]  =  target_frequency * 2.8284271247461902909492f;  // +3V = 2**(3.0/2.0)
-                auto_target_frequencies_[7]  =  target_frequency * 4.0f;                       // +4V = 2**(4.0/2.0)
-                auto_target_frequencies_[8]  =  target_frequency * 5.6568542494923805818985f;  // +5V = 2**(5.0/2.0)
-                auto_target_frequencies_[9]  =  target_frequency * 8.0f;                       // +6V = 2**(6.0/2.0)
-              break;
-              case VOLTAGE_SCALING_1V_PER_OCT: // 1V/octave
-              default:
-                auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
-                auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
-                auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
-                auto_target_frequencies_[3]  =  target_frequency * 1.0f;    // 0V
-                auto_target_frequencies_[4]  =  target_frequency * 2.0f;    // +1V 
-                auto_target_frequencies_[5]  =  target_frequency * 4.0f;    // +2V 
-                auto_target_frequencies_[6]  =  target_frequency * 8.0f;    // +3V 
-                auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
-                auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
-                auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-              break;
-          }
-          #elif defined(BUCHLA_4U)
-            /* can't use pow (busts the available memory at this point), so we unroll ... */
-            auto_target_frequencies_[0]  =  target_frequency * 1.0f;    // 0V
-            auto_target_frequencies_[1]  =  target_frequency * 2.0f;    // +1.2V 
-            auto_target_frequencies_[2]  =  target_frequency * 4.0f;    // +2.4V 
-            auto_target_frequencies_[3]  =  target_frequency * 8.0f;    // +3.6V 
-            auto_target_frequencies_[4]  =  target_frequency * 16.0f;   // +4.8V 
-            auto_target_frequencies_[5]  =  target_frequency * 32.0f;   // +6.0V 
-            auto_target_frequencies_[6]  =  target_frequency * 64.0f;   // +7.2V 
-            auto_target_frequencies_[7]  =  target_frequency * 128.0f;  // +8.4V
-            auto_target_frequencies_[8]  =  target_frequency * 256.0f;  // +9.6V
-            auto_target_frequencies_[9]  =  target_frequency * 512.0f;  // +10.8V
-          #else
-            /* can't use pow (busts the available memory at this point), so we unroll ... */
-            auto_target_frequencies_[0]  =  target_frequency * 0.125f;  // -3V
-            auto_target_frequencies_[1]  =  target_frequency * 0.25f;   // -2V 
-            auto_target_frequencies_[2]  =  target_frequency * 0.5f;    // -1V 
-            auto_target_frequencies_[3]  =  target_frequency * 1.0f;    // 0V
-            auto_target_frequencies_[4]  =  target_frequency * 2.0f;    // +1V 
-            auto_target_frequencies_[5]  =  target_frequency * 4.0f;    // +2V 
-            auto_target_frequencies_[6]  =  target_frequency * 8.0f;    // +3V 
-            auto_target_frequencies_[7]  =  target_frequency * 16.0f;   // +4V 
-            auto_target_frequencies_[8]  =  target_frequency * 32.0f;   // +5V 
-            auto_target_frequencies_[9]  =  target_frequency * 64.0f;   // +6V 
-          #endif
-          
+          // ... and derive target frequency at 0V
+          auto_frequency_ = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V 
           // reset step, and proceed:
           auto_reset_step();
-          autotuner_step_++; 
+          autotuner_step_++;
         }
         else if (_update) 
           auto_num_passes_++;
       }
       break;
-      case DAC_VOLT_3m:
-      case DAC_VOLT_2m:
-      case DAC_VOLT_1m: 
-      case DAC_VOLT_0:
-      case DAC_VOLT_1:
-      case DAC_VOLT_2:
-      case DAC_VOLT_3:
-      case DAC_VOLT_4:
-      case DAC_VOLT_5:
-      case DAC_VOLT_6:
+      case OC::DAC_VOLT_TARGET_FREQUENCIES: 
+      {
+        #ifdef BUCHLA_SUPPORT
+        
+          switch(OC::DAC::get_voltage_scaling(dac_channel_)) {
+            
+            case VOLTAGE_SCALING_1_2V_PER_OCT: // 1.2V/octave
+            auto_target_frequencies_[octaves_cnt_]  =  auto_frequency_ * target_multipliers_1V2[octaves_cnt_];
+            break;
+            case VOLTAGE_SCALING_2V_PER_OCT: // 2V/octave
+            auto_target_frequencies_[octaves_cnt_]  =  auto_frequency_ * target_multipliers_2V0[octaves_cnt_];
+            break;
+            default: // 1V/octave
+            auto_target_frequencies_[octaves_cnt_]  =  auto_frequency_ * target_multipliers[octaves_cnt_]; 
+            break;
+          }
+        #else
+          auto_target_frequencies_[octaves_cnt_]  =  auto_frequency_ * target_multipliers[octaves_cnt_]; 
+        #endif
+        octaves_cnt_++;
+        // go to next step, if done:
+        if (octaves_cnt_ >= OCTAVES) {
+          octaves_cnt_ = 0x0;
+          autotuner_step_++;
+        }
+      }
+      break;
+      case OC::DAC_VOLT_3m:
+      case OC::DAC_VOLT_2m:
+      case OC::DAC_VOLT_1m: 
+      case OC::DAC_VOLT_0:
+      case OC::DAC_VOLT_1:
+      case OC::DAC_VOLT_2:
+      case OC::DAC_VOLT_3:
+      case OC::DAC_VOLT_4:
+      case OC::DAC_VOLT_5:
+      case OC::DAC_VOLT_6:
       { 
         bool _update = auto_frequency();
         
         if (_update && (auto_num_passes_ > MAX_NUM_PASSES)) {  
           /* target frequency reached */
           
-          if ((autotuner_step_ > DAC_VOLT_2m) && (auto_last_frequency_ * 1.25f > auto_frequency_))
+          if ((autotuner_step_ > OC::DAC_VOLT_2m) && (auto_last_frequency_ * 1.25f > auto_frequency_))
               auto_error_ = true; // throw error, if things don't seem to double ...
           // average:
           float history[kHistoryDepth]; 
@@ -402,7 +382,7 @@ public:
           // store last frequency:
            auto_last_frequency_  = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1));
           // and DAC correction value:
-          auto_calibration_data_[autotuner_step_ - DAC_VOLT_3m] = auto_DAC_offset_error_;
+          auto_calibration_data_[autotuner_step_ - OC::DAC_VOLT_3m] = auto_DAC_offset_error_;
           // and reset step:
           auto_reset_step();
           autotuner_step_++; 
@@ -413,7 +393,7 @@ public:
           // count passes
           auto_num_passes_++;
           // and correct frequency
-          if (auto_target_frequencies_[autotuner_step_ - DAC_VOLT_3m] > auto_frequency_) {
+          if (auto_target_frequencies_[autotuner_step_ - OC::DAC_VOLT_3m] > auto_frequency_) {
             // update correction factor?
             if (!correction_direction_)
               F_correction_factor_ = (F_correction_factor_ >> 1) | 1u;
@@ -424,7 +404,7 @@ public:
             if (F_correction_factor_ == 0x1)
               correction_cnt_positive_++;
           }
-          else if (auto_target_frequencies_[autotuner_step_ - DAC_VOLT_3m] < auto_frequency_) {
+          else if (auto_target_frequencies_[autotuner_step_ - OC::DAC_VOLT_3m] < auto_frequency_) {
             // update correction factor?
             if (correction_direction_)
               F_correction_factor_ = (F_correction_factor_ >> 1) | 1u;
@@ -442,7 +422,7 @@ public:
         }
       }
       break;
-      case AUTO_CALIBRATION_STEP_LAST:
+      case OC::AUTO_CALIBRATION_STEP_LAST:
       // step through the octaves:
       if (ticks_since_last_freq_ > 2000) {
         int32_t new_auto_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][octaves_cnt_] + auto_calibration_data_[octaves_cnt_];
@@ -467,7 +447,7 @@ public:
       }
       break;
       default:
-      autotuner_step_ = DAC_VOLT_0_ARM;
+      autotuner_step_ = OC::DAC_VOLT_0_ARM;
       autotuner_ = 0x0;
       break;
     }
@@ -477,24 +457,25 @@ public:
 
     switch(autotuner_step_) {
 
-      case DAC_VOLT_0_ARM: 
+      case OC::DAC_VOLT_0_ARM: 
       {
         F_correction_factor_ = 0x1; // don't go so fast
         auto_frequency();
         OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
       }
       break;
-      case DAC_VOLT_0_BASELINE:
+      case OC::DAC_VOLT_0_BASELINE:
       // set DAC to 0.000V, default calibration:
       OC::DAC::set(dac_channel_, OC::calibration_data.dac.calibrated_octaves[dac_channel_][OC::DAC::kOctaveZero]);
       break;
-      case AUTO_CALIBRATION_STEP_LAST:
+      case OC::DAC_VOLT_TARGET_FREQUENCIES:
+      case OC::AUTO_CALIBRATION_STEP_LAST:
       // do nothing
       break;
       default: 
       // set DAC to calibration point + error
       {
-        int32_t _default_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][autotuner_step_ - DAC_VOLT_3m]; // substract first two steps
+        int32_t _default_calibration_point = OC::calibration_data.dac.calibrated_octaves[dac_channel_][autotuner_step_ - OC::DAC_VOLT_3m];
         OC::DAC::set(dac_channel_, _default_calibration_point + auto_DAC_offset_error_);
       }
       break;
