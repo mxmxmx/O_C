@@ -85,6 +85,7 @@ enum CVMapping {
   CV_MAPPING_SEG2,
   CV_MAPPING_SEG3,
   CV_MAPPING_SEG4,
+  CV_MAPPING_ADR,
   CV_MAPPING_EUCLIDEAN_LENGTH,
   CV_MAPPING_EUCLIDEAN_FILL,
   CV_MAPPING_EUCLIDEAN_OFFSET,
@@ -101,9 +102,11 @@ enum EnvelopeType {
   ENV_TYPE_AR,
   ENV_TYPE_ADSAR,
   ENV_TYPE_ADAR,
-  ENV_TYPE_AD_LOOP,
-  ENV_TYPE_ADR_LOOP,
-  ENV_TYPE_ADAR_LOOP,
+  ENV_TYPE_ADL2,
+  ENV_TYPE_ADRL3,
+  ENV_TYPE_ADL2R,
+  ENV_TYPE_ADAL2R,
+  ENV_TYPE_ADARL4,
   ENV_TYPE_LAST, ENV_TYPE_FIRST = ENV_TYPE_AD
 };
 
@@ -139,7 +142,7 @@ public:
   static constexpr int kEuclideanParams = 3;
   static constexpr int kDelayParams = 1;
   static constexpr int kAmplitudeParams = 2; // incremented to 2 to cover the MAX_LOOPS parameter
-  static constexpr size_t kMaxDelayedTriggers = 32;
+  static constexpr size_t kMaxDelayedTriggers = 24; 
 
   struct DelayedTrigger {
     uint32_t delay;
@@ -297,14 +300,16 @@ public:
     switch (get_type()) {
       case ENV_TYPE_AD:
       case ENV_TYPE_AR:
-      case ENV_TYPE_AD_LOOP:
+      case ENV_TYPE_ADL2:
         return 2;
       case ENV_TYPE_ADR:
       case ENV_TYPE_ADSR:
       case ENV_TYPE_ADSAR:
       case ENV_TYPE_ADAR:
-      case ENV_TYPE_ADR_LOOP:
-      case ENV_TYPE_ADAR_LOOP:
+      case ENV_TYPE_ADRL3:
+      case ENV_TYPE_ADL2R:
+      case ENV_TYPE_ADARL4:
+      case ENV_TYPE_ADAL2R:
         return 4;
       default: break;
     }
@@ -319,6 +324,11 @@ public:
       case CV_MAPPING_SEG3:
       case CV_MAPPING_SEG4:
         segments[mapping - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        break;
+      case CV_MAPPING_ADR:
+        segments[CV_MAPPING_SEG1 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG2 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG4 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
         break;
       case CV_MAPPING_EUCLIDEAN_LENGTH:
       case CV_MAPPING_EUCLIDEAN_FILL:
@@ -439,15 +449,17 @@ public:
 
     EnvelopeType type = get_type();
     switch (type) {
-      case ENV_TYPE_AD: env_.set_ad(s[0], s[1]); break;
+      case ENV_TYPE_AD: env_.set_ad(s[0], s[1], 0, 0); break;
       case ENV_TYPE_ADSR: env_.set_adsr(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADR: env_.set_adr(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADR: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 0 ); break;
       case ENV_TYPE_AR: env_.set_ar(s[0], s[1]); break;
       case ENV_TYPE_ADSAR: env_.set_adsar(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADAR: env_.set_adar(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_AD_LOOP: env_.set_ad_loop(s[0], s[1]); break;
-      case ENV_TYPE_ADR_LOOP: env_.set_adr_loop(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADAR_LOOP: env_.set_adar_loop(s[0], s[1], s[2]>>1, s[3]); break;
+      case ENV_TYPE_ADAR: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 0); break;
+      case ENV_TYPE_ADL2: env_.set_ad(s[0], s[1], 0, 2); break;
+      case ENV_TYPE_ADRL3: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 3); break;
+      case ENV_TYPE_ADL2R: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 2); break;
+      case ENV_TYPE_ADARL4: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 4); break;
+      case ENV_TYPE_ADAL2R: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 1, 3); break; // was 2, 4
       default:
       break;
     }
@@ -502,14 +514,16 @@ public:
     // Process Euclidean pattern reset
     uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
     if (euclidean_reset_trigger_input) {
-      if (DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) ++euclidean_reset_counter_;
-      if (euclidean_reset_counter_ % get_euclidean_reset_clock_div() == 0) {
-        euclidean_counter_ = 0;
-        euclidean_reset_counter_= 0;
+      if (triggers & DIGITAL_INPUT_MASK(static_cast<OC::DigitalInput>(euclidean_reset_trigger_input - 1))) {
+        ++euclidean_reset_counter_;
+        if (euclidean_reset_counter_ >= get_euclidean_reset_clock_div()) {
+          euclidean_counter_ = 0;
+          euclidean_reset_counter_= 0;
+        }
       }
     }
 
-    if (get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
+    if (triggered && get_euclidean_length() && !EuclideanFilter(euclidean_length, euclidean_fill, euclidean_offset, euclidean_counter_)) {
       triggered = false;
     }
 
@@ -554,7 +568,7 @@ public:
     if (!is_inverted()) 
       value = OC::DAC::get_zero_offset(dac_channel) + env_.ProcessSingleSample(gate_state);
     else
-      value = OC::DAC::MAX_VALUE - (OC::DAC::get_zero_offset(dac_channel) >> 1) - env_.ProcessSingleSample(gate_state);
+      value = OC::DAC::get_zero_offset(dac_channel) + 32767 - env_.ProcessSingleSample(gate_state);
 
       OC::DAC::set<dac_channel>(value);   
   }
@@ -673,7 +687,7 @@ void EnvelopeGenerator::Init(OC::DigitalInput default_trigger) {
 }
 
 const char* const envelope_types[ENV_TYPE_LAST] = {
-  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "AD loop", "ADR loop", "ADAR loop"
+  "AD", "ADSR", "ADR", "ASR", "ADSAR", "ADAR", "ADL2", "ADRL3", "ADL2R", "ADAL2R", "ADARL4"
 };
 
 const char* const segment_names[] = {
@@ -685,7 +699,7 @@ const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
 };
 
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
-  "None", "Att", "Dec", "Sus", "Rel", "Eleng", "Efill", "Eoffs", "Delay", "Ampl", "Loops"
+  "None", "Att", "Dec", "Sus", "Rel", "ADR", "Eleng", "Efill", "Eoffs", "Delay", "Ampl", "Loops"
 };
 
 const char* const trigger_delay_modes[TRIGGER_DELAY_LAST] = {
@@ -729,7 +743,7 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { 0, 0, 31, "Eucl length", euclidean_lengths, settings::STORAGE_TYPE_U8 },
   { 1, 0, 32, "Fill", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 32, "Offset", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 5, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "Eucl reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U8 },
   { 1, 1, 255, "Eucl reset div", NULL, settings::STORAGE_TYPE_U8 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV1 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },
   { CV_MAPPING_NONE, CV_MAPPING_NONE, CV_MAPPING_LAST - 1, "CV2 -> ", cv_mapping_names, settings::STORAGE_TYPE_U4 },

@@ -6,11 +6,11 @@
 
 #ifdef BUCHLA_4U
 const char* const AT_steps[] = {
-  "0.0V", "0.0V", "0.0V", "1.2V", "2.4V", "3.6V", "4.8V", "6.0V", "7.2V", "8.4V", "9.6V", "10.8V", " " 
+  "0.0V", "1.2V", "2.4V", "3.6V", "4.8V", "6.0V", "7.2V", "8.4V", "9.6V", "10.8V", " " 
 };
 #else
 const char* const AT_steps[] = {
-  " 0V", " 0V", "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", " " 
+  "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", " " 
 };
 #endif
 
@@ -30,6 +30,23 @@ enum AT_STATUS {
    AT_ERROR,
    AT_DONE,
    AT_LAST,
+};
+
+enum AUTO_CALIBRATION_STEP {
+  DAC_VOLT_0_ARM,
+  DAC_VOLT_0_BASELINE,
+  DAC_VOLT_TARGET_FREQUENCIES,
+  DAC_VOLT_3m, 
+  DAC_VOLT_2m, 
+  DAC_VOLT_1m, 
+  DAC_VOLT_0, 
+  DAC_VOLT_1, 
+  DAC_VOLT_2, 
+  DAC_VOLT_3, 
+  DAC_VOLT_4, 
+  DAC_VOLT_5, 
+  DAC_VOLT_6,
+  AUTO_CALIBRATION_STEP_LAST
 };
 
 template <typename Owner>
@@ -145,10 +162,10 @@ private:
             for (int i = 0; i <= _octave; i++, x += 6)
               graphics.drawBitmap8(x + 18, y + 4, 4, OC::bitmap_indicator_4x8);
           }
-          else if (owner_->auto_tune_step() == 0x1) // this goes too quick, so ... 
+          else if (owner_->auto_tune_step() == DAC_VOLT_0_BASELINE || owner_->auto_tune_step() == DAC_VOLT_TARGET_FREQUENCIES) // this goes too quick, so ... 
             graphics.print(" 0.0V baseline");
           else {
-            graphics.print(AT_steps[owner_->auto_tune_step()]);
+            graphics.print(AT_steps[owner_->auto_tune_step() - DAC_VOLT_3m]);
             if (!owner_->_ready())
               graphics.print(" ");
             else 

@@ -84,7 +84,7 @@ class MultistageEnvelope {
 
   void Configure(uint16_t* parameter, ControlMode control_mode) {
     if (control_mode == CONTROL_MODE_HALF) {
-      set_ad(parameter[0], parameter[1]);
+      set_ad(parameter[0], parameter[1], 0, 0);
     } else {
       set_adsr(parameter[0], parameter[1], parameter[2] >> 1, parameter[3]);
     }
@@ -144,7 +144,7 @@ class MultistageEnvelope {
     loop_start_ = loop_end_ = 0;
   }
   
-  inline void set_ad(uint16_t attack, uint16_t decay) {
+  inline void set_ad(uint16_t attack, uint16_t decay, uint16_t loop_start, uint16_t loop_end) {
     num_segments_ = 2;
     sustain_point_ = 0;
     sustain_index_ = 0;
@@ -162,14 +162,17 @@ class MultistageEnvelope {
     time_multiplier_[0] = attack_multiplier_;
     time_multiplier_[1] = decay_multiplier_;
     
-    loop_start_ = loop_end_ = 0;
+    loop_start_ = loop_start;
+    loop_end_ = loop_end;
   }
-  
+
   inline void set_adr(
       uint16_t attack,
       uint16_t decay,
       uint16_t sustain,
-      uint16_t release) {
+      uint16_t release,
+      uint16_t loop_start,
+      uint16_t loop_end) {
     num_segments_ = 3;
     sustain_point_ = 0;
     sustain_index_ = 2;
@@ -191,9 +194,10 @@ class MultistageEnvelope {
     time_multiplier_[1] = decay_multiplier_;
     time_multiplier_[2] = release_multiplier_;
     
-    loop_start_ = loop_end_ = 0;
+    loop_start_ = loop_start ;
+    loop_end_ = loop_end ;
   }
-  
+
   inline void set_ar(uint16_t attack, uint16_t release) {
     num_segments_ = 2;
     sustain_point_ = 1;
@@ -252,7 +256,9 @@ class MultistageEnvelope {
       uint16_t attack,
       uint16_t decay,
       uint16_t sustain,
-      uint16_t release) {
+      uint16_t release,
+      uint16_t loop_start,
+      uint16_t loop_end) {
     num_segments_ = 4;
     sustain_point_ = 0;
     sustain_index_ = 2;
@@ -278,95 +284,10 @@ class MultistageEnvelope {
     time_multiplier_[2] = attack_multiplier_;
     time_multiplier_[3] = release_multiplier_;
    
-    loop_start_ = loop_end_ = 0;
+    loop_start_ = loop_start;
+    loop_end_ = loop_end;
   }
-  
-  inline void set_ad_loop(uint16_t attack, uint16_t decay) {
-    num_segments_ = 2;
-    sustain_point_ = 0;
-    sustain_index_ = 0;
-
-    level_[0] = 0;
-    level_[1] = 32767;
-    level_[2] = 0;
-
-    time_[0] = attack;
-    time_[1] = decay;
-    
-    shape_[0] = attack_shape_;
-    shape_[1] = decay_shape_;
-
-    time_multiplier_[0] = attack_multiplier_;
-    time_multiplier_[1] = decay_multiplier_;
-   
-    loop_start_ = 0;
-    loop_end_ = 2;
-  }
-  
-  inline void set_adr_loop(
-      uint16_t attack,
-      uint16_t decay,
-      uint16_t sustain,
-      uint16_t release) {
-    num_segments_ = 3;
-    sustain_point_ = 0;
-    sustain_index_ = 2;
-
-    level_[0] = 0;
-    level_[1] = 32767;
-    level_[2] = sustain;
-    level_[3] = 0;
-
-    time_[0] = attack;
-    time_[1] = decay;
-    time_[2] = release;
-    
-    shape_[0] = attack_shape_;
-    shape_[1] = decay_shape_;
-    shape_[2] = release_shape_;
-
-    time_multiplier_[0] = attack_multiplier_;
-    time_multiplier_[1] = decay_multiplier_;
-    time_multiplier_[2] = release_multiplier_;
-
-    loop_start_ = 0;
-    loop_end_ = 3;
-  }
-  
-  inline void set_adar_loop(
-      uint16_t attack,
-      uint16_t decay,
-      uint16_t sustain,
-      uint16_t release) {
-    num_segments_ = 4;
-    sustain_point_ = 0;
-    sustain_index_ = 2;
-
-    level_[0] = 0;
-    level_[1] = 32767;
-    level_[2] = sustain;
-    level_[3] = 32767;
-    level_[4] = 0;
-
-    time_[0] = attack;
-    time_[1] = decay;
-    time_[2] = attack;
-    time_[3] = release;
-
-    shape_[0] = attack_shape_;
-    shape_[1] = decay_shape_;
-    shape_[2] = attack_shape_;
-    shape_[3] = release_shape_;
-
-    time_multiplier_[0] = attack_multiplier_;
-    time_multiplier_[1] = decay_multiplier_;
-    time_multiplier_[2] = attack_multiplier_;
-    time_multiplier_[3] = release_multiplier_;
-
-    loop_start_ = 0;
-    loop_end_ = 4;
-  }
-  
+        
   inline void set_attack_reset_behaviour(EnvResetBehaviour reset_behaviour) {
     attack_reset_behaviour_ = reset_behaviour;
   }
