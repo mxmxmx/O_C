@@ -319,7 +319,7 @@ public:
           for (uint8_t i = 0; i < kHistoryDepth; i++)
             average += history[i];
           // ... and derive target frequency at 0V
-          auto_frequency_ = ((auto_frequency_ + average) / (float)(kHistoryDepth + 1)); // 0V 
+          auto_frequency_ = (uint32_t) (0.5f + ((auto_frequency_ + average) / (float)(kHistoryDepth + 1))); // 0V 
           // reset step, and proceed:
           auto_reset_step();
           autotuner_step_++;
