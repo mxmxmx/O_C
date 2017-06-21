@@ -157,8 +157,8 @@ SETTINGS_DECLARE(LorenzGenerator, LORENZ_SETTING_LAST) {
   #endif
   { 63, 4, 127, "Rho/c 1", NULL, settings::STORAGE_TYPE_U8 }, 
   { 63, 4, 127, "Rho/c 2", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 0, 0, 4, "LFreq 1 Rng", lorenz_freq_range_names, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "LFreq 2 Rng", lorenz_freq_range_names, settings::STORAGE_TYPE_U4 },
+  { 2, 0, 4, "LFreq 1 Rng", lorenz_freq_range_names, settings::STORAGE_TYPE_U4 },
+  { 2, 0, 4, "LFreq 2 Rng", lorenz_freq_range_names, settings::STORAGE_TYPE_U4 },
   {streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out A ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {streams::LORENZ_OUTPUT_Y1, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out B ", lorenz_output_names, settings::STORAGE_TYPE_U8},
   {streams::LORENZ_OUTPUT_X2, streams::LORENZ_OUTPUT_X1, streams::LORENZ_OUTPUT_LAST - 1, "Out C ", lorenz_output_names, settings::STORAGE_TYPE_U8},
