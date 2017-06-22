@@ -145,7 +145,7 @@ class PolyLfo {
   }
 
   inline void set_shape_spread(uint16_t shape_spread) {
-    shape_spread_ = static_cast<int16_t>(shape_spread - 32768) >> 1;
+    shape_spread_ = static_cast<int16_t>(shape_spread - 32767) >> 1;
   }
 
   inline void set_spread(uint16_t spread) {
@@ -221,6 +221,10 @@ class PolyLfo {
     }
   }
 
+  inline void set_phase_reset_flag(bool reset) {
+    phase_reset_flag_ = reset;
+  }
+
   inline void set_sync(bool sync) {
     sync_ = sync;
   }
@@ -280,8 +284,9 @@ class PolyLfo {
   stmlib::PatternPredictor<32, 8> pattern_predictor_;
   uint32_t period_;
   uint32_t sync_phase_increment_;
-
-
+  uint32_t phase_difference_ ;
+  uint32_t last_phase_difference_ ;
+  
   DISALLOW_COPY_AND_ASSIGN(PolyLfo);
 };
 

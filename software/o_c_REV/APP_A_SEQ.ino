@@ -2101,7 +2101,8 @@ void SEQ_downButtonLong() {
   else { // toggle update behaviour:
     seq_channel[0x0].toggle_EoS();
     seq_channel[0x1].toggle_EoS();
-} }
+  }
+}
 
 void SEQ_menu() {
 
