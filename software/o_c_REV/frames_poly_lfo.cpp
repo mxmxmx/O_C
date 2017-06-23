@@ -58,6 +58,8 @@ void PolyLfo::Init() {
   std::fill(&value_[0], &value_[kNumChannels], 0);
   std::fill(&wt_value_[0], &wt_value_[kNumChannels], 0);
   std::fill(&phase_[0], &phase_[kNumChannels], 0);
+  last_phase_difference_ = 0;
+  last_phase_difference_ = 0;
 }
 
 /* static */
@@ -168,28 +170,31 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     }
 
     // Advance phasors.
-    if (freq_div_b_ == POLYLFO_FREQ_MULT_NONE && freq_div_c_ && POLYLFO_FREQ_MULT_NONE && freq_div_c_ == POLYLFO_FREQ_MULT_NONE && !sync_) {
-      // original Frames behaviour
-      if (spread_ >= 0) {
-        uint32_t phase_difference = static_cast<uint32_t>(spread_) << 15;
-        phase_[1] = phase_[0] + phase_difference;
-        phase_[2] = phase_[1] + phase_difference;
-        phase_[3] = phase_[2] + phase_difference;
+    if (spread_ >= 0) {
+      phase_difference_ = static_cast<uint32_t>(spread_) << 15;
+      if (freq_div_b_ == POLYLFO_FREQ_MULT_NONE) {
+        phase_[1] = phase_[0] + phase_difference_;
       } else {
-        for (uint8_t i = 1; i < kNumChannels; ++i) { 
-          phase_[i] += FrequencyToPhaseIncrement(frequency, freq_range_);
-          frequency -= 5040 * spread_ >> 15;
-        }
+        phase_[1] = phase_[1] - last_phase_difference_ + phase_difference_;
+      }
+      if (freq_div_c_ == POLYLFO_FREQ_MULT_NONE) {
+        phase_[2] = phase_[0] + (2 * phase_difference_);
+      } else {
+        phase_[2] = phase_[2] - last_phase_difference_  + phase_difference_;
+      }
+      if (freq_div_d_ == POLYLFO_FREQ_MULT_NONE) {
+        phase_[3] = phase_[0] + (3 * phase_difference_);
+      } else {
+        phase_[3] = phase_[3] - last_phase_difference_  + phase_difference_;
       }
     } else {
-      // if frequency division or tap-tempo is in use
-      if (spread_ > 10) {
-        uint32_t phase_difference = static_cast<uint32_t>(spread_ - 10) << 2;
-        phase_[1] = phase_[1] + phase_difference;
-        phase_[2] = phase_[2] + phase_difference;
-        phase_[3] = phase_[3] + phase_difference;
+      for (uint8_t i = 1; i < kNumChannels; ++i) { 
+        // phase_[i] += FrequencyToPhaseIncrement(frequency, freq_range_);
+        phase_[i] -= i * (phase_increment_ch1_ >> 16) * spread_ ;
+        // frequency -= 5040 * spread_ >> 15;
       }
     }
+    last_phase_difference_ = phase_difference_;
   }
   
   const uint8_t* sine = &wt_lfo_waveforms[17 * 257];
