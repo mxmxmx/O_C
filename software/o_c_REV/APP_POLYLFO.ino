@@ -172,7 +172,7 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 1, "Tap tempo", OC::Strings::off_on, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Shape", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Shape spread", NULL, settings::STORAGE_TYPE_I8 },
-  { -1, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
+  { 0, -128, 127, "Phase/frq sprd", NULL, settings::STORAGE_TYPE_I8 },
   { 0, -128, 127, "Coupling", NULL, settings::STORAGE_TYPE_I8 },
   { 230, 0, 230, "Output range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, -128, 127, "Offset", NULL, settings::STORAGE_TYPE_I8 },
@@ -220,10 +220,10 @@ void FASTRUN POLYLFO_isr() {
   int32_t spread = SCALE8_16(poly_lfo.get_spread() + 128) + (poly_lfo.cv_spread.value() * 16);
   poly_lfo.lfo.set_spread(USAT16(spread));
 
-  int32_t coupling = SCALE8_16(poly_lfo.get_coupling() + 128) + (poly_lfo.cv_coupling.value() * 16);
+  int32_t coupling = SCALE8_16(poly_lfo.get_coupling() + 127) + (poly_lfo.cv_coupling.value() * 16);
   poly_lfo.lfo.set_coupling(USAT16(coupling));
 
-  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread() + 128));
+  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread() + 127));
 
   poly_lfo.lfo.set_attenuation(SCALE8_16(poly_lfo.get_attenuation()));
   poly_lfo.lfo.set_offset(SCALE8_16(poly_lfo.get_offset()));
@@ -342,7 +342,19 @@ void POLYLFO_handleButtonEvent(const UI::Event &event) {
         break;
     }
   }
+  
+  if (UI::EVENT_BUTTON_LONG_PRESS == event.type) {
+     switch (event.control) {
+      case OC::CONTROL_BUTTON_DOWN:
+        poly_lfo.lfo.set_phase_reset_flag(true);
+        break;
+      default:
+        break;
+     }
+  }
+  
 }
+
 
 void POLYLFO_handleEncoderEvent(const UI::Event &event) {
   if (OC::CONTROL_ENCODER_L == event.control) {

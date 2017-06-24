@@ -1283,7 +1283,6 @@ public:
         _out = (display_mask_ >> clk_cnt_) & 1u;
         step_state_ = _out ? ON : OFF;  
         _out = (_out && _change) ? true : false; 
-                Serial.println(step_state_);
       }
       else {
          step_state_ = ON;
@@ -2102,7 +2101,8 @@ void SEQ_downButtonLong() {
   else { // toggle update behaviour:
     seq_channel[0x0].toggle_EoS();
     seq_channel[0x1].toggle_EoS();
-} }
+  }
+}
 
 void SEQ_menu() {
 
