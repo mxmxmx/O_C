@@ -287,7 +287,39 @@ class MultistageEnvelope {
     loop_start_ = loop_start;
     loop_end_ = loop_end;
   }
-        
+
+  inline void set_asad(
+      uint16_t attack,
+      uint16_t decay,
+      uint16_t sustain,
+      uint16_t release,
+      uint16_t loop_start,
+      uint16_t loop_end) {
+    num_segments_ = 4;
+    sustain_point_ = 1;
+    sustain_index_ = 1;
+
+    level_[0] = 0;
+    level_[1] = sustain;
+    level_[2] = 32767;
+    level_[3] = 0;
+
+    time_[0] = attack;
+    time_[1] = decay;
+    time_[2] = release;
+    
+    shape_[0] = attack_shape_;
+    shape_[1] = decay_shape_;
+    shape_[2] = release_shape_;
+
+    time_multiplier_[0] = attack_multiplier_;
+    time_multiplier_[1] = decay_multiplier_;
+    time_multiplier_[2] = release_multiplier_;
+    
+    loop_start_ = loop_start ;
+    loop_end_ = loop_end ;
+  }
+       
   inline void set_attack_reset_behaviour(EnvResetBehaviour reset_behaviour) {
     attack_reset_behaviour_ = reset_behaviour;
   }
