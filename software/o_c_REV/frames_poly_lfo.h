@@ -222,15 +222,15 @@ class PolyLfo {
   }
 
   inline void set_b_am_by_a(uint8_t am_value) {
-    b_am_by_a_ = am_value << 1;
+    b_am_by_a_ = (am_value << 1);
   }
 
   inline void set_c_am_by_b(uint8_t am_value) {
-    c_am_by_b_ = am_value << 1;
+    c_am_by_b_ = (am_value << 1);
   }
 
   inline void set_d_am_by_c(uint8_t am_value) {
-    d_am_by_c_ = am_value << 1;
+    d_am_by_c_ = (am_value << 1);
   }
 
   inline void set_phase_reset_flag(bool reset) {

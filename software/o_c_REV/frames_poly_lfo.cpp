@@ -225,8 +225,9 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     } else {
       dac_code_[i] = wt_value_[i] + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }
-    if (i > 0 && am_depths[i]) dac_code_[i] = (dac_code_[i] * (65535 - ((dac_code_[i-1] * am_depths[i]) >> 8))) >> 16 ; // attenuation_
-    // dac_code_[i] += offset_ ;
+    // cross-channel AM
+    dac_code_[i] = (dac_code_[i] * (65535 - (((65535 - dac_code_[i-1]) * am_depths[i]) >> 8))) >> 16 ; 
+    // attenuationand offset
     dac_code_[i] = ((dac_code_[i] * attenuation_) >> 16) + offset_ ;
     wavetable_index += shape_spread_;
   }
