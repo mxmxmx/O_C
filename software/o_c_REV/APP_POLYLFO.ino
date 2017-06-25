@@ -50,6 +50,9 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_B_XOR_A,
   POLYLFO_SETTING_C_XOR_A,
   POLYLFO_SETTING_D_XOR_A,
+  POLYLFO_SETTING_B_AM_BY_A,
+  POLYLFO_SETTING_C_AM_BY_B,
+  POLYLFO_SETTING_D_AM_BY_C,
   POLYLFO_SETTING_LAST
 };
 
@@ -76,15 +79,15 @@ public:
     return values_[POLYLFO_SETTING_SHAPE];
   }
 
-  uint16_t get_shape_spread() const {
+  int16_t get_shape_spread() const {
     return values_[POLYLFO_SETTING_SHAPE_SPREAD];
   }
 
-  uint16_t get_spread() const {
+  int16_t get_spread() const {
     return values_[POLYLFO_SETTING_SPREAD];
   }
 
-  uint16_t get_coupling() const {
+  int16_t get_coupling() const {
     return values_[POLYLFO_SETTING_COUPLING];
   }
 
@@ -118,6 +121,18 @@ public:
 
   uint8_t get_d_xor_a() const {
     return values_[POLYLFO_SETTING_D_XOR_A];
+  }
+
+  uint8_t get_b_am_by_a() const {
+    return values_[POLYLFO_SETTING_B_AM_BY_A];
+  }
+
+  uint8_t get_c_am_by_b() const {
+    return values_[POLYLFO_SETTING_C_AM_BY_B];
+  }
+
+  uint8_t get_d_am_by_c() const {
+    return values_[POLYLFO_SETTING_D_AM_BY_C];
   }
 
   void Init();
@@ -183,6 +198,9 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 127, "B AM by A", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 127, "C AM by B", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 127, "D AM by C", NULL, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -235,6 +253,10 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_b_xor_a(poly_lfo.get_b_xor_a());
   poly_lfo.lfo.set_c_xor_a(poly_lfo.get_c_xor_a());
   poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
+
+  poly_lfo.lfo.set_b_am_by_a(poly_lfo.get_b_am_by_a());
+  poly_lfo.lfo.set_c_am_by_b(poly_lfo.get_c_am_by_b());
+  poly_lfo.lfo.set_d_am_by_c(poly_lfo.get_d_am_by_c());
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase, tempo_sync);
