@@ -260,25 +260,26 @@ void FASTRUN POLYLFO_isr() {
   int32_t d_am_by_c = 0;
   
   switch (poly_lfo.cv4_destination()) {
-    case 1:  // shape spread 
+    case 1:  // shape spread: -128, 127
     shape_spread = poly_lfo.cv_mappable.value() << 4;
     break;
-    case 2:  // attenuation
+    case 2:  // attenuation: 0, 230
     attenuation = poly_lfo.cv_mappable.value() << 4;
     break;
-    case 3:  // offset 
+    case 3:  // offset: -128, 127
     offset = poly_lfo.cv_mappable.value() << 4;
     break;
-    case 4:  // "a->b"
-    b_am_by_a = poly_lfo.cv_mappable.value() << 4;
+    case 4:  // "a->b", 0-127
+    b_am_by_a = (poly_lfo.cv_mappable.value() + 15) >> 5;
     break;
-    case 5:  // "b->c"
-    c_am_by_b = poly_lfo.cv_mappable.value() << 4;
+    case 5:  // "b->c", 0-127
+    c_am_by_b = (poly_lfo.cv_mappable.value() + 15) >> 5;
     break;
-    case 6:  // "c->d"
-    d_am_by_c = poly_lfo.cv_mappable.value() << 4;
+    case 6:  // "c->d", 0-127
+    d_am_by_c = (poly_lfo.cv_mappable.value() + 15) >> 5;
     break;
-    default: // default == coupling
+    case 0:  // coupling, -128, 127
+    default: 
     coupling = poly_lfo.cv_mappable.value() << 4;
     break;
   }
@@ -304,13 +305,16 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
 
   b_am_by_a += poly_lfo.get_b_am_by_a();
-  poly_lfo.lfo.set_b_am_by_a(USAT16(b_am_by_a));
+  CONSTRAIN(b_am_by_a, 0, 127);
+  poly_lfo.lfo.set_b_am_by_a(b_am_by_a);
 
   c_am_by_b += poly_lfo.get_c_am_by_b();
-  poly_lfo.lfo.set_c_am_by_b(USAT16(c_am_by_b));
+  CONSTRAIN(c_am_by_b, 0, 127);
+  poly_lfo.lfo.set_c_am_by_b(c_am_by_b);
 
   d_am_by_c += poly_lfo.get_d_am_by_c();
-  poly_lfo.lfo.set_d_am_by_c(USAT16(d_am_by_c));
+  CONSTRAIN(d_am_by_c, 0, 127);
+  poly_lfo.lfo.set_d_am_by_c(d_am_by_c);
 
   if (!freeze && !poly_lfo.frozen())
     poly_lfo.lfo.Render(freq, reset_phase, tempo_sync);
