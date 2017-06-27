@@ -197,7 +197,7 @@ const char* const xor_levels[9] = {
 };
 
 const char* const cv4_destinations[7] = {
-  "cplg", "sprd", "attn", "offs", "a->b", "b->c", "c->d"
+  "cplg", "sprd", " rng", "offs", "a->b", "b->c", "c->d"
 };
 
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
