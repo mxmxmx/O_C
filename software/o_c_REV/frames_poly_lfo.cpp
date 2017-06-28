@@ -160,15 +160,15 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync, bool 
     if (sync_) {
       phase_increment_ch1_ = sync_phase_increment_;
     } else {
-      phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
+      phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_) << freq_mult;
     }
-    phase_[0] += phase_increment_ch1_ << freq_mult;
+    phase_[0] += phase_increment_ch1_;
     PolyLfoFreqMultipliers FreqDivs[] = {POLYLFO_FREQ_MULT_NONE, freq_div_b_, freq_div_c_ , freq_div_d_} ;
     for (uint8_t i = 1; i < kNumChannels; ++i) {
         if (FreqDivs[i] == POLYLFO_FREQ_MULT_NONE) {
             phase_[i] += phase_increment_ch1_;
         } else {
-           phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
+            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
         }  
     }
 
