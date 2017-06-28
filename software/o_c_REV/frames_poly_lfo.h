@@ -133,7 +133,7 @@ class PolyLfo {
   ~PolyLfo() { }
   
   void Init();
-  void Render(int32_t frequency, bool reset_phase, bool tempo_sync, bool freq_mult);
+  void Render(int32_t frequency, bool reset_phase, bool tempo_sync, uint8_t freq_mult);
   void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
   inline void set_freq_range(uint16_t freq_range) {

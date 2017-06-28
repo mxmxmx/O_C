@@ -54,6 +54,7 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_C_AM_BY_B,
   POLYLFO_SETTING_D_AM_BY_C,
   POLYLFO_SETTING_CV4,
+  POLYLFO_SETTING_TR4_MULT,
   POLYLFO_SETTING_LAST
 };
 
@@ -140,6 +141,10 @@ public:
     return values_[POLYLFO_SETTING_CV4];
   }
 
+  uint8_t tr4_multiplier() const {
+    return values_[POLYLFO_SETTING_TR4_MULT];
+  }
+
   void Init();
 
   void freeze() {
@@ -154,17 +159,17 @@ public:
     return frozen_;
   }
 
-  bool freq_mult() const {
+  uint8_t freq_mult() const {
     return freq_mult_;
   }
 
-  void set_freq_mult(bool freq_mult) {
+  void set_freq_mult(uint8_t freq_mult) {
     freq_mult_ = freq_mult;
   }
 
   frames::PolyLfo lfo;
   bool frozen_;
-  bool freq_mult_;
+  uint8_t freq_mult_;
 
   // ISR update is at 16.666kHz, we don't need it that fast so smooth the values to ~1Khz
   static constexpr int32_t kSmoothing = 16;
@@ -179,7 +184,7 @@ void PolyLfo::Init() {
   InitDefaults();
   lfo.Init();
   frozen_= false;
-  freq_mult_ = false;
+  freq_mult_ = 0x3; // == x2 / default
 }
 
 const char* const freq_range_names[12] = {
@@ -198,6 +203,10 @@ const char* const xor_levels[9] = {
 
 const char* const cv4_destinations[7] = {
   "cplg", "sprd", " rng", "offs", "a->b", "b->c", "c->d"
+};
+
+const char* const tr4_multiplier[6] = {
+  "/8", "/4", "/2", "x2", "x4", "x8"
 };
 
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
@@ -220,7 +229,8 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 127, "B AM by A", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 127, "C AM by B", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 127, "D AM by C", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 0, 0, 6, "CV4 ->", cv4_destinations, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 6, "CV4: DEST", cv4_destinations, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 5, "TR4: MULT", tr4_multiplier, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -323,8 +333,8 @@ void FASTRUN POLYLFO_isr() {
   CONSTRAIN(d_am_by_c, 0, 127);
   poly_lfo.lfo.set_d_am_by_c(d_am_by_c);
   
-  // double frequency if TR4 / gate high
-  bool freq_mult = digitalReadFast(TR4) ? false : true;
+  // div/multiply frequency if TR4 / gate high
+  int8_t freq_mult = digitalReadFast(TR4) ? 0xFF : poly_lfo.tr4_multiplier();
   poly_lfo.set_freq_mult(freq_mult);
 
   if (!freeze && !poly_lfo.frozen())
@@ -368,7 +378,7 @@ void POLYLFO_menu() {
     graphics.print("(T) Ch A: tap tempo") ;
   } else {
     float menu_freq_ = poly_lfo.lfo.get_freq_ch1();
-    if (poly_lfo.freq_mult()) 
+    if (poly_lfo.freq_mult() < 0xFF) 
         graphics.drawBitmap8(122, menu::DefaultTitleBar::kTextY, 4, OC::bitmap_indicator_4x8); 
     if (menu_freq_ >= 0.1f) {
         graphics.printf("(%s) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, menu_freq_);

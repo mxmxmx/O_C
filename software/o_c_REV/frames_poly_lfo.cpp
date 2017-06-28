@@ -130,7 +130,7 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng)
   return (a + ((b - a) * (index & 0x1f) >> 5)) << shifts;
 }
 
-void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync, bool freq_mult) {
+void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync, uint8_t freq_mult) {
     ++sync_counter_;
     if (tempo_sync && sync_) {
         if (sync_counter_ < kSyncCounterMaxTime) {
@@ -162,8 +162,11 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync, bool 
     } else {
       phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
     }
-    // double F (via TR4)
-    phase_increment_ch1_ = phase_increment_ch1_ << freq_mult;
+    
+    // double F (via TR4) ? ... "/8", "/4", "/2", "x2", "x4", "x8"
+    if (freq_mult < 0xFF) {
+      phase_increment_ch1_ = (freq_mult < 0x3) ? (phase_increment_ch1_ >> (0x3 - freq_mult)) : phase_increment_ch1_ << (freq_mult - 0x2);
+    }
     
     phase_[0] += phase_increment_ch1_;
     PolyLfoFreqMultipliers FreqDivs[] = {POLYLFO_FREQ_MULT_NONE, freq_div_b_, freq_div_c_ , freq_div_d_} ;
