@@ -51,6 +51,9 @@ void PolyLfo::Init() {
   attenuation_ = 58880;
   offset_ = 0 ;
   freq_div_b_ = freq_div_c_ = freq_div_d_ = POLYLFO_FREQ_MULT_NONE ;
+  b_am_by_a_ = 0 ;
+  c_am_by_b_ = 0 ;
+  d_am_by_c_ = 0 ;
   phase_reset_flag_ = false;
   sync_counter_ = 0 ;
   sync_ = false;
@@ -127,7 +130,7 @@ uint32_t PolyLfo::FrequencyToPhaseIncrement(int32_t frequency, uint16_t frq_rng)
   return (a + ((b - a) * (index & 0x1f) >> 5)) << shifts;
 }
 
-void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
+void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync, uint8_t freq_mult) {
     ++sync_counter_;
     if (tempo_sync && sync_) {
         if (sync_counter_ < kSyncCounterMaxTime) {
@@ -159,13 +162,19 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     } else {
       phase_increment_ch1_ = FrequencyToPhaseIncrement(frequency, freq_range_);
     }
-    phase_[0] += phase_increment_ch1_ ;
-    PolyLfoFreqMultipliers FreqDivs[] = {POLYLFO_FREQ_MULT_NONE, freq_div_b_, freq_div_c_ , freq_div_d_ } ;
+    
+    // double F (via TR4) ? ... "/8", "/4", "/2", "x2", "x4", "x8"
+    if (freq_mult < 0xFF) {
+      phase_increment_ch1_ = (freq_mult < 0x3) ? (phase_increment_ch1_ >> (0x3 - freq_mult)) : phase_increment_ch1_ << (freq_mult - 0x2);
+    }
+    
+    phase_[0] += phase_increment_ch1_;
+    PolyLfoFreqMultipliers FreqDivs[] = {POLYLFO_FREQ_MULT_NONE, freq_div_b_, freq_div_c_ , freq_div_d_} ;
     for (uint8_t i = 1; i < kNumChannels; ++i) {
         if (FreqDivs[i] == POLYLFO_FREQ_MULT_NONE) {
             phase_[i] += phase_increment_ch1_;
         } else {
-           phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
+            phase_[i] += multiply_u32xu32_rshift24(phase_increment_ch1_, PolyLfoFreqMultNumerators[FreqDivs[i]]) ;
         }  
     }
 
@@ -201,6 +210,7 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
   
   uint16_t wavetable_index = shape_;
   uint8_t xor_depths[] = {0, b_xor_a_, c_xor_a_, d_xor_a_ } ;
+  uint8_t am_depths[] = {0, b_am_by_a_, c_am_by_b_, d_am_by_c_ } ;
   // Wavetable lookup
   for (uint8_t i = 0; i < kNumChannels; ++i) {
     uint32_t phase = phase_[i];
@@ -221,8 +231,10 @@ void PolyLfo::Render(int32_t frequency, bool reset_phase, bool tempo_sync) {
     } else {
       dac_code_[i] = wt_value_[i] + 32768; //Keyframer::ConvertToDacCode(value + 32768, 0);
     }
+    // cross-channel AM
+    dac_code_[i] = (dac_code_[i] * (65535 - (((65535 - dac_code_[i-1]) * am_depths[i]) >> 8))) >> 16 ; 
+    // attenuationand offset
     dac_code_[i] = ((dac_code_[i] * attenuation_) >> 16) + offset_ ;
-    // dac_code_[i] += offset_ ;
     wavetable_index += shape_spread_;
   }
 }

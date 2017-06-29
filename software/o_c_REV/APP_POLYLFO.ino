@@ -50,6 +50,11 @@ enum POLYLFO_SETTINGS {
   POLYLFO_SETTING_B_XOR_A,
   POLYLFO_SETTING_C_XOR_A,
   POLYLFO_SETTING_D_XOR_A,
+  POLYLFO_SETTING_B_AM_BY_A,
+  POLYLFO_SETTING_C_AM_BY_B,
+  POLYLFO_SETTING_D_AM_BY_C,
+  POLYLFO_SETTING_CV4,
+  POLYLFO_SETTING_TR4_MULT,
   POLYLFO_SETTING_LAST
 };
 
@@ -76,15 +81,15 @@ public:
     return values_[POLYLFO_SETTING_SHAPE];
   }
 
-  uint16_t get_shape_spread() const {
+  int16_t get_shape_spread() const {
     return values_[POLYLFO_SETTING_SHAPE_SPREAD];
   }
 
-  uint16_t get_spread() const {
+  int16_t get_spread() const {
     return values_[POLYLFO_SETTING_SPREAD];
   }
 
-  uint16_t get_coupling() const {
+  int16_t get_coupling() const {
     return values_[POLYLFO_SETTING_COUPLING];
   }
 
@@ -120,6 +125,26 @@ public:
     return values_[POLYLFO_SETTING_D_XOR_A];
   }
 
+  uint8_t get_b_am_by_a() const {
+    return values_[POLYLFO_SETTING_B_AM_BY_A];
+  }
+
+  uint8_t get_c_am_by_b() const {
+    return values_[POLYLFO_SETTING_C_AM_BY_B];
+  }
+
+  uint8_t get_d_am_by_c() const {
+    return values_[POLYLFO_SETTING_D_AM_BY_C];
+  }
+
+  uint8_t cv4_destination() const {
+    return values_[POLYLFO_SETTING_CV4];
+  }
+
+  uint8_t tr4_multiplier() const {
+    return values_[POLYLFO_SETTING_TR4_MULT];
+  }
+
   void Init();
 
   void freeze() {
@@ -134,8 +159,17 @@ public:
     return frozen_;
   }
 
+  uint8_t freq_mult() const {
+    return freq_mult_;
+  }
+
+  void set_freq_mult(uint8_t freq_mult) {
+    freq_mult_ = freq_mult;
+  }
+
   frames::PolyLfo lfo;
   bool frozen_;
+  uint8_t freq_mult_;
 
   // ISR update is at 16.666kHz, we don't need it that fast so smooth the values to ~1Khz
   static constexpr int32_t kSmoothing = 16;
@@ -143,13 +177,14 @@ public:
   SmoothedValue<int32_t, kSmoothing> cv_freq;
   SmoothedValue<int32_t, kSmoothing> cv_shape;
   SmoothedValue<int32_t, kSmoothing> cv_spread;
-  SmoothedValue<int32_t, kSmoothing> cv_coupling;
+  SmoothedValue<int32_t, kSmoothing> cv_mappable;
 };
 
 void PolyLfo::Init() {
   InitDefaults();
   lfo.Init();
   frozen_= false;
+  freq_mult_ = 0x3; // == x2 / default
 }
 
 const char* const freq_range_names[12] = {
@@ -164,6 +199,14 @@ const char* const freq_div_names[frames::POLYLFO_FREQ_MULT_LAST] = {
 
 const char* const xor_levels[9] = {
   "off", "  1", "  2", "  3", "  4", "  5", "  6", "  7", "  8"
+};
+
+const char* const cv4_destinations[7] = {
+  "cplg", "sprd", " rng", "offs", "a->b", "b->c", "c->d"
+};
+
+const char* const tr4_multiplier[6] = {
+  "/8", "/4", "/2", "x2", "x4", "x8"
 };
 
 SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
@@ -183,6 +226,11 @@ SETTINGS_DECLARE(PolyLfo, POLYLFO_SETTING_LAST) {
   { 0, 0, 8, "B XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "C XOR A", xor_levels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 8, "D XOR A", xor_levels, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 127, "B AM by A", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 127, "C AM by B", NULL, settings::STORAGE_TYPE_U8 },
+  { 0, 0, 127, "D AM by C", NULL, settings::STORAGE_TYPE_U8 }, 
+  { 0, 0, 6, "CV4: DEST", cv4_destinations, settings::STORAGE_TYPE_U8 },
+  { 3, 0, 5, "TR4: MULT", tr4_multiplier, settings::STORAGE_TYPE_U8 }, 
  };
 
 PolyLfo poly_lfo;
@@ -202,7 +250,7 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.cv_freq.push(OC::ADC::value<ADC_CHANNEL_1>());
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
   poly_lfo.cv_spread.push(OC::ADC::value<ADC_CHANNEL_3>());
-  poly_lfo.cv_coupling.push(OC::ADC::value<ADC_CHANNEL_4>());
+  poly_lfo.cv_mappable.push(OC::ADC::value<ADC_CHANNEL_4>());
 
   // Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
@@ -220,13 +268,50 @@ void FASTRUN POLYLFO_isr() {
   int32_t spread = SCALE8_16(poly_lfo.get_spread() + 128) + (poly_lfo.cv_spread.value() * 16);
   poly_lfo.lfo.set_spread(USAT16(spread));
 
-  int32_t coupling = SCALE8_16(poly_lfo.get_coupling() + 127) + (poly_lfo.cv_coupling.value() * 16);
+  int32_t coupling = 0;
+  int32_t shape_spread = 0;
+  int32_t attenuation = 0;
+  int32_t offset = 0;
+  int32_t b_am_by_a = 0;
+  int32_t c_am_by_b = 0;
+  int32_t d_am_by_c = 0;
+  
+  switch (poly_lfo.cv4_destination()) {
+    case 1:  // shape spread: -128, 127
+    shape_spread = poly_lfo.cv_mappable.value() << 4;
+    break;
+    case 2:  // attenuation: 0, 230
+    attenuation = poly_lfo.cv_mappable.value() << 4;
+    break;
+    case 3:  // offset: -128, 127
+    offset = poly_lfo.cv_mappable.value() << 4;
+    break;
+    case 4:  // "a->b", 0-127
+    b_am_by_a = (poly_lfo.cv_mappable.value() + 15) >> 5;
+    break;
+    case 5:  // "b->c", 0-127
+    c_am_by_b = (poly_lfo.cv_mappable.value() + 15) >> 5;
+    break;
+    case 6:  // "c->d", 0-127
+    d_am_by_c = (poly_lfo.cv_mappable.value() + 15) >> 5;
+    break;
+    case 0:  // coupling, -128, 127
+    default: 
+    coupling = poly_lfo.cv_mappable.value() << 4;
+    break;
+  }
+  
+  coupling += SCALE8_16(poly_lfo.get_coupling() + 127);
   poly_lfo.lfo.set_coupling(USAT16(coupling));
 
-  poly_lfo.lfo.set_shape_spread(SCALE8_16(poly_lfo.get_shape_spread() + 127));
+  shape_spread += SCALE8_16(poly_lfo.get_shape_spread() + 127);
+  poly_lfo.lfo.set_shape_spread(USAT16(shape_spread));
 
-  poly_lfo.lfo.set_attenuation(SCALE8_16(poly_lfo.get_attenuation()));
-  poly_lfo.lfo.set_offset(SCALE8_16(poly_lfo.get_offset()));
+  attenuation += SCALE8_16(poly_lfo.get_attenuation());
+  poly_lfo.lfo.set_attenuation(USAT16(attenuation));
+
+  offset += SCALE8_16(poly_lfo.get_offset());
+  poly_lfo.lfo.set_offset(USAT16(offset));
 
   poly_lfo.lfo.set_freq_div_b(poly_lfo.get_freq_div_b());
   poly_lfo.lfo.set_freq_div_c(poly_lfo.get_freq_div_c());
@@ -236,8 +321,24 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.lfo.set_c_xor_a(poly_lfo.get_c_xor_a());
   poly_lfo.lfo.set_d_xor_a(poly_lfo.get_d_xor_a());
 
+  b_am_by_a += poly_lfo.get_b_am_by_a();
+  CONSTRAIN(b_am_by_a, 0, 127);
+  poly_lfo.lfo.set_b_am_by_a(b_am_by_a);
+
+  c_am_by_b += poly_lfo.get_c_am_by_b();
+  CONSTRAIN(c_am_by_b, 0, 127);
+  poly_lfo.lfo.set_c_am_by_b(c_am_by_b);
+
+  d_am_by_c += poly_lfo.get_d_am_by_c();
+  CONSTRAIN(d_am_by_c, 0, 127);
+  poly_lfo.lfo.set_d_am_by_c(d_am_by_c);
+  
+  // div/multiply frequency if TR4 / gate high
+  int8_t freq_mult = digitalReadFast(TR4) ? 0xFF : poly_lfo.tr4_multiplier();
+  poly_lfo.set_freq_mult(freq_mult);
+
   if (!freeze && !poly_lfo.frozen())
-    poly_lfo.lfo.Render(freq, reset_phase, tempo_sync);
+    poly_lfo.lfo.Render(freq, reset_phase, tempo_sync, freq_mult);
 
   OC::DAC::set<DAC_CHANNEL_A>(poly_lfo.lfo.dac_code(0));
   OC::DAC::set<DAC_CHANNEL_B>(poly_lfo.lfo.dac_code(1));
@@ -276,7 +377,9 @@ void POLYLFO_menu() {
   if (poly_lfo.get_tap_tempo()) {
     graphics.print("(T) Ch A: tap tempo") ;
   } else {
-    float menu_freq_ = poly_lfo.lfo.get_freq_ch1() ;
+    float menu_freq_ = poly_lfo.lfo.get_freq_ch1();
+    if (poly_lfo.freq_mult() < 0xFF) 
+        graphics.drawBitmap8(122, menu::DefaultTitleBar::kTextY, 4, OC::bitmap_indicator_4x8); 
     if (menu_freq_ >= 0.1f) {
         graphics.printf("(%s) Ch A: %6.2f Hz", PolyLfo::value_attr(poly_lfo_state.left_edit_mode).name, menu_freq_);
     } else {

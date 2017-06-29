@@ -133,7 +133,7 @@ class PolyLfo {
   ~PolyLfo() { }
   
   void Init();
-  void Render(int32_t frequency, bool reset_phase, bool tempo_sync);
+  void Render(int32_t frequency, bool reset_phase, bool tempo_sync, uint8_t freq_mult);
   void RenderPreview(uint16_t shape, uint16_t *buffer, size_t size);
 
   inline void set_freq_range(uint16_t freq_range) {
@@ -221,6 +221,18 @@ class PolyLfo {
     }
   }
 
+  inline void set_b_am_by_a(uint8_t am_value) {
+    b_am_by_a_ = (am_value << 1);
+  }
+
+  inline void set_c_am_by_b(uint8_t am_value) {
+    c_am_by_b_ = (am_value << 1);
+  }
+
+  inline void set_d_am_by_c(uint8_t am_value) {
+    d_am_by_c_ = (am_value << 1);
+  }
+
   inline void set_phase_reset_flag(bool reset) {
     phase_reset_flag_ = reset;
   }
@@ -270,6 +282,9 @@ class PolyLfo {
   uint8_t b_xor_a_ ;
   uint8_t c_xor_a_ ;
   uint8_t d_xor_a_ ;
+  uint8_t b_am_by_a_ ;
+  uint8_t c_am_by_b_ ;
+  uint8_t d_am_by_c_ ;
   bool phase_reset_flag_ ;
 
   int16_t value_[kNumChannels];

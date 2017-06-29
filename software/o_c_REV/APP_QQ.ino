@@ -1205,6 +1205,7 @@ size_t QQ_restore(const void *storage) {
   size_t used = 0;
   for (size_t i = 0; i < 4; ++i) {
     used += quantizer_channels[i].Restore(static_cast<const char*>(storage) + used);
+    quantizer_channels[i].update_scale_mask(quantizer_channels[i].get_mask(), 0x0);
     quantizer_channels[i].update_enabled_settings();
   }
   qq_state.cursor.AdjustEnd(quantizer_channels[0].num_enabled_settings() - 1);
