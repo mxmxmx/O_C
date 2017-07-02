@@ -26,6 +26,7 @@ namespace OC {
     extern const char * const scaling_string[];
     extern const char * const encoder_config_strings[];
     extern const char * const bytebeat_equation_names[];
+    extern const char * const envelope_shapes[];
     extern const char * const integer_sequence_names[];
     extern const char * const integer_sequence_dirs[];
     extern const char * const trigger_delay_times[kNumDelayTimes];

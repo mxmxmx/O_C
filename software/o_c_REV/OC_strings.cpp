@@ -42,6 +42,10 @@ namespace OC {
     "hope", "love", "life", "age", "clysm", "monk", "NERV", "Trurl", "Pirx", "Snaut", "Hari" , "Kris", "Tichy", "Bregg", "Avon", "Orac"
   };
 
+  const char* const envelope_shapes[11] = {
+    "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "Gate", "BgDip", "MeDip", "LtDip", "Wiggl"
+  };
+
   const char* const integer_sequence_names[] = {
     "pi", "vnEck", "ssdn", "Dress", "PNinf" , "Dsum", "Dsum4", "Dsum5", "CDn2", "Frcti" 
   };

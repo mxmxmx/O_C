@@ -694,10 +694,6 @@ const char* const segment_names[] = {
   "Attack", "Decay", "Sustain/Level", "Release"
 };
 
-const char* const envelope_shapes[peaks::ENV_SHAPE_LAST] = {
-  "Lin", "Exp", "Quart", "Sine", "Ledge", "Cliff", "Gate", "BgDip", "MeDip", "LtDip", "Wiggl"
-};
-
 const char* const cv_mapping_names[CV_MAPPING_LAST] = {
   "None", "Att", "Dec", "Sus", "Rel", "ADR", "Eleng", "Efill", "Eoffs", "Delay", "Ampl", "Loops"
 };
@@ -753,9 +749,9 @@ SETTINGS_DECLARE(EnvelopeGenerator, ENV_SETTING_LAST) {
   { peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_LAST - 1, "Att fall gt", falling_gate_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "DecRel reset", reset_behaviours, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "Gate high", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
-  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
-  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
-  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", envelope_shapes, settings::STORAGE_TYPE_U4 },
+  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Attack shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U4 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Decay shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U4 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "Release shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U4 },
   { 0, 0, 13, "Attack mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   { 0, 0, 13, "Decay mult", time_multipliers, settings::STORAGE_TYPE_U4 },
   {0, 0, 13, "Release mult", time_multipliers, settings::STORAGE_TYPE_U4 },

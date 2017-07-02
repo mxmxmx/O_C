@@ -36,6 +36,8 @@
 #include "braids_quantizer_scales.h"
 #include "extern/dspinst.h"
 #include "util/util_arp.h"
+#include "peaks_multistage_envelope.h"
+
 
 namespace menu = OC::menu; 
 
@@ -148,6 +150,15 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_BROWNIAN_CV,
   SEQ_CHANNEL_SETTING_LENGTH_CV,
   SEQ_CHANNEL_SETTING_DUMMY,
+  // aux envelope settings
+  SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION,
+  SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE,
+  SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION,
+  SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE,
+  SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL,
+  SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION,
+  SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE,
+  // marker   
   SEQ_CHANNEL_SETTING_LAST
 };
 
@@ -219,6 +230,9 @@ enum SEQ_DIRECTIONS {
 enum SQ_AUX_MODES {
   GATE,
   COPY,
+  ENV_AD,
+  ENV_ADR,
+  ENV_ADSR,
   SQ_AUX_MODES_LAST
 };
 
@@ -425,6 +439,34 @@ public:
 
   int8_t get_brownian_probability_cv() const {
     return values_[SEQ_CHANNEL_SETTING_BROWNIAN_CV];
+  }
+
+  uint16_t get_attack_duration() const {
+    return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION]);
+  }
+
+  peaks::EnvelopeShape get_attack_shape() const {
+    return static_cast<peaks::EnvelopeShape>(values_[SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE]);
+  }
+
+  uint16_t get_decay_duration() const {
+    return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION]);
+  }
+
+  peaks::EnvelopeShape get_decay_shape() const {
+    return static_cast<peaks::EnvelopeShape>(values_[SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE]);
+  }
+
+  uint16_t get_sustain_level() const {
+    return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL]);
+  }
+
+  uint16_t get_release_duration() const {
+    return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION]);
+  }
+
+  peaks::EnvelopeShape get_release_shape() const {
+    return static_cast<peaks::EnvelopeShape>(values_[SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE]);
   }
   
   void update_pattern_mask(uint16_t mask, uint8_t sequence) {
@@ -657,6 +699,7 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_CLOCK, trigger_source);
     quantizer_.Init();  
     input_map_.Init();
+    env_.Init();
     force_update_ = true;
     force_scale_update_ = true;
     gate_state_ = step_state_ = OFF;
@@ -674,6 +717,9 @@ public:
     prev_playmode_ = get_playmode();
     pending_sync_ = false;
     sequence_change_pending_ = 0x0;
+    prev_gate_raised_ = 0 ;
+    env_gate_raised_ = 0 ;
+    env_gate_state_ = 0 ;
  
     ext_frequency_in_ticks_ = 0xFFFFFFFF;
     channel_frequency_in_ticks_ = 0xFFFFFFFF;
@@ -995,6 +1041,29 @@ public:
                   step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, _transpose); 
                 }
                 break;
+                case ENV_AD:
+                {
+                  env_.set_ad(get_attack_duration(), get_decay_duration(), 0, 0);
+                  env_.set_attack_shape(get_attack_shape());
+                  env_.set_decay_shape(get_decay_shape());
+                }
+                break;
+                case ENV_ADR:
+                {
+                  env_.set_adr(get_attack_duration(), get_decay_duration(), get_sustain_level()>>1, get_release_duration(), 0, 0);
+                  env_.set_attack_shape(get_attack_shape());
+                  env_.set_decay_shape(get_decay_shape());
+                  env_.set_release_shape(get_release_shape());
+                }
+                break;
+                case ENV_ADSR:
+                {
+                  env_.set_adsr(get_attack_duration(), get_decay_duration(), get_sustain_level()>>1, get_release_duration());
+                  env_.set_attack_shape(get_attack_shape());
+                  env_.set_decay_shape(get_decay_shape());
+                  env_.set_release_shape(get_release_shape());
+                }
+                break;
                 default:
                 break;
             }
@@ -1007,7 +1076,7 @@ public:
       *  below: pulsewidth stuff
       */
       
-     if (!_aux_mode && gate_state_) { 
+     if (_aux_mode != COPY && gate_state_) { 
        
         // pulsewidth setting -- 
         int16_t _pulsewidth = get_pulsewidth();
@@ -1492,13 +1561,37 @@ public:
          // aux output:   
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
-         switch (get_aux_mode()) {
-      
-            case 0: 
+         switch (get_aux_mode()) {    
+            case GATE: 
               *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
             break;
-            case 1: 
+            case COPY: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX;
+            break;
+            case ENV_AD: 
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE;
+            break;
+            case ENV_ADR: 
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE;
+            break;
+            case ENV_ADSR: 
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE;
             break;
             default:
             break; 
@@ -1594,18 +1687,38 @@ public:
 
       int8_t _mode = get_aux_mode();
       uint32_t _output = 0;
-      
+    
       switch (_mode) {
 
-        case 0: // gate
+        case GATE: // gate
           #ifdef BUCHLA_4U
           _output = (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - OC::DAC::kOctaveZero - 0x2) : OC::DAC::get_zero_offset(dacChannel);
           #else
           _output = (get_step_gate() == ON) ? OC::DAC::get_octave_offset(dacChannel, OCTAVES - OC::DAC::kOctaveZero - 0x1) : OC::DAC::get_zero_offset(dacChannel);
           #endif
         break;
-        case 1: // copy
+        case COPY: // copy
           _output = OC::DAC::pitch_to_scaled_voltage_dac(dacChannel, get_step_pitch_aux(), 0, OC::DAC::get_voltage_scaling(dacChannel));
+        break;
+        // code to process envelopes here
+        case  ENV_AD:
+        case ENV_ADR:
+        case ENV_ADSR:
+          env_gate_state_ = 0;
+          env_gate_raised_ = (get_step_gate() == ON);
+          if (env_gate_raised_ && !prev_gate_raised_)
+             env_gate_state_ |= peaks::CONTROL_GATE_RISING;
+          if (env_gate_raised_)
+             env_gate_state_ |= peaks::CONTROL_GATE;
+          else if (prev_gate_raised_) 
+            env_gate_state_ |= peaks::CONTROL_GATE_FALLING;
+          prev_gate_raised_ = env_gate_raised_;   
+          Serial.println(prev_gate_raised_);      
+          Serial.println(env_gate_raised_);      
+          Serial.println(env_gate_state_);      
+          _output = OC::DAC::get_zero_offset(dacChannel) + env_.ProcessSingleSample(env_gate_state_);
+          Serial.println(_output);
+          Serial.println("*******");
         break;
         default:
         break;
@@ -1638,6 +1751,9 @@ private:
   uint32_t channel_frequency_in_ticks_;
   uint32_t pulse_width_in_ticks_;
   uint16_t gate_state_;
+  uint8_t prev_gate_raised_;
+  uint8_t env_gate_state_;
+  uint8_t env_gate_raised_;
   uint16_t step_state_;
   int32_t step_pitch_;
   int32_t step_pitch_aux_;
@@ -1666,6 +1782,8 @@ private:
   braids::Quantizer quantizer_; 
   OC::Input_Map input_map_;
   OC::DigitalInputDisplay clock_display_;
+  peaks::MultistageEnvelope env_;
+ 
 };
 
 const char* const SEQ_CHANNEL_TRIGGER_sources[] = {
@@ -1681,7 +1799,7 @@ const char* const display_multipliers[] = {
 };
 
 const char* const modes[] = {
-  "gate", "copy"
+  "gate", "copy", "AD", "ADR", "ADSR",
 };
 
 const char* const cv_ranges[] = {
@@ -1698,7 +1816,7 @@ const char* const arp_range[] = {
 
 SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
  
-  { 0, 0, 1, "aux. mode", modes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "aux. mode", modes, settings::STORAGE_TYPE_U4 },
   { SEQ_CHANNEL_TRIGGER_TR1, 0, SEQ_CHANNEL_TRIGGER_NONE, "clock src", SEQ_CHANNEL_TRIGGER_sources, settings::STORAGE_TYPE_U4 },
   { 0, 0, OC::kNumDelayTimes - 1, "trigger delay", OC::Strings::trigger_delay_times, settings::STORAGE_TYPE_U8 },
   { 2, 0, SEQ_CHANNEL_TRIGGER_LAST - 1, "reset/mute", reset_trigger_sources, settings::STORAGE_TYPE_U8 },
@@ -1738,7 +1856,15 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "-->brwn.prb ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "seq.length  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 } // DUMMY, use to store update behaviour
+  { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
+  // envelope parameters
+  { 128, 0, 255, "--> att dur", NULL, settings::STORAGE_TYPE_U8 },
+  { peaks::ENV_SHAPE_QUARTIC, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "--> att shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "--> dec dur", NULL, settings::STORAGE_TYPE_U8 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "--> dec shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "--> sus lvl", NULL, settings::STORAGE_TYPE_U16 },
+  { 128, 0, 255, "--> rel dur", NULL, settings::STORAGE_TYPE_U8 },
+  { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "--> rel shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U16 },
 };
   
 class SEQ_State {
