@@ -147,8 +147,12 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_DIRECTION_CV_SOURCE,
-  SEQ_CHANNEL_SETTING_BROWNIAN_CV,
-  SEQ_CHANNEL_SETTING_LENGTH_CV,
+  SEQ_CHANNEL_SETTING_BROWNIAN_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_LENGTH_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_ENV_ATTACK_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_DUMMY,
   // aux envelope settings
   SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION,
@@ -394,7 +398,7 @@ public:
   }
 
   uint8_t get_sequence_length_cv_source() const {
-    return values_[SEQ_CHANNEL_SETTING_LENGTH_CV];
+    return values_[SEQ_CHANNEL_SETTING_LENGTH_CV_SOURCE];
   }
    
   uint8_t get_mult_cv_source() const {
@@ -438,11 +442,15 @@ public:
   }
 
   int8_t get_brownian_probability_cv() const {
-    return values_[SEQ_CHANNEL_SETTING_BROWNIAN_CV];
+    return values_[SEQ_CHANNEL_SETTING_BROWNIAN_CV_SOURCE];
   }
 
   uint16_t get_attack_duration() const {
     return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION]);
+  }
+
+  int8_t get_attack_duration_cv() const {
+    return values_[SEQ_CHANNEL_SETTING_ENV_ATTACK_CV_SOURCE];
   }
 
   peaks::EnvelopeShape get_attack_shape() const {
@@ -453,6 +461,10 @@ public:
     return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION]);
   }
 
+  int8_t get_decay_duration_cv() const {
+    return values_[SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE];
+  }
+
   peaks::EnvelopeShape get_decay_shape() const {
     return static_cast<peaks::EnvelopeShape>(values_[SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE]);
   }
@@ -461,8 +473,16 @@ public:
     return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL]);
   }
 
+  int8_t get_sustain_level_cv() const {
+    return values_[SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE];
+  }
+
   uint16_t get_release_duration() const {
     return SCALE8_16(values_[SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION]);
+  }
+
+  int8_t get_release_duration_cv() const {
+    return values_[SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE];
   }
 
   peaks::EnvelopeShape get_release_shape() const {
@@ -639,8 +659,12 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_DIRECTION_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SEQUENCE_ARP_DIRECTION_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SEQUENCE_ARP_RANGE_CV_SOURCE, 0);
-    apply_value(SEQ_CHANNEL_SETTING_BROWNIAN_CV, 0);
-    apply_value(SEQ_CHANNEL_SETTING_LENGTH_CV, 0);
+    apply_value(SEQ_CHANNEL_SETTING_BROWNIAN_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_LENGTH_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_ENV_ATTACK_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE, 0);
   }
   
   int get_scale(uint8_t dummy) const {
@@ -1025,6 +1049,36 @@ public:
             // update output:
             step_pitch_ = quantizer_.Process(step_pitch_, 0, _transpose);  
 
+            int32_t _attack = get_attack_duration();        
+            int32_t _decay = get_decay_duration();        
+            int32_t _sustain = get_sustain_level();        
+            int32_t _release = get_release_duration();        
+ 
+            switch (_aux_mode) {
+                case ENV_AD:
+                case ENV_ADR:
+                case ENV_ADSR:
+                  if (get_attack_duration_cv()) {
+                    _attack += OC::ADC::value(static_cast<ADC_CHANNEL>(get_attack_duration_cv() - 1)) << 3;
+                    USAT16(_attack) ;
+                  }
+                  if (get_decay_duration_cv()) {
+                    _decay += OC::ADC::value(static_cast<ADC_CHANNEL>(get_decay_duration_cv() - 1)) << 3;
+                    USAT16(_decay); 
+                  }
+                  if (get_sustain_level_cv()) {
+                    _sustain += OC::ADC::value(static_cast<ADC_CHANNEL>(get_sustain_level_cv() - 1)) << 4;
+                    CONSTRAIN(_sustain, 0, 65534); 
+                  }
+                  if (get_release_duration_cv()) {
+                    _release += OC::ADC::value(static_cast<ADC_CHANNEL>(get_release_duration_cv() - 1)) << 3;
+                    USAT16(_release) ;
+                  }
+                break;
+                default:
+                break;
+            }
+
             switch (_aux_mode) {
 
                 case COPY:
@@ -1043,14 +1097,14 @@ public:
                 break;
                 case ENV_AD:
                 {
-                  env_.set_ad(get_attack_duration(), get_decay_duration(), 0, 0);
+                  env_.set_ad(_attack, _decay, 0, 0);
                   env_.set_attack_shape(get_attack_shape());
                   env_.set_decay_shape(get_decay_shape());
                 }
                 break;
                 case ENV_ADR:
                 {
-                  env_.set_adr(get_attack_duration(), get_decay_duration(), get_sustain_level()>>1, get_release_duration(), 0, 0);
+                  env_.set_adr(_attack, _decay, _sustain >> 1, _release, 0, 0);
                   env_.set_attack_shape(get_attack_shape());
                   env_.set_decay_shape(get_decay_shape());
                   env_.set_release_shape(get_release_shape());
@@ -1058,7 +1112,7 @@ public:
                 break;
                 case ENV_ADSR:
                 {
-                  env_.set_adsr(get_attack_duration(), get_decay_duration(), get_sustain_level()>>1, get_release_duration());
+                  env_.set_adsr(_attack, _decay, _sustain >> 1, _release);
                   env_.set_attack_shape(get_attack_shape());
                   env_.set_decay_shape(get_decay_shape());
                   env_.set_release_shape(get_release_shape());
@@ -1584,11 +1638,11 @@ public:
               *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE;
             break;
             case ENV_ADSR: 
-              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE;
@@ -1628,7 +1682,7 @@ public:
             break;             
           }
          
-         *settings++ = SEQ_CHANNEL_SETTING_LENGTH_CV; // = playmode
+         *settings++ = SEQ_CHANNEL_SETTING_LENGTH_CV_SOURCE; // = playmode
          
          if (get_playmode() < PM_SH1) {
             
@@ -1639,7 +1693,7 @@ public:
             else *settings++ = SEQ_CHANNEL_SETTING_DIRECTION_CV_SOURCE; // = directions
             
             if (get_playmode() != PM_ARP && get_direction() == BROWNIAN)       
-               *settings++ = SEQ_CHANNEL_SETTING_BROWNIAN_CV;
+               *settings++ = SEQ_CHANNEL_SETTING_BROWNIAN_CV_SOURCE;
                
             *settings++ = SEQ_CHANNEL_SETTING_MULT_CV_SOURCE;
            
@@ -1652,11 +1706,22 @@ public:
 
          switch (get_aux_mode()) {
       
-            case 0: 
+            case GATE: 
               *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE;
             break;
-            case 1: 
+            case COPY: 
               *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE;
+            break;
+            case ENV_AD:
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_CV_SOURCE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE;
+            break;
+            case ENV_ADR:
+            case ENV_ADSR:
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_CV_SOURCE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE;
             break;
             default:
             break; 
@@ -1666,6 +1731,12 @@ public:
            *settings++ =  SEQ_CHANNEL_SETTING_TRIGGER_DELAY; // 
            *settings++ =  SEQ_CHANNEL_SETTING_CLOCK; // = reset source
          }
+
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
+         *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
+
       }
       break;
       default:
@@ -1713,12 +1784,7 @@ public:
           else if (prev_gate_raised_) 
             env_gate_state_ |= peaks::CONTROL_GATE_FALLING;
           prev_gate_raised_ = env_gate_raised_;   
-          Serial.println(prev_gate_raised_);      
-          Serial.println(env_gate_raised_);      
-          Serial.println(env_gate_state_);      
           _output = OC::DAC::get_zero_offset(dacChannel) + env_.ProcessSingleSample(env_gate_state_);
-          Serial.println(_output);
-          Serial.println("*******");
         break;
         default:
         break;
@@ -1856,6 +1922,10 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "-->brwn.prb ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "seq.length  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "att dur  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "dec dur  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "sus lvl  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "rel dur  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
   // envelope parameters
   { 128, 0, 255, "--> att dur", NULL, settings::STORAGE_TYPE_U8 },
@@ -2302,7 +2372,11 @@ void SEQ_menu() {
       }
       break;
       case SEQ_CHANNEL_SETTING_PULSEWIDTH:
-        list_item.Draw_PW_Value(value, attr);
+        if (channel.get_aux_mode() < ENV_AD) {
+          list_item.Draw_PW_Value(value, attr);
+        } else {
+          list_item.DrawChar(value, attr, "--> sus dur");
+        }
       break;
       case SEQ_CHANNEL_SETTING_DUMMY:
         list_item.DrawNoValue<false>(value, attr);

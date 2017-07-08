@@ -310,8 +310,28 @@ struct SettingsListItem {
     graphics.print(attr.name);
   }
 
+  inline void DrawCharName(const char* name_string) const {
+    graphics.setPrintPos(x + kIndentDx, y + kTextDy);
+    graphics.print(name_string);
+  }
+
   inline void DrawDefault(int value, const settings::value_attr &attr) const {
     DrawName(attr);
+
+    graphics.setPrintPos(endx, y + kTextDy);
+    if(attr.value_names)
+      graphics.print_right(attr.value_names[value]);
+    else
+      graphics.pretty_print_right(value);
+
+    if (editing)
+      menu::DrawEditIcon(valuex, y, value, attr);
+    if (selected)
+      graphics.invertRect(x, y, kDisplayWidth - x, kMenuLineH - 1);
+  }
+
+  inline void DrawChar(int value, const settings::value_attr &attr, const char* name_string) const {
+    DrawCharName(name_string);
 
     graphics.setPrintPos(endx, y + kTextDy);
     if(attr.value_names)
