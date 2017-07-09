@@ -63,6 +63,7 @@ void PolyLfo::Init() {
   std::fill(&phase_[0], &phase_[kNumChannels], 0);
   last_phase_difference_ = 0;
   last_phase_difference_ = 0;
+  pattern_predictor_.Init();
 }
 
 /* static */
