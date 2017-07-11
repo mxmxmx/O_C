@@ -179,9 +179,10 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL,
   SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION,
   SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE,
+  SEQ_CHANNEL_SETTING_ENV_MAX_LOOPS, 
   SEQ_CHANNEL_SETTING_ENV_ATTACK_RESET_BEHAVIOUR,
   SEQ_CHANNEL_SETTING_ENV_ATTACK_FALLING_GATE_BEHAVIOUR,
-  SEQ_CHANNEL_SETTING_ENV_DECAY_RELEASE_RESET_BEHAVIOUR,   
+  SEQ_CHANNEL_SETTING_ENV_DECAY_RELEASE_RESET_BEHAVIOUR,  
   // marker   
   SEQ_CHANNEL_SETTING_LAST
 };
@@ -519,6 +520,10 @@ public:
 
   peaks::EnvResetBehaviour get_decay_release_reset_behaviour() const {
     return static_cast<peaks::EnvResetBehaviour>(values_[SEQ_CHANNEL_SETTING_ENV_DECAY_RELEASE_RESET_BEHAVIOUR]);
+  }
+
+  uint16_t get_max_loops() const {
+    return values_[SEQ_CHANNEL_SETTING_ENV_MAX_LOOPS] << 9 ;
   }
 
   void update_pattern_mask(uint16_t mask, uint8_t sequence) {
@@ -1110,6 +1115,8 @@ public:
                   env_.set_attack_reset_behaviour(get_attack_reset_behaviour());
                   env_.set_attack_falling_gate_behaviour(get_attack_falling_gate_behaviour());
                   env_.set_decay_release_reset_behaviour(get_decay_release_reset_behaviour());
+                  // set number of loops
+                  env_.set_max_loops(get_max_loops());
                 break;
                 default:
                 break;
@@ -1133,14 +1140,14 @@ public:
                 break;
                 case ENV_AD:
                 {
-                  env_.set_ad(_attack, _decay, 0, 0);
+                  env_.set_ad(_attack, _decay, 0, 2);
                   env_.set_attack_shape(get_attack_shape());
                   env_.set_decay_shape(get_decay_shape());
                 }
                 break;
                 case ENV_ADR:
                 {
-                  env_.set_adr(_attack, _decay, _sustain >> 1, _release, 0, 0);
+                  env_.set_adr(_attack, _decay, _sustain >> 1, _release, 0, 2);
                   env_.set_attack_shape(get_attack_shape());
                   env_.set_decay_shape(get_decay_shape());
                   env_.set_release_shape(get_release_shape());
@@ -1663,15 +1670,19 @@ public:
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_MAX_LOOPS;
             break;
             case ENV_ADR: 
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_SHAPE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_PULSEWIDTH;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_SUSTAIN_LEVEL;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_DURATION;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_SHAPE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_MAX_LOOPS;
             break;
             case ENV_ADSR: 
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION;
@@ -1980,6 +1991,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 128, 0, 255, "--> sus lvl", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "--> rel dur", NULL, settings::STORAGE_TYPE_U8 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "--> rel shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U16 },
+  {1, 1, 127, "--> ratchets", NULL, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "att reset", OC::Strings::reset_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_LAST - 1, "att fall gt", OC::Strings::falling_gate_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "dec/rel reset", OC::Strings::reset_behaviours, settings::STORAGE_TYPE_U8 },  
