@@ -42,8 +42,8 @@
 namespace menu = OC::menu; 
 
 const uint8_t NUM_CHANNELS = 2;
-const uint8_t MULT_MAX = 36;    // max multiplier
-const uint8_t MULT_BY_ONE = 29; // default multiplication  
+const uint8_t MULT_MAX = 18;    // max multiplier
+const uint8_t MULT_BY_ONE = 11; // default multiplication  
 const uint8_t PULSEW_MAX = 255; // max pulse width [ms]
 
 const uint32_t SCALE_PULSEWIDTH = 58982; // 0.9 for signed_multiply_32x16b
@@ -91,25 +91,8 @@ const uint64_t pw_scale_[] = {
 
 }; // = 2^32 * divisor / 64
 
-const uint8_t divisors_[] = { 
-   255,
-   254,
-   253,
-   252,
-   251,
-   250,
-   249,
-   248,
-   247,
-   128,
-   127,
-   126,
-   125,
-   124,
-   123,
-   122,
-   121,
-   120,
+const uint8_t divisors_[] = {
+  
    64,
    48,
    32,
@@ -1914,10 +1897,7 @@ const char* const reset_trigger_sources[] = {
 };
 
 const char* const display_multipliers[] = {
-  "/255", "/254", "/253", "/252", "/251", "/250", "/249", "/248", "/247",
-  "/128", "/127", "/126", "/125", "/124", "/123", "/122", "/121", "/120", 
-  "/64", "/48", "/32", "/16", "/8", "/7", "/6", "/5", "/4", "/3", "/2", "-",
-  "x2", "x3", "x4", "x5", "x6", "x7", "x8"
+  "/64", "/48", "/32", "/16", "/8", "/7", "/6", "/5", "/4", "/3", "/2", "-", "x2", "x3", "x4", "x5", "x6", "x7", "x8"
 };
 
 const char* const modes[] = {
