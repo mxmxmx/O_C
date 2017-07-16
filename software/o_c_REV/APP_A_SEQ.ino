@@ -153,6 +153,7 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE,
   SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE,
   SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_ENV_LOOPS_CV_SOURCE,
   SEQ_CHANNEL_SETTING_DUMMY,
   // aux envelope settings
   SEQ_CHANNEL_SETTING_ENV_ATTACK_DURATION,
@@ -509,6 +510,10 @@ public:
     return values_[SEQ_CHANNEL_SETTING_ENV_MAX_LOOPS] << 9 ;
   }
 
+  uint8_t get_env_loops_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_ENV_LOOPS_CV_SOURCE]; 
+  }
+
   void update_pattern_mask(uint16_t mask, uint8_t sequence) {
 
     switch(sequence) {
@@ -685,6 +690,7 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_ENV_LOOPS_CV_SOURCE, 0);
   }
   
   int get_scale(uint8_t dummy) const {
@@ -1073,7 +1079,8 @@ public:
             int32_t _decay = get_decay_duration();        
             int32_t _sustain = get_sustain_level();        
             int32_t _release = get_release_duration();        
- 
+            int32_t _loops = get_max_loops();
+            
             switch (_aux_mode) {
                 case ENV_AD:
                 case ENV_ADR:
@@ -1094,12 +1101,16 @@ public:
                     _release += OC::ADC::value(static_cast<ADC_CHANNEL>(get_release_duration_cv() - 1)) << 3;
                     USAT16(_release) ;
                   }
+                  if (get_env_loops_cv_source()) {
+                    _loops += OC::ADC::value(static_cast<ADC_CHANNEL>(get_env_loops_cv_source() - 1)) ;
+                    CONSTRAIN(_loops,1<<8, 65534) ;
+                  }
                   // set the specified reset behaviours
                   env_.set_attack_reset_behaviour(get_attack_reset_behaviour());
                   env_.set_attack_falling_gate_behaviour(get_attack_falling_gate_behaviour());
                   env_.set_decay_release_reset_behaviour(get_decay_release_reset_behaviour());
                   // set number of loops
-                  env_.set_max_loops(get_max_loops());
+                  env_.set_max_loops(_loops);
                 break;
                 default:
                 break;
@@ -1745,6 +1756,7 @@ public:
             case ENV_AD:
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_CV_SOURCE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_LOOPS_CV_SOURCE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_RESET_BEHAVIOUR;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_FALLING_GATE_BEHAVIOUR;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_RELEASE_RESET_BEHAVIOUR;
@@ -1755,6 +1767,7 @@ public:
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_CV_SOURCE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_SUSTAIN_CV_SOURCE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_RELEASE_CV_SOURCE;
+              *settings++ = SEQ_CHANNEL_SETTING_ENV_LOOPS_CV_SOURCE;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_RESET_BEHAVIOUR;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_ATTACK_FALLING_GATE_BEHAVIOUR;
               *settings++ = SEQ_CHANNEL_SETTING_ENV_DECAY_RELEASE_RESET_BEHAVIOUR;
@@ -1962,6 +1975,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "dec dur  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "sus lvl  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "rel dur  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "env loops ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U8 },
   { 0, 0, 1, "-", NULL, settings::STORAGE_TYPE_U4 }, // DUMMY, use to store update behaviour
   // envelope parameters
   { 128, 0, 255, "--> att dur", NULL, settings::STORAGE_TYPE_U8 },
@@ -1971,7 +1985,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 128, 0, 255, "--> sus lvl", NULL, settings::STORAGE_TYPE_U16 },
   { 128, 0, 255, "--> rel dur", NULL, settings::STORAGE_TYPE_U8 },
   { peaks::ENV_SHAPE_EXPONENTIAL, peaks::ENV_SHAPE_LINEAR, peaks::ENV_SHAPE_LAST - 1, "--> rel shape", OC::Strings::envelope_shapes, settings::STORAGE_TYPE_U16 },
-  {1, 1, 127, "--> ratchets", NULL, settings::STORAGE_TYPE_U8 },
+  {1, 1, 127, "--> loops", NULL, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "att reset", OC::Strings::reset_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_IGNORE, peaks::FALLING_GATE_BEHAVIOUR_LAST - 1, "att fall gt", OC::Strings::falling_gate_behaviours, settings::STORAGE_TYPE_U8 },
   { peaks::RESET_BEHAVIOUR_SEGMENT_PHASE, peaks::RESET_BEHAVIOUR_NULL, peaks::RESET_BEHAVIOUR_LAST - 1, "dec/rel reset", OC::Strings::reset_behaviours, settings::STORAGE_TYPE_U8 },  
@@ -2415,7 +2429,7 @@ void SEQ_menu() {
         if (channel.get_aux_mode() < ENV_AD) {
           list_item.Draw_PW_Value(value, attr);
         } else {
-          list_item.DrawChar(value, attr, "--> sus dur");
+          list_item.Draw_PW_Value_Char(value, attr, "--> sus dur");
         }
       break;
       case SEQ_CHANNEL_SETTING_DUMMY:
