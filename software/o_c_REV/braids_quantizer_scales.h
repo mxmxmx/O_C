@@ -85,53 +85,53 @@ const Scale scales[] = {
   // bhairav (From yarns source code)
   { 12 << 7, 7, { 0, 115, 494, 637, 899, 1014, 1393} },
   // gunakri (From yarns source code)
-  { 12 << 7, 5, { 0, 143, 637, 899, 1042} },
+  // { 12 << 7, 5, { 0, 143, 637, 899, 1042} },
   // marwa (From yarns source code)
   { 12 << 7, 6, { 0, 143, 494, 755, 1132, 1393} },
   // shree (From yarns source code)
-  { 12 << 7, 7, { 0, 115, 494, 755, 899, 1014, 1393} },
+  // { 12 << 7, 7, { 0, 115, 494, 755, 899, 1014, 1393} },
   // purvi (From yarns source code)
-  { 12 << 7, 7, { 0, 143, 494, 755, 899, 1042, 1393} },
+  // { 12 << 7, 7, { 0, 143, 494, 755, 899, 1042, 1393} },
   // bilawal (From yarns source code)
-  { 12 << 7, 7, { 0, 261, 494, 637, 899, 1160, 1393} },
+  // { 12 << 7, 7, { 0, 261, 494, 637, 899, 1160, 1393} },
   // yaman (From yarns source code)
   { 12 << 7, 7, { 0, 261, 522, 783, 899, 1160, 1421} },
   // kafi (From yarns source code)
-  { 12 << 7, 7, { 0, 233, 376, 637, 899, 1132, 1275} },
+  // { 12 << 7, 7, { 0, 233, 376, 637, 899, 1132, 1275} },
   // bhimpalasree (From yarns source code)
   { 12 << 7, 7, { 0, 261, 404, 637, 899, 1160, 1303} },
   // darbari (From yarns source code)
-  { 12 << 7, 7, { 0, 261, 376, 637, 899, 1014, 1275} },
+  // { 12 << 7, 7, { 0, 261, 376, 637, 899, 1014, 1275} },
   // rageshree (From yarns source code)
-  { 12 << 7, 7, { 0, 261, 494, 637, 899, 1132, 1275} },
+  // { 12 << 7, 7, { 0, 261, 494, 637, 899, 1132, 1275} },
   // khamaj (From yarns source code)
-  { 12 << 7, 8, { 0, 261, 494, 637, 899, 1160, 1275, 1421} },
+  // { 12 << 7, 8, { 0, 261, 494, 637, 899, 1160, 1275, 1421} },
   // mimal (From yarns source code)
-  { 12 << 7, 8, { 0, 261, 376, 637, 899, 1132, 1275, 1393} },
+  // { 12 << 7, 8, { 0, 261, 376, 637, 899, 1132, 1275, 1393} },
   // parameshwari (From yarns source code)
-  { 12 << 7, 6, { 0, 115, 376, 637, 1132, 1275} },
+  // { 12 << 7, 6, { 0, 115, 376, 637, 1132, 1275} },
   // rangeshwari (From yarns source code)
-  { 12 << 7, 6, { 0, 261, 376, 637, 899, 1393} },
+  // { 12 << 7, 6, { 0, 261, 376, 637, 899, 1393} },
   // gangeshwari (From yarns source code)
-  { 12 << 7, 6, { 0, 494, 637, 899, 1014, 1275} },
+  // { 12 << 7, 6, { 0, 494, 637, 899, 1014, 1275} },
   // kameshwari (From yarns source code)
-  { 12 << 7, 6, { 0, 261, 755, 899, 1132, 1275} },
+  // { 12 << 7, 6, { 0, 261, 755, 899, 1132, 1275} },
   // pa__kafi (From yarns source code)
-  { 12 << 7, 7, { 0, 261, 376, 637, 899, 1160, 1275} },
+  // { 12 << 7, 7, { 0, 261, 376, 637, 899, 1160, 1275} },
   // natbhairav (From yarns source code)
-  { 12 << 7, 7, { 0, 261, 494, 637, 899, 1014, 1393} },
+  // { 12 << 7, 7, { 0, 261, 494, 637, 899, 1014, 1393} },
   // m_kauns (From yarns source code)
-  { 12 << 7, 6, { 0, 261, 522, 637, 1014, 1275} },
+  // { 12 << 7, 6, { 0, 261, 522, 637, 1014, 1275} },
   // bairagi (From yarns source code)
   { 12 << 7, 5, { 0, 115, 637, 899, 1275} },
   // b_todi (From yarns source code)
-  { 12 << 7, 5, { 0, 115, 376, 899, 1275} },
+  // { 12 << 7, 5, { 0, 115, 376, 899, 1275} },
   // chandradeep (From yarns source code)
-  { 12 << 7, 5, { 0, 376, 637, 899, 1275} },
+  // { 12 << 7, 5, { 0, 376, 637, 899, 1275} },
   // kaushik_todi (From yarns source code)
-  { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
+  // { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
-  { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
+  // { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
 
   // Tartini-Vallotti [12] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
   { 12 << 7, 12, { 0, 120, 251, 381, 502, 643, 758, 893, 1019,  1144,  1280,  1395} },
@@ -281,27 +281,27 @@ const Scale scales[] = {
   // Bohlen-Pierce (lambda) - see  https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
   { 12 << 7, 9, { 0, 244, 351, 470, 714, 822, 1066, 1185, 1428} },
 
-  // 8-24-HD3 (16 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 16, { 0, 165, 312, 445, 567, 679, 782, 879, 969, 1054,  1134,  1209,  1281,  1349,  1414,  1476} },
-  // 7-21-HD3 (14 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 14, { 0, 187, 351, 499, 632, 754, 865, 969, 1066,  1156,  1241,  1320,  1396,  1468} },
-  // 6-18-HD3 (12 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 12, { 0, 216, 402, 567, 714, 847, 969, 1081,  1185,  1281,  1371,  1456} },
-  // 5-15-HD3 (10 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 10, { 0, 255, 470, 657, 822, 969, 1102,  1224,  1336,  1440} },
-  // 4-12-HD3 (8 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 8, { 0,  312, 567, 782, 969, 1134,  1281,  1414} },
-
-  // 24-8-HD3 (16 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 16, { 0, 60,  122, 187, 255, 327, 402, 482, 567, 657, 754, 857, 969, 1091,  1224,  1371} },
-  // 21-7-HD3 (14 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 14, { 0, 68,  140, 216, 295, 380, 470, 567, 671, 782, 904, 1037,  1185,  1349} },
-  // 18-6-HD3 (12 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 12, { 0, 80,  165, 255, 351, 455, 567, 689, 822, 969, 1134,  1320} },
-  // 15-5-HD3 (10 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 10, { 0, 96,  200, 312, 434, 567, 714, 879, 1066,  1281} },
-  // 12-4-HD3 (8 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 8, { 0,  122, 255, 402, 567, 754, 969, 1224} }
+//  // 8-24-HD3 (16 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 16, { 0, 165, 312, 445, 567, 679, 782, 879, 969, 1054,  1134,  1209,  1281,  1349,  1414,  1476} },
+//  // 7-21-HD3 (14 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 14, { 0, 187, 351, 499, 632, 754, 865, 969, 1066,  1156,  1241,  1320,  1396,  1468} },
+//  // 6-18-HD3 (12 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 12, { 0, 216, 402, 567, 714, 847, 969, 1081,  1185,  1281,  1371,  1456} },
+//  // 5-15-HD3 (10 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 10, { 0, 255, 470, 657, 822, 969, 1102,  1224,  1336,  1440} },
+//  // 4-12-HD3 (8 step harmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 8, { 0,  312, 567, 782, 969, 1134,  1281,  1414} },
+//
+//  // 24-8-HD3 (16 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 16, { 0, 60,  122, 187, 255, 327, 402, 482, 567, 657, 754, 857, 969, 1091,  1224,  1371} },
+//  // 21-7-HD3 (14 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 14, { 0, 68,  140, 216, 295, 380, 470, 567, 671, 782, 904, 1037,  1185,  1349} },
+//  // 18-6-HD3 (12 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 12, { 0, 80,  165, 255, 351, 455, 567, 689, 822, 969, 1134,  1320} },
+//  // 15-5-HD3 (10 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 10, { 0, 96,  200, 312, 434, 567, 714, 879, 1066,  1281} },
+//  // 12-4-HD3 (8 step subharmonic series scale on the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
+//  { 12 << 7, 8, { 0,  122, 255, 402, 567, 754, 969, 1224} }
   } ;
 }// namespace braids
 
