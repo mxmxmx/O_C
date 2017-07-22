@@ -1105,8 +1105,8 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
                 h1200_settings.update_enabled_settings();
                 h1200_state.cursor.AdjustEnd(h1200_settings.num_enabled_settings() - 1);
                 // hack/hide extra options when default trigger type is selected
-                // if (h1200_settings.get_trigger_type() != H1200_TRIGGER_TYPE_EUCLIDEAN) 
-                //   h1200_state.cursor.Scroll(h1200_state.cursor_pos());
+                if (h1200_settings.get_trigger_type() != H1200_TRIGGER_TYPE_EUCLIDEAN) 
+                  h1200_state.cursor.Scroll(h1200_state.cursor_pos());
               break;
               default:
               break;
