@@ -198,6 +198,9 @@ public:
     trigger_delay_.Init();
     delayed_triggers_ = 0;
 
+    arp_strum_trigger_delay_.Init();
+    arp_strum_delayed_triggers_ = 0;
+
     memset(&ui, 0, sizeof(ui));
     ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
     ui.grid_cursor.Init(GRID_SETTING_DX, GRID_SETTING_LAST - 1);
@@ -270,6 +273,14 @@ public:
     return(delayed_triggers_);
   }
 
+  void set_arp_strum_delayed_triggers(uint32_t delayed_triggers) {
+    arp_strum_delayed_triggers_ = delayed_triggers;
+  }
+
+  uint32_t get_arp_strum_delayed_triggers() {
+    return(arp_strum_delayed_triggers_);
+  }
+
   // End of settings
 
   void ISR();
@@ -314,6 +325,8 @@ private:
 
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
   uint32_t delayed_triggers_;
+  util::TriggerDelay<OC::kMaxTriggerDelayTicks> arp_strum_trigger_delay_;
+  uint32_t arp_strum_delayed_triggers_;
 
   util::RingBuffer<uint32_t, 4> user_actions_;
   util::CriticalSection critical_section_;
@@ -368,7 +381,9 @@ void FASTRUN AutomatonnetzState::ISR() {
   update_trigger_out();
 
   uint32_t triggers = OC::DigitalInputs::clocked();
-
+  uint32_t arp_strum_triggers = triggers & TRIGGER_MASK_ARP;
+  triggers = triggers & TRIGGER_MASK_GRID;
+  
   trigger_delay_.Update();
   if (triggers) {
     trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
@@ -377,6 +392,15 @@ void FASTRUN AutomatonnetzState::ISR() {
   }
   if (trigger_delay_.triggered())
     triggers = get_delayed_triggers();
+
+  arp_strum_trigger_delay_.Update();
+  if (arp_strum_triggers) {
+    arp_strum_trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
+    set_arp_strum_delayed_triggers(arp_strum_triggers) ;
+    arp_strum_triggers = 0;
+  }
+  if (arp_strum_trigger_delay_.triggered())
+    arp_strum_triggers = get_arp_strum_delayed_triggers();
 
   bool reset = false;
   while (user_actions_.readable()) {
@@ -432,7 +456,7 @@ void FASTRUN AutomatonnetzState::ISR() {
   // Arp/strum
   if (chord_changed && OUTPUTA_MODE_STRUM == output_mode()) {
     arp_index_ = 0;
-  } else if ((triggers & TRIGGER_MASK_ARP) &&
+  } else if ((arp_strum_triggers & TRIGGER_MASK_ARP) &&
              !reset &&
              !OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()) {
     ++arp_index_;
@@ -440,7 +464,7 @@ void FASTRUN AutomatonnetzState::ISR() {
       arp_index_ = 0;
   }
 
-  if ((triggers & TRIGGER_MASK_GRID) || (triggers & TRIGGER_MASK_ARP))
+  if ((triggers & TRIGGER_MASK_GRID) || (arp_strum_triggers & TRIGGER_MASK_ARP))
     update_outputs(chord_changed, cell_transpose_, cell_inversion_);
 }
 
