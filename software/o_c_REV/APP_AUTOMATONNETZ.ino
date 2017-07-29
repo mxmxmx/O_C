@@ -440,7 +440,7 @@ void FASTRUN AutomatonnetzState::ISR() {
       arp_index_ = 0;
   }
 
-  if (triggers & TRIGGER_MASK_GRID)
+  if ((triggers & TRIGGER_MASK_GRID) || (triggers & TRIGGER_MASK_ARP))
     update_outputs(chord_changed, cell_transpose_, cell_inversion_);
 }
 
