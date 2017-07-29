@@ -200,6 +200,7 @@ public:
 
     arp_strum_trigger_delay_.Init();
     arp_strum_delayed_triggers_ = 0;
+    strum_inhibit_ = false;
 
     memset(&ui, 0, sizeof(ui));
     ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
@@ -327,6 +328,7 @@ private:
   uint32_t delayed_triggers_;
   util::TriggerDelay<OC::kMaxTriggerDelayTicks> arp_strum_trigger_delay_;
   uint32_t arp_strum_delayed_triggers_;
+  bool strum_inhibit_ ;
 
   util::RingBuffer<uint32_t, 4> user_actions_;
   util::CriticalSection critical_section_;
@@ -456,12 +458,15 @@ void FASTRUN AutomatonnetzState::ISR() {
   // Arp/strum
   if (chord_changed && OUTPUTA_MODE_STRUM == output_mode()) {
     arp_index_ = 0;
+    strum_inhibit_ = false;
   } else if ((arp_strum_triggers & TRIGGER_MASK_ARP) &&
              !reset &&
              !OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()) {
     ++arp_index_;
-    if (arp_index_ >= 3)
+    if (arp_index_ >= 3) {
       arp_index_ = 0;
+      strum_inhibit_ = true;
+    }
   }
 
   if ((triggers & TRIGGER_MASK_GRID) || (arp_strum_triggers & TRIGGER_MASK_ARP))
@@ -501,8 +506,10 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
       }
       break;
     case OUTPUTA_MODE_ARP:
-    case OUTPUTA_MODE_STRUM:
       OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
+    case OUTPUTA_MODE_STRUM:
+      if (!strum_inhibit_) 
+          OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
       break;
     case OUTPUTA_MODE_LAST:
     default:
