@@ -676,6 +676,12 @@ public:
     } 
   }
 
+  void init_seq(uint16_t mask) {
+    display_mask_ = mask;
+    uint8_t seq = active_sequence_;
+    arpeggiator_.UpdateArpeggiator(channel_id_, seq, get_mask(seq), get_sequence_length(seq));  
+  }
+
   void sync() {
     pending_sync_ = true;
   }
@@ -2057,7 +2063,7 @@ size_t SEQ_restore(const void *storage) {
   for (size_t i = 0; i < NUM_CHANNELS; ++i) {
     used += seq_channel[i].Restore(static_cast<const char*>(storage) + used);
     // update display
-    seq_channel[i].pattern_changed(seq_channel[i].get_mask(seq_channel[i].get_sequence()), true);
+    seq_channel[i].init_seq(seq_channel[i].get_mask(seq_channel[i].get_sequence()));
     seq_channel[i].set_display_num_sequence(seq_channel[i].get_sequence()); 
     seq_channel[i].update_enabled_settings(i);
     seq_channel[i].set_EoS_update();
