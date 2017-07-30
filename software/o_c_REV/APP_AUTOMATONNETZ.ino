@@ -63,6 +63,7 @@
 #include "tonnetz/tonnetz_state.h"
 #include "OC_bitmaps.h"
 #include "OC_menus.h"
+#include "OC_trigger_delays.h"
 
 #define FRACTIONAL_BITS 24
 #define CLOCK_STEP_RES (0x1 << FRACTIONAL_BITS)
@@ -195,11 +196,7 @@ public:
     quantizer.Init();
     tonnetz_state.init();
 
-    trigger_delay_.Init();
-    delayed_triggers_ = 0;
-
-    arp_strum_trigger_delay_.Init();
-    arp_strum_delayed_triggers_ = 0;
+    trigger_delays_.Init();
     strum_inhibit_ = false;
 
     memset(&ui, 0, sizeof(ui));
@@ -266,22 +263,6 @@ public:
     return static_cast<ClearMode>(values_[GRID_SETTING_CLEARMODE]);
   }
 
-  void set_delayed_triggers(uint32_t delayed_triggers) {
-    delayed_triggers_ = delayed_triggers;
-  }
-
-  uint32_t get_delayed_triggers() {
-    return(delayed_triggers_);
-  }
-
-  void set_arp_strum_delayed_triggers(uint32_t delayed_triggers) {
-    arp_strum_delayed_triggers_ = delayed_triggers;
-  }
-
-  uint32_t get_arp_strum_delayed_triggers() {
-    return(arp_strum_delayed_triggers_);
-  }
-
   // End of settings
 
   void ISR();
@@ -324,10 +305,7 @@ private:
   int cell_transpose_, cell_inversion_;
   uint32_t history_;
 
-  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
-  uint32_t delayed_triggers_;
-  util::TriggerDelay<OC::kMaxTriggerDelayTicks> arp_strum_trigger_delay_;
-  uint32_t arp_strum_delayed_triggers_;
+  OC::TriggerDelays<OC::kMaxTriggerDelayTicks> trigger_delays_;
   bool strum_inhibit_ ;
 
   util::RingBuffer<uint32_t, 4> user_actions_;
@@ -383,26 +361,7 @@ void FASTRUN AutomatonnetzState::ISR() {
   update_trigger_out();
 
   uint32_t triggers = OC::DigitalInputs::clocked();
-  uint32_t arp_strum_triggers = triggers & TRIGGER_MASK_ARP;
-  triggers = triggers & TRIGGER_MASK_GRID;
-  
-  trigger_delay_.Update();
-  if (triggers) {
-    trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
-    set_delayed_triggers(triggers) ;
-    triggers = 0;
-  }
-  if (trigger_delay_.triggered())
-    triggers = get_delayed_triggers();
-
-  arp_strum_trigger_delay_.Update();
-  if (arp_strum_triggers) {
-    arp_strum_trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
-    set_arp_strum_delayed_triggers(arp_strum_triggers) ;
-    arp_strum_triggers = 0;
-  }
-  if (arp_strum_trigger_delay_.triggered())
-    arp_strum_triggers = get_arp_strum_delayed_triggers();
+  triggers = trigger_delays_.Process(triggers, OC::trigger_delay_ticks[get_trigger_delay()]);
 
   bool reset = false;
   while (user_actions_.readable()) {
@@ -459,7 +418,7 @@ void FASTRUN AutomatonnetzState::ISR() {
   if (chord_changed && OUTPUTA_MODE_STRUM == output_mode()) {
     arp_index_ = 0;
     strum_inhibit_ = false;
-  } else if ((arp_strum_triggers & TRIGGER_MASK_ARP) &&
+  } else if ((triggers & TRIGGER_MASK_ARP) &&
              !reset &&
              !OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()) {
     ++arp_index_;
@@ -469,7 +428,7 @@ void FASTRUN AutomatonnetzState::ISR() {
     }
   }
 
-  if ((triggers & TRIGGER_MASK_GRID) || (arp_strum_triggers & TRIGGER_MASK_ARP))
+  if ((triggers & TRIGGER_MASK_GRID) || (triggers & TRIGGER_MASK_ARP))
     update_outputs(chord_changed, cell_transpose_, cell_inversion_);
 }
 

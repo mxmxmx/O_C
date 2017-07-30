@@ -25,6 +25,7 @@
 
 #include "OC_bitmaps.h"
 #include "OC_strings.h"
+#include "OC_trigger_delays.h"
 #include "tonnetz/tonnetz_state.h"
 #include "util/util_settings.h"
 #include "util/util_ringbuffer.h"
@@ -493,8 +494,7 @@ public:
 
     quantizer.Init();
     tonnetz_state.init();
-    trigger_delay_.Init();
-    delayed_triggers_ = 0;
+    trigger_delays_.Init();
 
     euclidean_counter_ = 0;
     root_sample_ = false;
@@ -607,14 +607,6 @@ public:
     ui_actions.Write(H1200::ACTION_MANUAL_RESET);
   }
 
-  void set_delayed_triggers(uint32_t delayed_triggers) {
-    delayed_triggers_ = delayed_triggers;
-  }
-
-  uint32_t get_delayed_triggers() {
-    return(delayed_triggers_);
-  }
-
   void Render(int32_t root, int inversion, int octave, OutputMode output_mode) {
     tonnetz_state.render(root + octave * 12, inversion);
 
@@ -648,8 +640,7 @@ public:
   OC::SemitoneQuantizer quantizer;
   TonnetzState tonnetz_state;
   util::RingBuffer<H1200::UiAction, 4> ui_actions;
-  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
-  uint32_t delayed_triggers_;
+  OC::TriggerDelays<OC::kMaxTriggerDelayTicks> trigger_delays_;  
   uint32_t euclidean_counter_;
   bool root_sample_ ;
   int32_t root_ ;
@@ -678,14 +669,7 @@ H1200State h1200_state;
 
 void FASTRUN H1200_clock(uint32_t triggers) {
 
-  h1200_state.trigger_delay_.Update();
-  if (triggers) {
-    h1200_state.trigger_delay_.Push(OC::trigger_delay_ticks[h1200_settings.get_trigger_delay()]);
-    h1200_state.set_delayed_triggers(triggers) ;
-    triggers = 0;
-  }
-  if (h1200_state.trigger_delay_.triggered())
-    triggers = h1200_state.get_delayed_triggers();
+  triggers = h1200_state.trigger_delays_.Process(triggers, OC::trigger_delay_ticks[h1200_settings.get_trigger_delay()]);
   
   // Reset has priority
   if (triggers & TRIGGER_MASK_TR1) {
