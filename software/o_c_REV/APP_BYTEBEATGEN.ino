@@ -360,7 +360,7 @@ SETTINGS_DECLARE(ByteBeat, BYTEBEAT_SETTING_LAST) {
   { 126, 0, 255, "Parameter 0", NULL, settings::STORAGE_TYPE_U8 }, 
   { 126, 0, 255, "Parameter 1", NULL, settings::STORAGE_TYPE_U8 }, 
   { 127, 0, 255, "Parameter 2", NULL, settings::STORAGE_TYPE_U8 }, 
-  { 0, 0, 1, "Loop mode", OC::Strings::no_yes, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 1, "Loop mode", OC::Strings::no_yes, settings::STORAGE_TYPE_U8 },
   { 0, 0, 255, "Loop begin ++", NULL, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Loop begin +", NULL, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, 255, "Loop begin", NULL, settings::STORAGE_TYPE_U8 }, 

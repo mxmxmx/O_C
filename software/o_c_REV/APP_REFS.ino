@@ -600,7 +600,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 99, " > mantissa", nullptr, settings::STORAGE_TYPE_U8 },
   { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "> ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // dummy
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U8 } // dummy
 };
 
 class ReferencesApp {
