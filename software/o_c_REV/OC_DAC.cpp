@@ -36,6 +36,7 @@
 #include <SPIFIFO.h>
 #include "OC_DAC.h"
 #include "OC_gpio.h"
+#include "OC_options.h"
 #include "OC_calibration.h"
 #include "OC_autotune_presets.h"
 #include "OC_autotune.h"
@@ -207,8 +208,11 @@ uint8_t DAC::DAC_scaling[DAC_CHANNEL_LAST];
 
 void set8565_CHA(uint32_t data) {
   uint32_t _data = OC::DAC::MAX_VALUE - data;
-
+  #ifdef FLIP_180
+  SPIFIFO.write(0b00010110, SPI_CONTINUE);
+  #else
   SPIFIFO.write(0b00010000, SPI_CONTINUE);
+  #endif
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();
@@ -217,7 +221,11 @@ void set8565_CHA(uint32_t data) {
 void set8565_CHB(uint32_t data) {
   uint32_t _data = OC::DAC::MAX_VALUE - data;
 
+  #ifdef FLIP_180
+  SPIFIFO.write(0b00010100, SPI_CONTINUE);
+  #else
   SPIFIFO.write(0b00010010, SPI_CONTINUE);
+  #endif
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();
@@ -226,7 +234,11 @@ void set8565_CHB(uint32_t data) {
 void set8565_CHC(uint32_t data) {
   uint32_t _data = OC::DAC::MAX_VALUE - data;
 
+  #ifdef FLIP_180
+  SPIFIFO.write(0b00010010, SPI_CONTINUE);
+  #else
   SPIFIFO.write(0b00010100, SPI_CONTINUE);
+  #endif
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read(); 
@@ -235,7 +247,11 @@ void set8565_CHC(uint32_t data) {
 void set8565_CHD(uint32_t data) {
   uint32_t _data = OC::DAC::MAX_VALUE - data;
 
+  #ifdef FLIP_180
+  SPIFIFO.write(0b00010000, SPI_CONTINUE);
+  #else
   SPIFIFO.write(0b00010110, SPI_CONTINUE);
+  #endif
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();

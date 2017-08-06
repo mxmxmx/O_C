@@ -15,5 +15,6 @@
 //#define BORING_APP_NAMES
 /* ------------ print debug messages to USB serial --------------------------------------------------  */
 //#define PRINT_DEBUG
-
+/* ------------ flip screen / IO mapping ------------------------------------------------------------  */
+//#define FLIP_180
 #endif
