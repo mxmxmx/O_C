@@ -44,8 +44,8 @@ namespace OC {
     extern const uint8_t van_eck[kIntSeqLen];
     extern const uint8_t sum_of_squares_of_digits_of_n[kIntSeqLen];
     extern const uint8_t digsum_of_n[kIntSeqLen];
-    // extern const uint8_t digsum_of_n_base4[kIntSeqLen];
-    // extern const uint8_t digsum_of_n_base5[kIntSeqLen];
+    extern const uint8_t digsum_of_n_base4[kIntSeqLen];
+    extern const uint8_t digsum_of_n_base5[kIntSeqLen];
     extern const uint8_t count_down_by_2[kIntSeqLen];
     extern const uint8_t interspersion_of_A163253[kIntSeqLen];
  };
