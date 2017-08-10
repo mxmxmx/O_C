@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "OC_digital_inputs.h"
 #include "OC_gpio.h"
+#include "OC_options.h"
 
 /*static*/
 uint32_t OC::DigitalInputs::clocked_mask_;
@@ -65,9 +66,14 @@ void OC::DigitalInputs::Init() {
 }
 
 void OC::DigitalInputs::reInit() {
-  // re init TR4, to avoid conflict with the FTM
-  pinMode(TR4, OC_GPIO_TRx_PINMODE);
-  attachInterrupt(TR4, tr4_ISR, FALLING);
+  // re-init TR4, to avoid conflict with the FTM
+  #ifdef FLIP_180
+    pinMode(TR1, OC_GPIO_TRx_PINMODE);
+    attachInterrupt(TR1, tr1_ISR, FALLING);
+  #else
+    pinMode(TR4, OC_GPIO_TRx_PINMODE);
+    attachInterrupt(TR4, tr4_ISR, FALLING);
+  #endif
 }
 
 /*static*/
