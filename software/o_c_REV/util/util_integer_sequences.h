@@ -133,11 +133,11 @@ public:
       	x_ = OC::Strings::digsum_of_n[k_];
       	break;
       case 6:
-      	x_ = OC::Strings::digsum_of_n_base4[k_];
-      	break;
+       	x_ = OC::Strings::digsum_of_n_base4[k_];
+       	break;
       case 7:
-      	x_ = OC::Strings::digsum_of_n_base5[k_];
-      	break;    
+       	x_ = OC::Strings::digsum_of_n_base5[k_];
+       	break;    
       case 8:
       	x_ = OC::Strings::count_down_by_2[k_];
       	break;      	

@@ -38,6 +38,13 @@
 // 
 static constexpr double kAaboveMidCtoC0 = 0.03716272234383494188492;
 
+//
+#ifdef FLIP_180
+const uint8_t DAC_CHANNEL_FTM = DAC_CHANNEL_A;
+#else
+const uint8_t DAC_CHANNEL_FTM = DAC_CHANNEL_D;
+#endif
+
 // 
 #ifdef BUCHLA_4U
   const float target_multipliers[OCTAVES] = { 1.0f, 2.0f, 4.0f, 8.0f, 16.0f, 32.0f, 64.0f, 128.0f, 256.0f, 512.0f };
@@ -526,7 +533,7 @@ public:
     *settings++ = REF_SETTING_AUTOTUNE;
     //*settings++ = REF_SETTING_AUTOTUNE_ERROR;
 
-    if (DAC_CHANNEL_D == dac_channel_) {
+    if (DAC_CHANNEL_FTM == dac_channel_) {
       *settings++ = REF_SETTING_NOTES_OR_BPM;
       *settings++ = REF_SETTING_A_ABOVE_MID_C_INTEGER;
       *settings++ = REF_SETTING_A_ABOVE_MID_C_MANTISSA;
@@ -600,7 +607,7 @@ SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   { 0, 0, 99, " > mantissa", nullptr, settings::STORAGE_TYPE_U8 },
   { CHANNEL_PPQN_4, CHANNEL_PPQN_1, CHANNEL_PPQN_LAST - 1, "> ppqn", ppqn_labels, settings::STORAGE_TYPE_U8 },
   { 0, 0, 0, "--> autotune", NULL, settings::STORAGE_TYPE_U8 },
-  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U4 } // dummy
+  { 0, 0, 0, "-", NULL, settings::STORAGE_TYPE_U8 } // dummy
 };
 
 class ReferencesApp {
@@ -614,8 +621,8 @@ public:
     for (auto &channel : channels_)
       channel.Init(static_cast<DAC_CHANNEL>(dac_channel++));
 
-    ui.selected_channel = DAC_CHANNEL_D;
-    ui.cursor.Init(0, channels_[DAC_CHANNEL_D].num_enabled_settings() - 1);
+    ui.selected_channel = DAC_CHANNEL_FTM;
+    ui.cursor.Init(0, channels_[DAC_CHANNEL_FTM].num_enabled_settings() - 1);
 
     freq_sum_ = 0;
     freq_count_ = 0;
@@ -669,7 +676,7 @@ public:
 
   float get_ppqn() {
     float ppqn_ = 4.0 ;
-    switch(channels_[DAC_CHANNEL_D].get_channel_ppqn()){
+    switch(channels_[DAC_CHANNEL_FTM].get_channel_ppqn()){
       case CHANNEL_PPQN_1:
         ppqn_ = 1.0;
         break;
@@ -712,11 +719,11 @@ public:
   }
 
   bool get_notes_or_bpm( ) {
-    return(static_cast<bool>(channels_[DAC_CHANNEL_D].get_notes_or_bpm())) ;
+    return(static_cast<bool>(channels_[DAC_CHANNEL_FTM].get_notes_or_bpm())) ;
   }
 
   float get_C0_freq() {
-          return(static_cast<float>(channels_[DAC_CHANNEL_D].get_a_above_mid_c() * kAaboveMidCtoC0));
+    return(static_cast<float>(channels_[DAC_CHANNEL_FTM].get_a_above_mid_c() * kAaboveMidCtoC0));
   }
 
 private:
@@ -918,7 +925,11 @@ void REFS_screensaver() {
   int32_t freq_decicents_residual_ = ((freq_decicents_deviation_ - ((freq_octave_ - 1) * 12000)) % 1000) - 500;
 
   if (frequency_ > 0.0) {
-    graphics.printf("TR4 %7.3f Hz", frequency_) ;
+    #ifdef FLIP_180
+    graphics.printf("TR1 %7.3f Hz", frequency_);
+    #else
+    graphics.printf("TR4 %7.3f Hz", frequency_);
+    #endif
     graphics.setPrintPos(2, 56);
     if (references_app.get_notes_or_bpm()) {
       graphics.printf("%7.2f bpm %2.0fppqn", bpm_, references_app.get_ppqn());
@@ -961,10 +972,19 @@ void REFS_handleEncoderEvent(const UI::Event &event) {
   }
   
   if (OC::CONTROL_ENCODER_L == event.control) {
+    
+    int previous = references_app.selected_channel().num_enabled_settings();
     int selected = references_app.ui.selected_channel + event.value;
     CONSTRAIN(selected, 0, NUM_REF_CHANNELS - 0x1);
     references_app.ui.selected_channel = selected;
-    references_app.ui.cursor.AdjustEnd(references_app.selected_channel().num_enabled_settings() - 1);
+
+    // hack -- deal w/ menu items / channels
+    if ((references_app.ui.cursor.cursor_pos() > 4) && (previous > references_app.selected_channel().num_enabled_settings())) {
+      references_app.ui.cursor.Init(0, 0);
+      references_app.ui.cursor.AdjustEnd(references_app.selected_channel().num_enabled_settings() - 1);
+    }
+    else
+      references_app.ui.cursor.AdjustEnd(references_app.selected_channel().num_enabled_settings() - 1);
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (references_app.ui.cursor.editing()) {
         auto &selected_channel = references_app.selected_channel();

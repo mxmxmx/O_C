@@ -26,12 +26,15 @@ namespace OC {
     extern const char * const scaling_string[];
     extern const char * const encoder_config_strings[];
     extern const char * const bytebeat_equation_names[];
+    extern const char * const envelope_shapes[];
     extern const char * const integer_sequence_names[];
     extern const char * const integer_sequence_dirs[];
     extern const char * const trigger_delay_times[kNumDelayTimes];
     extern const char* const chord_property_names[];
     extern const char* const mult[];
     extern const char* const TM_aux_cv_destinations[];
+    extern const char* const reset_behaviours[];
+    extern const char* const falling_gate_behaviours[];
     // Not strings but are constant integer sequences
     extern const uint8_t pi_digits[kIntSeqLen];
     // extern const uint8_t phi_digits[kIntSeqLen];

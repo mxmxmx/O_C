@@ -63,6 +63,7 @@
 #include "tonnetz/tonnetz_state.h"
 #include "OC_bitmaps.h"
 #include "OC_menus.h"
+#include "OC_trigger_delays.h"
 
 #define FRACTIONAL_BITS 24
 #define CLOCK_STEP_RES (0x1 << FRACTIONAL_BITS)
@@ -195,8 +196,8 @@ public:
     quantizer.Init();
     tonnetz_state.init();
 
-    trigger_delay_.Init();
-    delayed_triggers_ = 0;
+    trigger_delays_.Init();
+    strum_inhibit_ = false;
 
     memset(&ui, 0, sizeof(ui));
     ui.cell_cursor.Init(CELL_SETTING_TRANSFORM, CELL_SETTING_LAST - 1);
@@ -262,14 +263,6 @@ public:
     return static_cast<ClearMode>(values_[GRID_SETTING_CLEARMODE]);
   }
 
-  void set_delayed_triggers(uint32_t delayed_triggers) {
-    delayed_triggers_ = delayed_triggers;
-  }
-
-  uint32_t get_delayed_triggers() {
-    return(delayed_triggers_);
-  }
-
   // End of settings
 
   void ISR();
@@ -312,8 +305,8 @@ private:
   int cell_transpose_, cell_inversion_;
   uint32_t history_;
 
-  util::TriggerDelay<OC::kMaxTriggerDelayTicks> trigger_delay_;
-  uint32_t delayed_triggers_;
+  OC::TriggerDelays<OC::kMaxTriggerDelayTicks> trigger_delays_;
+  bool strum_inhibit_ ;
 
   util::RingBuffer<uint32_t, 4> user_actions_;
   util::CriticalSection critical_section_;
@@ -368,15 +361,7 @@ void FASTRUN AutomatonnetzState::ISR() {
   update_trigger_out();
 
   uint32_t triggers = OC::DigitalInputs::clocked();
-
-  trigger_delay_.Update();
-  if (triggers) {
-    trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
-    set_delayed_triggers(triggers) ;
-    triggers = 0;
-  }
-  if (trigger_delay_.triggered())
-    triggers = get_delayed_triggers();
+  triggers = trigger_delays_.Process(triggers, OC::trigger_delay_ticks[get_trigger_delay()]);
 
   bool reset = false;
   while (user_actions_.readable()) {
@@ -432,15 +417,18 @@ void FASTRUN AutomatonnetzState::ISR() {
   // Arp/strum
   if (chord_changed && OUTPUTA_MODE_STRUM == output_mode()) {
     arp_index_ = 0;
+    strum_inhibit_ = false;
   } else if ((triggers & TRIGGER_MASK_ARP) &&
              !reset &&
              !OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_4>()) {
     ++arp_index_;
-    if (arp_index_ >= 3)
+    if (arp_index_ >= 3) {
       arp_index_ = 0;
+      strum_inhibit_ = true;
+    }
   }
 
-  if (triggers & TRIGGER_MASK_GRID)
+  if ((triggers & TRIGGER_MASK_GRID) || (triggers & TRIGGER_MASK_ARP))
     update_outputs(chord_changed, cell_transpose_, cell_inversion_);
 }
 
@@ -477,8 +465,10 @@ void AutomatonnetzState::update_outputs(bool chord_changed, int transpose, int i
       }
       break;
     case OUTPUTA_MODE_ARP:
-    case OUTPUTA_MODE_STRUM:
       OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
+    case OUTPUTA_MODE_STRUM:
+      if (!strum_inhibit_) 
+          OC::DAC::set_voltage_scaled_semitone<DAC_CHANNEL_A>(tonnetz_state.outputs(arp_index_ + 1), octave(), OC::DAC::get_voltage_scaling(DAC_CHANNEL_A));
       break;
     case OUTPUTA_MODE_LAST:
     default:
