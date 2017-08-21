@@ -78,8 +78,9 @@ enum CHORDS_SETTINGS {
 
 enum CHORDS_CV_SOURCES {
   CHORDS_CV_SOURCE_CV1,
-  CHORDS_CV_SOURCE_NONE,
-  // todo
+  CHORDS_CV_SOURCE_CV2,
+  CHORDS_CV_SOURCE_CV3,
+  CHORDS_CV_SOURCE_CV4,
   CHORDS_CV_SOURCE_LAST
 };
 
@@ -797,7 +798,7 @@ public:
         // to do
       }  
       
-      update_scale(true, schedule_mask_rotate_);
+      //update_scale(true, schedule_mask_rotate_);
       
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       // main sample, S/H:
@@ -979,10 +980,6 @@ const char* const chords_advance_trigger_sources[] = {
   "TR1", "TR2"
 };
 
-const char* const chords_cv_main_source[] = {
-  "CV1", "-"
-};
-
 const char* const chords_slots[] = {
   "#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"
 };
@@ -996,7 +993,7 @@ SETTINGS_DECLARE(Chords, CHORDS_SETTING_LAST) {
   { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 }, 
   { 0, 0, OC::Chords::NUM_CHORD_PROGRESSIONS - 1, "progression", chords_slots, settings::STORAGE_TYPE_U8 },
   { 65535, 1, 65535, "scale  -->", NULL, settings::STORAGE_TYPE_U16 }, // mask
-  { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", chords_cv_main_source, settings::STORAGE_TYPE_U8 }, /// to do ..
+  { 0, 0, CHORDS_CV_SOURCE_LAST - 1, "CV source", OC::Strings::cv_input_names, settings::STORAGE_TYPE_U8 }, /// to do ..
   { CHORDS_ADVANCE_TRIGGER_SOURCE_TR2, 0, CHORDS_ADVANCE_TRIGGER_SOURCE_LAST - 1, "chords trg src", chords_advance_trigger_sources, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_PLAYMODES_LAST - 1, "playmode", chord_playmodes, settings::STORAGE_TYPE_U8 },
   { 0, 0, CHORDS_DIRECTIONS_LAST - 1, "direction", OC::Strings::seq_directions, settings::STORAGE_TYPE_U8 },
