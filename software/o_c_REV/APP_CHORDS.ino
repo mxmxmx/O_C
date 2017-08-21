@@ -402,7 +402,7 @@ public:
   }
 
   void force_update() {
-    force_update_ = true;
+    //force_update_ = true;
   }
 
   int8_t _clock(uint8_t sequence_length, uint8_t sequence_count, uint8_t sequence_max, bool _reset) {
