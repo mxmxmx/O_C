@@ -379,7 +379,6 @@ public:
     last_scale_= -1;
     last_mask_ = 0;
     last_sample_ = 0;
-    schedule_mask_rotate_ = false;
     chord_advance_last_ = true;
     progression_advance_last_ = true;
     active_chord_ = 0;
@@ -553,16 +552,13 @@ public:
     if (triggered)
       trigger_delay_.Push(OC::trigger_delay_ticks[get_trigger_delay()]);
     triggered = trigger_delay_.triggered();
-    
-    if (triggered) 
-      update_scale(force_update_, schedule_mask_rotate_);
-       
+           
     int32_t sample_a = last_sample_;
     int32_t temp_sample = 0;
 
     if (triggered) {
         
-      int32_t pitch, cv_source, transpose, octave, root;
+      int32_t pitch, cv_source, transpose, octave, root, mask_rotate;
       int8_t num_progression, num_progression_cv, num_chords, num_chords_cv, progression_max, progression_cnt, playmode, reset;
       
       cv_source = get_cv_source();
@@ -576,8 +572,16 @@ public:
       num_chords = 0;
       num_chords_cv = 0;
       reset = 0;
+      mask_rotate = 0;
       playmode = get_playmode();
 
+      // update mask?
+      if (get_mask_cv()) {
+        mask_rotate = (OC::ADC::value(static_cast<ADC_CHANNEL>(get_mask_cv() - 0x1)) + 127) >> 8;
+      }
+              
+      update_scale(force_update_, mask_rotate);
+      
       if (num_progression != progression_last_ || playmode != playmode_last_) {
         // reset progression:
         progression_cnt_ = 0x0;
@@ -793,12 +797,6 @@ public:
         _voicing += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_voicing_cv() - 1)) + 255) >> 9;
         CONSTRAIN(_voicing, 0,  OC::Chords::CHORDS_VOICING_LAST - 1);
       }
-
-      if (get_mask_cv()) {
-        // to do
-      }  
-      
-      //update_scale(true, schedule_mask_rotate_);
       
       int32_t quantized = quantizer_.Process(pitch, root << 7, transpose);
       // main sample, S/H:
@@ -895,7 +893,7 @@ public:
       break;
       case MENU_CV_MAPPING: {
 
-        *settings++ = CHORDS_SETTING_MASK;
+        *settings++ = CHORDS_SETTING_MASK_CV;
         // destinations:
         // hide root CV?
         if (get_scale(DUMMY) != OC::Scales::SCALE_NONE)  
@@ -931,7 +929,6 @@ private:
   bool _octave_toggle;
   int last_scale_;
   uint16_t last_mask_;
-  int32_t schedule_mask_rotate_;
   int32_t last_sample_;
   uint8_t display_num_chords_;
   bool chord_advance_last_;
