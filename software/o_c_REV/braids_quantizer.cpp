@@ -87,7 +87,7 @@ void Quantizer::Configure(
         ++octave;
       }
     }
-    memcpy(codebook, codebook_, 256);
+    memcpy(codebook_, codebook, 256);
   }
 }
 
