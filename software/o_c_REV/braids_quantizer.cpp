@@ -52,10 +52,10 @@ void Quantizer::Init() {
 
 void Quantizer::Configure(
     const int16_t* notes,
-    int16_t span,
+    int16_t scale_span,
     size_t num_notes,
     uint16_t mask) {
-  enabled_ = notes != NULL && num_notes != 0 && span != 0 && (mask & ~(0xffff<<num_notes));
+  enabled_ = notes != NULL && num_notes != 0 && scale_span != 0 && (mask & ~(0xffff<<num_notes));
   if (enabled_) {
 
     // Build up array that contains only the enabled notes, and use that to
@@ -67,25 +67,27 @@ void Quantizer::Configure(
         enabled_notes_[num_enabled_notes++] = notes[i];
       mask >>= 1;
     }
-    num_notes = num_enabled_notes;
     notes = enabled_notes_;
-
+   
     int32_t octave = 0;
     size_t note = 0;
-    int16_t root = 0;
+    int16_t span = scale_span;
+    int16_t codebook[128];
+  
     for (int32_t i = 0; i < 64; ++i) {
-      int32_t up = root + notes[note] + span * octave;
-      int32_t down = root + notes[num_notes - 1 - note] + (-octave - 1) * span;
+      int32_t up = notes[note] + span * octave;
+      int32_t down = notes[num_enabled_notes - 1 - note] + (-octave - 1) * span;
       CLIP(up)
       CLIP(down)
-      codebook_[64 + i] = up;
-      codebook_[64 - i - 1] = down;
+      codebook[64 + i] = up;
+      codebook[64 - i - 1] = down;
       ++note;
-      if (note >= num_notes) {
+      if (note >= num_enabled_notes) {
         note = 0;
         ++octave;
       }
     }
+    memcpy(codebook, codebook_, 256);
   }
 }
 
