@@ -72,22 +72,23 @@ void Quantizer::Configure(
     int32_t octave = 0;
     size_t note = 0;
     int16_t span = scale_span;
-    int16_t codebook[128];
+    int16_t *codebook;
+    
+    codebook = &codebook_[0];
   
     for (int32_t i = 0; i < 64; ++i) {
       int32_t up = notes[note] + span * octave;
       int32_t down = notes[num_enabled_notes - 1 - note] + (-octave - 1) * span;
       CLIP(up)
       CLIP(down)
-      codebook[64 + i] = up;
-      codebook[64 - i - 1] = down;
+      *(codebook + 64 + i) = up;
+      *(codebook + 63 - i) = down;
       ++note;
       if (note >= num_enabled_notes) {
         note = 0;
         ++octave;
       }
     }
-    memcpy(codebook_, codebook, 256);
   }
 }
 
