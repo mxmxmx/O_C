@@ -77,9 +77,17 @@ const uint64_t multipliers_[] = {
 const uint64_t pw_scale_[] = {
   
   0xFFFFFFFF, // /64
+  0xFBFFFFFF, // /63
+  0xF7FFFFFF, // /62
+  0xC3FFFFFF, // /49
   0xC0000000, // /48
+  0xBBFFFFFF, // /47
+  0x83FFFFFF, // /33
   0x80000000, // /32
+  0x7BFFFFFF, // /31
+  0x43FFFFFF, // /17
   0x40000000, // /16
+  0x3BFFFFFF, // /15
   0x20000000, // /8
   0x1C000000, // /7
   0x18000000, // /6
@@ -89,12 +97,12 @@ const uint64_t pw_scale_[] = {
   0x8000000,  // /2
   0x4000000,  // x1
 
-}; // = 2^32 * divisor / 64
+}; // = 0xFFFFFFFF * divisor / 64
 
 const uint8_t divisors_[] = {
-   65,
    64,
    63,
+   62,
    49,
    48,
    47,
@@ -1919,7 +1927,7 @@ const char* const reset_trigger_sources[] = {
 };
 
 const char* const display_multipliers[] = {
-  "/65", "/64", "/63", "/49", "/48", "/47", "/33", "/32", "/31", "/17", "/16", "/15", "/8", "/7", "/6", "/5", "/4", "/3", "/2", "-", "x2", "x3", "x4", "x5", "x6", "x7", "x8"
+  "/64", "/63", "/62", "/49", "/48", "/47", "/33", "/32", "/31", "/17", "/16", "/15", "/8", "/7", "/6", "/5", "/4", "/3", "/2", "-", "x2", "x3", "x4", "x5", "x6", "x7", "x8"
 };
 
 const char* const modes[] = {
