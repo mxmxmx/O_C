@@ -992,6 +992,7 @@ public:
       *settings++ = CHANNEL_SETTING_CLKDIV;
       *settings++ = CHANNEL_SETTING_DELAY;
     }
+    *settings++ = CHANNEL_SETTING_OCTAVE;
     *settings++ = CHANNEL_SETTING_TRANSPOSE;
     *settings++ = CHANNEL_SETTING_FINE;
   
