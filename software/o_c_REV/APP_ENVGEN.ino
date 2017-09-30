@@ -316,7 +316,7 @@ public:
     return 0;
   }
 
-  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[kMaxSegments + kEuclideanParams + kDelayParams + kAmplitudeParams]) {
+  inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[CV_MAPPING_LAST]) {
     int mapping = values_[cv_setting];
     switch (mapping) {
       case CV_MAPPING_SEG1:
@@ -419,53 +419,54 @@ public:
 
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, uint32_t internal_trigger_mask, const int32_t cvs[ADC_CHANNEL_LAST]) {
-    int32_t s[kMaxSegments + kEuclideanParams + kDelayParams + kAmplitudeParams];
-    s[0] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
-    s[1] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
-    s[2] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
-    s[3] = SCALE8_16(static_cast<int32_t>(get_segment_value(3)));
-    s[4] = static_cast<int32_t>(get_euclidean_length());
-    s[5] = static_cast<int32_t>(get_euclidean_fill());
-    s[6] = static_cast<int32_t>(get_euclidean_offset());
-    s[7] = get_trigger_delay_ms();
-    s[8] = get_amplitude();
-    s[9] = get_max_loops();
+    int32_t s[CV_MAPPING_LAST];
+    s[CV_MAPPING_SEG1] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
+    s[CV_MAPPING_SEG2] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
+    s[CV_MAPPING_SEG3] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
+    s[CV_MAPPING_SEG4] = SCALE8_16(static_cast<int32_t>(get_segment_value(3)));
+    s[CV_MAPPING_ADR] = 0; // unused, but needs a placeholder to align with enum CVMapping
+    s[CV_MAPPING_EUCLIDEAN_LENGTH] = static_cast<int32_t>(get_euclidean_length());
+    s[CV_MAPPING_EUCLIDEAN_FILL] = static_cast<int32_t>(get_euclidean_fill());
+    s[CV_MAPPING_EUCLIDEAN_OFFSET] = static_cast<int32_t>(get_euclidean_offset());
+    s[CV_MAPPING_DELAY_MSEC] = get_trigger_delay_ms();
+    s[CV_MAPPING_AMPLITUDE] = get_amplitude();
+    s[CV_MAPPING_MAX_LOOPS] = get_max_loops();
 
     apply_cv_mapping(ENV_SETTING_CV1, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV2, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV3, cvs, s);
     apply_cv_mapping(ENV_SETTING_CV4, cvs, s);
 
-    s[0] = USAT16(s[0]);
-    s[1] = USAT16(s[1]);
-    s[2] = USAT16(s[2]);
-    s[3] = USAT16(s[3]);
-    CONSTRAIN(s[4], 0, 31);
-    CONSTRAIN(s[5], 0, 32);
-    CONSTRAIN(s[6], 0, 32);
-    CONSTRAIN(s[7], 0, 65535);
-    CONSTRAIN(s[8], 0, 65535);
-    CONSTRAIN(s[9], 0, 65535);
+    s[CV_MAPPING_SEG1] = USAT16(s[CV_MAPPING_SEG1]);
+    s[CV_MAPPING_SEG2] = USAT16(s[CV_MAPPING_SEG2]);
+    s[CV_MAPPING_SEG3] = USAT16(s[CV_MAPPING_SEG3]);
+    s[CV_MAPPING_SEG4] = USAT16(s[CV_MAPPING_SEG4]);
+    CONSTRAIN(s[CV_MAPPING_EUCLIDEAN_LENGTH], 0, 31);
+    CONSTRAIN(s[CV_MAPPING_EUCLIDEAN_FILL], 0, 32);
+    CONSTRAIN(s[CV_MAPPING_EUCLIDEAN_OFFSET], 0, 32);
+    CONSTRAIN(s[CV_MAPPING_DELAY_MSEC], 0, 65535);
+    CONSTRAIN(s[CV_MAPPING_AMPLITUDE], 0, 65535);
+    CONSTRAIN(s[CV_MAPPING_MAX_LOOPS], 0, 65535);
 
     EnvelopeType type = get_type();
     switch (type) {
-      case ENV_TYPE_AD: env_.set_ad(s[0], s[1], 0, 0); break;
-      case ENV_TYPE_ADSR: env_.set_adsr(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADR: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 0 ); break;
-      case ENV_TYPE_AR: env_.set_ar(s[0], s[1]); break;
-      case ENV_TYPE_ADSAR: env_.set_adsar(s[0], s[1], s[2]>>1, s[3]); break;
-      case ENV_TYPE_ADAR: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 0); break;
-      case ENV_TYPE_ADL2: env_.set_ad(s[0], s[1], 0, 2); break;
-      case ENV_TYPE_ADRL3: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 3); break;
-      case ENV_TYPE_ADL2R: env_.set_adr(s[0], s[1], s[2]>>1, s[3], 0, 2); break;
-      case ENV_TYPE_ADARL4: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 0, 4); break;
-      case ENV_TYPE_ADAL2R: env_.set_adar(s[0], s[1], s[2]>>1, s[3], 1, 3); break; // was 2, 4
+      case ENV_TYPE_AD: env_.set_ad(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], 0, 0); break;
+      case ENV_TYPE_ADSR: env_.set_adsr(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4]); break;
+      case ENV_TYPE_ADR: env_.set_adr(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4], 0, 0 ); break;
+      case ENV_TYPE_AR: env_.set_ar(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2]); break;
+      case ENV_TYPE_ADSAR: env_.set_adsar(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4]); break;
+      case ENV_TYPE_ADAR: env_.set_adar(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4], 0, 0); break;
+      case ENV_TYPE_ADL2: env_.set_ad(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], 0, 2); break;
+      case ENV_TYPE_ADRL3: env_.set_adr(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4], 0, 3); break;
+      case ENV_TYPE_ADL2R: env_.set_adr(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4], 0, 2); break;
+      case ENV_TYPE_ADARL4: env_.set_adar(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4], 0, 4); break;
+      case ENV_TYPE_ADAL2R: env_.set_adar(s[CV_MAPPING_SEG1], s[CV_MAPPING_SEG2], s[CV_MAPPING_SEG3]>>1, s[CV_MAPPING_SEG4], 1, 3); break; // was 2, 4
       default:
       break;
     }
 
     // set the amplitude
-    env_.set_amplitude(s[8], is_amplitude_sampled()) ;
+    env_.set_amplitude(s[CV_MAPPING_AMPLITUDE], is_amplitude_sampled()) ;
     
     if (type != last_type_) {
       last_type_ = type;
@@ -488,7 +489,7 @@ public:
     env_.set_release_time_multiplier(get_release_time_multiplier());
 
     // set the looping envelope maximum number of loops
-    env_.set_max_loops(s[9]);
+    env_.set_max_loops(s[CV_MAPPING_MAX_LOOPS]);
 
     int trigger_input = get_trigger_input();
     bool triggered = false;
@@ -507,9 +508,9 @@ public:
     trigger_display_.Update(1, triggered || gate_raised_);
 
     if (triggered) ++euclidean_counter_;
-    uint8_t euclidean_length = static_cast<uint8_t>(s[4]);
-    uint8_t euclidean_fill = static_cast<uint8_t>(s[5]);
-    uint8_t euclidean_offset = static_cast<uint8_t>(s[6]);
+    uint8_t euclidean_length = static_cast<uint8_t>(s[CV_MAPPING_EUCLIDEAN_LENGTH]);
+    uint8_t euclidean_fill = static_cast<uint8_t>(s[CV_MAPPING_EUCLIDEAN_FILL]);
+    uint8_t euclidean_offset = static_cast<uint8_t>(s[CV_MAPPING_EUCLIDEAN_OFFSET]);
 
     // Process Euclidean pattern reset
     uint8_t euclidean_reset_trigger_input = get_euclidean_reset_trigger_input();
@@ -534,7 +535,7 @@ public:
     if (triggered) {
       TriggerDelayMode delay_mode = get_trigger_delay_mode();
       // uint32_t delay = get_trigger_delay_ms() * 1000U;
-      uint32_t delay = static_cast<uint32_t>(s[7] * 1000U);
+      uint32_t delay = static_cast<uint32_t>(s[CV_MAPPING_DELAY_MSEC] * 1000U);
       if (delay_mode && delay) {
         triggered = false;
         if (TRIGGER_DELAY_QUEUE == delay_mode) {
