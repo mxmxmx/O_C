@@ -207,7 +207,11 @@ uint8_t DAC::DAC_scaling[DAC_CHANNEL_LAST];
 }; // namespace OC
 
 void set8565_CHA(uint32_t data) {
+  #ifdef BUCHLA_cOC
+  uint32_t _data = data;
+  #else
   uint32_t _data = OC::DAC::MAX_VALUE - data;
+  #endif
   #ifdef FLIP_180
   SPIFIFO.write(0b00010110, SPI_CONTINUE);
   #else
@@ -219,8 +223,11 @@ void set8565_CHA(uint32_t data) {
 }
 
 void set8565_CHB(uint32_t data) {
+  #ifdef BUCHLA_cOC
+  uint32_t _data = data;
+  #else
   uint32_t _data = OC::DAC::MAX_VALUE - data;
-
+  #endif
   #ifdef FLIP_180
   SPIFIFO.write(0b00010100, SPI_CONTINUE);
   #else
@@ -232,8 +239,11 @@ void set8565_CHB(uint32_t data) {
 }
 
 void set8565_CHC(uint32_t data) {
+  #ifdef BUCHLA_cOC
+  uint32_t _data = data;
+  #else
   uint32_t _data = OC::DAC::MAX_VALUE - data;
-
+  #endif
   #ifdef FLIP_180
   SPIFIFO.write(0b00010010, SPI_CONTINUE);
   #else
@@ -245,8 +255,11 @@ void set8565_CHC(uint32_t data) {
 }
 
 void set8565_CHD(uint32_t data) {
+  #ifdef BUCHLA_cOC
+  uint32_t _data = data;
+  #else
   uint32_t _data = OC::DAC::MAX_VALUE - data;
-
+  #endif
   #ifdef FLIP_180
   SPIFIFO.write(0b00010000, SPI_CONTINUE);
   #else
