@@ -10,7 +10,12 @@
 
 using OC::DAC;
 
+#ifdef BUCHLA_cOC
+static constexpr uint16_t DAC_OFFSET = 485;  // DAC offset, initial approx., ish (Easel card)
+#else
 static constexpr uint16_t DAC_OFFSET = 4890; // DAC offset, initial approx., ish --> -3.5V to 6V
+#endif
+
 #ifdef BUCHLA_4U
   static constexpr uint16_t _ADC_OFFSET = (uint16_t)((float)pow(2,OC::ADC::kAdcResolution)*1.0f);       // ADC offset @3.3V
 #else
