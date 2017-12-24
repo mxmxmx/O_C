@@ -150,6 +150,8 @@ public:
 
 protected:
 
+  static constexpr uint16_t kNibbleValid = 0xf000;
+
   int values_[num_settings];
   static const settings::value_attr value_attr_[];
   static const size_t storage_size_;
@@ -163,11 +165,13 @@ protected:
   }
 
   uint8_t *write_nibble(uint8_t *dest, size_t index) const {
-    nibbles_ = (nibbles_ << 4) | (values_[index] & 0x0f);
-    if (nibbles_ & 0xf000) {
+    if (nibbles_) {
+      nibbles_ |= (values_[index] & 0x0f);
       dest = flush_nibbles(dest);
     } else {
-      nibbles_ |= 0x0f00;
+      // Ensure correct packing for reads even if there's an odd number of nibbles;
+      // the first nibble is assumed to be in the msbits.
+      nibbles_ = kNibbleValid | ((values_[index] & 0x0f) << 4);
     }
     return dest;
   }
@@ -187,9 +191,9 @@ protected:
       value = nibbles_ & 0x0f;
       nibbles_ = 0;
     } else {
-      nibbles_ = *src++;
-      value = (nibbles_ & 0xf0) >> 4;
-      nibbles_ = nibbles_ | 0xf000;
+      value = *src++;
+      nibbles_ = kNibbleValid | value;
+      value >>= 4;
     }
     apply_value(index, value);
     return src;
