@@ -39,6 +39,13 @@
 #include "OC_scale_edit.h"
 #include "OC_strings.h"
 
+
+#ifdef BUCHLA_4U
+ #define QQ_OFFSET_X 20
+#else
+ #define QQ_OFFSET_X 31
+#endif
+
 enum ChannelSetting {
   CHANNEL_SETTING_SCALE,
   CHANNEL_SETTING_ROOT,
@@ -1489,15 +1496,15 @@ void QuantizerChannel::RenderScreensaver(weegfx::coord_t start_x) const {
       // menu::DrawMask<true, 8, 8, 1>(start_x + 31, 1, get_int_seq_register(), 8);
       break;
     default: {
-      graphics.setPixel(start_x + 31 - 16, 4);
+      graphics.setPixel(start_x + QQ_OFFSET_X - 16, 4);
       int32_t cv = OC::ADC::value(static_cast<ADC_CHANNEL>(source));
       cv = (cv * 24 + 2047) >> 12;
       if (cv < 0)
-        graphics.drawRect(start_x + 31 - 16 + cv, 6, -cv, 2);
+        graphics.drawRect(start_x + QQ_OFFSET_X - 16 + cv, 6, -cv, 2);
       else if (cv > 0)
-        graphics.drawRect(start_x + 31 - 16, 6, cv, 2);
+        graphics.drawRect(start_x + QQ_OFFSET_X - 16, 6, cv, 2);
       else
-        graphics.drawRect(start_x + 31 - 16, 6, 1, 2);
+        graphics.drawRect(start_x + QQ_OFFSET_X - 16, 6, 1, 2);
     }
     break;
   }

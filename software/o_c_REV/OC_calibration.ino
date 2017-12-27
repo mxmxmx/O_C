@@ -11,7 +11,7 @@
 using OC::DAC;
 
 #ifdef BUCHLA_cOC
-static constexpr uint16_t DAC_OFFSET = 335;  // DAC offset, initial approx., ish (Easel card)
+static constexpr uint16_t DAC_OFFSET = 0;  // DAC offset, initial approx., ish (Easel card)
 #else
 static constexpr uint16_t DAC_OFFSET = 4890; // DAC offset, initial approx., ish --> -3.5V to 6V
 #endif
@@ -33,10 +33,18 @@ bool calibration_data_loaded = false;
 const OC::CalibrationData kCalibrationDefaults = {
   // DAC
   { {
+    #ifdef BUCHLA_cOC
+    {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400},
+    {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400},
+    {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400},
+    {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400}
+    #else
     {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
     {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
     {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
-    {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535} },
+    {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535} 
+    #endif
+    },
   },
   // ADC
   { { _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET, _ADC_OFFSET },

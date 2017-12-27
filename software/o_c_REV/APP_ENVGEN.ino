@@ -1,4 +1,3 @@
-// Copyright (c) 2016 Patrick Dowling, Tim Churches
 //
 // Initial app implementation: Patrick Dowling (pld@gurkenkiste.com)
 // Modifications by: Tim Churches (tim.churches@gmail.com)
