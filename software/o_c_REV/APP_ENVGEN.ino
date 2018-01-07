@@ -316,32 +316,33 @@ public:
   }
 
   inline void apply_cv_mapping(EnvelopeSettings cv_setting, const int32_t cvs[ADC_CHANNEL_LAST], int32_t segments[CV_MAPPING_LAST]) {
+    // segments is indexed directly with CVMapping enum values
     int mapping = values_[cv_setting];
     switch (mapping) {
       case CV_MAPPING_SEG1:
       case CV_MAPPING_SEG2:
       case CV_MAPPING_SEG3:
       case CV_MAPPING_SEG4:
-        segments[mapping - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[mapping] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
         break;
       case CV_MAPPING_ADR:
-        segments[CV_MAPPING_SEG1 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
-        segments[CV_MAPPING_SEG2 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
-        segments[CV_MAPPING_SEG4 - CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG1] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG2] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
+        segments[CV_MAPPING_SEG4] += (cvs[cv_setting - ENV_SETTING_CV1] * 65536) >> 12;
         break;
       case CV_MAPPING_EUCLIDEAN_LENGTH:
       case CV_MAPPING_EUCLIDEAN_FILL:
       case CV_MAPPING_EUCLIDEAN_OFFSET:
-        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 6;
+        segments[mapping] += cvs[cv_setting - ENV_SETTING_CV1]  >> 6;
         break;
       case CV_MAPPING_DELAY_MSEC:
-        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1]  >> 2;
+        segments[mapping] += cvs[cv_setting - ENV_SETTING_CV1]  >> 2;
         break;
       case  CV_MAPPING_AMPLITUDE:
-        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1] << 5 ;
+        segments[mapping] += cvs[cv_setting - ENV_SETTING_CV1] << 5 ;
         break;
       case  CV_MAPPING_MAX_LOOPS:
-        segments[mapping - CV_MAPPING_SEG1] += cvs[cv_setting - ENV_SETTING_CV1] << 2 ;
+        segments[mapping] += cvs[cv_setting - ENV_SETTING_CV1] << 2 ;
         break;
       default:
         break;
@@ -419,6 +420,7 @@ public:
   template <DAC_CHANNEL dac_channel>
   void Update(uint32_t triggers, uint32_t internal_trigger_mask, const int32_t cvs[ADC_CHANNEL_LAST]) {
     int32_t s[CV_MAPPING_LAST];
+    s[CV_MAPPING_NONE] = 0; // unused, but needs a placeholder to align with enum CVMapping
     s[CV_MAPPING_SEG1] = SCALE8_16(static_cast<int32_t>(get_segment_value(0)));
     s[CV_MAPPING_SEG2] = SCALE8_16(static_cast<int32_t>(get_segment_value(1)));
     s[CV_MAPPING_SEG3] = SCALE8_16(static_cast<int32_t>(get_segment_value(2)));
