@@ -1513,7 +1513,7 @@ public:
       break;
       case PENDULUM1:
       case BROWNIAN:
-      if (BROWNIAN == get_direction()) {
+      if (BROWNIAN == _direction) {
         // Compare Brownian probability and reverse direction if needed
         int16_t brown_prb = get_brownian_probability();
 
