@@ -19,5 +19,7 @@
 //#define PRINT_DEBUG
 /* ------------ flip screen / IO mapping ------------------------------------------------------------  */
 //#define FLIP_180
+/* ------------ invert screen pixels ----------------------------------------------------------------  */
+//#define INVERT_DISPLAY
 #endif
 
