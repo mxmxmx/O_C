@@ -33,7 +33,7 @@
 *
 */
 
-#include <SPIFIFO.h>
+#include "util/util_SPIFIFO.h"
 #include "OC_DAC.h"
 #include "OC_gpio.h"
 #include "OC_options.h"
