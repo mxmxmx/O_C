@@ -12,7 +12,7 @@ CXX   = g++
 LD    = g++
 AR    = ar -r
 
-CPPFLAGS += -I$(OC_SRC_DIR) -I$(GTEST_DIR)include -Wall -Werror
+CPPFLAGS += -I$(OC_SRC_DIR) -I$(GTEST_DIR)include -Wall -Werror -std=c++11
 
 # GTEST
 GTEST_DIR = ./gtest/googletest/

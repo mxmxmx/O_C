@@ -70,7 +70,11 @@ static uint8_t SH1106_init_seq[] = {
   
   0x02e,        /* 2012-05-27: Deactivate scroll */ 
   0x0a4,        /* output ram to display */
+#ifdef INVERT_DISPLAY
+  0x0a7,        /* inverted display mode */
+#else
   0x0a6,        /* none inverted normal display mode */
+#endif
   //0x0af,      /* display on */
 };
 

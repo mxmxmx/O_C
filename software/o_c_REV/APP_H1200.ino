@@ -1045,11 +1045,11 @@ void H1200_handleButtonEvent(const UI::Event &event) {
   if (UI::EVENT_BUTTON_PRESS == event.type) {
     switch (event.control) {
       case OC::CONTROL_BUTTON_UP:
-        if (h1200_settings.change_value(H1200_SETTING_INVERSION, 1))
+        if (h1200_settings.change_value(H1200_SETTING_OCTAVE, 1))
           h1200_state.force_update();
         break;
       case OC::CONTROL_BUTTON_DOWN:
-        if (h1200_settings.change_value(H1200_SETTING_INVERSION, -1))
+        if (h1200_settings.change_value(H1200_SETTING_OCTAVE, -1))
           h1200_state.force_update();
         break;
       case OC::CONTROL_BUTTON_L:
@@ -1070,7 +1070,7 @@ void H1200_handleButtonEvent(const UI::Event &event) {
 void H1200_handleEncoderEvent(const UI::Event &event) {
 
   if (OC::CONTROL_ENCODER_L == event.control) {
-    if (h1200_settings.change_value(H1200_SETTING_ROOT_OFFSET, event.value))
+    if (h1200_settings.change_value(H1200_SETTING_INVERSION, event.value))
       h1200_state.force_update();
   } else if (OC::CONTROL_ENCODER_R == event.control) {
     if (h1200_state.cursor.editing()) {

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "OC_config.h"
 #include "OC_core.h"
+#include "OC_gpio.h"
 
 namespace OC {
 
@@ -21,6 +22,12 @@ static constexpr uint32_t DIGITAL_INPUT_1_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPU
 static constexpr uint32_t DIGITAL_INPUT_2_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_2);
 static constexpr uint32_t DIGITAL_INPUT_3_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_3);
 static constexpr uint32_t DIGITAL_INPUT_4_MASK = DIGITAL_INPUT_MASK(DIGITAL_INPUT_4);
+
+template <DigitalInput> struct InputPinDesc { };
+template <> struct InputPinDesc<DIGITAL_INPUT_1> { static constexpr int PIN = TR1; };
+template <> struct InputPinDesc<DIGITAL_INPUT_2> { static constexpr int PIN = TR2; };
+template <> struct InputPinDesc<DIGITAL_INPUT_3> { static constexpr int PIN = TR3; };
+template <> struct InputPinDesc<DIGITAL_INPUT_4> { static constexpr int PIN = TR4; };
 
 class DigitalInputs {
 public:
@@ -47,11 +54,11 @@ public:
   }
 
   template <DigitalInput input> static inline bool read_immediate() {
-    return !digitalReadFast(input);
+    return !digitalReadFast(InputPinDesc<input>::PIN);
   }
 
   static inline bool read_immediate(DigitalInput input) {
-    return !digitalReadFast(input);
+    return !digitalReadFast(InputPinMap(input));
   }
 
   template <DigitalInput input> static inline void clock() {
@@ -59,6 +66,17 @@ public:
   }
 
 private:
+
+  inline static int InputPinMap(DigitalInput input) {
+    switch (input) {
+      case DIGITAL_INPUT_1: return InputPinDesc<DIGITAL_INPUT_1>::PIN;
+      case DIGITAL_INPUT_2: return InputPinDesc<DIGITAL_INPUT_2>::PIN;
+      case DIGITAL_INPUT_3: return InputPinDesc<DIGITAL_INPUT_3>::PIN;
+      case DIGITAL_INPUT_4: return InputPinDesc<DIGITAL_INPUT_4>::PIN;
+      default: break;
+    }
+    return 0;
+  }
 
   static uint32_t clocked_mask_;
   static volatile uint32_t clocked_[DIGITAL_INPUT_LAST];
