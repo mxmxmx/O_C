@@ -1386,10 +1386,11 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
           break;
-            case DQ_CHANNEL_SETTING_SCALE_SEQ:
+          case DQ_CHANNEL_SETTING_SCALE_SEQ:
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
             selected.reset_scale();
+          break;
           default:
           break;
         }
