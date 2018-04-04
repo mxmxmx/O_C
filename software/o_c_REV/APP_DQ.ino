@@ -532,7 +532,7 @@ public:
 
       // update scale?
       if (update || schedule_scale_update_) 
-        update_scale(force_update_, active_scale_slot_, schedule_mask_rotate_);
+        update_scale(force_update_, display_scale_slot_, schedule_mask_rotate_);
 
       // internal CV source?
       if (source > DQ_CHANNEL_SOURCE_CV4) 
