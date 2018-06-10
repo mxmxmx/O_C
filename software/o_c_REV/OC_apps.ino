@@ -48,7 +48,8 @@ OC::App available_apps[] = {
   DECLARE_APP('B','B', "Balls", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Bytebeats", BYTEBEATGEN, BYTEBEATGEN_isr),
   DECLARE_APP('C','Q', "Chords", CHORDS, CHORDS_isr),
-  DECLARE_APP('R','F', "Voltages", REFS, REFS_isr)
+  DECLARE_APP('R','F', "Voltages", REFS, REFS_isr),
+  DECLARE_APP('H','W', "Test", HELLO, HELLO_isr)
 };
 #else 
 OC::App available_apps[] = {
@@ -64,7 +65,8 @@ OC::App available_apps[] = {
   DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
   DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
   DECLARE_APP('C','Q', "Acid Curds", CHORDS, CHORDS_isr),
-  DECLARE_APP('R','F', "References", REFS, REFS_isr)
+  DECLARE_APP('R','F', "References", REFS, REFS_isr),
+  DECLARE_APP('H','W', "Hello, World", HELLO, HELLO_isr)
 };
 #endif
 
