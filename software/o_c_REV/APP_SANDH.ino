@@ -17,11 +17,11 @@ public:
     		// to see if there's a new clock. If so, the TriggerAndSetSample() method is executed:
     		bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
     		if (update) {
-    			this->TriggerAndSetSample();
+    			this->ReadAndSetSample();
     		}
     }
 
-    void TriggerAndSetSample() {
+    void ReadAndSetSample() {
     		// TUTORIAL STEP 4: When the ISR() method detects a new clock signal, this method uses OC::ADC
     	    // to check the raw pitch value of of Input 1. It sets Output A to the same value, where it stays
     	    // until there's a new trigger.
