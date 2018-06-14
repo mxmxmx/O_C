@@ -14,7 +14,7 @@ public:
 
     void ISR() {
     		// TUTORIAL STEP 3 (continued): This is the actual ISR() method, which reads the first digital input
-    		// to see if there's a new clock. If so, the TriggerAndSetSample() method is executed:
+    		// to see if there's a new clock. If so, the ReadAndSetSample() method is executed:
     		bool update = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
     		if (update) {
     			this->ReadAndSetSample();
