@@ -4,7 +4,7 @@
 #include "OC_autotune.h"
 #include "OC_options.h"
 
-#ifdef BUCHLA_4U
+#if defined(BUCHLA_4U) && !defined(IO_10V)
 const char* const AT_steps[] = {
   "0.0V", "1.2V", "2.4V", "3.6V", "4.8V", "6.0V", "7.2V", "8.4V", "9.6V", "10.8V", " " 
 };
