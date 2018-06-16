@@ -104,7 +104,7 @@ public:
 	}
 
 	/* Handles game states to do CV input and output. It's called by the PONGGAME_loop() function. */
-    void UpdateGameState() {
+    void UpdateCVState() {
     		/* Handle input states:
     		 *
     		 * CV 1 is a paddle control. Negative values go up, positive values go down. Note that the value
@@ -312,7 +312,7 @@ void PONGGAME_handleAppEvent(OC::AppEvent event) {
 
 void PONGGAME_loop() {
 	pong_instance.MoveBall();
-	pong_instance.UpdateGameState();
+	pong_instance.UpdateCVState();
 }
 
 void PONGGAME_menu() {
