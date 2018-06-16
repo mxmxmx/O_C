@@ -61,7 +61,7 @@ public:
 	 */
 	void Init() {
 		hit_trigger = 0;
-		miss_trigger = 0;
+		bounce_trigger = 0;
 		hi_score = 0;
 
 		StartNewGame();
@@ -107,7 +107,7 @@ public:
     		 * to get a pitch value to set. I tried to calibrate Y_POSITION_COEFF to get a CV range between 0 and 4-ish volts.
     		 */
     		uint32_t out_A; // Hit reward trigger
-    		uint32_t out_B; // Miss punishment trigger
+    		uint32_t out_B; // Ball bounce trigger
     		uint32_t out_C; // Ball position
     		uint32_t out_D; // Paddle position
 
@@ -119,10 +119,10 @@ public:
 			out_A = 0;
 		}
 
-		if (miss_trigger) {
-			// Strike the miss output
+		if (bounce_trigger) {
+			// Strike the bounce output
 			out_B = 5;
-			miss_trigger--;
+			bounce_trigger--;
 		} else {
 			out_B = 0;
 		}
@@ -149,8 +149,14 @@ public:
 			ball_y += dir_y;
 
 			// Check the playfield boundaries. Oh, yes, O_C will crash if you go too far out of bounds.
-			if (ball_x > BOUNDARY_RIGHT || ball_x < BOUNDARY_LEFT) {dir_x = -dir_x;}
-			if (ball_y > BOUNDARY_BOTTOM || ball_y < BOUNDARY_TOP) {dir_y = -dir_y;}
+			if (ball_x > BOUNDARY_RIGHT || ball_x < BOUNDARY_LEFT) {
+				dir_x = -dir_x;
+				bounce_trigger = TRIGGER_CYCLE_LENGTH;
+			}
+			if (ball_y > BOUNDARY_BOTTOM || ball_y < BOUNDARY_TOP) {
+				dir_y = -dir_y;
+				bounce_trigger = TRIGGER_CYCLE_LENGTH;
+			}
 
 			// All these conditions are just asking "Did the ball hit the paddle while traveling left?"
 			if ((ball_x <= paddle_x + PADDLE_WIDTH) && (ball_x >= paddle_x)
@@ -168,7 +174,6 @@ public:
 			// Since the point of the game is to defend your left wall, this is when you lose :,(
 			if (ball_x < 2) {
 				if (score > hi_score) hi_score = score;
-				miss_trigger = TRIGGER_CYCLE_LENGTH; // Setting the miss trigger length fires Out B on the next ISR()
 				StartNewGame();
 			}
 
@@ -250,7 +255,7 @@ private:
     int score;
     int hi_score;
     int hit_trigger;
-    int miss_trigger;
+    int bounce_trigger;
 
     int ball_x;
     int ball_y;
