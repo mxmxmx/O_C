@@ -59,7 +59,7 @@
  */
 #define CENTER_DETENT 640
 
-class PONGGAME {
+class Pong {
 public:
 	/* There are two types of game state properties: Those that should be initialized only once (like high score), and
 	 * those that need to be initialized after each game. Init() sets the first kind, and then calls StartNewGame()
@@ -283,7 +283,7 @@ private:
     int paddle_h;
 };
 
-PONGGAME pong_instance;
+Pong pong_instance;
 
 // App stubs
 void PONGGAME_init() {
