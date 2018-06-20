@@ -1,14 +1,43 @@
-#define DARKEST_TIMELINE_SETTING_LAST 66
-#define DT_SEQ_STEPS 64
-#define DT_TIMELINE_SIZE (DT_SEQ_STEPS /2)
-#define DT_TIMELINE_CV 0
-#define DT_TIMELINE_PROBABILITY 1
-#define DT_VIEW_HEIGHT 25
-#define DT_DATA_MAX 7800
-#define DT_CURSOR_TICKS 8000
-#define DT_TRIGGER_TICKS 100
+// Copyright (c) 2018 Beige Maze
+//
+// Author: Jason Justian (jjustian@clockworklogic.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// The Darkest Timeline
+// CV Recorder/Sequencer
+
+#include "util/util_settings.h"
+#include "OC_DAC.h"
+
 #define DT_LENGTH 64
 #define DT_INDEX 65
+#define DARKEST_TIMELINE_SETTING_LAST 66
+
+const int DT_SEQ_STEPS = 64;  // Total number of steps (CV + Probability timelines)
+const int DT_TIMELINE_SIZE = 32; // Total size of each timeline
+const int DT_TIMELINE_CV = 0; // For specifying a CV timeline
+const int DT_TIMELINE_PROBABILITY = 1; // For specifying a Probability timeline
+const int DT_VIEW_HEIGHT = 25; // Height, in pixels, of each view (top for CV, bottom for Probability)
+const int DT_DATA_MAX = 7800; // Highest value from ADC method used
+const int DT_CURSOR_TICKS = 8000; // How many ticks that the cursor blinks on and off when recording
+const int DT_TRIGGER_TICKS = 100; // How many ticks a trigger lasts (about 60ms)
 
 class DarkestTimeline : public settings::SettingsBase<DarkestTimeline, DARKEST_TIMELINE_SETTING_LAST> {
 public:
