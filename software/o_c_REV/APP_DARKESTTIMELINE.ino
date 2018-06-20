@@ -83,6 +83,7 @@ public:
     		// Update CV value if CV Record is enabled
 		if (cv_record_enabled) {
 			adc_value = OC::ADC::raw_pitch_value(ADC_CHANNEL_1);
+			if (adc_value < 0) adc_value = 0; // Constrain CV to positive
 			values_[idx] = (int)adc_value;
 		}
 
@@ -95,8 +96,8 @@ public:
 
 		// Update Index value
 		adc_value = OC::ADC::raw_pitch_value(ADC_CHANNEL_3);
-		if (adc_value < 0) adc_value = -adc_value;
-		apply_value(DT_INDEX, adc_value / (DT_DATA_MAX / (DT_TIMELINE_SIZE + 1)));
+		if (adc_value < 180) adc_value = 0;
+		apply_value(DT_INDEX, adc_value / (DT_DATA_MAX / DT_TIMELINE_SIZE));
 
 		// Step forward on digital input 1
 		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>()) {
@@ -111,7 +112,6 @@ public:
 		// Reset on digital input 3
 		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>()) {
 			cursor = 0;
-			apply_value(DT_INDEX, cursor);
 			clocked = 1;
 		}
     }
@@ -187,7 +187,7 @@ public:
     }
 
     void DrawView(int timeline_type) {
-		int y_offset = (timeline_type == DT_TIMELINE_CV) ? 10 : 36;
+		int y_offset = (timeline_type == DT_TIMELINE_CV) ? 10 : 37;
 		int data_offset = (timeline_type == DT_TIMELINE_CV) ? 0 : DT_TIMELINE_SIZE;
 		for (int position = 0; position < length(); position++)
 		{
@@ -217,16 +217,17 @@ public:
     		if (position == 0) { // The cursor position is at the leftmost column
     			graphics.drawRect(x_pos + x_offset, y_pos, width, height);
     			if (is_recording && blink_countdown > 0) {
-    				// If in record mode, draw a full-sized frame around the cursor
+    				// If in record mode, draw a full-sized blinking frame around the cursor
     				graphics.invertRect(x_pos, y_offset, width * 2, DT_VIEW_HEIGHT);
     			}
     		} else {
-    			if (screensaver) {height = 3; width *= 2;}
+    			if (screensaver) height = 1;
     			graphics.drawFrame(x_pos + x_offset, y_pos, width, height);
     		}
 
     		if (index() > 0 && is_index) {
-    			for (int y = 10; y < 63; y += 4)
+    			int start_y = screensaver ? 0 : 10;
+    			for (int y = start_y; y < 63; y += 4)
     			{
     				// Check raw y for safety, as I keep playing with the numbers above.
     				if (y + 2 < 63) graphics.drawLine(x_pos, y, x_pos, y + 2);
