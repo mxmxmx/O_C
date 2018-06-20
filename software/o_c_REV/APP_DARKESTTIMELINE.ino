@@ -46,12 +46,15 @@ public:
     		apply_value(DT_INDEX, 0);
     	    cursor = 0; // The sequence's record/play point
     	    clocked  = 0; // If 1, the sequencer needs to handle a clock input
-    	    cv_record_enabled = 0; // When clocked, CV will be recorded into the cursor point
-    	    prob_record_enabled = 0; // When clocked, probability will be recorded into the cursor point
+    	    cv_record_enabled = 0; // When 1, CV will be recorded as the cursor moves
+    	    prob_record_enabled = 0; // When 1, probability will be recorded as the cursor moves
+    	    index_edit_enabled = 0; //  When 1, the right encoder changes the index instead of the length
     	    blink_countdown = DT_CURSOR_TICKS; // For record modes to blink the cursor
     	    trigger1_countdown = 0; // ISR cycles remaining for trigger 1
     	    trigger2_countdown = 0; // ISR cycles remaining for trigger 2
     	    screensaver = 0; // If 1, display a simplified column
+    	    respond_to_clock = 1; // If 1, allow the cursor to be moved with the digital ins
+    	    last_cv_index = 0; // Allows a manual change to index stick around until changed by CV
 
     	    for (int i = 0; i < DT_SEQ_STEPS; i++) values_[i] = 0;
     }
@@ -69,6 +72,7 @@ public:
     		clocked = 0;
     		cv_record_enabled = 0;
     		prob_record_enabled = 0;
+    		index_edit_enabled = 0;
     }
 
     bool ScreenSaverMode(bool s) {
@@ -95,22 +99,28 @@ public:
 		}
 
 		// Update Index value
-		adc_value = OC::ADC::raw_pitch_value(ADC_CHANNEL_3);
-		if (adc_value < 180) adc_value = 0;
-		apply_value(DT_INDEX, adc_value / (DT_DATA_MAX / DT_TIMELINE_SIZE));
+		if (!index_edit_enabled) {
+			adc_value = OC::ADC::raw_pitch_value(ADC_CHANNEL_3);
+			if (adc_value < 180) adc_value = 0;
+			int cv_index = adc_value / (DT_DATA_MAX / DT_TIMELINE_SIZE);
+			if (cv_index != last_cv_index) {
+				apply_value(DT_INDEX, cv_index);
+				last_cv_index = cv_index;
+			}
+		}
 
 		// Step forward on digital input 1
-		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>()) {
-			MoveCursor(1);
+		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>() && respond_to_clock) {
+			move_cursor(1);
 		}
 
 		// Step backward on digital input 2
-		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>()) {
-			MoveCursor(-1);
+		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_2>() && respond_to_clock) {
+			move_cursor(-1);
 		}
 
 		// Reset on digital input 3
-		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>()) {
+		if (OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>() && respond_to_clock) {
 			cursor = 0;
 			clocked = 1;
 		}
@@ -149,21 +159,23 @@ public:
     		change_value(DT_LENGTH, direction);
     }
 
-    int MoveCursor(int direction) {
-    		cursor += direction;
-    		if (cursor < 0) cursor = length() - 1;
-    		if (cursor >= length()) cursor = 0;
-    		clocked = 1;
-    		return cursor;
-    }
-
-    void ToggleRecord(int timeline_type) {
-    		if (timeline_type == DT_TIMELINE_CV) {
-    			cv_record_enabled = (1 - cv_record_enabled);
+    void Navigate(int direction) {
+    		if (index_edit_enabled) {
+    			move_index(direction);
     		} else {
-    			prob_record_enabled = (1 - prob_record_enabled);
+    			move_cursor(direction);
     		}
     }
+
+    void ToggleRecord(int data_type) {
+    		if (data_type == DT_TIMELINE_CV) cv_record_enabled = (1 - cv_record_enabled);
+    		if (data_type == DT_TIMELINE_PROBABILITY) prob_record_enabled = (1 - prob_record_enabled);
+    		if (data_type == DT_INDEX) index_edit_enabled = (1 - index_edit_enabled);
+    }
+
+	void TogglePlay() {
+		respond_to_clock = (1 - respond_to_clock);
+	}
 
     void ClearTimeline(int timeline_type) {
     		int offset = (timeline_type == DT_TIMELINE_CV) ? 0 : DT_TIMELINE_SIZE;
@@ -178,6 +190,8 @@ public:
     		{
     			values_[i] = random(0, DT_DATA_MAX);
     		}
+    		apply_value(DT_INDEX, 0);
+    		cursor = 0;
     }
 
     void DrawHeader() {
@@ -225,14 +239,20 @@ public:
     			graphics.drawFrame(x_pos + x_offset, y_pos, width, height);
     		}
 
-    		if (index() > 0 && is_index) {
+    		if (is_index) {
     			int start_y = screensaver ? 0 : 10;
-    			for (int y = start_y; y < 63; y += 4)
-    			{
-    				// Check raw y for safety, as I keep playing with the numbers above.
-    				if (y + 2 < 63) graphics.drawLine(x_pos, y, x_pos, y + 2);
+
+    			if (index_edit_enabled) {
+    				// Draw a solid blinking line if the index edit is enabled
+    				if (blink_countdown < 0) graphics.drawLine(x_pos, start_y, x_pos, 63);
+    			} else {
+				for (int y = start_y; y < 63; y += 4)
+				{
+					// Check raw y for safety, as I keep playing with the numbers above.
+					if (y + 2 < 63) graphics.drawLine(x_pos, y, x_pos, y + 1);
+				}
     			}
-    		}
+		}
     }
 
     int length() {
@@ -249,6 +269,9 @@ private:
     bool cv_record_enabled;
     bool prob_record_enabled;
     bool screensaver;
+    bool respond_to_clock;
+    bool index_edit_enabled;
+    int last_cv_index;
 
     int blink_countdown;
     int trigger1_countdown;
@@ -265,6 +288,21 @@ private:
     		int idx = (((position + cursor) % length()) + index()) % DT_TIMELINE_SIZE;
     		return idx;
     }
+
+    int move_cursor(int direction) {
+    		cursor += direction;
+    		if (cursor < 0) cursor = length() - 1;
+    		if (cursor >= length()) cursor = 0;
+    		clocked = 1;
+    		return cursor;
+    }
+
+    int move_index(int direction) {
+    		values_[DT_INDEX] += direction;
+    		if (index() < 0) values_[DT_INDEX] = DT_TIMELINE_SIZE - 1;
+    		if (index() >= DT_TIMELINE_SIZE) values_[DT_INDEX] = 0;
+    		return values_[DT_INDEX];
+    }
 };
 
 #define DARKEST_TIMELINE_VALUE_ATTRIBUTE {0, 0, 8192, "step", NULL, settings::STORAGE_TYPE_U16},
@@ -274,8 +312,8 @@ SETTINGS_DECLARE(DarkestTimeline, DARKEST_TIMELINE_SETTING_LAST) {
 	DO_SIXTEEN_TIMES(DARKEST_TIMELINE_VALUE_ATTRIBUTE)
 	DO_SIXTEEN_TIMES(DARKEST_TIMELINE_VALUE_ATTRIBUTE)
 	DO_SIXTEEN_TIMES(DARKEST_TIMELINE_VALUE_ATTRIBUTE)
-	{16, 1, 32, "length", NULL, settings::STORAGE_TYPE_U8},
-	{16, 1, 32, "index", NULL, settings::STORAGE_TYPE_U8},
+	{16, 1, DT_TIMELINE_SIZE, "length", NULL, settings::STORAGE_TYPE_U8},
+	{0, 0, DT_TIMELINE_SIZE - 1, "index", NULL, settings::STORAGE_TYPE_U8},
 };
 
 DarkestTimeline timeline_instance;
@@ -338,11 +376,13 @@ void DARKESTTIMELINE_handleButtonEvent(const UI::Event &event) {
 	}
 
 	if (event.control == OC::CONTROL_BUTTON_R) {
-		timeline_instance.MoveCursor(1);
+		timeline_instance.ToggleRecord(DT_INDEX);
 	}
 
 	if (event.control == OC::CONTROL_BUTTON_L) {
-		timeline_instance.RandomizeTimeline();
+		if (event.type == UI::EVENT_BUTTON_LONG_PRESS) {
+			timeline_instance.RandomizeTimeline();
+		}
 	}
 }
 
@@ -352,7 +392,7 @@ void DARKESTTIMELINE_handleEncoderEvent(const UI::Event &event) {
 	}
 
 	if (event.control == OC::CONTROL_ENCODER_R) {
-		timeline_instance.MoveCursor(event.value > 0 ? 1 : -1);
+		timeline_instance.Navigate(event.value > 0 ? 1 : -1);
 	}
 }
 
