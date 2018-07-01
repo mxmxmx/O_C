@@ -38,10 +38,15 @@ public:
     length_ = kDefaultLength;
     probability_ = kDefaultProbability;
     shift_register_ = 0xffffffff;
+    current_step_ = 0;
   }
 
   uint32_t Clock() {
     uint32_t shift_register = shift_register_;
+    
+    current_step_++;
+    if (current_step_ >= length_)
+        current_step_ = 0;   
 
     // Toggle LSB; there might be better random options
     if (255 == probability_ ||
@@ -61,6 +66,16 @@ public:
     shift_register_ = shift_register;
 
     return shift_register & ~(0xffffffff << length_);
+  }
+
+  void reset_loop() {
+    uint32_t temp_buffer;
+    uint8_t bits_to_shift = length_ - current_step_;
+
+    temp_buffer = (1 << bits_to_shift) - 1;
+    temp_buffer = (temp_buffer & shift_register_) << current_step_;
+    shift_register_ = (shift_register_ >> bits_to_shift) | temp_buffer;
+    current_step_ = 0;
   }
 
   void set_length(uint8_t length) {
@@ -92,6 +107,7 @@ private:
   uint8_t length_;
   uint8_t probability_;
   uint32_t shift_register_;
+  uint8_t current_step_;
 };
 
 }; // namespace util

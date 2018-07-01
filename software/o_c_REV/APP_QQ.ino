@@ -65,6 +65,7 @@ enum ChannelSetting {
   CHANNEL_SETTING_TURING_PROB_CV_SOURCE,
   CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE,
   CHANNEL_SETTING_TURING_RANGE_CV_SOURCE,
+  CHANNEL_SETTING_TURING_RESET_TRIGGER,
   CHANNEL_SETTING_LOGISTIC_MAP_R,
   CHANNEL_SETTING_LOGISTIC_MAP_RANGE,
   CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE,
@@ -241,6 +242,10 @@ public:
     return values_[CHANNEL_SETTING_TURING_RANGE_CV_SOURCE];
   }
 
+  ChannelTriggerSource get_turing_reset_trigger_source() const {
+    return static_cast<ChannelTriggerSource>(values_[CHANNEL_SETTING_TURING_RESET_TRIGGER]);
+  }
+
   uint8_t get_logistic_map_r() const {
     return values_[CHANNEL_SETTING_LOGISTIC_MAP_R];
   }
@@ -383,6 +388,7 @@ public:
     last_sample_ = 0;
     clock_ = 0;
     int_seq_reset_ = false;
+    turing_reset_ = false;
     continuous_offset_ = false;
     schedule_mask_rotate_ = false;
     prev_octave_cv_ = 0;
@@ -425,6 +431,11 @@ public:
       ChannelTriggerSource int_seq_reset_trigger_source = get_int_seq_reset_trigger_source() ;
       int_seq_reset_ = (triggers & DIGITAL_INPUT_MASK(int_seq_reset_trigger_source - 1));
     }
+
+    if (source == CHANNEL_SOURCE_TURING) {
+      ChannelTriggerSource turing_reset_trigger_source = get_turing_reset_trigger_source();
+      turing_reset_ = (triggers & DIGITAL_INPUT_MASK(turing_reset_trigger_source - 1));
+    }
     
     trigger_delay_.Update();
     if (triggered)
@@ -463,6 +474,12 @@ public:
             CONSTRAIN(probability, 0, 255);
           }
           turing_machine_.set_probability(probability);  
+          
+          if (turing_reset_) {
+            turing_machine_.reset_loop();
+            turing_reset_ = false;
+          }
+          
           if (triggered) {
             uint32_t shift_register = turing_machine_.Clock();
             uint8_t range = get_turing_range();
@@ -955,6 +972,7 @@ public:
         if (OC::Scales::SCALE_NONE != get_scale(DUMMY))
             *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_TURING_PROB_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_TURING_RESET_TRIGGER;
       break;
       case CHANNEL_SOURCE_LOGISTIC_MAP:
         *settings++ = CHANNEL_SETTING_LOGISTIC_MAP_R;
@@ -1015,6 +1033,7 @@ public:
       case CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE:
       case CHANNEL_SETTING_TURING_RANGE_CV_SOURCE:
       case CHANNEL_SETTING_TURING_PROB_CV_SOURCE:
+      case CHANNEL_SETTING_TURING_RESET_TRIGGER:
       case CHANNEL_SETTING_LOGISTIC_MAP_R:
       case CHANNEL_SETTING_LOGISTIC_MAP_RANGE:
       case CHANNEL_SETTING_LOGISTIC_MAP_R_CV_SOURCE:
@@ -1062,6 +1081,7 @@ private:
   int32_t last_sample_;
   uint8_t clock_;
   bool int_seq_reset_;
+  bool turing_reset_;
   int8_t continuous_offset_;
   int8_t channel_index_;
   int32_t schedule_mask_rotate_;
@@ -1130,6 +1150,7 @@ SETTINGS_DECLARE(QuantizerChannel, CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "LFSR prb CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "LFSR mod CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "LFSR rng CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "LFSR reset", OC::Strings::trigger_input_names_none, settings::STORAGE_TYPE_U4 },
   { 128, 1, 255, "Logistic r", NULL, settings::STORAGE_TYPE_U8 },
   { 12, 1, 120, "Logistic range", NULL, settings::STORAGE_TYPE_U8 },
   { 0, 0, 4, "Log r   CV >", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
