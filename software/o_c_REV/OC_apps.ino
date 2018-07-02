@@ -46,6 +46,7 @@ OC::App available_apps[] = {
   DECLARE_APP('P','N', "Tutorial 3", PONGGAME, PONGGAME_isr),
   DECLARE_APP('C','V', "Tutorial 4", CVINSP, CVINSP_isr),
   DECLARE_APP('D','T', "Darkest Timeline", DARKESTTIMELINE, DARKESTTIMELINE_isr),
+  DECLARE_APP('L','G', "Tutorial 5", LOGIC, LOGIC_isr),
 };
 #else 
 OC::App available_apps[] = {
@@ -59,6 +60,7 @@ OC::App available_apps[] = {
   DECLARE_APP('P','N', "Pong!", PONGGAME, PONGGAME_isr),
   DECLARE_APP('C','V', "CV Inspector", CVINSP, CVINSP_isr),
   DECLARE_APP('D','T', "Darkest Timeline", DARKESTTIMELINE, DARKESTTIMELINE_isr),
+  DECLARE_APP('L','G', "Logic", LOGIC, LOGIC_isr),
 };
 #endif
 

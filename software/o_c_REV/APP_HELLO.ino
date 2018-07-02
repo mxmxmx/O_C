@@ -52,7 +52,6 @@ void HELLO_menu() {
 }
 
 void HELLO_screensaver() {
-
 }
 
 void HELLO_handleButtonEvent(const UI::Event &event) {
