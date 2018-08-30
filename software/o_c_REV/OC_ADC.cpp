@@ -18,13 +18,6 @@ DMAMEM static volatile uint16_t __attribute__((aligned(DMA_BUF_SIZE+0))) adcbuff
 
 /*static*/ void ADC::Init(CalibrationData *calibration_data) {
 
-  // According to Paul Stoffregen: You do NOT want to have the pin in digital mode when using it as analog input.
-  // https://forum.pjrc.com/threads/34319-Analog-input-impedance-and-pull-up?p=103543&viewfull=1#post103543
-  //pinMode(ChannelDesc<ADC_CHANNEL_1>::PIN, INPUT);
-  //pinMode(ChannelDesc<ADC_CHANNEL_2>::PIN, INPUT);
-  //pinMode(ChannelDesc<ADC_CHANNEL_3>::PIN, INPUT);
-  //pinMode(ChannelDesc<ADC_CHANNEL_4>::PIN, INPUT);
-
   adc_.setReference(ADC_REF_3V3);
   adc_.setResolution(kAdcScanResolution);
   adc_.setConversionSpeed(kAdcConversionSpeed);
@@ -100,19 +93,18 @@ void ADC::Init_DMA() {
     /* 
      *  collect  results from adcbuffer_0; as things are, there's DMA_BUF_SIZE = 16 samples in the buffer. 
     */
-    
     uint32_t value;
-    
-    value = (adcbuffer_0[0] + adcbuffer_0[4] + adcbuffer_0[8] + adcbuffer_0[12]) / 4;
+   
+    value = (adcbuffer_0[0] + adcbuffer_0[4] + adcbuffer_0[8] + adcbuffer_0[12]) >> 2; // / 4 = DMA_BUF_SIZE / DMA_NUM_CH
     update<ADC_CHANNEL_1>(value); 
 
-    value = (adcbuffer_0[1] + adcbuffer_0[5] + adcbuffer_0[9] + adcbuffer_0[13]) / 4;
+    value = (adcbuffer_0[1] + adcbuffer_0[5] + adcbuffer_0[9] + adcbuffer_0[13]) >> 2;
     update<ADC_CHANNEL_2>(value); 
 
-    value = (adcbuffer_0[2] + adcbuffer_0[6] + adcbuffer_0[10] + adcbuffer_0[14]) / 4;
+    value = (adcbuffer_0[2] + adcbuffer_0[6] + adcbuffer_0[10] + adcbuffer_0[14]) >> 2;
     update<ADC_CHANNEL_3>(value); 
 
-    value = (adcbuffer_0[3] + adcbuffer_0[7] + adcbuffer_0[11] + adcbuffer_0[15]) / 4;
+    value = (adcbuffer_0[3] + adcbuffer_0[7] + adcbuffer_0[11] + adcbuffer_0[15]) >> 2;
     update<ADC_CHANNEL_4>(value); 
 
     /* restart */

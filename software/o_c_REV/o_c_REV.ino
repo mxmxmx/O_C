@@ -73,12 +73,7 @@ void FASTRUN CORE_timer_ISR() {
   OC::DAC::Update();
   display::Update();
 
-  // The ADC scan uses async startSingleRead/readSingle and single channel each
-  // loop, so should be fast enough even at 60us (check ADC::busy_waits() == 0)
-  // to verify. Effectively, the scan rate is ISR / 4 / ADC::kAdcSmoothing
-  // 100us: 10kHz / 4 / 4 ~ .6kHz
-  // 60us: 16.666K / 4 / 4 ~ 1kHz
-  // kAdcSmoothing == 4 has some (maybe 1-2LSB) jitter but seems "Good Enough".
+  // see OC_ADC.h for details; empirically (with current parameters), Scan_DMA() picks up new samples @ 5.55kHz
   OC::ADC::Scan_DMA();
 
   // Pin changes are tracked in separate ISRs, so depending on prio it might

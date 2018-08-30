@@ -33,7 +33,7 @@ public:
   // These values should be tweaked so startSingleRead/readSingle run in main ISR update time
   // 16 bit has best-case 13 bits useable, but we only want 12 so we discard 4 anyway
   static constexpr uint8_t kAdcScanResolution = 16;
-  static constexpr uint8_t kAdcScanAverages = 16;
+  static constexpr uint8_t kAdcScanAverages = 4;
   static constexpr uint8_t kAdcSamplingSpeed = ADC_HIGH_SPEED_16BITS;
   static constexpr uint8_t kAdcConversionSpeed = ADC_HIGH_SPEED;
   static constexpr uint32_t kAdcValueShift = kAdcSmoothBits;
