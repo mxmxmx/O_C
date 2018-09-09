@@ -1129,7 +1129,7 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
 void H1200_menu() {
 
   /* show mode change instantly, because it's somewhat confusing (inconsistent?) otherwise */
-  const EMode current_mode =  h1200_settings.mode(); // const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
+  const EMode current_mode = h1200_settings.mode(); // const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
   int outputs[4];
   h1200_state.tonnetz_state.get_outputs(outputs);
 
@@ -1210,4 +1210,3 @@ void H1200_debug() {
   graphics.printf("I: %4d %4d", cv, scaled);
 }
 #endif // H1200_DEBUG
-

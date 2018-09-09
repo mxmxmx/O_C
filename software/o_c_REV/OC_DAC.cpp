@@ -53,8 +53,8 @@ void DAC::Init(CalibrationData *calibration_data) {
   restore_scaling(0x0);
 
   // set up DAC pins 
-  pinMode(DAC_CS, OUTPUT);
-  pinMode(DAC_RST,OUTPUT);
+  OC::pinMode(DAC_CS, OUTPUT);
+  OC::pinMode(DAC_RST,OUTPUT);
   
   #ifdef DAC8564 // A0 = 0, A1 = 0
     digitalWrite(DAC_RST, LOW); 
