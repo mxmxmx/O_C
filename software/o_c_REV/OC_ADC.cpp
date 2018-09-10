@@ -43,7 +43,7 @@ DMAMEM static volatile uint16_t __attribute__((aligned(DMA_BUF_SIZE+0))) adcbuff
 /*
  * 
  * DMA/ADC à la https://forum.pjrc.com/threads/30171-Reconfigure-ADC-via-a-DMA-transfer-to-allow-multiple-Channel-Acquisition
- * basically, this sets up two DMA channels and cycles through the 10 (effectively: 16) adc channels once (until the buffer is full), resets, and so on; dma1 advances SCA_CHANNEL_ID
+ * basically, this sets up two DMA channels and cycles through the four adc mux channels (until the buffer is full), resets, and so on; dma1 advances SCA_CHANNEL_ID
  * somewhat like https://www.nxp.com/docs/en/application-note/AN4590.pdf but w/o the PDB.
  * 
 */
