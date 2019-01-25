@@ -1,7 +1,6 @@
 #ifndef OC_ADC_H_
 #define OC_ADC_H_
 
-#include <Arduino.h>
 #include "src/drivers/ADC/OC_util_ADC.h"
 #include "OC_config.h"
 
@@ -18,6 +17,9 @@ enum ADC_CHANNEL {
   ADC_CHANNEL_LAST,
 };
 
+#define DMA_BUF_SIZE 16
+#define DMA_NUM_CH ADC_CHANNEL_LAST
+
 namespace OC {
 
 class ADC {
@@ -31,10 +33,9 @@ public:
   // These values should be tweaked so startSingleRead/readSingle run in main ISR update time
   // 16 bit has best-case 13 bits useable, but we only want 12 so we discard 4 anyway
   static constexpr uint8_t kAdcScanResolution = 16;
-  static constexpr uint8_t kAdcScanAverages = 16;
+  static constexpr uint8_t kAdcScanAverages = 4;
   static constexpr uint8_t kAdcSamplingSpeed = ADC_HIGH_SPEED_16BITS;
   static constexpr uint8_t kAdcConversionSpeed = ADC_HIGH_SPEED;
-
   static constexpr uint32_t kAdcValueShift = kAdcSmoothBits;
 
 
@@ -45,13 +46,9 @@ public:
   };
 
   static void Init(CalibrationData *calibration_data);
-
-  // Read the value of the last conversion and update current channel, then
-  // start the next conversion. If necessary, some channels could be given
-  // priority by scanning them more often. Even better might be some kind of
-  // continuous/DMA sampling to make things even more independent of the main
-  // ISR timing restrictions.
-  static void Scan();
+  static void Init_DMA();
+  static void DMA_ISR();
+  static void Scan_DMA();
 
   template <ADC_CHANNEL channel>
   static int32_t value() {
@@ -79,21 +76,6 @@ public:
     return (value * calibration_data_->pitch_cv_scale) >> 12;
   }
 
-#ifdef ENABLE_ADC_DEBUG
-  // DEBUG
-  static uint16_t fail_flag0() {
-    return adc_.adc0->fail_flag;
-  }
-
-  static uint16_t fail_flag1() {
-    return adc_.adc1->fail_flag;
-  }
-
-  static uint32_t busy_waits() {
-    return busy_waits_;
-  }
-#endif
-
   static void CalibratePitch(int32_t c2, int32_t c4);
 
 private:
@@ -108,15 +90,20 @@ private:
   }
 
   static ::ADC adc_;
+  static volatile bool ready_;
   static size_t scan_channel_;
   static CalibrationData *calibration_data_;
 
   static uint32_t raw_[ADC_CHANNEL_LAST];
   static uint32_t smoothed_[ADC_CHANNEL_LAST];
 
-#ifdef ENABLE_ADC_DEBUG
-  static volatile uint32_t busy_waits_;
-#endif
+  /*  
+   *   below: channel ids for the ADCx_SCA register: we have 4 inputs
+   *   CV1 (19) = A5 = 0x4C; CV2 (18) = A4 = 0x4D; CV3 (20) = A6 = 0x46; CV4 (17) = A3 = 0x49
+   *   for some reason the IDs must be in order: CV2, CV3, CV4, CV1 (as is, this will break the FLIP_180 option)
+  */
+  
+  static constexpr uint16_t SCA_CHANNEL_ID[DMA_NUM_CH] = { 0x4D, 0x46, 0x49, 0x4C }; 
 };
 
 };
