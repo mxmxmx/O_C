@@ -565,7 +565,7 @@ public:
                      _bytebeat_p1 += (_pitch << 4);
                      _bytebeat_p1 = USAT16(_bytebeat_p1);
                     break;
-                    case 5:  // P4
+                    case 4:  // P4
                      _bytebeat_p2 += (_pitch << 4);
                      _bytebeat_p2 = USAT16(_bytebeat_p2);
                     break;
