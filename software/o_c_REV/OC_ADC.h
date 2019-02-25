@@ -3,6 +3,7 @@
 
 #include "src/drivers/ADC/OC_util_ADC.h"
 #include "OC_config.h"
+#include "OC_options.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -100,10 +101,13 @@ private:
   /*  
    *   below: channel ids for the ADCx_SCA register: we have 4 inputs
    *   CV1 (19) = A5 = 0x4C; CV2 (18) = A4 = 0x4D; CV3 (20) = A6 = 0x46; CV4 (17) = A3 = 0x49
-   *   for some reason the IDs must be in order: CV2, CV3, CV4, CV1 (as is, this will break the FLIP_180 option)
+   *   for some reason the IDs must be in order: CV2, CV3, CV4, CV1 resp. (when flipped) CV3, CV2, CV1, CV4
   */
-  
-  static constexpr uint16_t SCA_CHANNEL_ID[DMA_NUM_CH] = { 0x4D, 0x46, 0x49, 0x4C }; 
+  #ifdef FLIP_180
+  static constexpr uint16_t SCA_CHANNEL_ID[DMA_NUM_CH] = { 0x46, 0x4D, 0x4C, 0x49 };
+  #else
+  static constexpr uint16_t SCA_CHANNEL_ID[DMA_NUM_CH] = { 0x4D, 0x46, 0x49, 0x4C };
+  #endif
 };
 
 };
