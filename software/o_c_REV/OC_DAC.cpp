@@ -62,6 +62,9 @@ void DAC::Init(CalibrationData *calibration_data) {
     digitalWrite(DAC_RST, HIGH);
   #endif
 
+  // set Vbias, using onboard DAC:
+  setMK20_DAC(2007); // ~ 0.5882V/(1.2V/4096)
+
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
 
@@ -267,6 +270,14 @@ void set8565_CHD(uint32_t data) {
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();
+}
+
+void setMK20_DAC(uint32_t data)
+{
+  SIM_SCGC2 |= SIM_SCGC2_DAC0; // DAC clock
+  DAC0_C0 = DAC_C0_DACEN; // enable module + use internal 1v2 reference
+  //__asm__ ("usat    %[value], #12, %[value]\n\t" : [value] "+r" (data));  // 0 <= val <= 4095
+  *(int16_t *)&(DAC0_DAT0L) = data;
 }
 
 // adapted from https://github.com/xxxajk/spi4teensy3 (MISO disabled) : 
