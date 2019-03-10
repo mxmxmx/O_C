@@ -63,8 +63,8 @@ void DAC::Init(CalibrationData *calibration_data) {
   #endif
 
   // set Vbias, using onboard DAC:
-  initMK20_DAC();
-  setMK20_DAC(2014); // ~ 0.5882V/(1.2V/4096)
+  init_Vbias();
+  set_Vbias(2014); // ~ 0.5882V/(1.2V/4096)
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
@@ -273,13 +273,14 @@ void set8565_CHD(uint32_t data) {
   SPIFIFO.read();
 }
 
-void initMK20_DAC() {
+void init_Vbias() {
+  /* using MK20 DAC0 for Vbias*/
   VREF_TRM = 0x60; VREF_SC = 0xE1; // enable 1v2 reference
   SIM_SCGC2 |= SIM_SCGC2_DAC0; // DAC clock
   DAC0_C0 = DAC_C0_DACEN; // enable module + use internal 1v2 reference
 }
 
-void setMK20_DAC(uint32_t data) {
+void set_Vbias(uint32_t data) {
   *(volatile int16_t *)&(DAC0_DAT0L) = data;
 }
 

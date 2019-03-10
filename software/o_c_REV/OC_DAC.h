@@ -12,8 +12,8 @@ extern void set8565_CHA(uint32_t data);
 extern void set8565_CHB(uint32_t data);
 extern void set8565_CHC(uint32_t data);
 extern void set8565_CHD(uint32_t data);
-extern void setMK20_DAC(uint32_t data);
-extern void initMK20_DAC();
+extern void set_Vbias(uint32_t data);
+extern void init_Vbias();
 extern void SPI_init();
 
 enum DAC_CHANNEL {
