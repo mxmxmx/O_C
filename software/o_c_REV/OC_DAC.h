@@ -43,8 +43,8 @@ public:
     static constexpr int kOctaveZero = 0;
   #elif defined(OC_PLUS)
     static constexpr int kOctaveZero = 0;
-    static constexpr int VBiasUnipolar = 4000; // onboard DAC, Vref 1.2V =~ Vbias = 2V =~  1.2v * 1.7 gain
-    static constexpr int VBiasBipolar = 2000; // onboard DAC, Vref 1.2V =~ Vbias = 1V =~  0.6v * 1.7 gain
+    static constexpr int VBiasUnipolar = 3900; // onboard DAC @ Vref 1.2V (internal)
+    static constexpr int VBiasBipolar = 2000;  // onboard DAC @ Vref 1.2V (internal)
   #else
     static constexpr int kOctaveZero = 3;
   #endif
