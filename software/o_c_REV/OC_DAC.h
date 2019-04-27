@@ -12,8 +12,6 @@ extern void set8565_CHA(uint32_t data);
 extern void set8565_CHB(uint32_t data);
 extern void set8565_CHC(uint32_t data);
 extern void set8565_CHD(uint32_t data);
-extern void set_Vbias(uint32_t data);
-extern void init_Vbias();
 extern void SPI_init();
 
 enum DAC_CHANNEL {
@@ -43,6 +41,10 @@ public:
 
   #ifdef BUCHLA_4U
     static constexpr int kOctaveZero = 0;
+  #elif defined(OC_PLUS)
+    static constexpr int kOctaveZero = 0;
+    static constexpr int VBiasUnipolar = 4000; // onboard DAC, Vref 1.2V =~ Vbias = 2V =~  1.2v * 1.7 gain
+    static constexpr int VBiasBipolar = 2000; // onboard DAC, Vref 1.2V =~ Vbias = 1V =~  0.6v * 1.7 gain
   #else
     static constexpr int kOctaveZero = 3;
   #endif
@@ -64,6 +66,8 @@ public:
   static void restore_scaling(uint32_t scaling);
   static uint8_t get_voltage_scaling(uint8_t channel_id);
   static uint32_t store_scaling();
+  static void set_Vbias(uint32_t data);
+  static void init_Vbias();
   
   static void set_all(uint32_t value) {
     for (int i = DAC_CHANNEL_A; i < DAC_CHANNEL_LAST; ++i)

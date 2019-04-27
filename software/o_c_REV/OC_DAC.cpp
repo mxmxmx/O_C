@@ -54,6 +54,7 @@ void DAC::Init(CalibrationData *calibration_data) {
 
   // set up DAC pins 
   OC::pinMode(DAC_CS, OUTPUT);
+  #ifndef OC_PLUS
   OC::pinMode(DAC_RST,OUTPUT);
   
   #ifdef DAC8564 // A0 = 0, A1 = 0
@@ -61,10 +62,14 @@ void DAC::Init(CalibrationData *calibration_data) {
   #else  // default to DAC8565 - pull RST high 
     digitalWrite(DAC_RST, HIGH);
   #endif
+  #endif
 
+  #ifdef OC_PLUS
   // set Vbias, using onboard DAC:
   init_Vbias();
-  set_Vbias(2014); // ~ 0.5882V/(1.2V/4096)
+  set_Vbias(VBiasUnipolar);
+  delay(10);
+  #endif
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
@@ -189,6 +194,7 @@ void DAC::restore_scaling(uint32_t scaling) {
     set_scaling(_scaling, i);
   }
 }
+/*static*/
 uint32_t DAC::store_scaling() {
 
   uint32_t _scaling = 0;
@@ -196,6 +202,17 @@ uint32_t DAC::store_scaling() {
   for (int i = 0; i < DAC_CHANNEL_LAST; i++)
     _scaling |= (DAC_scaling[i] << (i * 8)); 
   return _scaling;
+}
+/*static*/ 
+void DAC::init_Vbias() {
+  /* using MK20 DAC0 for Vbias*/
+  VREF_TRM = 0x60; VREF_SC = 0xE1; // enable 1v2 reference
+  SIM_SCGC2 |= SIM_SCGC2_DAC0; // DAC clock
+  DAC0_C0 = DAC_C0_DACEN; // enable module + use internal 1v2 reference
+}
+/*static*/ 
+void DAC::set_Vbias(uint32_t data) {
+  *(volatile int16_t *)&(DAC0_DAT0L) = data;
 }
 /*static*/
 DAC::CalibrationData *DAC::calibration_data_ = nullptr;
@@ -271,17 +288,6 @@ void set8565_CHD(uint32_t data) {
   SPIFIFO.write16(_data);
   SPIFIFO.read();
   SPIFIFO.read();
-}
-
-void init_Vbias() {
-  /* using MK20 DAC0 for Vbias*/
-  VREF_TRM = 0x60; VREF_SC = 0xE1; // enable 1v2 reference
-  SIM_SCGC2 |= SIM_SCGC2_DAC0; // DAC clock
-  DAC0_C0 = DAC_C0_DACEN; // enable module + use internal 1v2 reference
-}
-
-void set_Vbias(uint32_t data) {
-  *(volatile int16_t *)&(DAC0_DAT0L) = data;
 }
 
 // adapted from https://github.com/xxxajk/spi4teensy3 (MISO disabled) : 
