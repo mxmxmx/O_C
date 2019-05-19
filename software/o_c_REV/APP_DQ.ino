@@ -450,6 +450,7 @@ public:
     if (scale_reset_) {
       // manual change?
       scale_reset_ = false;
+      scale_sequence_cnt_ = 0x1;
       active_scale_slot_ = get_scale_select();
       prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
     }
