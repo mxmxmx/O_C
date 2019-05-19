@@ -441,15 +441,15 @@ public:
       if (_advance_trig < scale_advance_state_) 
         scale_advance_ = true;
       scale_advance_state_ = _advance_trig;  
-
-      if (scale_reset_) {
-       // manual change?
-       scale_reset_ = false;
-       active_scale_slot_ = get_scale_select();
-       prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
-      }
     }
     else if (prev_scale_slot_ != get_scale_select()) {
+      active_scale_slot_ = get_scale_select();
+      prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
+    }
+    
+    if (scale_reset_) {
+      // manual change?
+      scale_reset_ = false;
       active_scale_slot_ = get_scale_select();
       prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
     }
