@@ -664,7 +664,7 @@ public:
 
           // update scale?
           if (schedule_scale_update_ && _continuous_update) {
-            update_scale(false, display_scale_slot_, schedule_mask_rotate_);
+            update_scale(true, display_scale_slot_, schedule_mask_rotate_);
             schedule_scale_update_ = false;
           }  
 
