@@ -365,7 +365,7 @@ public:
 
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
-      last_mask_[i] = 0;
+      last_mask_[i] = 0xFFFF;
     }
     
     aux_sample_ = 0;
@@ -504,6 +504,7 @@ public:
             // if scale changes, we have to update the root and transpose values, too; mask gets updated in update_scale
             root = get_root(display_scale_slot_);
             transpose = get_transpose(display_scale_slot_);
+            schedule_scale_update_ = true;
           break;
           case DQ_DEST_ROOT:
               root += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
@@ -519,7 +520,12 @@ public:
           break;
           default:
           break;
-        } // end switch  
+        } // end switch
+        
+        if (schedule_scale_update_) {
+          force_update_ = true;
+          schedule_scale_update_ = false;
+        }
       } // -> triggered update
 
       // constrain values: 
@@ -1046,7 +1052,7 @@ private:
     force_update_ = false;  
     const int scale = get_scale(scale_select);
     uint16_t mask = get_mask(scale_select);
-    
+
     if (mask_rotate)
       mask = OC::ScaleEditor<DQ_QuantizerChannel>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
       
