@@ -434,7 +434,16 @@ public:
       update_asr_ = true;  
       aux_sample_ = ON; 
     }
-         
+
+    if (scale_reset_) {
+      // manual change?
+      scale_reset_ = false;
+      scale_sequence_cnt_ = 0x0;
+      scale_advance_state_ = 0x1;
+      active_scale_slot_ = get_scale_select();
+      prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
+    }
+    
     if (get_scale_seq_mode()) {
         // to do, don't hardcode .. 
       uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
@@ -443,14 +452,6 @@ public:
       scale_advance_state_ = _advance_trig;  
     }
     else if (prev_scale_slot_ != get_scale_select()) {
-      active_scale_slot_ = get_scale_select();
-      prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
-    }
-    
-    if (scale_reset_) {
-      // manual change?
-      scale_reset_ = false;
-      scale_sequence_cnt_ = 0x0;
       active_scale_slot_ = get_scale_select();
       prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
     }
@@ -1396,6 +1397,7 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
           break;
           case DQ_CHANNEL_SETTING_SCALE_SEQ:
+          case DQ_CHANNEL_SETTING_SEQ_MODE:
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
             selected.reset_scale();
