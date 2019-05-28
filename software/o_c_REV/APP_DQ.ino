@@ -365,7 +365,7 @@ public:
 
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
-      last_mask_[i] = 0;
+      last_mask_[i] = 0xFFFF;
     }
     
     aux_sample_ = 0;
@@ -434,20 +434,22 @@ public:
       update_asr_ = true;  
       aux_sample_ = ON; 
     }
-         
+
+    if (scale_reset_) {
+      // manual change?
+      scale_reset_ = false;
+      scale_sequence_cnt_ = 0x0;
+      scale_advance_state_ = 0x1;
+      active_scale_slot_ = get_scale_select();
+      prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
+    }
+    
     if (get_scale_seq_mode()) {
         // to do, don't hardcode .. 
       uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
       if (_advance_trig < scale_advance_state_) 
         scale_advance_ = true;
       scale_advance_state_ = _advance_trig;  
-
-      if (scale_reset_) {
-       // manual change?
-       scale_reset_ = false;
-       active_scale_slot_ = get_scale_select();
-       prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
-      }
     }
     else if (prev_scale_slot_ != get_scale_select()) {
       active_scale_slot_ = get_scale_select();
@@ -504,6 +506,7 @@ public:
             // if scale changes, we have to update the root and transpose values, too; mask gets updated in update_scale
             root = get_root(display_scale_slot_);
             transpose = get_transpose(display_scale_slot_);
+            schedule_scale_update_ = true;
           break;
           case DQ_DEST_ROOT:
               root += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
@@ -519,7 +522,12 @@ public:
           break;
           default:
           break;
-        } // end switch  
+        } // end switch
+        
+        if (schedule_scale_update_) {
+          force_update_ = true;
+          schedule_scale_update_ = false;
+        }
       } // -> triggered update
 
       // constrain values: 
@@ -658,7 +666,7 @@ public:
 
           // update scale?
           if (schedule_scale_update_ && _continuous_update) {
-            update_scale(false, display_scale_slot_, schedule_mask_rotate_);
+            update_scale(true, display_scale_slot_, schedule_mask_rotate_);
             schedule_scale_update_ = false;
           }  
 
@@ -1046,7 +1054,7 @@ private:
     force_update_ = false;  
     const int scale = get_scale(scale_select);
     uint16_t mask = get_mask(scale_select);
-    
+
     if (mask_rotate)
       mask = OC::ScaleEditor<DQ_QuantizerChannel>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
       
@@ -1389,6 +1397,7 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
           break;
           case DQ_CHANNEL_SETTING_SCALE_SEQ:
+          case DQ_CHANNEL_SETTING_SEQ_MODE:
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
             selected.reset_scale();
