@@ -41,6 +41,15 @@ public:
 
   #ifdef BUCHLA_4U
     static constexpr int kOctaveZero = 0;
+  #elif defined(OC_PLUS) || defined(OC_1U)
+    #ifdef OC_1U
+    static constexpr int kOctaveZero = 3; // todo: can't be a constant (eventually)
+    #else
+    static constexpr int kOctaveZero = 0;
+    #endif
+    static constexpr int VBiasUnipolar = 3900;   // onboard DAC @ Vref 1.2V (internal), 1.75x gain
+    static constexpr int VBiasBipolar = 2000;    // onboard DAC @ Vref 1.2V (internal), 1.75x gain
+    static constexpr int VBiasAsymmetric = 2450; // onboard DAC @ Vref 1.2V (internal), 1.75x gain
   #else
     static constexpr int kOctaveZero = 3;
   #endif
@@ -62,6 +71,8 @@ public:
   static void restore_scaling(uint32_t scaling);
   static uint8_t get_voltage_scaling(uint8_t channel_id);
   static uint32_t store_scaling();
+  static void set_Vbias(uint32_t data);
+  static void init_Vbias();
   
   static void set_all(uint32_t value) {
     for (int i = DAC_CHANNEL_A; i < DAC_CHANNEL_LAST; ++i)

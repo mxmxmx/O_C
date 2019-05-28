@@ -13,6 +13,10 @@
 //#define BUCHLA_cOC
 /* ------------ uncomment for use with Northernlight 4U / cOC : -------------------------------------  */
 //#define BUCHLA_4U
+/* ------------ uncomment for use with Plum Audio OC+ -----------------------------------------------  */
+//#define OC_PLUS
+/* ------------ uncomment for use with Plum Audio 1U ------------------------------------------------  */
+#define OC_1U
 /* ------------ uncomment for boring app names ------------------------------------------------------  */
 //#define BORING_APP_NAMES
 /* ------------ print debug messages to USB serial --------------------------------------------------  */
@@ -26,8 +30,15 @@
 /* ------------ 0 / 10V range -----------------------------------------------------------------------  */
 //#define IO_10V
 
+
+/* do not edit the stuff below (unless ... ) */
+
 #if defined(IO_10V)
   #define BUCHLA_4U
+#endif
+
+#if defined(OC_PLUS)
+  #define IO_10V
 #endif
 
 #endif
