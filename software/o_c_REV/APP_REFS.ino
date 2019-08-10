@@ -768,10 +768,9 @@ void REFS_isr() {
   return references_app.ISR();
 }
 
-void REFS_handleAppEvent(OC::AppEvent event) { 
+void REFS_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-  
       references_app.ui.cursor.set_editing(false);
       FreqMeasure.begin();
       references_app.autotuner.Close();

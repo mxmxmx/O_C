@@ -2093,7 +2093,7 @@ size_t SEQ_restore(const void *storage) {
   return used;
 }
 
-void SEQ_handleAppEvent(OC::AppEvent event) {  
+void SEQ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
         seq_state.cursor.set_editing(false);
