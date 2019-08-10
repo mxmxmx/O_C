@@ -307,6 +307,7 @@ size_t BBGEN_restore(const void *storage) {
 void BBGEN_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
+        
       bbgen.ui.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:

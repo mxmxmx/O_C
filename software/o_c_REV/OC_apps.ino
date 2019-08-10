@@ -36,31 +36,35 @@
 
 #ifdef BORING_APP_NAMES
 OC::App available_apps[] = {
+  DECLARE_APP('A','S', "ASR", ASR, ASR_isr),
+  DECLARE_APP('H','A', "Triads", H1200, H1200_isr),
+  DECLARE_APP('A','T', "Vectors", Automatonnetz, Automatonnetz_isr),
   DECLARE_APP('Q','Q', "4x Quantizer", QQ, QQ_isr),
+  DECLARE_APP('D','Q', "2x Quantizer", DQ, DQ_isr),
   DECLARE_APP('P','L', "Quadrature LFO", POLYLFO, POLYLFO_isr),
+  DECLARE_APP('L','R', "Lorenz", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "4x EG", ENVGEN, ENVGEN_isr),
   DECLARE_APP('S','Q', "2x Sequencer", SEQ, SEQ_isr),
-  DECLARE_APP('R','F', "Voltages", REFS, REFS_isr),
-  DECLARE_APP('H','W', "Tutorial 1", HELLO, HELLO_isr),
-  DECLARE_APP('S','H', "Tutorial 2", SANDH, SANDH_isr),
-  DECLARE_APP('P','N', "Tutorial 3", PONGGAME, PONGGAME_isr),
-  DECLARE_APP('C','V', "Tutorial 4", CVINSP, CVINSP_isr),
-  DECLARE_APP('D','T', "Darkest Timeline", DARKESTTIMELINE, DARKESTTIMELINE_isr),
-  DECLARE_APP('L','G', "Tutorial 5", LOGIC, LOGIC_isr),
+  DECLARE_APP('B','B', "Balls", BBGEN, BBGEN_isr),
+  DECLARE_APP('B','Y', "Bytebeats", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('C','Q', "Chords", CHORDS, CHORDS_isr),
+  DECLARE_APP('R','F', "Voltages", REFS, REFS_isr)
 };
 #else 
 OC::App available_apps[] = {
+  DECLARE_APP('A','S', "CopierMaschine", ASR, ASR_isr),
+  DECLARE_APP('H','A', "Harrington 1200", H1200, H1200_isr),
+  DECLARE_APP('A','T', "Automatonnetz", Automatonnetz, Automatonnetz_isr),
   DECLARE_APP('Q','Q', "Quantermain", QQ, QQ_isr),
+  DECLARE_APP('D','Q', "Meta-Q", DQ, DQ_isr),
   DECLARE_APP('P','L', "Quadraturia", POLYLFO, POLYLFO_isr),
+  DECLARE_APP('L','R', "Low-rents", LORENZ, LORENZ_isr),
   DECLARE_APP('E','G', "Piqued", ENVGEN, ENVGEN_isr),
   DECLARE_APP('S','Q', "Sequins", SEQ, SEQ_isr),
-  DECLARE_APP('R','F', "References", REFS, REFS_isr),
-  DECLARE_APP('H','W', "Hello, World", HELLO, HELLO_isr),
-  DECLARE_APP('S','H', "Sample and Hold", SANDH, SANDH_isr),
-  DECLARE_APP('P','N', "Pong!", PONGGAME, PONGGAME_isr),
-  DECLARE_APP('C','V', "CV Inspector", CVINSP, CVINSP_isr),
-  DECLARE_APP('D','T', "Darkest Timeline", DARKESTTIMELINE, DARKESTTIMELINE_isr),
-  DECLARE_APP('L','G', "Logic", LOGIC, LOGIC_isr),
+  DECLARE_APP('B','B', "Dialectic Ping Pong", BBGEN, BBGEN_isr),
+  DECLARE_APP('B','Y', "Viznutcracker sweet", BYTEBEATGEN, BYTEBEATGEN_isr),
+  DECLARE_APP('C','Q', "Acid Curds", CHORDS, CHORDS_isr),
+  DECLARE_APP('R','F', "References", REFS, REFS_isr)
 };
 #endif
 
@@ -203,6 +207,11 @@ void restore_app_data() {
     }
     restored_bytes += chunk->length;
     data += chunk->length;
+    
+#ifdef VOR
+    VBiasManager *vbias_m = vbias_m->get();
+    vbias_m->SetStateForApp(apps::index_of(global_settings.current_app_id));
+#endif
   }
 
   SERIAL_PRINTLN("App data restored: %u, expected %u", restored_bytes, app_settings.used);
@@ -403,6 +412,10 @@ void Ui::AppSettings() {
   // Restore state
   apps::current_app->HandleAppEvent(APP_EVENT_RESUME);
   CORE::app_isr_enabled = true;
+#ifdef VOR
+  VBiasManager *vbias_m = vbias_m->get();
+  vbias_m->SetStateForApp(apps::index_of(global_settings.current_app_id));
+#endif
 }
 
 bool Ui::ConfirmReset() {

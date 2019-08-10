@@ -953,7 +953,8 @@ public:
         *settings++ = CHANNEL_SETTING_TURING_RANGE;
         *settings++ = CHANNEL_SETTING_TURING_PROB;
         if (OC::Scales::SCALE_NONE != get_scale(DUMMY))
-            *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
+            *settings++ = CHANNEL_SETTING_TURING_MODULUS_CV_SOURCE;
+        *settings++ = CHANNEL_SETTING_TURING_RANGE_CV_SOURCE;
         *settings++ = CHANNEL_SETTING_TURING_PROB_CV_SOURCE;
       break;
       case CHANNEL_SOURCE_LOGISTIC_MAP:
@@ -1223,6 +1224,7 @@ size_t QQ_restore(const void *storage) {
 void QQ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
+
       qq_state.cursor.set_editing(false);
       qq_state.scale_editor.Close();
       break;
@@ -1565,4 +1567,3 @@ void QQ_debug() {
  }
 }
 #endif // QQ_DEBUG
-

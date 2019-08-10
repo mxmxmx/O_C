@@ -1075,7 +1075,9 @@ size_t CHORDS_restore(const void *storage) {
 
 void CHORDS_handleAppEvent(OC::AppEvent event) {
   switch (event) {
+  
     case OC::APP_EVENT_RESUME:
+       
       chords_state.cursor.set_editing(false);
       chords_state.scale_editor.Close();
       chords_state.chord_editor.Close();
