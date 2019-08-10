@@ -251,7 +251,7 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.cv_spread.push(OC::ADC::value<ADC_CHANNEL_3>());
   poly_lfo.cv_mappable.push(OC::ADC::value<ADC_CHANNEL_4>());
 
-  i// Range in settings is (0-256] so this gets scaled to (0,65535]
+  // Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
 
   int32_t freq = SCALE8_16(poly_lfo.get_coarse()) + (poly_lfo.cv_freq.value() * 16) + poly_lfo.get_fine() * 2;
