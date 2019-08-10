@@ -64,16 +64,11 @@ void DAC::Init(CalibrationData *calibration_data) {
   #endif
   #endif
 
-  #if defined(VOR)
+#ifdef VOR
   // set Vbias, using onboard DAC:
   init_Vbias();
-  #ifdef VOR
-  set_Vbias(VBiasUnipolar);
-  #else
-  set_Vbias(VBiasAsymmetric);
-  #endif
   delay(10);
-  #endif
+#endif
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);

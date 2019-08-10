@@ -121,9 +121,6 @@ private:
   uint16_t button_ignore_mask_;
   bool screensaver_;
   bool preempt_screensaver_;
-  #ifdef VOR
-  int v_bias_;
-  #endif
 
   UI::Encoder<encR1, encR2> encoder_right_;
   UI::Encoder<encL1, encL2> encoder_left_;
