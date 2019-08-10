@@ -2096,7 +2096,7 @@ size_t SEQ_restore(const void *storage) {
 void SEQ_handleAppEvent(OC::AppEvent event) {  
   switch (event) {
     case OC::APP_EVENT_RESUME:
-      seq_state.cursor.set_editing(false);
+        seq_state.cursor.set_editing(false);
         seq_state.pattern_editor.Close();
         seq_state.scale_editor.Close();
     break;
@@ -2618,3 +2618,5 @@ void SEQ_screensaver() {
 
   seq_channel[0].RenderScreensaver();
   seq_channel[1].RenderScreensaver();
+}
+

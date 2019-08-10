@@ -242,6 +242,7 @@ struct {
 } poly_lfo_state;
 
 void FASTRUN POLYLFO_isr() {
+
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
   bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
   bool tempo_sync = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>();
