@@ -825,7 +825,6 @@ size_t ASR_restore(const void *storage) {
 void ASR_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-
       asr_state.cursor.set_editing(false);
       asr_state.scale_editor.Close();
       break;
