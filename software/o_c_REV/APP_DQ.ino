@@ -1187,7 +1187,6 @@ size_t DQ_restore(const void *storage) {
 void DQ_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-   
       dq_state.cursor.set_editing(false);
       dq_state.scale_editor.Close();
       break;

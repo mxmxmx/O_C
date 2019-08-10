@@ -470,7 +470,7 @@ size_t BYTEBEATGEN_restore(const void *storage) {
 
 void BYTEBEATGEN_handleAppEvent(OC::AppEvent event) {
   switch (event) {
-    case OC::APP_EVENT_RESUME:     
+    case OC::APP_EVENT_RESUME: 
       bytebeatgen.ui.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:

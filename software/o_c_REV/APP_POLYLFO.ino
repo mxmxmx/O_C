@@ -242,7 +242,6 @@ struct {
 } poly_lfo_state;
 
 void FASTRUN POLYLFO_isr() {
-  
   bool reset_phase = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_1>();
   bool freeze = OC::DigitalInputs::read_immediate<OC::DIGITAL_INPUT_2>();
   bool tempo_sync = OC::DigitalInputs::clocked<OC::DIGITAL_INPUT_3>();
@@ -251,8 +250,8 @@ void FASTRUN POLYLFO_isr() {
   poly_lfo.cv_shape.push(OC::ADC::value<ADC_CHANNEL_2>());
   poly_lfo.cv_spread.push(OC::ADC::value<ADC_CHANNEL_3>());
   poly_lfo.cv_mappable.push(OC::ADC::value<ADC_CHANNEL_4>());
-  
-  // Range in settings is (0-256] so this gets scaled to (0,65535]
+
+  i// Range in settings is (0-256] so this gets scaled to (0,65535]
   // CV value is 12 bit so also needs scaling
 
   int32_t freq = SCALE8_16(poly_lfo.get_coarse()) + (poly_lfo.cv_freq.value() * 16) + poly_lfo.get_fine() * 2;
@@ -347,6 +346,7 @@ void FASTRUN POLYLFO_isr() {
 }
 
 void POLYLFO_init() {
+
   poly_lfo_state.left_edit_mode = POLYLFO_SETTING_COARSE;
   poly_lfo_state.cursor.Init(POLYLFO_SETTING_TAP_TEMPO, POLYLFO_SETTING_LAST - 1);
   poly_lfo.Init();
@@ -413,7 +413,6 @@ void POLYLFO_screensaver() {
 void POLYLFO_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-   
       poly_lfo_state.cursor.set_editing(false);
       break;
     case OC::APP_EVENT_SUSPEND:

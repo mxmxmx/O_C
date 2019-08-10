@@ -658,7 +658,6 @@ size_t Automatonnetz_restore(const void *dest) {
 void Automatonnetz_handleAppEvent(OC::AppEvent event) {
   switch (event) {
     case OC::APP_EVENT_RESUME:
-       
       OC::ui.encoder_enable_acceleration(OC::CONTROL_ENCODER_L, false);
       automatonnetz_state.AddUserAction(USER_ACTION_RESET);
       break;
