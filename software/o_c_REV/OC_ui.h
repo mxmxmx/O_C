@@ -23,7 +23,7 @@ enum UiControl {
   CONTROL_BUTTON_M    = 0x10,
 
   CONTROL_ENCODER_L   = 0x20,
-  CONTROL_ENCODER_R   = 0x30,
+  CONTROL_ENCODER_R   = 0x40,
 
   #ifdef VOR
   CONTROL_LAST = 6,
