@@ -596,6 +596,8 @@ const char* const error[] = {
 SETTINGS_DECLARE(ReferenceChannel, REF_SETTING_LAST) {
   #ifdef BUCHLA_4U
   { 0, 0, 9, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
+  #elif defined(VOR) 
+  {0, 0, 10, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
   #else
   { 0, -3, 6, "Octave", nullptr, settings::STORAGE_TYPE_I8 },
   #endif

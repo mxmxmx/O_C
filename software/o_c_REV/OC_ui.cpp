@@ -13,6 +13,8 @@
 #include "OC_version.h"
 #include "OC_options.h"
 #include "src/drivers/display.h"
+#include "VBiasManager.h"
+VBiasManager *VBiasManager::instance = 0;
 
 extern uint_fast8_t MENU_REDRAW;
 
@@ -24,9 +26,8 @@ void Ui::Init() {
   ticks_ = 0;
   set_screensaver_timeout(SCREENSAVER_TIMEOUT_S);
 
-  #ifdef OC_PLUS
+  #ifdef VOR
   static const int button_pins[] = { but_top, but_bot, butL, butR, but_mid };
-  v_bias_ = false;
   #else
   static const int button_pins[] = { but_top, but_bot, butL, butR };
   #endif
@@ -117,30 +118,31 @@ UiMode Ui::DispatchEvents(App *app) {
 
     switch (event.type) {
       case UI::EVENT_BUTTON_PRESS:
-        #ifdef OC_PLUS
-        {
-          if (OC::CONTROL_BUTTON_M == event.control) {
-            /* handled here for the time being, could also be on an per-app basis; or whatever the revised framework will look like/allow .. */
-            if (v_bias_) {
-              DAC::set_Vbias(DAC::VBiasUnipolar);
-              v_bias_ = false;
-            }
-            else {
-              DAC::set_Vbias(OC::calibration_data.v_bias);
-              v_bias_ = true;
-            }
-          }
-          else
-            app->HandleButtonEvent(event);
-        }
+        #ifdef VOR
+          #ifdef VOR_NO_RANGE_BUTTON
+        if (OC::CONTROL_BUTTON_UP == event.control) {
+            VBiasManager *vbias_m = vbias_m->get();
+            if (vbias_m->IsEditing()) vbias_m->AdvanceBias();
+            else app->HandleButtonEvent(event);
+        } else app->HandleButtonEvent(event);
+          #else
+        if (OC::CONTROL_BUTTON_M == event.control) {
+            VBiasManager *vbias_m = vbias_m->get();
+            vbias_m->AdvanceBias();
+        } else app->HandleButtonEvent(event);
+        #endif
         #else
         app->HandleButtonEvent(event);
         #endif
         break;
       case UI::EVENT_BUTTON_LONG_PRESS:
         if (OC::CONTROL_BUTTON_UP == event.control) {
-          if (!preempt_screensaver_) 
-            screensaver_ = true;
+        #ifdef VOR_NO_RANGE_BUTTON
+            VBiasManager *vbias_m = vbias_m->get();
+            vbias_m->AdvanceBias();
+        #else
+            if (!preempt_screensaver_) screensaver_ = true;
+        #endif
         }
         else if (OC::CONTROL_BUTTON_R == event.control)
           return UI_MODE_APP_SETTINGS;
@@ -193,7 +195,7 @@ UiMode Ui::Splashscreen(bool &reset_settings) {
     menu::DefaultTitleBar::Draw();
     #ifdef BUCHLA_cOC
       graphics.print("NLM card O_C");
-    #elif defined(OC_PLUS)
+    #elif defined(VOR)
       graphics.print("Plum Audio O_C+");
     #else
       graphics.print("Ornaments & Crimes");

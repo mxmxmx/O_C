@@ -55,7 +55,7 @@ void DAC::Init(CalibrationData *calibration_data) {
   // set up DAC pins 
   OC::pinMode(DAC_CS, OUTPUT);
   
-  #ifndef OC_PLUS
+  #ifndef VOR
   OC::pinMode(DAC_RST,OUTPUT);
   #ifdef DAC8564 // A0 = 0, A1 = 0
     digitalWrite(DAC_RST, LOW); 
@@ -64,16 +64,11 @@ void DAC::Init(CalibrationData *calibration_data) {
   #endif
   #endif
 
-  #if defined(OC_PLUS) || defined(OC_1U)
+#ifdef VOR
   // set Vbias, using onboard DAC:
   init_Vbias();
-  #ifdef OC_PLUS
-  set_Vbias(VBiasUnipolar);
-  #else
-  set_Vbias(VBiasAsymmetric);
-  #endif
   delay(10);
-  #endif
+#endif
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);

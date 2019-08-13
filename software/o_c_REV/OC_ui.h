@@ -23,9 +23,9 @@ enum UiControl {
   CONTROL_BUTTON_M    = 0x10,
 
   CONTROL_ENCODER_L   = 0x20,
-  CONTROL_ENCODER_R   = 0x30,
+  CONTROL_ENCODER_R   = 0x40,
 
-  #ifdef OC_PLUS
+  #ifdef VOR
   CONTROL_LAST = 6,
   CONTROL_BUTTON_LAST = 5,
   #else
@@ -121,9 +121,6 @@ private:
   uint16_t button_ignore_mask_;
   bool screensaver_;
   bool preempt_screensaver_;
-  #ifdef OC_PLUS
-  bool v_bias_;
-  #endif
 
   UI::Encoder<encR1, encR2> encoder_right_;
   UI::Encoder<encL1, encL2> encoder_left_;

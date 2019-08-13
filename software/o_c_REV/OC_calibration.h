@@ -45,7 +45,7 @@ struct CalibrationData {
   uint32_t flags;
   uint8_t screensaver_timeout; // 0: default, else seconds
   uint8_t reserved0[3];
-  #ifdef OC_PLUS
+  #ifdef VOR
     /* less complicated this way than adding it to DAC::CalibrationData... */
     uint32_t v_bias;
   #else

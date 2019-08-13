@@ -12,6 +12,10 @@ const char* const AT_steps[] = {
 const char* const AT_steps[] = {
   "0.0V", "1.0V", "2.0V", "3.0V", "4.0V", "5.0V", "6.0V", "7.0V", "8.0V", "9.0V", " " 
 };
+#elif defined(VOR)
+const char* const AT_steps[] = {
+  "0.0V", "1.0V", "2.0V", "3.0V", "4.0V", "5.0V", "6.0V", "7.0V", "8.0V", "9.0V", "10.0V", " " 
+};
 #else
 const char* const AT_steps[] = {
   "-3V", "-2V", "-1V", " 0V", "+1V", "+2V", "+3V", "+4V", "+5V", "+6V", " " 

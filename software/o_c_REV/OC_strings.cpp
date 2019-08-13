@@ -16,6 +16,8 @@ namespace OC {
   
   const char * const note_names_unpadded[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
 
+  const char * const VOR_offsets[3] = { "-5V", "-3V", "0V"};
+
   const char * const trigger_input_names[4] = { "TR1", "TR2", "TR3", "TR4" };
 
   const char * const trigger_input_names_none[5] = { " - ", "TR1", "TR2", "TR3", "TR4" };

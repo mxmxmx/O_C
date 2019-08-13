@@ -41,7 +41,7 @@
 
 #define DAC_CS 10
 
-#ifdef OC_PLUS
+#ifdef VOR
   #define but_mid 9
 #else
   #define DAC_RST 9

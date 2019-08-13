@@ -10,7 +10,7 @@
 
 using OC::DAC;
 
-#if defined(BUCHLA_cOC) || defined(OC_PLUS)
+#if defined(BUCHLA_cOC) || defined(VOR)
 static constexpr uint16_t DAC_OFFSET = 0;  // DAC offset, initial approx., ish (Easel card)
 #else
 static constexpr uint16_t DAC_OFFSET = 4890; // DAC offset, initial approx., ish --> -3.5V to 6V
@@ -38,11 +38,11 @@ const OC::CalibrationData kCalibrationDefaults = {
     {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400},
     {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400},
     {197, 6634, 13083, 19517, 25966, 32417, 38850, 45301, 51733, 58180, 64400}
-    #elif defined(OC_PLUS)
-    {880, 7190, 13510, 19830, 27790, 32460, 38770, 45090, 51410, 57720, 64040},
-    {880, 7190, 13510, 19830, 27790, 32460, 38770, 45090, 51410, 57720, 64040},
-    {880, 7190, 13510, 19830, 27790, 32460, 38770, 45090, 51410, 57720, 64040},
-    {880, 7190, 13510, 19830, 27790, 32460, 38770, 45090, 51410, 57720, 64040}
+    #elif defined(VOR)
+    {880, 7190, 13510, 19830, 26300, 32460, 38770, 45090, 51410, 57720, 64040},
+    {880, 7190, 13510, 19830, 26300, 32460, 38770, 45090, 51410, 57720, 64040},
+    {880, 7190, 13510, 19830, 26300, 32460, 38770, 45090, 51410, 57720, 64040},
+    {880, 7190, 13510, 19830, 26300, 32460, 38770, 45090, 51410, 57720, 64040}
     #else
     {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
     {0, 6553, 13107, 19661, 26214, 32768, 39321, 45875, 52428, 58981, 65535},
@@ -61,7 +61,7 @@ const OC::CalibrationData kCalibrationDefaults = {
   OC_CALIBRATION_DEFAULT_FLAGS,
   SCREENSAVER_TIMEOUT_S, 
   { 0, 0, 0 }, // reserved0
-  #ifdef OC_PLUS
+  #ifdef VOR
   DAC::VBiasBipolar // default v_bias
   #else
   0 // reserved1
@@ -118,7 +118,7 @@ enum CALIBRATION_STEP {
   HELLO,
   CENTER_DISPLAY,
   
-  #ifdef OC_PLUS
+  #ifdef VOR
   DAC_A_VOLT_3m, DAC_A_VOLT_2m, DAC_A_VOLT_1m, DAC_A_VOLT_0, DAC_A_VOLT_1, DAC_A_VOLT_2, DAC_A_VOLT_3, DAC_A_VOLT_4, DAC_A_VOLT_5, DAC_A_VOLT_6, DAC_A_VOLT_7,
   DAC_B_VOLT_3m, DAC_B_VOLT_2m, DAC_B_VOLT_1m, DAC_B_VOLT_0, DAC_B_VOLT_1, DAC_B_VOLT_2, DAC_B_VOLT_3, DAC_B_VOLT_4, DAC_B_VOLT_5, DAC_B_VOLT_6, DAC_B_VOLT_7,
   DAC_C_VOLT_3m, DAC_C_VOLT_2m, DAC_C_VOLT_1m, DAC_C_VOLT_0, DAC_C_VOLT_1, DAC_C_VOLT_2, DAC_C_VOLT_3, DAC_C_VOLT_4, DAC_C_VOLT_5, DAC_C_VOLT_6, DAC_C_VOLT_7,
@@ -142,7 +142,7 @@ enum CALIBRATION_STEP {
 enum CALIBRATION_TYPE {
   CALIBRATE_NONE,
   CALIBRATE_OCTAVE,
-  #ifdef OC_PLUS
+  #ifdef VOR
   CALIBRATE_VBIAS,
   #endif
   CALIBRATE_ADC_OFFSET,
@@ -244,7 +244,7 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
     { DAC_D_VOLT_4,  "DAC D 8.4 volts", "-> 8.400V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 7, nullptr, 0, DAC::MAX_VALUE },
     { DAC_D_VOLT_5,  "DAC D 9.6 volts", "-> 9.600V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 8, nullptr, 0, DAC::MAX_VALUE },
     { DAC_D_VOLT_6,  "DAC D 10.8 volts", "-> 10.800V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 9, nullptr, 0, DAC::MAX_VALUE },
-  #elif defined(IO_10V) && !defined(OC_PLUS)
+  #elif defined(IO_10V) && !defined(VOR)
     { DAC_A_VOLT_3m, "DAC A 0.0 volts", "-> 0.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 0, nullptr, 0, DAC::MAX_VALUE },
     { DAC_A_VOLT_2m, "DAC A 1.0 volts", "-> 1.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 1, nullptr, 0, DAC::MAX_VALUE },
     { DAC_A_VOLT_1m, "DAC A 2.0 volts", "-> 2.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 2, nullptr, 0, DAC::MAX_VALUE },
@@ -288,7 +288,7 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
     { DAC_D_VOLT_4,  "DAC D 7.0 volts", "-> 7.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 7, nullptr, 0, DAC::MAX_VALUE },
     { DAC_D_VOLT_5,  "DAC D 8.0 volts", "-> 8.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 8, nullptr, 0, DAC::MAX_VALUE },
     { DAC_D_VOLT_6,  "DAC D 9.0 volts", "-> 9.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 9, nullptr, 0, DAC::MAX_VALUE },
-  #elif defined(OC_PLUS)
+  #elif defined(VOR)
     { DAC_A_VOLT_3m, "DAC A  0.0 volts", "-> 0.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 0, nullptr, 0, DAC::MAX_VALUE },
     { DAC_A_VOLT_2m, "DAC A  1.0 volts", "-> 1.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 1, nullptr, 0, DAC::MAX_VALUE },
     { DAC_A_VOLT_1m, "DAC A  2.0 volts", "-> 2.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 2, nullptr, 0, DAC::MAX_VALUE },
@@ -382,7 +382,7 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
     { DAC_D_VOLT_6,  "DAC D 6 volts", "->  6.000V ", default_help_r, default_footer, CALIBRATE_OCTAVE, 6, nullptr, 0, DAC::MAX_VALUE },
   #endif
 
-  #ifdef OC_PLUS
+  #ifdef VOR
     { V_BIAS, "0.000V: bipolar", "--> 0.000V", default_help_r, default_footer, CALIBRATE_VBIAS, 0, nullptr, 0, 4095 },
   #endif
   
@@ -516,7 +516,7 @@ void OC::Ui::Calibrate() {
             OC::calibration_data.dac.calibrated_octaves[step_to_channel(next_step->step)][next_step->index + DAC::kOctaveZero];
         break;
 
-      #ifdef OC_PLUS
+      #ifdef VOR
       case CALIBRATE_VBIAS:
         calibration_state.encoder_value = OC::calibration_data.v_bias;
       break;
@@ -583,7 +583,7 @@ void calibration_draw(const CalibrationState &state) {
   switch (step->calibration_type) {
     case CALIBRATE_OCTAVE:
     case CALIBRATE_SCREENSAVER:
-    #ifdef OC_PLUS
+    #ifdef VOR
     case CALIBRATE_VBIAS:
     #endif
       graphics.print(step->message);
@@ -678,12 +678,12 @@ void calibration_update(CalibrationState &state) {
       OC::calibration_data.dac.calibrated_octaves[step_to_channel(step->step)][step->index + DAC::kOctaveZero] =
         state.encoder_value;
       DAC::set_all_octave(step->index);
-      #ifdef OC_PLUS
+      #ifdef VOR
       /* set 0V @ unipolar range */
       DAC::set_Vbias(DAC::VBiasUnipolar);
       #endif
       break;
-    #ifdef OC_PLUS
+    #ifdef VOR
     case CALIBRATE_VBIAS:
       /* set 0V @ bipolar range */
       DAC::set_all_octave(5);
@@ -694,7 +694,7 @@ void calibration_update(CalibrationState &state) {
     case CALIBRATE_ADC_OFFSET:
       OC::calibration_data.adc.offset[step->index] = state.encoder_value;
       DAC::set_all_octave(0);
-      #ifdef OC_PLUS
+      #ifdef VOR
       /* set 0V @ unipolar range */
       DAC::set_Vbias(DAC::VBiasUnipolar);
       #endif
