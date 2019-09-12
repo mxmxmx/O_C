@@ -62,7 +62,7 @@ const OC::CalibrationData kCalibrationDefaults = {
   SCREENSAVER_TIMEOUT_S, 
   { 0, 0, 0 }, // reserved0
   #ifdef VOR
-  DAC::VBiasBipolar // default v_bias
+  DAC::VBiasBipolar | (DAC::VBiasAsymmetric << 16) // default v_bias values
   #else
   0 // reserved1
   #endif
@@ -123,7 +123,7 @@ enum CALIBRATION_STEP {
   DAC_B_VOLT_3m, DAC_B_VOLT_2m, DAC_B_VOLT_1m, DAC_B_VOLT_0, DAC_B_VOLT_1, DAC_B_VOLT_2, DAC_B_VOLT_3, DAC_B_VOLT_4, DAC_B_VOLT_5, DAC_B_VOLT_6, DAC_B_VOLT_7,
   DAC_C_VOLT_3m, DAC_C_VOLT_2m, DAC_C_VOLT_1m, DAC_C_VOLT_0, DAC_C_VOLT_1, DAC_C_VOLT_2, DAC_C_VOLT_3, DAC_C_VOLT_4, DAC_C_VOLT_5, DAC_C_VOLT_6, DAC_C_VOLT_7,
   DAC_D_VOLT_3m, DAC_D_VOLT_2m, DAC_D_VOLT_1m, DAC_D_VOLT_0, DAC_D_VOLT_1, DAC_D_VOLT_2, DAC_D_VOLT_3, DAC_D_VOLT_4, DAC_D_VOLT_5, DAC_D_VOLT_6, DAC_D_VOLT_7,
-  V_BIAS,
+  V_BIAS_BIPOLAR, V_BIAS_ASYMMETRIC,
   #else
   DAC_A_VOLT_3m, DAC_A_VOLT_2m, DAC_A_VOLT_1m, DAC_A_VOLT_0, DAC_A_VOLT_1, DAC_A_VOLT_2, DAC_A_VOLT_3, DAC_A_VOLT_4, DAC_A_VOLT_5, DAC_A_VOLT_6,
   DAC_B_VOLT_3m, DAC_B_VOLT_2m, DAC_B_VOLT_1m, DAC_B_VOLT_0, DAC_B_VOLT_1, DAC_B_VOLT_2, DAC_B_VOLT_3, DAC_B_VOLT_4, DAC_B_VOLT_5, DAC_B_VOLT_6,
@@ -143,7 +143,8 @@ enum CALIBRATION_TYPE {
   CALIBRATE_NONE,
   CALIBRATE_OCTAVE,
   #ifdef VOR
-  CALIBRATE_VBIAS,
+  CALIBRATE_VBIAS_BIPOLAR,
+  CALIBRATE_VBIAS_ASYMMETRIC,
   #endif
   CALIBRATE_ADC_OFFSET,
   CALIBRATE_ADC_1V,
@@ -383,7 +384,8 @@ const CalibrationStep calibration_steps[CALIBRATION_STEP_LAST] = {
   #endif
 
   #ifdef VOR
-    { V_BIAS, "0.000V: bipolar", "--> 0.000V", default_help_r, default_footer, CALIBRATE_VBIAS, 0, nullptr, 0, 4095 },
+    { V_BIAS_BIPOLAR, "0.000V: bipolar", "--> 0.000V", default_help_r, default_footer, CALIBRATE_VBIAS_BIPOLAR, 0, nullptr, 0, 4095 },
+    { V_BIAS_ASYMMETRIC, "0.000V: asym.", "--> 0.000V", default_help_r, default_footer, CALIBRATE_VBIAS_ASYMMETRIC, 0, nullptr, 0, 4095 },
   #endif
   
   { CV_OFFSET_0, "ADC CV1", "ADC value at 0V", default_help_r, default_footer, CALIBRATE_ADC_OFFSET, ADC_CHANNEL_1, nullptr, 0, 4095 },
@@ -517,8 +519,11 @@ void OC::Ui::Calibrate() {
         break;
 
       #ifdef VOR
-      case CALIBRATE_VBIAS:
-        calibration_state.encoder_value = OC::calibration_data.v_bias;
+      case CALIBRATE_VBIAS_BIPOLAR:
+        calibration_state.encoder_value = (0xFFFF & OC::calibration_data.v_bias); // bipolar = lower 2 bytes
+      break;
+      case CALIBRATE_VBIAS_ASYMMETRIC:
+        calibration_state.encoder_value = (OC::calibration_data.v_bias >> 16);  // asymmetric = upper 2 bytes
       break;
       #endif
       
@@ -584,7 +589,8 @@ void calibration_draw(const CalibrationState &state) {
     case CALIBRATE_OCTAVE:
     case CALIBRATE_SCREENSAVER:
     #ifdef VOR
-    case CALIBRATE_VBIAS:
+    case CALIBRATE_VBIAS_BIPOLAR:
+    case CALIBRATE_VBIAS_ASYMMETRIC:
     #endif
       graphics.print(step->message);
       graphics.setPrintPos(kValueX, y + 2);
@@ -684,12 +690,18 @@ void calibration_update(CalibrationState &state) {
       #endif
       break;
     #ifdef VOR
-    case CALIBRATE_VBIAS:
+    case CALIBRATE_VBIAS_BIPOLAR:
       /* set 0V @ bipolar range */
       DAC::set_all_octave(5);
-      OC::calibration_data.v_bias = state.encoder_value;
-      DAC::set_Vbias(OC::calibration_data.v_bias);
+      OC::calibration_data.v_bias = (OC::calibration_data.v_bias & 0xFFFF0000) | state.encoder_value;
+      DAC::set_Vbias(0xFFFF & OC::calibration_data.v_bias);
       break;
+    case CALIBRATE_VBIAS_ASYMMETRIC:
+      /* set 0V @ asym. range */
+      DAC::set_all_octave(5);
+      OC::calibration_data.v_bias = (OC::calibration_data.v_bias & 0xFFFF) | (state.encoder_value << 16);
+      DAC::set_Vbias(OC::calibration_data.v_bias >> 16);
+    break;
     #endif
     case CALIBRATE_ADC_OFFSET:
       OC::calibration_data.adc.offset[step->index] = state.encoder_value;

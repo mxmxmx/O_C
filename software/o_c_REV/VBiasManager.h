@@ -79,9 +79,9 @@ public:
      *
      */
     void ChangeBiasToState(int new_bias_state) {
-        int new_bias_value = OC::calibration_data.v_bias; // Bipolar
+        int new_bias_value = OC::calibration_data.v_bias & 0xFFFF; // Bipolar = lower 2 bytes
         if (new_bias_state == VBiasManager::UNI) new_bias_value = OC::DAC::VBiasUnipolar;
-        if (new_bias_state == VBiasManager::ASYM) new_bias_value = OC::DAC::VBiasAsymmetric;
+        if (new_bias_state == VBiasManager::ASYM) new_bias_value = (OC::calibration_data.v_bias >> 16); // asym. = upper 2 bytes
         OC::DAC::set_Vbias(new_bias_value);
         bias_state = new_bias_state;
     }

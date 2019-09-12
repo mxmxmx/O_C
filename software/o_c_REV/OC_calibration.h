@@ -47,7 +47,7 @@ struct CalibrationData {
   uint8_t reserved0[3];
   #ifdef VOR
     /* less complicated this way than adding it to DAC::CalibrationData... */
-    uint32_t v_bias;
+    uint32_t v_bias; // upper 2 bytes: asymmetric; lower 2 bytes: bipolar.
   #else
     uint32_t reserved1;
   #endif
