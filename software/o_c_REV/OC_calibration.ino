@@ -698,7 +698,7 @@ void calibration_update(CalibrationState &state) {
       break;
     case CALIBRATE_VBIAS_ASYMMETRIC:
       /* set 0V @ asym. range */
-      DAC::set_all_octave(5);
+      DAC::set_all_octave(3);
       OC::calibration_data.v_bias = (OC::calibration_data.v_bias & 0xFFFF) | (state.encoder_value << 16);
       DAC::set_Vbias(OC::calibration_data.v_bias >> 16);
     break;
