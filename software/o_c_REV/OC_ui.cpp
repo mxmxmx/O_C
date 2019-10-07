@@ -13,8 +13,11 @@
 #include "OC_version.h"
 #include "OC_options.h"
 #include "src/drivers/display.h"
+
+#ifdef VOR
 #include "VBiasManager.h"
 VBiasManager *VBiasManager::instance = 0;
+#endif
 
 extern uint_fast8_t MENU_REDRAW;
 

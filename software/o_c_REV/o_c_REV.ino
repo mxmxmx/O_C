@@ -168,9 +168,12 @@ void FASTRUN loop() {
           OC::apps::current_app->DrawMenu();
           ++menu_redraws;
           
-          // JEJ:On app screens, show the bias popup, if necessary
-          VBiasManager *vbias_m = vbias_m->get();
-          vbias_m->DrawPopupPerhaps();
+          #ifdef VOR
+            // JEJ:On app screens, show the bias popup, if necessary
+            VBiasManager *vbias_m = vbias_m->get();
+            vbias_m->DrawPopupPerhaps();
+          #endif
+          
         } else {
           OC::apps::current_app->DrawScreensaver();
         }

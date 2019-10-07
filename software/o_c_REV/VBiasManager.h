@@ -28,6 +28,10 @@
 #ifndef VBIAS_MANAGER_H
 #define VBIAS_MANAGER_H
 
+#include "OC_options.h"
+
+#ifdef VOR 
+
 #define BIAS_EDITOR_TIMEOUT 16666
 
 class VBiasManager {
@@ -131,3 +135,4 @@ public:
 };
 
 #endif // VBIAS_MANAGER_H
+#endif
