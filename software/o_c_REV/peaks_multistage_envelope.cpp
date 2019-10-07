@@ -137,6 +137,8 @@ uint16_t MultistageEnvelope::ProcessSingleSample(uint8_t control) {
   }
   #ifdef BUCHLA_4U
     return(static_cast<uint16_t>(scaled_value_ << 1));
+  #elif defined(VOR)
+    return(static_cast<uint16_t>(scaled_value_ << 1));
   #else
     return(static_cast<uint16_t>(scaled_value_));
   #endif

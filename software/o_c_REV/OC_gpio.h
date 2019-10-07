@@ -39,8 +39,13 @@
 #define OLED_CS_ACTIVE LOW
 #define OLED_CS_INACTIVE HIGH
 
-#define DAC_RST 9
 #define DAC_CS 10
+
+#ifdef VOR
+  #define but_mid 9
+#else
+  #define DAC_RST 9
+#endif
 
 // NOTE: encoder pins R1/R2 changed for rev >= 2c
 #ifdef FLIP_180
