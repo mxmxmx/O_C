@@ -8,7 +8,7 @@
 #define OC_OPTIONS_H_
 
 /* ------------ uncomment for use with Plum Audio VOR anabled versions (OCP, 1uO_c v2, 4Robots) ---------------------------------------------------------  */
-#define VOR
+//#define VOR
 /* ------------ uncomment for use with Plum Audio 1uO_c 4Robots (To use Up button long press to change VOR instead activate screensaver) ----------------  */
 //#define VOR_NO_RANGE_BUTTON
 
@@ -19,7 +19,7 @@
 /* ------------ uncomment for use with Northernlight 4U / cOC : -----------------------------------------------------------------------------------------  */
 //#define BUCHLA_4U
 /* ------------ uncomment for boring app names ----------------------------------------------------------------------------------------------------------  */
-#define BORING_APP_NAMES
+//#define BORING_APP_NAMES
 /* ------------ print debug messages to USB serial ------------------------------------------------------------------------------------------------------  */
 //#define PRINT_DEBUG
 /* ------------ flip screen / IO mapping ----------------------------------------------------------------------------------------------------------------  */
