@@ -102,11 +102,11 @@ const Scale scales[] = {
   // bhimpalasree (From yarns source code)
   { 12 << 7, 7, { 0, 261, 404, 637, 899, 1160, 1303} },
   // darbari (From yarns source code)
-  // { 12 << 7, 7, { 0, 261, 376, 637, 899, 1014, 1275} },
+  { 12 << 7, 7, { 0, 261, 376, 637, 899, 1014, 1275} },
   // rageshree (From yarns source code)
-  // { 12 << 7, 7, { 0, 261, 494, 637, 899, 1132, 1275} },
+  { 12 << 7, 7, { 0, 261, 494, 637, 899, 1132, 1275} },
   // khamaj (From yarns source code)
-  // { 12 << 7, 8, { 0, 261, 494, 637, 899, 1160, 1275, 1421} },
+  { 12 << 7, 8, { 0, 261, 494, 637, 899, 1160, 1275, 1421} },
   // mimal (From yarns source code)
   // { 12 << 7, 8, { 0, 261, 376, 637, 899, 1132, 1275, 1393} },
   // parameshwari (From yarns source code)
@@ -126,13 +126,13 @@ const Scale scales[] = {
   // bairagi (From yarns source code)
   { 12 << 7, 5, { 0, 115, 637, 899, 1275} },
   // b_todi (From yarns source code)
-  // { 12 << 7, 5, { 0, 115, 376, 899, 1275} },
+  { 12 << 7, 5, { 0, 115, 376, 899, 1275} },
   // chandradeep (From yarns source code)
-  // { 12 << 7, 5, { 0, 376, 637, 899, 1275} },
+  { 12 << 7, 5, { 0, 376, 637, 899, 1275} },
   // kaushik_todi (From yarns source code)
-  // { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
+  { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
-  // { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
+  { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
 
   // Tartini-Vallotti [12] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
   { 12 << 7, 12, { 0, 120, 251, 381, 502, 643, 758, 893, 1019,  1144,  1280,  1395} },
