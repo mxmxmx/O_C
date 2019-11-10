@@ -30,7 +30,8 @@
 //#define DAC8564
 /* ------------ 0 / 10V range ---------------------------------------------------------------------------------------------------------------------------  */
 //#define IO_10V
-
+/* ------------ uncomment for all settings to get saved whenever the user invokes the screensaver shortcut ----------------------------------------------  */
+// #define screensaver_quick_save
 
 /* do not edit the stuff below (unless ... ) */
 

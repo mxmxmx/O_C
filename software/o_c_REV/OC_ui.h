@@ -42,6 +42,7 @@ enum UiMode {
   UI_MODE_SCREENSAVER,
   UI_MODE_MENU,
   UI_MODE_APP_SETTINGS,
+  UI_MODE_SAVE_SETTINGS,
   UI_MODE_CALIBRATE
 };
 
@@ -59,6 +60,7 @@ public:
   void DebugStats();
   void Calibrate();
   void AppSettings();
+  void SaveSettings();
   UiMode DispatchEvents(OC::App *app);
 
   void Poll();
