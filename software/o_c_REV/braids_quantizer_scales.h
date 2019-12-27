@@ -30,6 +30,7 @@
 #define BRAIDS_QUANTIZER_SCALES_H_
 
 #include "braids_quantizer.h"
+#include "OC_options.h"
 
 namespace braids {
 
@@ -85,27 +86,27 @@ const Scale scales[] = {
   // bhairav (From yarns source code)
   { 12 << 7, 7, { 0, 115, 494, 637, 899, 1014, 1393} },
   // gunakri (From yarns source code)
-  // { 12 << 7, 5, { 0, 143, 637, 899, 1042} },
+  { 12 << 7, 5, { 0, 143, 637, 899, 1042} },
   // marwa (From yarns source code)
   { 12 << 7, 6, { 0, 143, 494, 755, 1132, 1393} },
   // shree (From yarns source code)
-  // { 12 << 7, 7, { 0, 115, 494, 755, 899, 1014, 1393} },
+  { 12 << 7, 7, { 0, 115, 494, 755, 899, 1014, 1393} },
   // purvi (From yarns source code)
-  // { 12 << 7, 7, { 0, 143, 494, 755, 899, 1042, 1393} },
+  { 12 << 7, 7, { 0, 143, 494, 755, 899, 1042, 1393} },
   // bilawal (From yarns source code)
-  // { 12 << 7, 7, { 0, 261, 494, 637, 899, 1160, 1393} },
+  { 12 << 7, 7, { 0, 261, 494, 637, 899, 1160, 1393} },
   // yaman (From yarns source code)
   { 12 << 7, 7, { 0, 261, 522, 783, 899, 1160, 1421} },
   // kafi (From yarns source code)
-  // { 12 << 7, 7, { 0, 233, 376, 637, 899, 1132, 1275} },
+  { 12 << 7, 7, { 0, 233, 376, 637, 899, 1132, 1275} },
   // bhimpalasree (From yarns source code)
   { 12 << 7, 7, { 0, 261, 404, 637, 899, 1160, 1303} },
   // darbari (From yarns source code)
-  // { 12 << 7, 7, { 0, 261, 376, 637, 899, 1014, 1275} },
+  { 12 << 7, 7, { 0, 261, 376, 637, 899, 1014, 1275} },
   // rageshree (From yarns source code)
-  // { 12 << 7, 7, { 0, 261, 494, 637, 899, 1132, 1275} },
+  { 12 << 7, 7, { 0, 261, 494, 637, 899, 1132, 1275} },
   // khamaj (From yarns source code)
-  // { 12 << 7, 8, { 0, 261, 494, 637, 899, 1160, 1275, 1421} },
+  { 12 << 7, 8, { 0, 261, 494, 637, 899, 1160, 1275, 1421} },
   // mimal (From yarns source code)
   // { 12 << 7, 8, { 0, 261, 376, 637, 899, 1132, 1275, 1393} },
   // parameshwari (From yarns source code)
@@ -125,13 +126,13 @@ const Scale scales[] = {
   // bairagi (From yarns source code)
   { 12 << 7, 5, { 0, 115, 637, 899, 1275} },
   // b_todi (From yarns source code)
-  // { 12 << 7, 5, { 0, 115, 376, 899, 1275} },
+  { 12 << 7, 5, { 0, 115, 376, 899, 1275} },
   // chandradeep (From yarns source code)
-  // { 12 << 7, 5, { 0, 376, 637, 899, 1275} },
+  { 12 << 7, 5, { 0, 376, 637, 899, 1275} },
   // kaushik_todi (From yarns source code)
-  // { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
+  { 12 << 7, 5, { 0, 376, 637, 755, 1014} },
   // jogeshwari (From yarns source code)
-  // { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
+  { 12 << 7, 6, { 0, 376, 494, 637, 1132, 1275} },
 
   // Tartini-Vallotti [12] - from the Huygens-Fokker Scala scale archive - see http://www.huygens-fokker.org/scala/downloads.html#scales
   { 12 << 7, 12, { 0, 120, 251, 381, 502, 643, 758, 893, 1019,  1144,  1280,  1395} },
@@ -153,6 +154,7 @@ const Scale scales[] = {
   // Thai ranat[7] - from Sevish World Scales Pack at http://sevish.com/music-resources
   { 12 << 7, 7, { 0,  206, 443, 673, 878, 1103,  1317} },
 
+
   // Sevish quasi-12-equal mode from 31-EDO - see http://sevish.com/2017/mapping-microtonal-scales-keyboard-scala/
   { 12 << 7, 12, { 0, 149, 297, 396, 545, 644, 793, 941, 1041,  1189,  1288,  1437} },
   // 11 TET Machine[6] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
@@ -168,6 +170,7 @@ const Scale scales[] = {
   // 17 TET Superpyth[12] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
   { 12 << 7, 12, { 0, 90,  181, 361, 452, 632, 723, 813, 994, 1084,  1265,  1355} },
 
+  #ifndef VOR
   // 22 TET Orwell[9] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
   { 12 << 7, 9, { 0, 140, 349, 489, 698, 838, 1047,  1187,  1396} },
   // 22 TET Pajara[10] Static Symmetrical Maj - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
@@ -196,7 +199,7 @@ const Scale scales[] = {
   { 12 << 7, 12, { 0, 63,  298, 406, 491, 703, 789, 897, 1131,  1194,  1239,  1492} },
   // TOP Parapyth[12] - from Sevish Regular Temperaments Pack at http://sevish.com/music-resources
   { 12 << 7, 12, { 0, 75,  265, 340, 530, 605, 710, 901, 975, 1166,  1240,  1431} },
-  
+
   // 16-ED (ED2 or ED3) (16 step equally tempered scale on the octave or the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 16, { 0, 96,  192, 288, 384, 480, 576, 672, 768, 864, 960, 1056,  1152,  1248,  1344,  1440} },
   // 15-ED (ED2 or ED3) (15 step equally tempered scale on the octave or the tritave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
@@ -246,33 +249,34 @@ const Scale scales[] = {
   { 12 << 7, 5, { 0,  404, 746, 1042,  1303} },
   // 4-HD2 (4 step harmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
   { 12 << 7, 4, { 0,  494, 899, 1240} },
+  #endif
 
   // 32-16-SD2 (16 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 16, { 0, 70,  143, 218, 296, 376, 460, 547, 637, 732, 830, 933, 1042,  1155,  1275,  1402} },
+  //{ 12 << 7, 16, { 0, 70,  143, 218, 296, 376, 460, 547, 637, 732, 830, 933, 1042,  1155,  1275,  1402} },
   // 30-15-SD2 (15 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 15, { 0, 75,  153, 233, 317, 404, 494, 589, 687, 790, 899, 1012,  1132,  1259,  1393} },
+  //{ 12 << 7, 15, { 0, 75,  153, 233, 317, 404, 494, 589, 687, 790, 899, 1012,  1132,  1259,  1393} },
   // 28-14-SD2 (14 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 14, { 0, 81,  164, 251, 342, 436, 534, 637, 746, 859, 979, 1106,  1240,  1383,  1536} },
+  //{ 12 << 7, 14, { 0, 81,  164, 251, 342, 436, 534, 637, 746, 859, 979, 1106,  1240,  1383,  1536} },
   // 26-13-SD2 (13 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 13, { 0, 87,  177, 272, 370, 473, 581, 695, 815, 942, 1076,  1219,  1372} },
+  //{ 12 << 7, 13, { 0, 87,  177, 272, 370, 473, 581, 695, 815, 942, 1076,  1219,  1372} },
   // 24-12-SD2 (12 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 12, { 0, 94,  193, 296, 404, 518, 637, 764, 899, 1042,  1194,  1359} },
+  //{ 12 << 7, 12, { 0, 94,  193, 296, 404, 518, 637, 764, 899, 1042,  1194,  1359} },
   // 22-11-SD2 (11 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 11, { 0, 103, 211, 325, 445, 571, 706, 849, 1002,  1166,  1343} },
+  //{ 12 << 7, 11, { 0, 103, 211, 325, 445, 571, 706, 849, 1002,  1166,  1343} },
   // 20-10-SD2 (10 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 10, { 0, 114, 233, 360, 494, 637, 790, 955, 1132,  1325} },
+  //{ 12 << 7, 10, { 0, 114, 233, 360, 494, 637, 790, 955, 1132,  1325} },
   // 18-9-SD2 (9 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 9, { 0,  127, 261, 404, 557, 721, 899, 1091,  1303} },
+  //{ 12 << 7, 9, { 0,  127, 261, 404, 557, 721, 899, 1091,  1303} },
   // 16-8-SD2 (8 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 8, { 0,  143, 296, 460, 637, 830, 1042,  1275} },
+  //{ 12 << 7, 8, { 0,  143, 296, 460, 637, 830, 1042,  1275} },
   // 14-7-SD2 (7 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 7, { 0,  164, 342, 534, 746, 979, 1240} },
+  //{ 12 << 7, 7, { 0,  164, 342, 534, 746, 979, 1240} },
   // 12-6-SD2 (6 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 6, { 0,  193, 404, 637, 899, 1194} },
+  //{ 12 << 7, 6, { 0,  193, 404, 637, 899, 1194} },
   // 10-5-SD2 (5 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 5, { 0,  233, 494, 790, 1132} },
+  //{ 12 << 7, 5, { 0,  233, 494, 790, 1132} },
   // 8-4-SD2 (4 step subharmonic series scale on the octave) - see Xen-Arts VSTi microtuning library at http://www.xen-arts.net/Xen-Arts%20VSTi%20Microtuning%20Library.zip
-  { 12 << 7, 4, { 0,  296, 637, 1042} },
+  //{ 12 << 7, 4, { 0,  296, 637, 1042} },
   
   // Bohlen-Pierce (equal) - see http://ziaspace.com/NYU/BP-Scale_research.pdf and https://en.wikipedia.org/wiki/Bohlen–Pierce_scale
   { 12 << 7, 13, { 0, 118, 236, 354, 473, 591, 709, 827, 945, 1063,  1182,  1300,  1418} },
