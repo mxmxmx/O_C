@@ -350,6 +350,15 @@ void draw_save_message(uint8_t c) {
   GRAPHICS_END_FRAME();
 }
 
+void Ui::SaveSettings() {
+  save_global_settings();
+  save_app_data();
+  // draw message:
+  int cnt = 0;
+  while(idle_time() < SETTINGS_SAVE_TIMEOUT_MS)
+    draw_save_message((cnt++) >> 4);
+}
+
 void Ui::AppSettings() {
 
   SetButtonIgnoreMask();
