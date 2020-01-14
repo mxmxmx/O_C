@@ -89,11 +89,15 @@ void FASTRUN Ui::Poll() {
     auto &button = buttons_[i];
     if (button.just_pressed()) {
       button_press_time_[i] = now;
-    } else if (button.released()) {
-      if (now - button_press_time_[i] < kLongPressTicks)
-        PushEvent(UI::EVENT_BUTTON_PRESS, control_mask(i), 0, button_state);
-      else
+    } else if (button.pressed()) {
+      if (now - button_press_time_[i] == kLongPressTicks)
+      {
+        button_state &= ~control_mask(i);
         PushEvent(UI::EVENT_BUTTON_LONG_PRESS, control_mask(i), 0, button_state);
+      }
+    } else if (button.released()) {
+      if (now - button_press_time_[i] < kLongPressTicks + 7)
+        PushEvent(UI::EVENT_BUTTON_PRESS, control_mask(i), 0, button_state);
     }
   }
 
