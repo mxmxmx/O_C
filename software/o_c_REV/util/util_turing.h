@@ -69,13 +69,22 @@ public:
   }
 
   void reset_loop() {
-    uint32_t temp_buffer;
-    uint8_t bits_to_shift = length_ - current_step_;
+    uint8_t bits_to_shift = length_ - current_step_ - 1;
 
-    temp_buffer = (1 << bits_to_shift) - 1;
-    temp_buffer = (temp_buffer & shift_register_) << current_step_;
-    shift_register_ = (shift_register_ >> bits_to_shift) | temp_buffer;
-    current_step_ = 0;
+    uint8_t probability_backup = probability_;
+    
+    // scale down probability temporarily to avoid increased randomness when using resets
+    // we need to scale relative to 50% probability to keep the behavior for values over 50%
+    if (probability_ < 128)
+      probability_ = probability_ / bits_to_shift;
+    else if (probability_ > 128)
+      probability_ = 255 - (255 - probability_) / bits_to_shift;
+
+    for (uint8_t i = 0; i < bits_to_shift; i++) {
+      Clock();
+    }
+
+    probability_ = probability_backup;
   }
 
   void set_length(uint8_t length) {
