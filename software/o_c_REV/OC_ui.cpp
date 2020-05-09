@@ -14,6 +14,11 @@
 #include "OC_options.h"
 #include "src/drivers/display.h"
 
+#ifdef VOR
+#include "VBiasManager.h"
+VBiasManager *VBiasManager::instance = 0;
+#endif
+
 extern uint_fast8_t MENU_REDRAW;
 
 namespace OC {
@@ -24,7 +29,12 @@ void Ui::Init() {
   ticks_ = 0;
   set_screensaver_timeout(SCREENSAVER_TIMEOUT_S);
 
+  #ifdef VOR
+  static const int button_pins[] = { but_top, but_bot, butL, butR, but_mid };
+  #else
   static const int button_pins[] = { but_top, but_bot, butL, butR };
+  #endif
+  
   for (size_t i = 0; i < CONTROL_BUTTON_LAST; ++i) {
     buttons_[i].Init(button_pins[i], OC_GPIO_BUTTON_PINMODE);
   }
@@ -111,12 +121,31 @@ UiMode Ui::DispatchEvents(App *app) {
 
     switch (event.type) {
       case UI::EVENT_BUTTON_PRESS:
+        #ifdef VOR
+          #ifdef VOR_NO_RANGE_BUTTON
+        if (OC::CONTROL_BUTTON_UP == event.control) {
+            VBiasManager *vbias_m = vbias_m->get();
+            if (vbias_m->IsEditing()) vbias_m->AdvanceBias();
+            else app->HandleButtonEvent(event);
+        } else app->HandleButtonEvent(event);
+          #else
+        if (OC::CONTROL_BUTTON_M == event.control) {
+            VBiasManager *vbias_m = vbias_m->get();
+            vbias_m->AdvanceBias();
+        } else app->HandleButtonEvent(event);
+        #endif
+        #else
         app->HandleButtonEvent(event);
+        #endif
         break;
       case UI::EVENT_BUTTON_LONG_PRESS:
         if (OC::CONTROL_BUTTON_UP == event.control) {
-          if (!preempt_screensaver_) 
-            screensaver_ = true;
+        #ifdef VOR_NO_RANGE_BUTTON
+            VBiasManager *vbias_m = vbias_m->get();
+            vbias_m->AdvanceBias();
+        #else
+            if (!preempt_screensaver_) screensaver_ = true;
+        #endif
         }
         else if (OC::CONTROL_BUTTON_R == event.control)
           return UI_MODE_APP_SETTINGS;
@@ -156,7 +185,7 @@ UiMode Ui::Splashscreen(bool &reset_settings) {
       mode = UI_MODE_APP_SETTINGS;
 
     reset_settings = 
-    #ifdef BUCHLA_4U
+    #if defined(BUCHLA_4U) && !defined(IO_10V)
        read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_R);
     #else
        read_immediate(CONTROL_BUTTON_UP) && read_immediate(CONTROL_BUTTON_DOWN);
@@ -169,6 +198,8 @@ UiMode Ui::Splashscreen(bool &reset_settings) {
     menu::DefaultTitleBar::Draw();
     #ifdef BUCHLA_cOC
       graphics.print("NLM card O_C");
+    #elif defined(VOR)
+      graphics.print("Plum Audio O_C+");
     #else
       graphics.print("Ornaments & Crimes");
     #endif

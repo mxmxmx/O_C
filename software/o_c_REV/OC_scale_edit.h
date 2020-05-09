@@ -628,11 +628,15 @@ template <typename Owner>
 void ScaleEditor<Owner>::BeginEditing(bool mode) {
 
   cursor_pos_ = 0;
-  num_notes_ = scale_->num_notes;
-  mask_ = owner_->get_scale_mask(DUMMY);
+  num_notes_ = scale_->num_notes; 
+   
   if (mode) { // == meta-Q
     edit_this_scale_ = owner_->get_scale_select();
-   OC::ui._preemptScreensaver(true);
+    mask_ = owner_->get_scale_mask(edit_this_scale_);
+    OC::ui._preemptScreensaver(true);
+  }
+  else { 
+    mask_ = owner_->get_scale_mask(DUMMY); 
   }
 }
 

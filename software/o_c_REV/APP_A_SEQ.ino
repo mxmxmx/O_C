@@ -133,6 +133,7 @@ enum SEQ_ChannelSetting {
   //
   SEQ_CHANNEL_SETTING_SCALE,
   SEQ_CHANNEL_SETTING_OCTAVE, 
+  SEQ_CHANNEL_SETTING_ROOT,
   SEQ_CHANNEL_SETTING_OCTAVE_AUX, 
   SEQ_CHANNEL_SETTING_SCALE_MASK,
   //
@@ -156,6 +157,7 @@ enum SEQ_ChannelSetting {
   SEQ_CHANNEL_SETTING_TRANSPOSE_CV_SOURCE,
   SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE,
   SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE,
+  SEQ_CHANNEL_SETTING_ROOT_CV_SOURCE,
   SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE,
   SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE,
@@ -300,7 +302,7 @@ public:
   }
 
   uint8_t get_root(uint8_t DUMMY) const {
-    return 0x0; // dummy
+    return values_[SEQ_CHANNEL_SETTING_ROOT];
   }
 
   uint8_t get_clock_source() const {
@@ -443,6 +445,10 @@ public:
   
   uint8_t get_octave_cv_source() const {
     return values_[SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE]; 
+  }
+
+  uint8_t get_root_cv_source() const {
+    return values_[SEQ_CHANNEL_SETTING_ROOT_CV_SOURCE]; 
   }
 
   uint8_t get_octave_aux_cv_source() const {
@@ -692,6 +698,7 @@ public:
     apply_value(SEQ_CHANNEL_SETTING_PULSEWIDTH_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_MULT_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE, 0);
+    apply_value(SEQ_CHANNEL_SETTING_ROOT_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_OCTAVE_AUX_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SEQ_CV_SOURCE, 0);
     apply_value(SEQ_CHANNEL_SETTING_SCALE_MASK_CV_SOURCE, 0);
@@ -1062,6 +1069,12 @@ public:
               CONSTRAIN(_transpose, -12, 12);
             }
 
+            int8_t _root = get_root(0x0);
+            if (get_root_cv_source()) {
+              _root += (OC::ADC::value(static_cast<ADC_CHANNEL>(get_root_cv_source() - 1)) + 127) >> 8;
+              CONSTRAIN(_root, 0, 11);
+            }
+
             if (_playmode != PM_ARP) {
               // use the current sequence, updated in process_num_seq_channel():
               step_pitch_ = get_pitch_at_step(display_num_sequence_, clk_cnt_) + (_octave * 12 << 7); 
@@ -1088,7 +1101,7 @@ public:
                 gate_state_ = step_state_ = OFF;
             }
             // update output:
-            step_pitch_ = quantizer_.Process(step_pitch_, 0, _transpose);  
+            step_pitch_ = quantizer_.Process(step_pitch_, _root << 7, _transpose);  
 
             int32_t _attack = get_attack_duration();        
             int32_t _decay = get_decay_duration();        
@@ -1144,7 +1157,7 @@ public:
                   else 
                   // this *might* not be quite a copy...
                     step_pitch_aux_ = step_pitch_ + (_octave_aux * 12 << 7);
-                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, 0, _transpose); 
+                  step_pitch_aux_ = quantizer_.Process(step_pitch_aux_, _root << 7, _transpose); 
                 }
                 break;
                 case ENV_AD:
@@ -1665,7 +1678,8 @@ public:
          else 
             *settings++ = SEQ_CHANNEL_SETTING_SEQUENCE_PLAYMODE_CV_RANGES;
             
-         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;    
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE;
+         *settings++ = SEQ_CHANNEL_SETTING_ROOT;    
          // aux output:   
          *settings++ = SEQ_CHANNEL_SETTING_MODE;
          
@@ -1759,7 +1773,8 @@ public:
          else 
             *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = range
 
-         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE;    
+         *settings++ = SEQ_CHANNEL_SETTING_OCTAVE_CV_SOURCE;
+         *settings++ = SEQ_CHANNEL_SETTING_ROOT_CV_SOURCE;   
          *settings++ = SEQ_CHANNEL_SETTING_DUMMY; // = mode
 
          switch (get_aux_mode()) {
@@ -1957,6 +1972,7 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   //
   { OC::Scales::SCALE_SEMI, 0, OC::Scales::NUM_SCALES - 1, "scale", OC::scale_names_short, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "octave", NULL, settings::STORAGE_TYPE_I8 }, // octave
+  { 0, 0, 11, "root", OC::Strings::note_names_unpadded, settings::STORAGE_TYPE_U8 },
   { 0, -5, 5, "--> aux +/-", NULL, settings::STORAGE_TYPE_I8 }, // aux octave
   { 65535, 1, 65535, "--> edit", NULL, settings::STORAGE_TYPE_U16 }, // mask
   // seq
@@ -1979,8 +1995,9 @@ SETTINGS_DECLARE(SEQ_Channel, SEQ_CHANNEL_SETTING_LAST) {
   { 0, 0, 4, "mult/div CV ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "transpose   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "--> pw      ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "octave  -/+ ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
-  { 0, 0, 4, "--> aux -/+ ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "octave  +/- ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "root    +/- ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
+  { 0, 0, 4, "--> aux +/- ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "sequence #  ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "mask rotate ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },
   { 0, 0, 4, "direction   ->", OC::Strings::cv_input_names_none, settings::STORAGE_TYPE_U4 },

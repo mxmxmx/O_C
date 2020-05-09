@@ -305,6 +305,7 @@ public:
   void Init() {
     InitDefaults();
     update_enabled_settings();
+    manual_mode_change_ = false;
   }
 
   H1200Setting enabled_setting_at(int index) const {
@@ -313,6 +314,14 @@ public:
 
   int num_enabled_settings() const {
     return num_enabled_settings_;
+  }
+
+  void mode_change(bool yn) {
+    manual_mode_change_ = yn;
+  }
+
+  bool mode_manual_change() const {
+    return manual_mode_change_; 
   }
 
   void update_enabled_settings() {
@@ -369,6 +378,7 @@ public:
 
 private:
   int num_enabled_settings_;
+  bool manual_mode_change_;
   H1200Setting enabled_settings_[H1200_SETTING_LAST];
 };
 
@@ -499,24 +509,24 @@ public:
     euclidean_counter_ = 0;
     root_sample_ = false;
     root_ = 0;
-    p_euclidean_length_ = 8 ;
-    p_euclidean_fill_ = 0 ;
-    p_euclidean_offset_ = 0 ;
-    l_euclidean_length_ = 8 ;
-    l_euclidean_fill_ = 0 ;
-    l_euclidean_offset_ = 0 ;
-    r_euclidean_length_ = 8 ;
-    r_euclidean_fill_ = 0 ;
-    r_euclidean_offset_ = 0 ;
-    n_euclidean_length_ = 8 ;
-    n_euclidean_fill_ = 0 ;
-    n_euclidean_offset_ = 0 ;
-    s_euclidean_length_ = 8 ;
-    s_euclidean_fill_ = 0 ;
-    s_euclidean_offset_ = 0 ;
-    h_euclidean_length_ = 8 ;
-    h_euclidean_fill_ = 0 ;
-    h_euclidean_offset_ = 0 ;
+    p_euclidean_length_ = 8;
+    p_euclidean_fill_ = 0;
+    p_euclidean_offset_ = 0;
+    l_euclidean_length_ = 8;
+    l_euclidean_fill_ = 0;
+    l_euclidean_offset_ = 0;
+    r_euclidean_length_ = 8;
+    r_euclidean_fill_ = 0;
+    r_euclidean_offset_ = 0;
+    n_euclidean_length_ = 8;
+    n_euclidean_fill_ = 0;
+    n_euclidean_offset_ = 0;
+    s_euclidean_length_ = 8;
+    s_euclidean_fill_ = 0;
+    s_euclidean_offset_ = 0;
+    h_euclidean_length_ = 8;
+    h_euclidean_fill_ = 0;
+    h_euclidean_offset_ = 0;
     
   }
 
@@ -674,6 +684,16 @@ void FASTRUN H1200_clock(uint32_t triggers) {
   // Reset has priority
   if (triggers & TRIGGER_MASK_TR1) {
     h1200_state.tonnetz_state.reset(h1200_settings.mode());
+    h1200_settings.mode_change(false);
+  }
+
+  // Reset on next trigger = manual change min/maj
+  if (h1200_settings.mode_manual_change()) {
+    
+      if ((triggers & OC::DIGITAL_INPUT_2_MASK) || (triggers & OC::DIGITAL_INPUT_3_MASK) || (triggers & OC::DIGITAL_INPUT_4_MASK)) {
+        h1200_settings.mode_change(false);
+        h1200_state.tonnetz_state.reset(h1200_settings.mode());
+      }
   }
 
   int32_t root_ = h1200_settings.root_offset();
@@ -1092,6 +1112,9 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
                 if (h1200_settings.get_trigger_type() != H1200_TRIGGER_TYPE_EUCLIDEAN) 
                   h1200_state.cursor.Scroll(h1200_state.cursor_pos());
               break;
+              case H1200_SETTING_MODE:
+                h1200_settings.mode_change(true);
+              break;
               default:
               break;
            }
@@ -1105,7 +1128,8 @@ void H1200_handleEncoderEvent(const UI::Event &event) {
 
 void H1200_menu() {
 
-  const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
+  /* show mode change instantly, because it's somewhat confusing (inconsistent?) otherwise */
+  const EMode current_mode = h1200_settings.mode(); // const EMode current_mode = h1200_state.tonnetz_state.current_chord().mode();
   int outputs[4];
   h1200_state.tonnetz_state.get_outputs(outputs);
 
@@ -1186,4 +1210,3 @@ void H1200_debug() {
   graphics.printf("I: %4d %4d", cv, scaled);
 }
 #endif // H1200_DEBUG
-

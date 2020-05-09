@@ -53,14 +53,22 @@ void DAC::Init(CalibrationData *calibration_data) {
   restore_scaling(0x0);
 
   // set up DAC pins 
-  pinMode(DAC_CS, OUTPUT);
-  pinMode(DAC_RST,OUTPUT);
+  OC::pinMode(DAC_CS, OUTPUT);
   
+  #ifndef VOR
+  OC::pinMode(DAC_RST,OUTPUT);
   #ifdef DAC8564 // A0 = 0, A1 = 0
     digitalWrite(DAC_RST, LOW); 
   #else  // default to DAC8565 - pull RST high 
     digitalWrite(DAC_RST, HIGH);
   #endif
+  #endif
+
+#ifdef VOR
+  // set Vbias, using onboard DAC:
+  init_Vbias();
+  delay(10);
+#endif
 
   history_tail_ = 0;
   memset(history_, 0, sizeof(uint16_t) * kHistoryDepth * DAC_CHANNEL_LAST);
@@ -185,6 +193,7 @@ void DAC::restore_scaling(uint32_t scaling) {
     set_scaling(_scaling, i);
   }
 }
+/*static*/
 uint32_t DAC::store_scaling() {
 
   uint32_t _scaling = 0;
@@ -192,6 +201,17 @@ uint32_t DAC::store_scaling() {
   for (int i = 0; i < DAC_CHANNEL_LAST; i++)
     _scaling |= (DAC_scaling[i] << (i * 8)); 
   return _scaling;
+}
+/*static*/ 
+void DAC::init_Vbias() {
+  /* using MK20 DAC0 for Vbias*/
+  VREF_TRM = 0x60; VREF_SC = 0xE1; // enable 1v2 reference
+  SIM_SCGC2 |= SIM_SCGC2_DAC0; // DAC clock
+  DAC0_C0 = DAC_C0_DACEN; // enable module + use internal 1v2 reference
+}
+/*static*/ 
+void DAC::set_Vbias(uint32_t data) {
+  *(volatile int16_t *)&(DAC0_DAT0L) = data;
 }
 /*static*/
 DAC::CalibrationData *DAC::calibration_data_ = nullptr;

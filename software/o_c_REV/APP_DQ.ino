@@ -365,7 +365,7 @@ public:
 
     for (int i = 0; i < NUM_SCALE_SLOTS; i++) {
       last_scale_[i] = -1;
-      last_mask_[i] = 0;
+      last_mask_[i] = 0xFFFF;
     }
     
     aux_sample_ = 0;
@@ -434,24 +434,26 @@ public:
       update_asr_ = true;  
       aux_sample_ = ON; 
     }
-         
+
+    if (scale_reset_) {
+      // manual change?
+      scale_reset_ = false;
+      scale_sequence_cnt_ = 0x0;
+      scale_advance_state_ = 0x1;
+      active_scale_slot_ = get_scale_select();
+      prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
+    }
+    
     if (get_scale_seq_mode()) {
         // to do, don't hardcode .. 
       uint8_t _advance_trig = (dac_channel == DAC_CHANNEL_A) ? digitalReadFast(TR2) : digitalReadFast(TR4);
       if (_advance_trig < scale_advance_state_) 
         scale_advance_ = true;
       scale_advance_state_ = _advance_trig;  
-
-      if (scale_reset_) {
-       // manual change?
-       scale_reset_ = false;
-       active_scale_slot_ = get_scale_select();
-       prev_scale_slot_ = active_scale_slot_;
-      }
     }
     else if (prev_scale_slot_ != get_scale_select()) {
       active_scale_slot_ = get_scale_select();
-      prev_scale_slot_ = active_scale_slot_;
+      prev_scale_slot_ = display_scale_slot_ = active_scale_slot_;
     }
           
     if (scale_advance_) {
@@ -465,9 +467,6 @@ public:
     }
 
     bool update = continuous || triggered;
-    
-    if (update) 
-      update_scale(force_update_, active_scale_slot_, schedule_mask_rotate_);
        
     int32_t sample = last_sample_;
     int32_t temp_sample = 0;
@@ -513,8 +512,7 @@ public:
               root += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
           break;
           case DQ_DEST_MASK:
-              update_scale(true, active_scale_slot_, (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8);
-              schedule_scale_update_ = false;
+              schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
           break;
           case DQ_DEST_OCTAVE:
             octave += (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 255) >> 9;
@@ -524,7 +522,12 @@ public:
           break;
           default:
           break;
-        } // end switch  
+        } // end switch
+        
+        if (schedule_scale_update_) {
+          force_update_ = true;
+          schedule_scale_update_ = false;
+        }
       } // -> triggered update
 
       // constrain values: 
@@ -532,6 +535,9 @@ public:
       CONSTRAIN(octave, -4, 4);
       CONSTRAIN(root, 0, 11);
       CONSTRAIN(transpose, -12, 12); 
+
+      // update scale?
+      update_scale(force_update_, display_scale_slot_, schedule_mask_rotate_);
 
       // internal CV source?
       if (source > DQ_CHANNEL_SOURCE_CV4) 
@@ -598,11 +604,6 @@ public:
 
       // special treatment, continuous update -- only update the modulation values if/when the quantized input changes:    
       bool _continuous_update = continuous && last_sample_ != sample;
-
-      if ((!continuous && schedule_scale_update_) || (_continuous_update && schedule_scale_update_)) {
-        update_scale(true, display_scale_slot_, schedule_mask_rotate_);
-        schedule_scale_update_ = false;
-      }  
        
       if (_continuous_update) {
 
@@ -656,12 +657,18 @@ public:
             break;   
             case DQ_DEST_MASK:
               schedule_mask_rotate_ = (OC::ADC::value(static_cast<ADC_CHANNEL>(channel_id)) + 127) >> 8;
-              update_scale(force_update_, active_scale_slot_, schedule_mask_rotate_);
+              schedule_scale_update_ = true;
             break;
             default:
             break; 
           } 
           // end switch
+
+          // update scale?
+          if (schedule_scale_update_ && _continuous_update) {
+            update_scale(true, display_scale_slot_, schedule_mask_rotate_);
+            schedule_scale_update_ = false;
+          }  
 
           // offset when TR source = continuous ?
           int8_t _trigger_offset = 0;
@@ -1047,7 +1054,7 @@ private:
     force_update_ = false;  
     const int scale = get_scale(scale_select);
     uint16_t mask = get_mask(scale_select);
-    
+
     if (mask_rotate)
       mask = OC::ScaleEditor<DQ_QuantizerChannel>::RotateMask(mask, OC::Scales::GetScale(scale).num_notes, mask_rotate);
       
@@ -1167,8 +1174,10 @@ size_t DQ_restore(const void *storage) {
   size_t used = 0;
   for (size_t i = 0; i < NUMCHANNELS; ++i) {
     used += dq_quantizer_channels[i].Restore(static_cast<const char*>(storage) + used);
-    int scale = dq_quantizer_channels[i].get_scale_select();
-    dq_quantizer_channels[i].update_scale_mask(dq_quantizer_channels[i].get_mask(scale), scale);
+    //int scale = dq_quantizer_channels[i].get_scale_select();
+    for (size_t j = SLOT1; j < LAST_SLOT; j++) {
+      dq_quantizer_channels[i].update_scale_mask(dq_quantizer_channels[i].get_mask(j), j);
+    }
     dq_quantizer_channels[i].update_enabled_settings();
   }
   dq_state.cursor.AdjustEnd(dq_quantizer_channels[0].num_enabled_settings() - 1);
@@ -1348,6 +1357,7 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
     DQ_QuantizerChannel &selected = dq_quantizer_channels[dq_state.selected_channel];
     
     if (dq_state.editing()) {
+      
       DQ_ChannelSetting setting = selected.enabled_setting_at(dq_state.cursor_pos());
       if (DQ_CHANNEL_SETTING_MASK1 != setting || DQ_CHANNEL_SETTING_MASK2 != setting || DQ_CHANNEL_SETTING_MASK3 != setting || DQ_CHANNEL_SETTING_MASK4 != setting) {
 
@@ -1386,10 +1396,12 @@ void DQ_handleEncoderEvent(const UI::Event &event) {
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
           break;
-            case DQ_CHANNEL_SETTING_SCALE_SEQ:
+          case DQ_CHANNEL_SETTING_SCALE_SEQ:
+          case DQ_CHANNEL_SETTING_SEQ_MODE:
             selected.update_enabled_settings();
             dq_state.cursor.AdjustEnd(selected.num_enabled_settings() - 1);
             selected.reset_scale();
+          break;
           default:
           break;
         }

@@ -17,6 +17,7 @@ namespace OC {
     extern const char * const channel_id[];
     extern const char * const note_names[];
     extern const char * const note_names_unpadded[];
+    extern const char * const VOR_offsets[];    
     extern const char * const trigger_input_names[];
     extern const char * const trigger_input_names_none[];
     extern const char * const cv_input_names[];
