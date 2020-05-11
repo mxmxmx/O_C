@@ -38,10 +38,15 @@ public:
     length_ = kDefaultLength;
     probability_ = kDefaultProbability;
     shift_register_ = 0xffffffff;
+    current_step_ = 0;
   }
 
   uint32_t Clock() {
     uint32_t shift_register = shift_register_;
+    
+    current_step_++;
+    if (current_step_ >= length_)
+        current_step_ = 0;   
 
     // Toggle LSB; there might be better random options
     if (255 == probability_ ||
@@ -61,6 +66,25 @@ public:
     shift_register_ = shift_register;
 
     return shift_register & ~(0xffffffff << length_);
+  }
+
+  void reset_loop() {
+    uint8_t bits_to_shift = length_ - current_step_ - 1;
+
+    uint8_t probability_backup = probability_;
+    
+    // scale down probability temporarily to avoid increased randomness when using resets
+    // we need to scale relative to 50% probability to keep the behavior for values over 50%
+    if (probability_ < 128)
+      probability_ = probability_ / bits_to_shift;
+    else if (probability_ > 128)
+      probability_ = 255 - (255 - probability_) / bits_to_shift;
+
+    for (uint8_t i = 0; i < bits_to_shift; i++) {
+      Clock();
+    }
+
+    probability_ = probability_backup;
   }
 
   void set_length(uint8_t length) {
@@ -92,6 +116,7 @@ private:
   uint8_t length_;
   uint8_t probability_;
   uint32_t shift_register_;
+  uint8_t current_step_;
 };
 
 }; // namespace util
