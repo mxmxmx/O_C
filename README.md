@@ -14,5 +14,3 @@ eurorack / teensy 3.2 DAC8565 quad 16bit CV module w/ OLED display
 
 14HP, depth ~ 25mm
 
-build guide: http://ornament-and-cri.me/
-
