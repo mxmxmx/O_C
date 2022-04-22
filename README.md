@@ -1,4 +1,4 @@
-ornament & crime. polymorphic CV generator
+o_C. polymorphic CV generator
 ===
 
 ![My image](https://farm1.staticflickr.com/676/20090774694_b56e557693_b.jpg)
@@ -6,7 +6,7 @@ ornament & crime. polymorphic CV generator
 
 ### firmware:
 
-ornament**s** & crime**s** is a collaborative project by Patrick Dowling (aka pld), mxmxmx and Tim Churches (aka bennelong.bicyclist) (though mostly by pld and bennelong.bicyclist). it **(considerably) extends** the original firmware for the o_C / ASR eurorack module, designed by mxmxmx.
+o_C is a collaborative project by Patrick Dowling (aka pld), mxmxmx and Tim Churches (aka bennelong.bicyclist) (though mostly by pld and bennelong.bicyclist). it **(considerably) extends** the original firmware for the o_C / ASR eurorack module, designed by mxmxmx.
 
 ### hardware:
 
