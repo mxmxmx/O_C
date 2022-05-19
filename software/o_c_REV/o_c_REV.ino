@@ -190,8 +190,12 @@ void FASTRUN loop() {
 
     // State transition for app
     if (mode != ui_mode) {
-      if (OC::UI_MODE_SCREENSAVER == mode)
+      if (OC::UI_MODE_SCREENSAVER == mode) {
+        #ifdef screensaver_quick_save
+          OC::ui.SaveSettings();
+        #endif
         OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_ON);
+      }
       else if (OC::UI_MODE_SCREENSAVER == ui_mode)
         OC::apps::current_app->HandleAppEvent(OC::APP_EVENT_SCREENSAVER_OFF);
       ui_mode = mode;

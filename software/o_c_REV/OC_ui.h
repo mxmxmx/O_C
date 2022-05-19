@@ -59,6 +59,7 @@ public:
   void DebugStats();
   void Calibrate();
   void AppSettings();
+  void SaveSettings();
   UiMode DispatchEvents(OC::App *app);
 
   void Poll();
